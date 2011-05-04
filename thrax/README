@@ -1,0 +1,54 @@
+Thrax - Release 0.1
+
+Thrax is a toolkit for compiling grammars based on regular expressions and
+context-dependent rewrite rules into weighted finite-state transducers
+(FSTs). The FST representation uses OpenFst.
+
+REQUIREMENTS:
+  This version is known to work under Linux and MacOS using g++ (>=
+  4.2). Expected to work wherever adequate POSIX (dlopen, ssize_t, basename),
+  c99 (snprintf, strtoll, <stdint.h>), and tr1 (<tr1/ordered_set>,
+  <tr1/ordered_map>) support are available.
+  	
+  It is assumed you have OpenFst (www.openfst.org) 1.2.6 or higher and have
+  installed it. Make sure you configure it with the --enable-far flag.
+
+  You must also use the --with-icu flag if you plan to use Unicode text in your
+  grammars, and use the utf8 parse mode with strings. This requires that you
+  have installed the ICU library (version 4.2 or above).  Please note that you
+  should be consistent: in particular if you compile OpenFst with --with-icu
+  then you must also configure Thrax with --with-icu.
+
+INSTALLATION:
+  Follow the generic GNU build system instructions in ./INSTALL.  We
+  recommend configuring with =--enable-static=no= for faster
+  compiles. 
+
+  Optional features:
+  --with-icu		   Use ICU to provide unicode support (def: no)
+
+  Configuring with --enable-bin=no gives very fast compiles, but
+  excludes the command line utilities.
+
+  Compiling with '-Wall -Wno-sign-compare' under g++ should give no
+  warnings from this library.
+
+USAGE:
+  Assuming you've installed under the default /usr/local, the GRM binaries are
+  found on /usr/local/bin. Headers will be in /usr/local/include/thrax, and
+  libraries in /usr/local/lib.
+
+  Auxiliary data files -- provided grammars -- are under /usr/local/share/thrax.
+  Syntax highlighters (for vi and emacs) and other useful tools are under
+  /usr/local/share/utils.
+
+  To use in your own programs you will need to include <thrax/thrax.h>. Compile
+  with '-I /usr/local/include' and link against /usr/local/lib/libfst.so,
+  /usr/local/lib/fst/libfstfar.so and /usr/local/lib/libthrax.so
+
+  The linking is, by default, dynamic so that the Fst and Arc type DSO
+  extensions can be used correctly if desired.
+
+DOCUMENTATION: 
+  See www.opengrm.org for general documentation.
+  See ./NEWS for updates since the last release.

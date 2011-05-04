@@ -1,0 +1,89 @@
+#!/usr/bin/env python
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Copyright 2005-2011 Google, Inc.
+# Author: rws@google.com (Richard Sproat)
+#
+# Helper function to create a makefile with the correct dependencies for
+# compiling a suite of grammars.
+#
+# Usage: thraxmakedep top-level-grammar [makefile-target=Makefile]
+#
+# It is the user's responsibility to make sure that the top-level grammar and
+# whatever grammars are recursively referenced by 'import', LoadFst[],
+# LoadFstFromFar[], SymbolTable[] and StringFile[] statements are all readable,
+# and that the directories in which they occur are all writable.
+
+import re
+import sys
+
+GRAMMARS_ = []
+FARS_ = []
+COMPILER_ = 'thraxcompiler --input_grammar=$< --output_far=$@'
+INTERPRETED_FILES_ = \
+    re.compile("(LoadFstFromFar|LoadFst|StringFile|SymbolTable)\['([^ ']*)'")
+
+
+def ReplaceExt(grammar):
+  ## Be careful about replacement in case someone has .grm elsewhere in the path.
+  if grammar.endswith('.grm'): return grammar[:-4] + '.far'
+  return grammar
+
+
+def MakeDepend(grammar, makep):
+  if grammar in GRAMMARS_: return
+  p = open(grammar)
+  grammars = []
+  interpreted_files = []
+  for line in p:
+    tokens = line.split()
+    if len(tokens) > 1 and tokens[0] == 'import':
+      nextgrammar = tokens[1].replace("'", '')
+      grammars.append(nextgrammar)
+    else:
+      match = INTERPRETED_FILES_.search(line)
+      if match:
+        interpreted_file = match.group(2)
+        interpreted_files.append(interpreted_file)
+  fars = map(ReplaceExt, grammars)
+  far = ReplaceExt(grammar)
+  dependents = ' '.join(fars + interpreted_files)
+  makep.write('%s: %s %s\n' % (far, grammar, dependents))
+  makep.write('\t%s\n\n' % COMPILER_)
+  for far in fars:
+    if far not in FARS_:
+      FARS_.append(far)
+  for g in grammars:
+    MakeDepend(g, makep)
+  GRAMMARS_.append(grammar)
+  p.close()
+
+
+def MakeFile(grammar, makefile='Makefile'):
+  p = open(makefile, 'w')
+  MakeDepend(grammar, p)
+  p.write('clean:\n')
+  p.write('\trm -f %s\n' % ' '.join(FARS_))
+  p.close()
+
+
+if __name__ == '__main__':
+  if len(sys.argv) < 2 or len(sys.argv) > 3:
+    sys.stderr.write('Usage: %s top-level-grammar [makefile-target=Makefile]\n' %
+                     sys.argv[0])
+    sys.exit(1)
+  if len(sys.argv) == 2:
+    MakeFile(sys.argv[1])
+  else:
+    MakeFile(sys.argv[1], sys.argv[2])
