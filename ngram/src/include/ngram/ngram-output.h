@@ -160,9 +160,9 @@ class NGramOutput : public NGramModel {
   // Header for verbose n-gram entries
   void ShowNGramProbHeader() const {
     ostrm_ << "                                                ";
-    ostrm_ << "ngram  -logprob" << endl;
+    ostrm_ << "ngram  -logprob\n";
     ostrm_ << "        N-gram probability                      ";
-    ostrm_ << "found  (base10)" << endl;
+    ostrm_ << "found  (base10)\n";
   }
 
   // Show the verbose n-gram entries with history order and neglogprob
@@ -174,15 +174,15 @@ class NGramOutput : public NGramModel {
 		      int words_skipped, double logprob) const {
     ostrm_ << sentences << " sentences, ";
     ostrm_ << word_cnt << " words, ";
-    ostrm_ << oov_cnt << " OOVs" << endl;
+    ostrm_ << oov_cnt << " OOVs\n";
     if (words_skipped > 0) {
       ostrm_ << "NOTE: " << words_skipped << " OOVs with no probability"
-	     << " were skipped in perplexity calculation" << endl;
+	     << " were skipped in perplexity calculation\n";
       word_cnt -= words_skipped;
     }
     ostrm_ << "logprob(base 10)= " << logprob;
     ostrm_ << ";  perplexity = ";
-    ostrm_ << pow(10, -logprob / (word_cnt + sentences)) << endl << endl;
+    ostrm_ << pow(10, -logprob / (word_cnt + sentences)) << "\n\n";
   }
 
   // Calculate prob of </s> and add to accum'd prob, and update total prob

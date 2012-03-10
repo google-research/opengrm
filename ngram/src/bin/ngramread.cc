@@ -35,7 +35,6 @@ DEFINE_string(end_symbol, "</s>", "Class label for sentence start");
 
 int main(int argc, char **argv) {
   string usage = "Transform text formats to fst.\n\n  Usage: ";
-  bool far_out = true;
   usage += argv[0];
   usage += " [--options] [in.txt [out.fst]]\n";
   InitFst(usage.c_str(), &argc, &argv, true);

@@ -269,7 +269,7 @@ bool NGramModel::PrintStateNGram(StateId st, ostream &ostrm) const {
 	<< " ngram: ";
   for (int i = 0; i < state_ngrams_[st].size(); ++i)
     ostrm << state_ngrams_[st][i] << " ";
-  ostrm << endl;
+  ostrm << "\n";
   return true;
 }
 
@@ -293,7 +293,7 @@ bool NGramModel::CheckNormalizationState(StateId st) const {
        aiter.Next()) {
     StdArc arc = aiter.Value();
     if (arc.weight.Value() != arc.weight.Value()) {  // test for nan
-      VLOG(1) << "State ID: " << st << "; " << "arc cost nan" << endl;
+      VLOG(1) << "State ID: " << st << "; " << "arc cost nan\n";
       return false;
     }
     Norm = NegLogSum(Norm, arc.weight.Value());

@@ -282,7 +282,7 @@ void NGramShrink::PruneState(StateId st) {
   if (pruned_cnt > 0) {
     size_t xyz = PointPrunedArcs(&shrink_arcs, st);
     if (xyz != pruned_cnt) {
-      cerr << pruned_cnt << " " << xyz << endl;
+      cerr << pruned_cnt << " " << xyz << "\n";
       LOG(FATAL) << "NGramShrink: Pruned count mismatch.";
     }
     if (pruned_cnt == candidate_prune)  // all candidate arcs pruned

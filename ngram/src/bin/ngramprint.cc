@@ -60,5 +60,8 @@ int main(int argc, char **argv) {
   NGramOutput ngram(fst, *ostrm, FLAGS_backoff_label, FLAGS_check_consistency);
   ngram.ShowNGramModel(FLAGS_backoff, FLAGS_negativelogs,
 		       FLAGS_integers, FLAGS_ARPA);
+  if (ostrm != &std::cout) {
+    delete ostrm;
+  }
   return 0;
 }

@@ -55,7 +55,7 @@ void NGramOutput::ShowNGramModel(bool showeps, bool neglogs,
 			   neglogs, intcnts);
     }
     // print <s> unigram following SRILM
-    ostrm_ << FLAGS_start_symbol << '\t' << start_wt << endl;
+    ostrm_ << FLAGS_start_symbol << '\t' << start_wt << '\n';
     ShowNGrams(GetFst().Start(), str, showeps, neglogs, intcnts);
   }
 }
@@ -100,10 +100,10 @@ void NGramOutput::ShowARPAHeader() const {
     if (GetFst().Final(st) != StdArc::Weight::Zero())
       ++ngram_counts[StateOrder(st) - 1];  // include </s> for all orders
   }
-  ostrm_ << endl << "\\data\\" << endl;
+  ostrm_ << "\n\\data\\\n";
   for (int i = 0; i < HiOrder(); ++i)
-    ostrm_ << "ngram " << i + 1 << "=" << ngram_counts[i] << endl;
-  ostrm_ << endl;
+    ostrm_ << "ngram " << i + 1 << "=" << ngram_counts[i] << '\n';
+  ostrm_ << '\n';
 }
 
 // Print n-grams leaving a particular state for the ARPA model format
@@ -116,7 +116,7 @@ void NGramOutput::ShowARPANGrams(StdArc::StateId st,
     // log_10(p)
     ostrm_ << ShowLogNewBase(GetFst().Final(st).Value(), 10) << "\t";
     if (str.size() > 0) ostrm_ << str << " ";
-    ostrm_ << FLAGS_end_symbol << endl;
+    ostrm_ << FLAGS_end_symbol << '\n';
   }
   for (ArcIterator<StdExpandedFst> aiter(GetFst(), st);
        !aiter.Done();
@@ -133,7 +133,7 @@ void NGramOutput::ShowARPANGrams(StdArc::StateId st,
       ostrm_ << "\t" << newstr;
       if (StateOrder(arc.nextstate) > StateOrder(st))  // show backoff
 	ostrm_ << "\t" << ShowLogNewBase(GetBackoffCost(arc.nextstate), 10);
-      ostrm_ << endl;
+      ostrm_ << '\n';
     }
     if (arc.ilabel != BackoffLabel() &&  // depth-first traversal
 	StateOrder(arc.nextstate) > StateOrder(st))
@@ -146,12 +146,12 @@ void NGramOutput::ShowARPAModel() const {
   ostrm_.precision(7);
   ShowARPAHeader();
   for (int i = 0; i < HiOrder(); ++i) {
-    ostrm_ << "\\" << i + 1 << "-grams:" << endl;
+    ostrm_ << "\\" << i + 1 << "-grams:\n";
     if (i == 0) {  // following SRILM, add <s> unigram w/ dummy weight of -99
       ostrm_ << "-99\t" << FLAGS_start_symbol << '\t';
       if (UnigramState() >= 0)  // <s> state exists, then show backoff
 	ostrm_ << ShowLogNewBase(GetBackoffCost(GetFst().Start()), 10);
-      ostrm_ << endl;
+      ostrm_ << '\n';
     }
     if (UnigramState() >= 0) {  
       // init n-grams from <s> state
@@ -162,9 +162,9 @@ void NGramOutput::ShowARPAModel() const {
       // init n-grams from unigram state
       ShowARPANGrams(GetFst().Start(), "", i + 1);
     }
-    ostrm_ << endl;
+    ostrm_ << '\n';
   }
-  ostrm_ << "\\end\\" << endl;
+  ostrm_ << "\\end\\\n";
 }
 
 // Print n-grams leaving a particular state, standard output format
@@ -182,7 +182,7 @@ void NGramOutput::ShowNGrams(StdArc::StateId st, const string &str,
     string newstr = str;  // history string
     AppendWordToNGramHistory(&newstr, symbol);  // Full n-gram string
     ostrm_ << newstr << "\t";  // output n-gram and its weight
-    ostrm_ << WeightRep(arc.weight.Value(), neglogs, intcnts) << endl;
+    ostrm_ << WeightRep(arc.weight.Value(), neglogs, intcnts) << '\n';
     if (arc.ilabel != BackoffLabel() &&  // depth-first traversal
 	StateOrder(arc.nextstate) > StateOrder(st))
       ShowNGrams(arc.nextstate, newstr, showeps, neglogs, intcnts);
@@ -192,7 +192,7 @@ void NGramOutput::ShowNGrams(StdArc::StateId st, const string &str,
       ostrm_ << str << " ";
     ostrm_ << FLAGS_end_symbol << '\t' << WeightRep(GetFst().Final(st).Value(),
 				    neglogs, intcnts);
-    ostrm_ << endl;
+    ostrm_ << '\n';
   }
 }
 
@@ -208,7 +208,7 @@ void NGramOutput::ShowStringFst(const Fst<StdArc> &infst) const {
     ostrm_ << symbol;
     st = arc.nextstate;
   }
-  ostrm_ << endl;
+  ostrm_ << '\n';
 }
 
 void NGramOutput::RelabelAndSetSymbols(StdMutableFst *infst,
@@ -396,11 +396,11 @@ void NGramOutput::ShowNGramProb(string symbol, string history,
     ostrm_ << " ";
   ostrm_ << "= ";
   if (oov)  // reporting OOV
-    ostrm_ << "[OOV]    " << ngram_cost << endl;
+    ostrm_ << "[OOV]    " << ngram_cost << '\n';
   else if (order < 0)
-    ostrm_ << "[NGram]  " << ngram_cost << endl;
+    ostrm_ << "[NGram]  " << ngram_cost << '\n';
   else  // order of the state out of which the arc came
-    ostrm_ << "[" << order << "gram]  " << ngram_cost << endl;
+    ostrm_ << "[" << order << "gram]  " << ngram_cost << '\n';
 }
 
 // Calculate prob of </s> and add to accum'd prob, and update total prob
@@ -490,7 +490,7 @@ void NGramOutput::RandNGramModel(int64 samples, bool show_backoff) const {
       st = GetAndShowSymbol(st, p, r, &hi_state,
 			    &first_printed, show_backoff);
     }
-    ostrm_ << endl;
+    ostrm_ << '\n';
   }
 }
 

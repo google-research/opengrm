@@ -82,5 +82,8 @@ int main(int argc, char **argv) {
   ngram.PerplexityNGramModel(&infsts, FLAGS_v, FLAGS_use_phimatcher,
 			     &FLAGS_OOV_symbol, FLAGS_OOV_class_size,
 			     FLAGS_OOV_probability);
+  if (ostrm != &std::cout) {
+    delete ostrm;
+  }
   return 0;
 }

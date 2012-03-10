@@ -126,7 +126,7 @@ void NGramMake::ShowDiscounts(vector < vector <double> > *discounts,
     if (order > 0) cerr << "/";
     cerr << order + 1 << "-grams";
   }
-  cerr << ")" << endl;
+  cerr << ")\n";
   for (int bin = 0; bin <= bins; ++bin) {
     if (bin < bins)
       cerr << "Count = " << bin + 1 << "   ";
@@ -136,7 +136,7 @@ void NGramMake::ShowDiscounts(vector < vector <double> > *discounts,
       if (order > 0) cerr << "/";
       cerr << (*discounts)[order][bin];
     }
-    cerr << endl;
+    cerr << "\n";
   }
 }
 

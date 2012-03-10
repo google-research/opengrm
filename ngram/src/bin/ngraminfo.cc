@@ -55,23 +55,36 @@ void PrintNGramInfo(const NGramModel &ngram, ostream &ostrm) {
     }
   }
 
-  ostrm << left << setw(50) << "# of states" << fst.NumStates() << endl;
-  ostrm << setw(50) << "# of ngram arcs" << ngrams << endl;
-  ostrm << setw(50) << "# of backoff arcs" << backoffs << endl;
-  ostrm << setw(50) << "initial state" << fst.Start() << endl;
-  ostrm << setw(50) << "unigram state" << ngram.UnigramState() << endl;
-  ostrm << setw(50) << "# of final states" <<  nfinal << endl;
+  ios_base::fmtflags old = ostrm.setf(ios::left);
+  ostrm.width(50);
+  ostrm << "# of states" << fst.NumStates() << "\n";
+  ostrm.width(50);
+  ostrm << "# of ngram arcs" << ngrams << "\n";
+  ostrm.width(50);
+  ostrm << "# of backoff arcs" << backoffs << "\n";
+  ostrm.width(50);
+  ostrm << "initial state" << fst.Start() << "\n";
+  ostrm.width(50);
+  ostrm << "unigram state" << ngram.UnigramState() << "\n";
+  ostrm.width(50);
+  ostrm << "# of final states" <<  nfinal << "\n";
 
-  ostrm << setw(50) << "ngram order" << ngram.HiOrder() << endl;
+  ostrm.width(50);
+  ostrm << "ngram order" << ngram.HiOrder() << "\n";
   for (int order = 1; order <= ngram.HiOrder(); ++order) {
     stringstream label;
     label << "# of " << order << "-grams";
-    ostrm << setw(50) << label.str() << order_ngrams[order-1] << endl;
+    ostrm.width(50);
+    ostrm << label.str() << order_ngrams[order-1] << "\n";
   }
-  ostrm << setw(50) << "well-formed"
-       << (ngram.CheckTopology() ? 'y' : 'n') << endl;
-  ostrm << setw(50) << "normalized"
-       << (ngram.CheckNormalization() ? 'y' : 'n') << endl;
+  ostrm.width(50);
+  ostrm << "well-formed"
+       << (ngram.CheckTopology() ? 'y' : 'n') << "\n";
+  ostrm.width(50);
+  ostrm << "normalized"
+       << (ngram.CheckNormalization() ? 'y' : 'n') << "\n";
+  ostrm.flush();
+  ostrm.setf(old);
 }
 
 } // namespace ngram
@@ -104,6 +117,8 @@ int main(int argc, char **argv) {
 
   ngram::NGramModel ngram(fst);
   ngram::PrintNGramInfo(ngram, *ostrm);
+  if (ostrm != &std::cout) 
+    delete ostrm;
 
   return 0;
 }
