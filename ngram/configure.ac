@@ -1,4 +1,4 @@
-AC_INIT([OpenGrm NGram], [1.0.1], [ngram@www.opengrm.org])
+AC_INIT([OpenGrm NGram], [1.0.2], [ngram@www.opengrm.org])
 AM_INIT_AUTOMAKE([foreign nostdinc -Wall -Werror])
 
 AC_PROG_CXX

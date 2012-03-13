@@ -12,7 +12,7 @@ set -e
 $bin/ngramrandgen --max_sents=100 $testdata/init.randcorpus.0.mod \
  >$tmpdata/testrand.0.params.far
 farprintstrings $tmpdata/testrand.0.params.far | grep . | tail -1 | \
- sed 's/ .*//g' | while read i; do ((z=3*$i)); ((s=2*$z)); 
+ sed 's/ .*//g' | while read i; do z="$(expr 3 \* $i)"; s="$(expr 2 \* $z)";
   echo "TRIALS=$z"; echo "SAMPLES=$s"; done >$tmpdata/testrand.params
 . $tmpdata/testrand.params
 
@@ -33,7 +33,9 @@ S=1 # whether number of sentences should come from small/medium/large
 
 # generate param files for each random trial
 set +e
-for ((i = 1; $i <= $TRIALS; i=$i+1)); do
+i=0
+while [ $i -lt $TRIALS ]; do
+  i="$(expr $i + 1)"
   echo "V=$V" >$tmpdata/testrand.params.$i
   echo "S=$S" >>$tmpdata/testrand.params.$i
   farprintstrings $tmpdata/testrand.$V.params.far | grep " .* " | tail -$i | \
@@ -44,16 +46,18 @@ for ((i = 1; $i <= $TRIALS; i=$i+1)); do
     >>$tmpdata/testrand.params.$i
   farprintstrings $tmpdata/testrand.0.params.far | grep " .* .* .* " | \
   tail -$i | head -1 | sed 's/ [^ ]* [^ ]* [^ ]*$/~&/g' | sed 's/.*~ //g' | \
-  while read a b c d; do ((z=$c-1)); ((y=$a-1)); 
+  while read a b c d; do z="$(expr $c - 1)"; y="$(expr $a - 1)";
     if [ $y -gt 0 ]; then echo "O1=$y"; else echo "O1=$a"; fi; echo "O2=$b"; 
     echo "T=$z"; done >>$tmpdata/testrand.params.$i
-  if [ $S == 2 ]; then S=1; else S=2; fi;  # alternates V={1,2,3}, S={2,3}
-  if [ $V -lt 3 ]; then ((V=$V+1)); else V=1; fi; 
+  if [ $S = 2 ]; then S=1; else S=2; fi;  # alternates V={1,2,3}, S={2,3}
+  if [ $V -lt 3 ]; then V="$(expr $V + 1)"; else V=1; fi; 
 done
 
 set -e
 # run random trials
-for ((i = 1; $i <= $TRIALS; i=$i+1)); do 
+i=0
+while [ "$i" -lt "$TRIALS" ]; do
+  i="$(expr $i + 1)"
   . $tmpdata/testrand.params.$i
   $bin/ngramrandgen --max_sents=$sents1 $testdata/init.randcorpus.$V.mod \
    >$tmpdata/testrand.corp0.far

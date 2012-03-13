@@ -32,7 +32,7 @@ using namespace ngram;
 using std::string;
 
 DEFINE_string(bo_arc_type, "phi",
-	      "Use phi, e-approximation, or lexicographic e (phi)");
+	      "One of: \"phi\" (default), \"epsilon\", \"lexicographic\"");
 
 enum BACKOFF_TYPE { PHI, EPS, LEX_EPS };
 
