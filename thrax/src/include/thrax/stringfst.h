@@ -12,6 +12,7 @@
 //
 // Copyright 2005-2011 Google, Inc.
 // Author: ttai@google.com (Terry Tai)
+//         rws@google.com (Richard Sproat)
 //
 // Creates a string FST given the string text.
 //
@@ -23,37 +24,39 @@
 #define THRAX_STRINGFST_H_
 
 #include <stdlib.h>
-
 #include <cctype>
+#include <iostream>
+#include <map>
 #include <string>
+#include <utility>
+using std::pair; using std::make_pair;
 #include <vector>
 using std::vector;
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
-#include <fst/concat.h>
-#include <fst/fst.h>
-#include <fst/rmepsilon.h>
+#include <fst/fstlib.h>
 #include <fst/string.h>
-#include <fst/symbol-table.h>
-#include <fst/vector-fst.h>
 #include <thrax/fst-node.h>
-#include <thrax/function.h>
 #include <thrax/datatype.h>
-#include <thrax/compat/stlfunctions.h>
+#include <thrax/function.h>
+#include <thrax/symbols.h>
 #include <thrax/compat/stlfunctions.h>
 #include <thrax/compat/registry.h>
 
+DECLARE_bool(save_symbols);  // From util/flags.cc.
 DECLARE_string(indir);  // From util/flags.cc.
 DECLARE_string(initial_boundary_symbol);  // From stringfst.cc
 DECLARE_string(final_boundary_symbol);  // From stringfst.cc
 
 // Default values here for labels correspond to Unicode Private Use Area B
-// (Plane 16): 100000 - 10FFFD.
+// (Plane 16): 100000 - 10FFFB.  The last two positions (10FFFC and 10FFFD) are
+// reserved (by default) for the BOS and EOS symbols.
 DECLARE_int64(generated_label_start_index);
 DECLARE_int64(generated_label_end_index);
-DECLARE_int64(initial_boundary_marker);
-DECLARE_int64(final_boundary_marker);
+
+DECLARE_int64(initial_boundary_marker);  // Default = 10FFFC.
+DECLARE_int64(final_boundary_marker);    // Default = 10FFFD.
 
 namespace thrax {
 namespace function {
@@ -117,7 +120,7 @@ class StringFst : public Function<Arc> {
     for (int i = 0; i < text.length(); ++i) {
       char c = text[i];
 
-      if (c == '[') {
+      if (c == '[' && mode != fst::StringCompiler<Arc>::SYMBOL) {
         if (in_genlab) {
           cout << "StringFst: Cannot start new generated label while in "
                << "previous label" << endl;
@@ -130,7 +133,7 @@ class StringFst : public Function<Arc> {
           return NULL;
         }
         in_genlab = true;
-      } else if (c == ']') {
+      } else if (c == ']' && mode != fst::StringCompiler<Arc>::SYMBOL) {
         if (!in_genlab) {
           cout << "StringFst: Cannot terminate generated label without already "
                << "being in one" << endl;
@@ -187,12 +190,27 @@ class StringFst : public Function<Arc> {
     }
 
     fst::RmEpsilon(fst);
+    if (FLAGS_save_symbols) {
+      if (symtab) {
+        fst->SetInputSymbols(symtab);
+        fst->SetOutputSymbols(symtab);
+      } else if (mode == fst::StringCompiler<Arc>::UTF8) {
+        fst->SetInputSymbols(GetUtf8SymbolTable());
+        fst->SetOutputSymbols(GetUtf8SymbolTable());
+      } else {
+        fst->SetInputSymbols(GetByteSymbolTable());
+        fst->SetOutputSymbols(GetByteSymbolTable());
+      }
+    }
     return new DataType(fst);
   }
 
  public:
   // Returns a symbol table corresponding to the generated labels used thus far
-  // in this compilation.  This returns NULL if there was no generated labels.
+  // in this compilation.  This returns NULL if there were no generated labels.
+  // If FLAGS_save_symbols is set, We also add these labels to the byte and utf8
+  // symbol tables, so that these can get reassigned to the transducers as
+  // appropriate on write-out.
   static fst::SymbolTable* GetLabelSymbolTable() {
     fst::MutexLock lock(&map_mutex_);
 
@@ -201,8 +219,13 @@ class StringFst : public Function<Arc> {
 
     fst::SymbolTable* symtab = new fst::SymbolTable("");
     for (Map::const_iterator i = symbol_label_map_.begin();
-         i != symbol_label_map_.end(); ++i)
+         i != symbol_label_map_.end(); ++i) {
       symtab->AddSymbol(i->first, i->second);
+      if (FLAGS_save_symbols) {
+        AddToByteSymbolTable(i->first, i->second);
+        AddToUtf8SymbolTable(i->first, i->second);
+      }
+    }
 
     return symtab;
   }

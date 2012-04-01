@@ -23,19 +23,13 @@
 #ifndef THRAX_OPTIMIZE_H_
 #define THRAX_OPTIMIZE_H_
 
+#include <iostream>
 #include <vector>
 using std::vector;
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
-#include <fst/arcsum.h>
-#include <fst/encode.h>
-#include <fst/fst.h>
-#include <fst/determinize.h>
-#include <fst/minimize.h>
-#include <fst/properties.h>
-#include <fst/rmepsilon.h>
-#include <fst/vector-fst.h>
+#include <fst/fstlib.h>
 #include <thrax/datatype.h>
 #include <thrax/function.h>
 
@@ -59,7 +53,7 @@ class Optimize : public UnaryFstFunction<Arc> {
 
     if (output->Properties(fst::kNoEpsilons, false) != fst::kNoEpsilons)
       fst::RmEpsilon(output);
-    fst::ArcSum(output);
+    fst::StateMap(output, fst::ArcSumMapper<Arc>(*output));
     if (!(Arc::Weight::Properties() & fst::kIdempotent))
       return output;
 
@@ -79,8 +73,7 @@ class Optimize : public UnaryFstFunction<Arc> {
       }
       fst::Minimize(output);
     }
-    fst::ArcSum(output);
-
+    fst::StateMap(output, fst::ArcSumMapper<Arc>(*output));
     return output;
   }
 

@@ -15,13 +15,9 @@
 
 #include <thrax/function-node.h>
 
-#include <iostream>
-#include <string>
-
 #include <thrax/collection-node.h>
 #include <thrax/identifier-node.h>
 #include <thrax/walker.h>
-#include <thrax/compat/stlfunctions.h>
 
 namespace thrax {
 

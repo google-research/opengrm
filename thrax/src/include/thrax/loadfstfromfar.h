@@ -12,12 +12,14 @@
 //
 // Copyright 2005-2011 Google, Inc.
 // Author: ttai@google.com (Terry Tai)
+//         rws@google.com (Richard Sproat)
 //
 // Loads up an FST from a single FAR archive.
 
 #ifndef THRAX_LOADFSTFROMFAR_H_
 #define THRAX_LOADFSTFROMFAR_H_
 
+#include <iostream>
 #include <string>
 #include <vector>
 using std::vector;
@@ -30,6 +32,7 @@ using std::vector;
 #include <thrax/datatype.h>
 #include <thrax/function.h>
 
+DECLARE_bool(save_symbols);  // From util/flags.cc.
 DECLARE_string(indir);  // From util/flags.cc.
 
 namespace thrax {
@@ -79,6 +82,16 @@ class LoadFstFromFar : public Function<Arc> {
     }
     MutableTransducer* fst = new MutableTransducer(reader->GetFst());
     delete reader;
+    if (FLAGS_save_symbols) {
+      if (!fst->InputSymbols()) {
+        LOG(WARNING) << "LoadFstFromFar: FLAGS_save_symbols is set "
+                     << "but fst has no input symbols";
+      }
+      if (!fst->OutputSymbols()) {
+        LOG(WARNING) << "LoadFstFromFar: FLAGS_save_symbols is set "
+                     << "but fst has no output symbols";
+      }
+    }
     return new DataType(fst);
   }
 

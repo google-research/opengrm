@@ -19,21 +19,22 @@
 #ifndef THRAX_STRINGFILE_H_
 #define THRAX_STRINGFILE_H_
 
+#include <iostream>
 #include <string>
 #include <vector>
 using std::vector;
 
 #include <thrax/compat/utils.h>
-#include <fst/arcsort.h>
-#include <fst/fst.h>
-#include <fst/project.h>
-#include <fst/rmepsilon.h>
-#include <fst/vector-fst.h>
+#include <fst/fstlib.h>
+#include <fst/string.h>
+#include <thrax/fst-node.h>
 #include <thrax/datatype.h>
 #include <thrax/function.h>
+#include <thrax/symbols.h>
 #include <thrax/algo/prefix_tree.h>
 #include <thrax/compat/stlfunctions.h>
 
+DECLARE_bool(save_symbols);  // From util/flags.cc.
 DECLARE_string(indir);  // From util/flags.cc.
 
 namespace thrax {
@@ -44,48 +45,178 @@ class StringFile : public Function<Arc> {
  public:
   typedef fst::VectorFst<Arc> MutableTransducer;
   typedef fst::PrefixTree<Arc> PrefixTree;
+  typedef typename Arc::Label Label;
 
   StringFile() : Function<Arc>() {}
   virtual ~StringFile() {}
 
  protected:
   virtual DataType* Execute(const vector<DataType*>& args) {
-    if (args.size() != 1) {
-      cout << "StringFile: Expected 1 argument but got " << args.size() << endl;
+    if (args.size() < 1 || args.size() > 3) {
+      cout << "StringFile: Expected 1-3 arguments but got "
+           << args.size()
+           << endl;
       return NULL;
     }
     if (!args[0]->is<string>()) {
       cout << "StringFile: Expected string (file) for argument 1" << endl;
       return NULL;
     }
+    int imode = fst::StringCompiler<Arc>::BYTE;
+    const fst::SymbolTable* isymbols = NULL;
+    if (args.size() > 1) {
+      if (args[1]->is<string>()) {
+        if (*args[1]->get<string>() == "utf8") {
+          imode = fst::StringCompiler<Arc>::UTF8;
+          if (FLAGS_save_symbols) isymbols = GetUtf8SymbolTable();
+        } else {
+          imode = fst::StringCompiler<Arc>::BYTE;
+          if (FLAGS_save_symbols) isymbols = GetByteSymbolTable();
+        }
+      } else if (args[1]->is<fst::SymbolTable>()) {
+        isymbols = args[1]->get<fst::SymbolTable>();
+        imode = fst::StringCompiler<Arc>::SYMBOL;
+      } else {
+        cout << "StringFile: Invalid parse mode or symbol table "
+             << "for input symbols"
+             << endl;
+        return NULL;
+      }
+    }
+    int omode = fst::StringCompiler<Arc>::BYTE;
+    const fst::SymbolTable* osymbols = NULL;
+    if (args.size() > 2) {
+      if (args[2]->is<string>()) {
+        if (*args[2]->get<string>() == "utf8") {
+          omode = fst::StringCompiler<Arc>::UTF8;
+          if (FLAGS_save_symbols) osymbols = GetUtf8SymbolTable();
+        } else {
+          omode = fst::StringCompiler<Arc>::BYTE;
+          if (FLAGS_save_symbols) osymbols = GetByteSymbolTable();
+        }
+      } else if (args[2]->is<fst::SymbolTable>()) {
+        osymbols = args[2]->get<fst::SymbolTable>();
+        omode = fst::StringCompiler<Arc>::SYMBOL;
+      } else {
+        cout << "StringFile: Invalid parse mode or symbol table "
+             << "for output symbols"
+             << endl;
+        return NULL;
+      }
+    }
     const string& filename =
         JoinPath(FLAGS_indir, *args[0]->get<string>());
 
     File* fp = OpenOrDie(filename, "r");
     PrefixTree pt;
-    string word;
-    for (InputBuffer ibuf(fp); ibuf.ReadLine(&word);
+    string line;
+    int linenum = 0;
+    bool acceptor = true;
+    for (InputBuffer ibuf(fp); ibuf.ReadLine(&line);
          /* ReadLine() automatically increments */) {
-      if (word.empty())
+      vector<string> words;
+      SplitStringUsing(line, "\t", &words);
+      size_t size = words.size();
+      if (size == 0) continue;
+      // TODO(rws): Add ability to include weights
+      vector<Label> ilabels;
+      vector<Label> olabels;
+      if (size == 1) {
+        ConvertStringToLabels(words[0], &ilabels, imode, isymbols);
+        pt.Add(ilabels.begin(), ilabels.end(),
+               ilabels.begin(), ilabels.end());
+      } else if (size == 2) {
+        ConvertStringToLabels(words[0], &ilabels, imode, isymbols);
+        ConvertStringToLabels(words[1], &olabels, omode, osymbols);
+        pt.Add(ilabels.begin(), ilabels.end(),
+               olabels.begin(), olabels.end());
+        acceptor = false;
+      } else {
+        cout << "StringFile: Possible ill-formed line "
+             << linenum
+             << " in "
+             << filename
+             << endl;
         continue;
-
-      // Add to the prefix tree the full word (line) as the input going to the
-      // empty string as the output.  We'll use identical pointers (iterators)
-      // to show the empty string.
-      pt.Add(word.begin(), word.end(),     // Input = word.
-             word.begin(), word.begin());  // Output = empty string ("").
+      }
+      linenum++;
     }
 
     MutableTransducer* fst = new MutableTransducer();
     pt.ToFst(fst);
-    fst::Project(fst, fst::PROJECT_INPUT);
+    if (acceptor) {
+      fst::Project(fst, fst::PROJECT_INPUT);
+    } else {
+      MutableTransducer copy(*fst);
+      fst::Push<Arc, fst::REWEIGHT_TO_INITIAL>(copy, fst,
+                                                       fst::kPushLabels);
+    }
     fst::RmEpsilon(fst);
     fst::ArcSort(fst, arcsort_comparer_);
 
+    if (FLAGS_save_symbols) {
+      fst->SetInputSymbols(isymbols);
+      fst->SetOutputSymbols(osymbols);
+    }
     return new DataType(fst);
   }
 
  private:
+  // Same functionality as in StringCompiler (nlp/fst), but that is private to
+  // the StringCompiler class
+  bool ConvertStringToLabels(const string &str,
+                             vector<Label> *labels,
+                             int token_type,
+                             const fst::SymbolTable* syms) const {
+    labels->clear();
+    if (token_type == fst::StringCompiler<Arc>::BYTE) {
+      for (size_t i = 0; i < str.size(); ++i)
+        labels->push_back(static_cast<unsigned char>(str[i]));
+    } else if (token_type == fst::StringCompiler<Arc>::UTF8) {
+      return fst::UTF8StringToLabels(str, labels);
+    } else {
+      char *c_str = new char[str.size() + 1];
+      str.copy(c_str, str.size());
+      c_str[str.size()] = 0;
+      vector<char *> vec;
+      string separator = "\n" + FLAGS_fst_field_separator;
+      fst::SplitToVector(c_str, separator.c_str(), &vec, true);
+      for (size_t i = 0; i < vec.size(); ++i) {
+        Label label;
+        if (!ConvertSymbolToLabel(vec[i], &label, syms))
+          return false;
+        labels->push_back(label);
+      }
+      delete[] c_str;
+    }
+    return true;
+  }
+
+  // Similar replication of code from StringCompiler (nlp/fst)
+  bool ConvertSymbolToLabel(const char *s, Label* output,
+                            const fst::SymbolTable* syms) const {
+    int64 n;
+    if (syms) {
+      n = syms->Find(s);
+      if (n < 0) {
+        VLOG(1) << "StringFile:ConvertSymbolToLabel: Symbol \"" << s
+                << "\" is not mapped to any integer label, symbol table = "
+                << syms->Name();
+        return false;
+      }
+    } else {
+      char *p;
+      n = strtoll(s, &p, 10);
+      if (p < s + strlen(s) || n < 0) {
+        VLOG(1) << "StringFile::ConvertSymbolToLabel: Bad label integer "
+                << "= \"" << s << "\"";
+        return false;
+      }
+    }
+    *output = n;
+    return true;
+  }
+
   static const fst::ILabelCompare<Arc> arcsort_comparer_;
 
   DISALLOW_COPY_AND_ASSIGN(StringFile<Arc>);

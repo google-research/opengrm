@@ -1,4 +1,4 @@
-AC_INIT([Thrax], [0.1.0], [help@www.opengrm.org])
+AC_INIT([Thrax], [1.0.0], [help@www.opengrm.org])
 AM_INIT_AUTOMAKE([foreign nostdinc -Wall -Werror])
 
 AC_PROG_CXX
@@ -34,19 +34,6 @@ AC_ARG_ENABLE(
 	[],
 	[enable_bin=yes])
 AM_CONDITIONAL([HAVE_BIN], [test "x$enable_bin" != xno])
-
-AC_ARG_WITH([icu],
-  [AS_HELP_STRING([--with-icu],
-    [enable UTF8 support using the ICU Library])],
-  [],
-  [with_icu=no])
-AS_IF([test "x$with_icu" != xno],
-  [AC_CHECK_ICU(
-    [4.2],
-    [AC_DEFINE([HAVE_ICU],
-      [1],
-      [Define to 1 if you have the ICU library.])],
-    [AC_MSG_FAILURE([--with-icu was given, but ICU Library not found])])])
 
 AC_CHECK_HEADER([fst/fst.h], [],
  [AC_MSG_ERROR([fst/fst.h header not found])]

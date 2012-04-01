@@ -53,8 +53,10 @@ Lexer::TokenClass Lexer::YYLex() {
 
       while (true) {
         char curr_c = GetChar();
-        CHECK_NE(curr_c, '\0')
-            ;
+        if (curr_c == '\0') {
+          LOG(FATAL) << "Found EOF without terminating string: "
+                     << curr_token_.token_string;
+        }
         if (curr_c == '\\') {
           curr_c = GetChar();
           CHECK_NE(curr_c, '\0');

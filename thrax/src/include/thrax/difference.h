@@ -12,6 +12,7 @@
 //
 // Copyright 2005-2011 Google, Inc.
 // Author: ttai@google.com (Terry Tai)
+//         rws@google.com (Richard Sproat)
 //
 // Takes the difference of two FSTs.  This function may expand the second of the
 // FSTs so that it can be optimized (determinized and epsilon-removed) if
@@ -20,6 +21,7 @@
 #ifndef THRAX_DIFFERENCE_H_
 #define THRAX_DIFFERENCE_H_
 
+#include <iostream>
 #include <vector>
 using std::vector;
 
@@ -28,9 +30,11 @@ using std::vector;
 #include <fst/difference.h>
 #include <fst/fst.h>
 #include <fst/properties.h>
+#include <thrax/datatype.h>
 #include <thrax/function.h>
 #include <thrax/optimize.h>
-#include <thrax/datatype.h>
+
+DECLARE_bool(save_symbols);  // From util/flags.cc.
 
 namespace thrax {
 namespace function {
@@ -53,6 +57,21 @@ class Difference : public BinaryFstFunction<Arc> {
       cout << "Difference: Expected 2 arguments but got " << args.size()
            << endl;
       return NULL;
+    }
+
+    if (FLAGS_save_symbols) {
+      if (!CompatSymbols(left.InputSymbols(), right.InputSymbols())) {
+        cout << "Difference: input symbol table of 1st argument "
+             << "does not match input symbol table of 2nd argument"
+             << endl;
+        return NULL;
+      }
+      if (!CompatSymbols(left.OutputSymbols(), right.OutputSymbols())) {
+        cout << "Difference: output symbol table of 1st argument "
+             << "does not match output symbol table of 2nd argument"
+             << endl;
+        return NULL;
+      }
     }
 
     if (right.Properties(kRightProps, false) == kRightProps) {

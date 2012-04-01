@@ -18,6 +18,8 @@
 #ifndef THRAX_ARCSORT_H_
 #define THRAX_ARCSORT_H_
 
+#include <iostream>
+#include <string>
 #include <vector>
 using std::vector;
 
@@ -25,8 +27,8 @@ using std::vector;
 #include <thrax/compat/compat.h>
 #include <fst/arcsort.h>
 #include <fst/fst.h>
-#include <thrax/function.h>
 #include <thrax/datatype.h>
+#include <thrax/function.h>
 
 namespace thrax {
 namespace function {

@@ -34,7 +34,6 @@ using std::vector;
 #include <fst/extensions/far/far.h>
 #include <fst/arc.h>
 #include <fst/fst.h>
-#include <thrax/compat/utils.h>
 
 DEFINE_string(input_far, "", "Path to the FAR.");
 DEFINE_string(fst_names, "", "List of keys of the FST to extract from the FAR, "

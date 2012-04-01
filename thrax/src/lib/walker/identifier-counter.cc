@@ -26,7 +26,6 @@ using std::tr1::unordered_multimap;
 #include <thrax/identifier-node.h>
 #include <thrax/rule-node.h>
 #include <thrax/statement-node.h>
-#include <thrax/string-node.h>
 #include <thrax/compat/stlfunctions.h>
 
 namespace thrax {

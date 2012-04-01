@@ -24,12 +24,13 @@
 #ifndef THRAX_FUNCTION_H_
 #define THRAX_FUNCTION_H_
 
+#include <iostream>
 #include <vector>
 using std::vector;
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
-#include <fst/fst.h>
+#include <fst/fstlib.h>
 #include <thrax/datatype.h>
 #include <thrax/compat/stlfunctions.h>
 #include <thrax/compat/registry.h>
@@ -66,6 +67,7 @@ class Function {
 
 extern Registry<Function<fst::StdArc>* > kStdArcRegistry;
 extern Registry<Function<fst::LogArc>* > kLogArcRegistry;
+extern Registry<Function<fst::Log64Arc>* > kLog64ArcRegistry;
 extern void RegisterFunctions();
 
 #define REGISTER_STDARC_FUNCTION(function) \
@@ -74,11 +76,16 @@ extern void RegisterFunctions();
 #define REGISTER_LOGARC_FUNCTION(function) \
   kLogArcRegistry.Register(#function, new function)
 
+#define REGISTER_LOG64ARC_FUNCTION(function) \
+  kLogArcRegistry.Register(#function, new function)
+
 #define REGISTER_GRM_FUNCTION(name) \
   typedef name<fst::StdArc> StdArc ## name; \
   REGISTER_STDARC_FUNCTION(StdArc ## name); \
   typedef name<fst::LogArc> LogArc ## name; \
-  REGISTER_LOGARC_FUNCTION(LogArc ## name)
+  REGISTER_LOGARC_FUNCTION(LogArc ## name); \
+  typedef name<fst::LogArc> Log64Arc ## name; \
+  REGISTER_LOGARC_FUNCTION(Log64Arc ## name)
 
 template <typename Arc>
 class UnaryFstFunction : public Function<Arc> {

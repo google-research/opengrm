@@ -46,7 +46,7 @@
 
 (defvar thrax-built-in-functions
   (regexp-opt
-   '("ArcSort" "CDRewrite" "Closure" "Compose" "Concat" "Determinize"
+   '("ArcSort" "CDRewrite" "Closure" "Compose" "Concat" "Connect" "Determinize"
      "Difference" "Expand" "Invert" "LoadFst" "LoadFstFromFar" "Minimize"
      "Optimize" "Project" "Reverse" "Rewrite" "RmEpsilon" "StringFile" "StringFst"
      "SymbolTable" "Union")

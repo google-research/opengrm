@@ -17,8 +17,6 @@
 // Main compiler entry point.  Compiles a grm source file to the FST archive.
 // Returns zero on success and non-zero on failure.
 
-#include <string>
-
 #include <thrax/compat/utils.h>
 #include <thrax/grm-compiler.h>
 #include <thrax/grm-manager.h>
@@ -26,9 +24,21 @@
 
 DEFINE_string(input_grammar, "", "Name of the grammar file.");
 DEFINE_string(output_far, "", "Location to write the FST archive.");
+DEFINE_string(arc_type, "standard", "Arc type for compiled fsts");
 
-using thrax::GrmCompiler;
-using thrax::GrmManager;
+using thrax::GrmCompilerSpec;
+using thrax::GrmManagerSpec;
+
+template <typename Arc>
+bool CompileGrammar(const string& input_grammar, const string& output_far) {
+  GrmCompilerSpec<Arc> grammar;
+  if (grammar.ParseFile(input_grammar) && grammar.EvaluateAst()) {
+    const GrmManagerSpec<Arc>* manager = grammar.GetGrmManager();
+    manager->ExportFar(output_far);
+    return true;
+  }
+  return false;
+}
 
 int main(int argc, char **argv) {
   std::set_new_handler(FailedNewHandler);
@@ -36,13 +46,18 @@ int main(int argc, char **argv) {
 
   thrax::function::RegisterFunctions();
 
-  GrmCompiler grammar;
-  if (grammar.ParseFile(FLAGS_input_grammar) &&
-      grammar.EvaluateAst()) {
-    const GrmManager* manager = grammar.GetGrmManager();
-    manager->ExportFar(FLAGS_output_far);
-    return 0;
+  if (FLAGS_arc_type == "standard") {
+    if (CompileGrammar<fst::StdArc>(FLAGS_input_grammar, FLAGS_output_far))
+      return 0;
+  } else if (FLAGS_arc_type == "log") {
+    if (CompileGrammar<fst::LogArc>(FLAGS_input_grammar, FLAGS_output_far))
+      return 0;
+  } else if (FLAGS_arc_type == "log64") {
+    if (CompileGrammar<fst::Log64Arc>(FLAGS_input_grammar,
+                                          FLAGS_output_far))
+      return 0;
   } else {
-    return 1;
+    LOG(FATAL) << "Unsupported arc type: " << FLAGS_arc_type;
   }
+  return 1;
 }

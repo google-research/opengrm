@@ -18,13 +18,14 @@
 #ifndef THRAX_PROJECT_H_
 #define THRAX_PROJECT_H_
 
+#include <iostream>
+#include <string>
 #include <vector>
 using std::vector;
 
-#include <fst/fst.h>
-#include <fst/project.h>
-#include <thrax/function.h>
+#include <fst/fstlib.h>
 #include <thrax/datatype.h>
+#include <thrax/function.h>
 
 namespace thrax {
 namespace function {

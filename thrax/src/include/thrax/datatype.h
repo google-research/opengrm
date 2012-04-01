@@ -20,7 +20,7 @@
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
-#include <fst/fst-decl.h>
+#include <fst/fstlib.h>
 #include <thrax/compat/oneof.h>
 
 namespace thrax {
@@ -69,6 +69,7 @@ class DataType {
  private:
   typedef Oneof<fst::Fst<fst::StdArc>*,
                            fst::Fst<fst::LogArc>*,
+                           fst::Fst<fst::Log64Arc>*,
                            fst::SymbolTable,
                            string,
                            int>

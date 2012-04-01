@@ -12,6 +12,7 @@
 //
 // Copyright 2005-2011 Google, Inc.
 // Author: ttai@google.com (Terry Tai)
+//         rws@google.com (Richard Sproat)
 //
 // Wrapper for the rewrite function, where we have two FSTs and rewrite the
 // the first into the second.  This function creates only on-the-fly
@@ -20,21 +21,20 @@
 #ifndef THRAX_REWRITE_H_
 #define THRAX_REWRITE_H_
 
+#include <iostream>
 #include <vector>
 using std::vector;
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
 #include <fst/types.h>
-#include <fst/concat.h>
-#include <fst/fst.h>
-#include <fst/map.h>
-#include <fst/properties.h>
-#include <fst/vector-fst.h>
-#include <thrax/function.h>
+#include <fst/fstlib.h>
 #include <thrax/datatype.h>
+#include <thrax/function.h>
 #include <thrax/compat/stlfunctions.h>
 #include <thrax/compat/registry.h>
+
+DECLARE_bool(save_symbols);  // From util/flags.cc.
 
 namespace thrax {
 namespace function {
@@ -62,14 +62,15 @@ class EpsilonMapper {
     return fst::MAP_NO_SUPERFINAL;
   }
 
+  // Always clear the symbols on both sides. If the FLAGS_save_symbols is set,
+  // then Rewrite will take care of passing the appropriate symbol tables
+  // through.
   fst::MapSymbolsAction InputSymbolsAction() const {
-    return type_ == EPSILON_INPUTS ? fst::MAP_CLEAR_SYMBOLS :
-        fst::MAP_COPY_SYMBOLS;
+    return fst::MAP_CLEAR_SYMBOLS;
   }
 
   fst::MapSymbolsAction OutputSymbolsAction() const {
-    return type_ == EPSILON_OUTPUTS ? fst::MAP_CLEAR_SYMBOLS :
-        fst::MAP_COPY_SYMBOLS;
+    return fst::MAP_CLEAR_SYMBOLS;
   }
 
   uint64 Properties(uint64 in_properties) const {
@@ -105,12 +106,40 @@ class Rewrite : public BinaryFstFunction<Arc> {
       return NULL;
     }
 
+    // If we keep the symbol tables and if either the input or the output is not
+    // an acceptor, then the output symbols of the left and the output symbols
+    // of the right must match.
+    if (FLAGS_save_symbols &&
+        (!left.Properties(fst::kAcceptor, true) ||
+         !right.Properties(fst::kAcceptor, true))) {
+      if (!CompatSymbols(left.OutputSymbols(), right.InputSymbols())) {
+        cout << "Rewrite: output symbol table of 1st argument "
+             << "does not match input symbol table of 2nd argument "
+             << "and at least one is not an acceptor"
+             << endl;
+        return NULL;
+      }
+    }
+
     fst::MapFst<Arc, Arc, EpsilonMapper<Arc> > left_rmep(
         left, EpsilonMapper<Arc>(EpsilonMapper<Arc>::EPSILON_OUTPUTS));
     fst::MapFst<Arc, Arc, EpsilonMapper<Arc> > right_rmep(
         right, EpsilonMapper<Arc>(EpsilonMapper<Arc>::EPSILON_INPUTS));
 
-    return new fst::ConcatFst<Arc>(left_rmep, right_rmep);
+    const fst::SymbolTable* input_symbols = left.InputSymbols();
+    const fst::SymbolTable* output_symbols = right.OutputSymbols();
+    fst::ConcatFst<Arc> concat(left_rmep, right_rmep);
+    // First RmEpsilon is to remove epsilons added by Concat
+    fst::RmEpsilonFst<Arc> rmeps(concat);
+    fst::VectorFst<Arc>* output = new fst::VectorFst<Arc>;
+    fst::Push<Arc, fst::REWEIGHT_TO_INITIAL>(rmeps, output,
+                                                     fst::kPushLabels);
+    // Second RmEpsilon removes the epsilons left over after the label pushing
+    fst::RmEpsilon(output);
+    // The following is only functional if FLAGS_save_symbols is set
+    output->SetInputSymbols(input_symbols);
+    output->SetOutputSymbols(output_symbols);
+    return output;
   }
 
  private:

@@ -24,7 +24,6 @@ using std::vector;
 #include <thrax/algo/resource-map.h>
 #include <thrax/compat/utils.h>
 #include <thrax/compat/stlfunctions.h>
-#include <thrax/compat/stlfunctions.h>
 
 namespace thrax {
 

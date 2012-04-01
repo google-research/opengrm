@@ -38,7 +38,6 @@ using std::vector;
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
 #include <fst/types.h>
-#include <fst/arcsum.h>
 #include <fst/fstlib.h>
 
 namespace fst {
@@ -74,14 +73,13 @@ class EpsMapper {
   MapSymbolsAction OutputSymbolsAction() const { return MAP_COPY_SYMBOLS;}
 };
 
-
 // Optimize an fst over an idempotent semiring by encoding labels and
 // weight and applying determinization and minimization to the encoded
 // machine.
 template <class Arc>
 void Optimize(MutableFst<Arc> *fst) {
   RmEpsilon(fst);
-  ArcSum(fst);
+  StateMap(fst, ArcSumMapper<Arc>(*fst));
   if (!(Arc::Weight::Properties() & kIdempotent)) return;
   if (fst->Properties(kAcceptor, false) != kAcceptor) {
     EncodeMapper<Arc> encoder(kEncodeLabels | kEncodeWeights, ENCODE);
@@ -95,7 +93,7 @@ void Optimize(MutableFst<Arc> *fst) {
     Determinize(ifst, fst);
     Minimize(fst);
   }
-  ArcSum(fst);
+  StateMap(fst, ArcSumMapper<Arc>(*fst));
 }
 
 
@@ -154,13 +152,13 @@ class ContextDependentRewriteRule {
  private:
   enum MarkerType { MARK = 1, CHECK = 2, CHECK_COMPLEMENT = 3};
 
-  void MakeMarker(MutableFst<Arc> *fst, MarkerType type,
+  void MakeMarker(MutableFst<StdArc> *fst,
+                  MarkerType type,
                   const vector<pair<Label, Label> > &markers);
   void IgnoreMarkers(MutableFst<Arc> *fst,
                      const vector<pair<Label, Label> > &markers);
   void AddMarkersToSigma(MutableFst<Arc> *sigma,
                          const vector<pair<Label, Label> > &markers);
-  void PrependSigmaStar(MutableFst<Arc> *fst, const Fst<Arc> &sigma);
   void AppendMarkers(MutableFst<Arc> *fst,
                      const vector<pair<Label, Label> > &markers);
   void PrependMarkers(MutableFst<Arc> *fst,
@@ -200,11 +198,11 @@ class ContextDependentRewriteRule {
 // represented by fst, as specified in Mohri and Sproat (1996).
 template <class Arc>
 void ContextDependentRewriteRule<Arc>::MakeMarker(
-    MutableFst<Arc> *fst,
+    MutableFst<StdArc> *fst,
     MarkerType type,
     const vector<pair<Label, Label> > &markers) {
-  typedef typename Arc::StateId StateId;
-  typedef typename Arc::Weight Weight;
+  typedef typename StdArc::StateId StateId;
+  typedef typename StdArc::Weight Weight;
 
   if (!(fst->Properties(kAcceptor, true) & kAcceptor))
     LOG(FATAL) << "Marker: input fst needs to be an acceptor";
@@ -220,14 +218,14 @@ void ContextDependentRewriteRule<Arc>::MakeMarker(
         } else {
           StateId j = fst->AddState();
           fst->SetFinal(j, fst->Final(i));
-          ArcIterator<Fst<Arc> > arc_iter(*fst, i);
+          ArcIterator<Fst<StdArc> > arc_iter(*fst, i);
           for (; !arc_iter.Done(); arc_iter.Next())
             fst->AddArc(j, arc_iter.Value());
           fst->SetFinal(i, Weight::Zero());
           fst->DeleteArcs(i);
           for (ssize_t k = 0; k < markers.size(); ++k)
-            fst->AddArc(i, Arc(markers[k].first, markers[k].second,
-                               Weight::One(), j));
+            fst->AddArc(i, StdArc(markers[k].first, markers[k].second,
+                                  Weight::One(), j));
         }
       }
       break;
@@ -239,8 +237,8 @@ void ContextDependentRewriteRule<Arc>::MakeMarker(
           fst->SetFinal(i, Weight::One());
         } else {
           for (ssize_t k = 0; k < markers.size(); ++k)
-            fst->AddArc(i, Arc(markers[k].first, markers[k].second,
-                               Weight::One(), i));
+            fst->AddArc(i, StdArc(markers[k].first, markers[k].second,
+                                  Weight::One(), i));
         }
       }
       break;
@@ -251,8 +249,8 @@ void ContextDependentRewriteRule<Arc>::MakeMarker(
         if (fst->Final(i) == Weight::Zero()) {
           fst->SetFinal(i, Weight::One());
           for (ssize_t k = 0; k < markers.size(); ++k)
-            fst->AddArc(i, Arc(markers[k].first, markers[k].second,
-                               Weight::One(), i));
+            fst->AddArc(i, StdArc(markers[k].first, markers[k].second,
+                                  Weight::One(), i));
         }
       }
       break;
@@ -292,8 +290,8 @@ void ContextDependentRewriteRule<Arc>::AddMarkersToSigma(
 // Add loops at the initial state of fst for all alphabet symbols
 // in the current alphabet (sigma).
 template <class Arc>
-void ContextDependentRewriteRule<Arc>::PrependSigmaStar(MutableFst<Arc> *fst,
-                                                        const Fst<Arc> &sigma) {
+inline void PrependSigmaStar(MutableFst<Arc> *fst,
+                             const Fst<Arc> &sigma) {
   Concat(sigma, fst);
   RmEpsilon(fst);
 }
@@ -336,6 +334,12 @@ void ContextDependentRewriteRule<Arc>::PrependMarkers(
 // defined in 'markers' for the regular expression sigma^* beta.  When
 // reverse is true, the reverse of the marker transducer corresponding
 // to sigma^* reverse(beta).
+//
+// The operations in MakeFilter do not depend on the semiring, and indeed for
+// some semirings the various optimizations needed in MakeFilter cause
+// problems. We therefore map incoming acceptors in whatever semiring to
+// unweighted acceptors. Ideally this would be in the boolean, but we simulate
+// it with the tropical.
 template <class Arc>
 void ContextDependentRewriteRule<Arc>::MakeFilter(
     const Fst<Arc> &beta,
@@ -344,30 +348,36 @@ void ContextDependentRewriteRule<Arc>::MakeFilter(
     MarkerType type,
     const vector<pair<Label, Label> > &markers,
     bool reverse) {
-  Map(beta, filter, IdentityMapper<Arc>());
-  if (filter->Start() == kNoStateId)
-    filter->SetStart(filter->AddState());
+  VectorFst<StdArc> ufilter;
+  Map(beta, &ufilter, RmWeightMapper<Arc, StdArc>());
+  VectorFst<StdArc> usigma;
+  Map(sigma, &usigma, RmWeightMapper<Arc, StdArc>());
+  if (ufilter.Start() == kNoStateId)
+    ufilter.SetStart(ufilter.AddState());
   if (reverse) {
     Reverse(
-        MapFst<Arc, Arc, IdentityMapper<Arc> >(*filter, IdentityMapper<Arc>()),
-        filter);
-    VectorFst<Arc> reversed_sigma;
-    Reverse(sigma, &reversed_sigma);
+        MapFst<StdArc, StdArc,
+        IdentityMapper<StdArc> >(ufilter,
+                                 IdentityMapper<StdArc>()),
+        &ufilter);
+    VectorFst<StdArc> reversed_sigma;
+    Reverse(usigma, &reversed_sigma);
     RmEpsilon(&reversed_sigma);
-    PrependSigmaStar(filter, reversed_sigma);
+    PrependSigmaStar<StdArc>(&ufilter, reversed_sigma);
   } else {
-    PrependSigmaStar(filter, sigma);
+    PrependSigmaStar<StdArc>(&ufilter, usigma);
   }
-  RmEpsilon(filter);
-  DeterminizeFst<Arc> det(*filter);
-  Map(det, filter, IdentityMapper<Arc>());
-  Minimize(filter);
-  MakeMarker(filter, type, markers);
+  RmEpsilon(&ufilter);
+  DeterminizeFst<StdArc> det(ufilter);
+  Map(det, &ufilter, IdentityMapper<StdArc>());
+  Minimize(&ufilter);
+  MakeMarker(&ufilter, type, markers);
   if (reverse)
-    Reverse(
-        MapFst<Arc, Arc, IdentityMapper<Arc> >(*filter, IdentityMapper<Arc>()),
-        filter);
-  ArcSort(filter, ILabelCompare<Arc>());
+    Reverse(MapFst<StdArc, StdArc,
+            IdentityMapper<StdArc> >(ufilter, IdentityMapper<StdArc>()),
+            &ufilter);
+  ArcSort(&ufilter, ILabelCompare<StdArc>());
+  Map(ufilter, filter, RmWeightMapper<StdArc, Arc>());
 }
 
 
@@ -456,8 +466,7 @@ void ContextDependentRewriteRule<Arc>::MakeReplace(MutableFst<Arc> *fst,
   // Add required loops at new initial state
   VectorFst<Arc> sigma_m(sigma);
   AddMarkersToSigma(&sigma_m, initial_loops);
-  PrependSigmaStar(fst, sigma_m);
-
+  PrependSigmaStar<Arc>(fst, sigma_m);
   Closure(fst, CLOSURE_STAR);
   Optimize(fst);
   ArcSort(fst, ILabelCompare<Arc>());

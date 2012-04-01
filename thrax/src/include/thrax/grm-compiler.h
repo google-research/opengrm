@@ -15,11 +15,12 @@
 //
 // This is the main compiler class that takes in a source file and calls the
 // parser to produce an AST and then walks that AST to generate the desired
-// FSTs.  These FSTs are then loaded into a GrmManager.
+// FSTs.  These FSTs are then loaded into a GrmManagerSpec.
 
 #ifndef NLP_GRM_LANGUAGE_GRM_COMPILER_H_
 #define NLP_GRM_LANGUAGE_GRM_COMPILER_H_
 
+#include <iostream>
 #include <string>
 #include <vector>
 using std::vector;
@@ -27,23 +28,43 @@ using std::vector;
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
 #include <fst/arc.h>
+#include <thrax/node.h>
 #include <thrax/grm-manager.h>
 #include <thrax/lexer.h>
+#include <thrax/evaluator.h>
+#include <thrax/identifier-counter.h>
+#include <thrax/printer.h>
+#include <thrax/compat/stlfunctions.h>
+
+DECLARE_bool(print_ast);
+DECLARE_string(indir);
 
 namespace thrax {
 
 class Namespace;
 class Node;
+template <typename Arc> class AstEvaluator;
 
-class GrmCompiler {
+// We must define a base class to be passed to the bison parser, which doesn't
+// know about templates.
+class GrmCompilerParserInterface {
  public:
-  typedef fst::StdArc Arc;
+  virtual ~GrmCompilerParserInterface() {};
+  virtual void SetAst(Node* root) = 0;
+  virtual Lexer* GetLexer() = 0;
+  virtual void Error(const string& message) = 0;
+};
 
-  GrmCompiler();
-  ~GrmCompiler();
+
+template <typename Arc>
+class GrmCompilerSpec : public GrmCompilerParserInterface {
+ public:
+
+  GrmCompilerSpec();
+  ~GrmCompilerSpec();
 
   // ***************************************************************************
-  // COMPILATION: These functions load up data into the GrmCompiler.
+  // COMPILATION: These functions load up data into the GrmCompilerSpec.
   // Either:
   //   1.) call Parse*() followed by EvaluateAst(), or
   //   2.) load up an existing FST Archive by using LoadArchive().
@@ -74,7 +95,7 @@ class GrmCompiler {
   // Returns a pointer to the grammar manager so that we can perform rewrites
   // (or exports, or whatever).  This pointer remains owned by this class,
   // however, so it should not be deleted by the caller.
-  const GrmManager* GetGrmManager() const { return &grm_manager_; }
+  const GrmManagerSpec<Arc>* GetGrmManager() const { return &grm_manager_; }
 
   // ***************************************************************************
   // Various other useful functions.
@@ -90,12 +111,119 @@ class GrmCompiler {
   vector<Node*> asts_;  // The list of actual ASTs owned by this compiler.
   Node* root_;          // A pointer to the most recent AST.
 
-  GrmManager grm_manager_;  // The manager that holds all of the FSTs.
+  GrmManagerSpec<Arc> grm_manager_;  // The manager that holds all of the FSTs.
 
   bool success_;
 
-  DISALLOW_COPY_AND_ASSIGN(GrmCompiler);
+  DISALLOW_COPY_AND_ASSIGN(GrmCompilerSpec);
 };
+
+template <typename Arc>
+GrmCompilerSpec<Arc>::GrmCompilerSpec()
+    : root_(NULL) {}
+
+template <typename Arc>
+GrmCompilerSpec<Arc>::~GrmCompilerSpec() {
+  STLDeleteContainerPointers(asts_.begin(), asts_.end());
+}
+
+template <typename Arc>
+void GrmCompilerSpec<Arc>::SetAst(Node* root) {
+  asts_.push_back(root);
+  root_ = root;
+}
+
+template <typename Arc>
+bool GrmCompilerSpec<Arc>::EvaluateAstWithEnvironment(Namespace* env) {
+  if (!success_ || !root_) {
+    int line_number = GetLexer()->line_number();
+    cout << "****************************************\n";
+    if (line_number == -1) {
+      cout << "At end of file\n";
+    } else {
+      cout << "****************************************\n"
+           << "Line " << GetLexer()->line_number() << "\n"
+           << "Context: "
+           << GetLexer()->GetCurrentContext() << endl;
+    }
+    return false;
+  }
+  if (FLAGS_print_ast) {
+    AstPrinter printer;
+    root_->Accept(&printer);
+  }
+
+  VLOG(1) << "Commencing main compilation (AST evaluation).";
+  AstEvaluator<Arc>* evaluator;
+  if (env) {
+    // If we have an environment, then we pass it to the Evaluator so that it
+    // knows that we only want the includes.
+    evaluator = new AstEvaluator<Arc>(env);
+  } else {
+    // We want to get a count of the identifiers so that we can free their
+    // memory when the time comes.
+    AstIdentifierCounter* id_counter = new AstIdentifierCounter();
+    root_->Accept(id_counter);
+
+    // If we don't have an environment, then we're doing the top level version,
+    // where we execute the body.
+    evaluator = new AstEvaluator<Arc>();
+    evaluator->SetIdCounter(id_counter);
+  }
+  root_->Accept(evaluator);
+
+  if (evaluator->Success()) {
+    // We can always retrieve the FSTs.  If there are none (ex., since we're
+    // only importing the file), this operation is still safe/fast.
+    VLOG(1) << "Compilation complete.  Expanding exported FSTs.";
+    evaluator->GetFsts(grm_manager_.GetFstMap());
+  } else {
+    cout << "Compilation failed." << endl;
+    success_ = false;
+  }
+
+  delete evaluator;
+  return success_;
+}
+
+template <typename Arc>
+void GrmCompilerSpec<Arc>::Error(const string& message) {
+  success_ = false;
+  if (!message.empty()) {
+    cout << "****************************************\n"
+         << "Line " << GetLexer()->line_number() << ": " << message << "\n"
+         << "Context: "
+         << GetLexer()->GetCurrentContext() << endl;
+  }
+}
+
+template <typename Arc>
+bool GrmCompilerSpec<Arc>::ParseFile(const string &filename) {
+  string local_grammar = JoinPath(FLAGS_indir, filename);
+  VLOG(1) << "Parsing file: " << local_grammar;
+
+  string contents;
+  ReadFileToStringOrDie(local_grammar, &contents);
+
+  return ParseContents(contents);
+}
+
+// A wrapper for yyparse, just to avoid having to declare namespace
+// thrax_rewriter here, and the various declarations for yyparse...
+int CallParser(GrmCompilerParserInterface* compiler);
+
+template <typename Arc>
+bool GrmCompilerSpec<Arc>::ParseContents(const string& contents) {
+  success_ = true;
+  lexer_.ScanString(contents);
+  CallParser(this);
+  return success_;
+}
+
+// A lot of code outside this build uses GrmCompiler with the old meaning of
+// GrmCompilerSpec<fst::StdArc>, forward-declaring it as a class. To obviate
+// the need to change all that outside code, we provide this derived class:
+class GrmCompiler : public GrmCompilerSpec<fst::StdArc> {};
 
 }  // namespace thrax
 

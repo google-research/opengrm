@@ -21,10 +21,10 @@
 
 #include <string.h>
 #include <algorithm>
-#include <set>
 #include <iostream>
-#include <string>
+#include <set>
 #include <stack>
+#include <string>
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
@@ -64,11 +64,18 @@ class Lexer {
   // Access to the most recently read string.
   const string &YYString() const;
 
-  // Current line number in the grammar being processed.
-  int line_number() const {return curr_file()->line_number; }
+  // Current line number in the grammar being processed.  If the grammar has
+  // been popped empty, which can happen in GetChar() if we run off the end of
+  // the file while in the middle of processing, return -1.
+  int line_number() const {
+    if (grammar_.empty()) return -1;
+    return curr_file()->line_number;
+  }
 
   // Context string (for error messages and debugging).
+  // If grammar is popped empty, return empty string.
   string GetCurrentContext() const {
+    if (grammar_.empty()) return "";
     int end = curr_file()->pos;
     int start = curr_file()->content.rfind('\n', end - 1);
     if (start == string::npos)

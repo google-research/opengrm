@@ -14,7 +14,7 @@
 // Author: rws@google.com (Richard Sproat)
 //
 // Simple implementation of OneOf, needed by datatype.h
-// This version ONLY allows one to specify a template with exactly 5 types.
+// This version ONLY allows one to specify a template with exactly 6 types.
 
 #ifndef THRAX_COMPAT_ONEOF_H_
 #define THRAX_COMPAT_ONEOF_H_
@@ -63,7 +63,8 @@ template <typename T1,
           typename T2,
           typename T3,
           typename T4,
-          typename T5>
+          typename T5,
+          typename T6>
 class Oneof {
  public:
   Oneof(const Oneof& oneof) {
@@ -93,6 +94,11 @@ class Oneof {
   explicit Oneof(const T5& thing) {
     thing_.t5_.Init(thing);
     type_ = GetType(static_cast<T5*>(NULL));
+  }
+
+  explicit Oneof(const T6& thing) {
+    thing_.t6_.Init(thing);
+    type_ = GetType(static_cast<T6*>(NULL));
   }
 
   ~Oneof() { Kill(); }
@@ -160,6 +166,10 @@ class Oneof {
     return &thing_.t5_;
   }
 
+  Shield<T6>* get_mutable_internal(T6*) {
+    return &thing_.t6_;
+  }
+
   const Shield<T1>* get_internal(T1*) const {
     return &thing_.t1_;
   }
@@ -180,11 +190,16 @@ class Oneof {
     return &thing_.t5_;
   }
 
+  const Shield<T6>* get_internal(T6*) const {
+    return &thing_.t6_;
+  }
+
   inline const unsigned int GetType(T1*) const { return 1; }
   inline const unsigned int GetType(T2*) const { return 2; }
   inline const unsigned int GetType(T3*) const { return 3; }
   inline const unsigned int GetType(T4*) const { return 4; }
   inline const unsigned int GetType(T5*) const { return 5; }
+  inline const unsigned int GetType(T6*) const { return 6; }
 
   union datum {
     Shield<T1> t1_;
@@ -192,6 +207,7 @@ class Oneof {
     Shield<T3> t3_;
     Shield<T4> t4_;
     Shield<T5> t5_;
+    Shield<T6> t6_;
   } thing_;
 
   int type_;

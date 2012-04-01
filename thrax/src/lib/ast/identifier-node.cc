@@ -16,7 +16,6 @@
 #include <thrax/identifier-node.h>
 
 #include <ctype.h>
-#include <iostream>
 #include <string>
 
 #include <thrax/walker.h>

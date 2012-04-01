@@ -18,6 +18,7 @@
 #ifndef THRAX_CONNECT_H_
 #define THRAX_CONNECT_H_
 
+#include <iostream>
 #include <vector>
 using std::vector;
 

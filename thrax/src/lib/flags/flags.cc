@@ -12,12 +12,15 @@
 //
 // Copyright 2005-2011 Google, Inc.
 // Author: ttai@google.com (Terry Tai)
+//         rws@google.com (Richard Sproat)
 //
 // List of common command line flags that multiple modules may need to include.
 
-#include <string>
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
+
+DEFINE_bool(save_symbols, false,
+            "Keep symbol tables associated with generated fsts.");
 
 DEFINE_string(indir, "", "The directory with the source files.");
 DEFINE_string(outdir, "", "The directory in which we'll write the output.");

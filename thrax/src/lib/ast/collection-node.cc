@@ -16,8 +16,6 @@
 #include <thrax/collection-node.h>
 
 #include <deque>
-#include <iostream>
-#include <string>
 
 #include <thrax/walker.h>
 #include <thrax/compat/stlfunctions.h>

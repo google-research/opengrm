@@ -16,6 +16,7 @@
 //
 // Author: wojciech@google.com (Wojciech Skut)
 //         ttai@google.com (Terry Tai)
+//         rws@google.com (Richard Sproat)
 //
 // Bison parser for FST generation.
 
@@ -40,7 +41,13 @@ using namespace thrax;
 
 #define YYPARSE_PARAM parm
 #define YYLEX_PARAM parm
-#define CTRL (static_cast<GrmCompiler*>(parm))
+#define CTRL (static_cast<GrmCompilerParserInterface*>(parm))
+
+class FuncOrStmt {
+public:
+  CollectionNode *funcs_;
+  CollectionNode *stmts_;
+};
 
 namespace thrax_rewriter {
   int yylex(void *, void *parm);
@@ -62,9 +69,11 @@ namespace thrax_rewriter {
   StringNode*                string_node_type;
   GrammarNode*               grammar_node_type;
   Node*                      node_type;
+  FuncOrStmt*                function_or_statement_node_type;
 }
 
 %type <grammar_node_type>         grammar
+%type <function_or_statement_node_type>  func_or_stmt_list
 %type <collection_node_type>      stmt_list
 %type <statement_node_type>       stmt
 %type <return_node_type>          return_stmt
@@ -75,7 +84,6 @@ namespace thrax_rewriter {
 %type <string_node_type>          weight
 %type <identifier_node_type>      descriptor
 
-%type <collection_node_type>      func_list
 %type <function_node_type>        func_decl
 %type <collection_node_type>      func_arglist
 %type <collection_node_type>      func_arguments
@@ -121,8 +129,9 @@ namespace thrax_rewriter {
 %%
 
 grammar:
-  import_list func_list stmt_list
-    { GrammarNode* node = new GrammarNode($1, $2, $3);
+  import_list func_or_stmt_list
+    { GrammarNode* node = new GrammarNode($1, $2->funcs_, $2->stmts_);
+      delete $2;
       $$ = node;
       CTRL->SetAst(static_cast<Node*>($$)); }
 | error
@@ -138,11 +147,17 @@ import_list:
       $$ = $2; }
 ;
 
-func_list:
+func_or_stmt_list:
   /* empty */
-    { $$ = new CollectionNode(); }
-| func_decl func_list
-    { $2->AddFront($1);
+    { $$ = new FuncOrStmt();
+      $$->funcs_ = new CollectionNode();
+      $$->stmts_ = new CollectionNode();
+    }
+| stmt func_or_stmt_list
+    { $2->stmts_->AddFront($1);
+      $$ = $2; }
+| func_decl func_or_stmt_list
+    { $2->funcs_->AddFront($1);
       $$ = $2; }
 ;
 
@@ -165,6 +180,9 @@ stmt:
       node->SetLine(CTRL->GetLexer()->line_number());
       node->Set($1);
       $$ = node; }
+| import_request
+    { CTRL->Error("import statements must occur in the first block of the grammar.");
+      $$ = NULL; }
 | error tSEMICOLON
     { CTRL->Error("Invalid statement (or previous statement).");
       $$ = NULL; }
@@ -277,6 +295,26 @@ funccall_arguments:
       $$ = node; }
 | obj tCOMMA funccall_arguments
     { $3->AddFront($1);
+      $$ = $3; }
+// TODO(rws): These are only needed by StringFile. There should be a better way
+// to do this.
+| tKEYWORD_BYTE
+    { CollectionNode* node = new CollectionNode();
+      StringNode* nnode = new StringNode("byte");
+      node->AddFront(nnode);
+      $$ = node; }
+| tKEYWORD_BYTE tCOMMA funccall_arguments
+    { StringNode* nnode = new StringNode("byte");
+      $3->AddFront(nnode);
+      $$ = $3; }
+| tKEYWORD_UTF8
+    { CollectionNode* node = new CollectionNode();
+      StringNode* nnode = new StringNode("utf8");
+      node->AddFront(nnode);
+      $$ = node; }
+| tKEYWORD_UTF8 tCOMMA funccall_arguments
+    { StringNode* nnode = new StringNode("utf8");
+      $3->AddFront(nnode);
       $$ = $3; }
 ;
 
@@ -543,25 +581,10 @@ int yyerror(const char *s) {
 
 } // namespace thrax_rewriter
 
-DECLARE_string(indir);
-
 namespace thrax {
 
-  bool GrmCompiler::ParseFile(const string &filename) {
-    string local_grammar = JoinPath(FLAGS_indir, filename);
-    VLOG(1) << "Parsing file: " << local_grammar;
-
-    string contents;
-    ReadFileToStringOrDie(local_grammar, &contents);
-
-    return ParseContents(contents);
-  }
-
-  bool GrmCompiler::ParseContents(const string& contents) {
-    success_ = true;
-    lexer_.ScanString(contents);
-    thrax_rewriter::yyparse(this);
-    return success_;
-  }
+int CallParser(GrmCompilerParserInterface* compiler) {
+  return thrax_rewriter::yyparse(compiler);
+}
 
 }  // namespace thrax

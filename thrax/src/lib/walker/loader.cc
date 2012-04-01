@@ -12,6 +12,9 @@
 //
 // Copyright 2005-2011 Google, Inc.
 // Author: ttai@google.com (Terry Tai)
+//         rws@google.com (Richard Sproat)
+
+#include <string>
 
 #include <thrax/arcsort.h>
 #include <thrax/cdrewrite.h>
@@ -35,6 +38,7 @@
 #include <thrax/stringfile.h>
 #include <thrax/stringfst.h>
 #include <thrax/symboltable.h>
+#include <thrax/symbols.h>
 #include <thrax/union.h>
 
 namespace thrax {
@@ -65,6 +69,26 @@ void RegisterFunctions() {
   REGISTER_GRM_FUNCTION(SymbolTable);
   REGISTER_GRM_FUNCTION(Union);
   REGISTER_GRM_FUNCTION(UnionDelayed);
+}
+
+// Needed for symbol table functionality built into symbols.h
+
+SymbolTableBuilder kSymbolTableBuilder;
+
+fst::SymbolTable* GetByteSymbolTable() {
+  return kSymbolTableBuilder.GetByteSymbolTable();
+}
+
+fst::SymbolTable* GetUtf8SymbolTable() {
+  return kSymbolTableBuilder.GetUtf8SymbolTable();
+}
+
+void AddToByteSymbolTable(string symbol, int64 label) {
+  kSymbolTableBuilder.AddToByteSymbolTable(symbol, label);
+}
+
+void AddToUtf8SymbolTable(string symbol, int64 label) {
+  kSymbolTableBuilder.AddToUtf8SymbolTable(symbol, label);
 }
 
 }  // namespace function

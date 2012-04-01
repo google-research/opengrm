@@ -15,9 +15,6 @@
 
 #include <thrax/grammar-node.h>
 
-#include <iostream>
-#include <string>
-
 #include <thrax/collection-node.h>
 #include <thrax/walker.h>
 

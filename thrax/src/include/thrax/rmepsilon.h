@@ -19,16 +19,15 @@
 #ifndef THRAX_RMEPSILON_H_
 #define THRAX_RMEPSILON_H_
 
+#include <iostream>
 #include <vector>
 using std::vector;
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
-#include <fst/fst.h>
-#include <fst/rmepsilon.h>
-#include <fst/vector-fst.h>
-#include <thrax/function.h>
+#include <fst/fstlib.h>
 #include <thrax/datatype.h>
+#include <thrax/function.h>
 
 namespace thrax {
 namespace function {

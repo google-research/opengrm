@@ -18,6 +18,7 @@
 #ifndef THRAX_SYMBOLTABLE_H_
 #define THRAX_SYMBOLTABLE_H_
 
+#include <iostream>
 #include <string>
 #include <vector>
 using std::vector;
@@ -25,10 +26,9 @@ using std::vector;
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
 #include <thrax/compat/utils.h>
-#include <fst/fst.h>
 #include <fst/symbol-table.h>
-#include <thrax/function.h>
 #include <thrax/datatype.h>
+#include <thrax/function.h>
 #include <thrax/compat/stlfunctions.h>
 
 DECLARE_string(indir);  // From util/flags.cc.

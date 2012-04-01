@@ -25,14 +25,17 @@
 # LoadFstFromFar[], SymbolTable[] and StringFile[] statements are all readable,
 # and that the directories in which they occur are all writable.
 
+import getopt
 import re
 import sys
 
-GRAMMARS_ = []
+COMPILER_ = 'thraxcompiler %s%s--input_grammar=$< --output_far=$@'
 FARS_ = []
-COMPILER_ = 'thraxcompiler --input_grammar=$< --output_far=$@'
+GRAMMARS_ = []
 INTERPRETED_FILES_ = \
     re.compile("(LoadFstFromFar|LoadFst|StringFile|SymbolTable)\['([^ ']*)'")
+SAVE_SYMBOLS_ = ''
+ARC_TYPE_ = ''
 
 
 def ReplaceExt(grammar):
@@ -60,7 +63,7 @@ def MakeDepend(grammar, makep):
   far = ReplaceExt(grammar)
   dependents = ' '.join(fars + interpreted_files)
   makep.write('%s: %s %s\n' % (far, grammar, dependents))
-  makep.write('\t%s\n\n' % COMPILER_)
+  makep.write('\t%s\n\n' % (COMPILER_ % (SAVE_SYMBOLS_, ARC_TYPE_)))
   for far in fars:
     if far not in FARS_:
       FARS_.append(far)
@@ -79,11 +82,24 @@ def MakeFile(grammar, makefile='Makefile'):
 
 
 if __name__ == '__main__':
-  if len(sys.argv) < 2 or len(sys.argv) > 3:
-    sys.stderr.write('Usage: %s top-level-grammar [makefile-target=Makefile]\n' %
-                     sys.argv[0])
+  usage = ('Usage: %s [-s/--save_symbols]' +
+           ' [-a/--arc_type (default: standard)]' +
+           ' top-level-grammar' +
+           ' [makefile-target=Makefile]\n') % sys.argv[0]
+  try:
+    opts, args = getopt.getopt(sys.argv[1:], "sa:", ["save_symbols", "arc_type="])
+  except getopt.GetoptError:
+    sys.stderr.write(usage)
     sys.exit(1)
-  if len(sys.argv) == 2:
-    MakeFile(sys.argv[1])
+  for opt, arg in opts:
+    if opt in ("-s", "--save_symbols"):
+      SAVE_SYMBOLS_ = '--save_symbols '
+    elif opt in ("-a", "--arc_type"):
+      ARC_TYPE_ = '--arc_type=%s ' % arg
+  if len(args) < 1 or len(args) > 2:
+    sys.stderr.write(usage)
+    sys.exit(1)
+  if len(args) == 1:
+    MakeFile(args[0])
   else:
-    MakeFile(sys.argv[1], sys.argv[2])
+    MakeFile(args[0], args[1])

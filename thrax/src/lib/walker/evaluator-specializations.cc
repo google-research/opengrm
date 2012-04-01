@@ -17,9 +17,10 @@
 
 #include <string>
 
-#include <fst/fst.h>
+#include <fst/fst-decl.h>
 #include <thrax/function.h>
 #include <thrax/compat/utils.h>
+#include <thrax/compat/registry.h>
 
 DEFINE_bool(optimize_all_fsts, false,
             "If true, we'll run Optimize[] on all FSTs.");
@@ -31,6 +32,7 @@ namespace thrax {
 
 Registry<function::Function<fst::StdArc>* > function::kStdArcRegistry;
 Registry<function::Function<fst::LogArc>* > function::kLogArcRegistry;
+Registry<function::Function<fst::Log64Arc>* > function::kLog64ArcRegistry;
 
 template <>
 function::Function<fst::StdArc>* GetFunction(const string& func_name) {
@@ -42,6 +44,12 @@ template <>
 function::Function<fst::LogArc>* GetFunction(const string& func_name) {
   string name = "LogArc" + func_name;
   return function::kLogArcRegistry.Get(name);
+}
+
+template <>
+function::Function<fst::Log64Arc>* GetFunction(const string& func_name) {
+  string name = "Log64Arc" + func_name;
+  return function::kLog64ArcRegistry.Get(name);
 }
 
 }  // namespace thrax

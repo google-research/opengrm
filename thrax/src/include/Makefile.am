@@ -15,11 +15,12 @@ grm_include_headers = thrax/arcsort.h thrax/cdrewrite.h thrax/closure.h \
                       thrax/identifier-counter.h thrax/identifier-node.h \
                       thrax/import-node.h thrax/invert.h thrax/lexer.h \
                       thrax/loadfstfromfar.h thrax/loadfst.h thrax/minimize.h \
-                      thrax/namespace.h thrax/node.h thrax/optimize.h thrax/printer.h thrax/project.h \
-                      thrax/return-node.h thrax/reverse.h thrax/rewrite.h \
+                      thrax/namespace.h thrax/node.h thrax/optimize.h thrax/printer.h \
+		      thrax/project.h thrax/return-node.h thrax/reverse.h thrax/rewrite.h \
                       thrax/rmepsilon.h thrax/rule-node.h thrax/statement-node.h \
                       thrax/stringfile.h thrax/stringfst.h thrax/string-node.h \
-                      thrax/symboltable.h thrax/thrax.h thrax/union.h thrax/walker.h
+                      thrax/symbols.h thrax/symboltable.h thrax/thrax.h thrax/union.h\
+                      thrax/walker.h
 
 nobase_include_HEADERS = $(algo_include_headers) $(compat_include_headers) \
                          $(grm_include_headers)

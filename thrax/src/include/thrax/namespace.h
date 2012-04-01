@@ -32,6 +32,10 @@ using std::vector;
 #include <thrax/algo/resource-map.h>
 
 namespace thrax {
+class ResourceMap;
+}  // namespace thrax
+
+namespace thrax {
 
 class Namespace {
  public:

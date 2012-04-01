@@ -15,9 +15,6 @@
 
 #include <thrax/rule-node.h>
 
-#include <iostream>
-#include <string>
-
 #include <thrax/identifier-node.h>
 #include <thrax/walker.h>
 

@@ -18,6 +18,7 @@
 #ifndef THRAX_INVERT_H_
 #define THRAX_INVERT_H_
 
+#include <iostream>
 #include <vector>
 using std::vector;
 
@@ -26,8 +27,8 @@ using std::vector;
 #include <fst/fst.h>
 #include <fst/invert.h>
 #include <fst/vector-fst.h>
-#include <thrax/function.h>
 #include <thrax/datatype.h>
+#include <thrax/function.h>
 
 namespace thrax {
 namespace function {

@@ -15,11 +15,8 @@
 
 #include <thrax/string-node.h>
 
-#include <ctype.h>
-#include <iostream>
 #include <string>
 
-#include <thrax/node.h>
 #include <thrax/walker.h>
 
 namespace thrax {

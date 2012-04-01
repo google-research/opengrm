@@ -12,10 +12,13 @@
 //
 // Copyright 2005-2011 Google, Inc.
 // Author: ttai@google.com (Terry Tai)
+//         rws@google.com (Richard Sproat)
 
 #ifndef THRAX_EVALUATOR_H_
 #define THRAX_EVALUATOR_H_
 
+#include <string.h>
+#include <iostream>
 #include <map>
 #include <set>
 #include <sstream>
@@ -26,9 +29,9 @@ using std::vector;
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
 #include <thrax/compat/utils.h>
-#include <thrax/compat/utils.h>
 #include <fst/extensions/far/far.h>
 #include <fst/concat.h>
+#include <fst/arc.h>
 #include <fst/fst.h>
 #include <fst/vector-fst.h>
 #include <fst/weight.h>
@@ -50,12 +53,14 @@ using std::vector;
 #include <thrax/function.h>
 #include <thrax/optimize.h>
 #include <thrax/stringfst.h>
+#include <thrax/symbols.h>
 #include <thrax/namespace.h>
 #include <thrax/walker.h>
-#include <thrax/compat/utils.h>
+#include <thrax/compat/stlfunctions.h>
 
 DECLARE_bool(print_rules);
 DECLARE_bool(optimize_all_fsts);
+DECLARE_bool(save_symbols);
 DECLARE_string(indir);
 
 namespace thrax {
@@ -73,6 +78,8 @@ template <>
 function::Function<fst::StdArc>* GetFunction(const string& func_name);
 template <>
 function::Function<fst::LogArc>* GetFunction(const string& func_name);
+
+template <typename Arc> class GrmCompilerSpec;
 
 template <typename Arc>
 class AstEvaluator : public AstWalker {
@@ -141,7 +148,7 @@ class AstEvaluator : public AstWalker {
     const string& name = node->GetName()->Get();
     IdentifierNode function_inode(name);
     if (!env_->Get<FunctionNode>(function_inode)) {  // Add only if new.
-      // The functions are held with the GrmCompiler (more specifically the
+      // The functions are held with the GrmCompilerSpec (more specifically the
       // abstract syntax node tree).  So, we'll insert them without deletion
       // now, and kill them all at the end when we dispose of the grammar
       // compilers.
@@ -209,7 +216,7 @@ class AstEvaluator : public AstWalker {
       env_ = prev_env_;
       return;
     }
-    GrmCompiler* grammar = new GrmCompiler();
+    GrmCompilerSpec<Arc>* grammar = new GrmCompilerSpec<Arc>();
     if (!grammar->ParseFile(path) ||
         !grammar->EvaluateAstWithEnvironment(env_)) {
       Error(*node, StrCat("Errors while importing grm source file: ", path));
@@ -251,7 +258,10 @@ class AstEvaluator : public AstWalker {
         // into the variables.
         IdentifierNode key_inode(key);
         if (!env_->Get<DataType>(key_inode)) {  // Add only if new.
-          Transducer* fst = far_reader->GetFst().Copy();
+          // Must be mutable for now in case we need to change the symbol table.
+          MutableTransducer tmpfst(far_reader->GetFst());
+          ReassignSymbols(&tmpfst);
+          Transducer* fst = tmpfst.Copy();
           bool new_add = env_->Insert(key, new DataType(fst));
           CHECK(new_add)
               ;
@@ -367,7 +377,13 @@ class AstEvaluator : public AstWalker {
         return;
       }
       Transducer* fst = *env_->Get<DataType>(**fst_i)->get<Transducer*>();
-      (*fsts)[(*fst_i)->Get()] = new MutableTransducer(*fst);
+      MutableTransducer *nfst = new MutableTransducer(*fst);
+      // If the transducer has input symbols or output symbols, and if those are
+      // either the byte symbol table or the utf8 symbol table, then we must
+      // reassign those tables, since we may have added generated labels. In the
+      // worst case this is a no-op.
+      ReassignSymbols(nfst);
+      (*fsts)[(*fst_i)->Get()] = nfst;
     }
   }
 
@@ -680,10 +696,51 @@ class AstEvaluator : public AstWalker {
     weight_fst.SetStart(state);
     weight_fst.SetFinal(state, weight);
 
+    // If we are saving symbols then we have to add the symbol tables of our
+    // input fst to this new single state FST
+    if (FLAGS_save_symbols) {
+      weight_fst.SetInputSymbols(input_fst.InputSymbols());
+      weight_fst.SetOutputSymbols(input_fst.OutputSymbols());
+    }
+
     // Glue on the actual input FST to the front; this will automatically set
     // the weight properly.
     return new fst::ConcatFst<Arc>(input_fst, weight_fst);
   }
+
+  // If FLAGS_save_symbols is set for the system the imported fsts will have
+  // symbol tables.  If these are either the byte symbol table or the utf8
+  // symbol table, they may have additional generated labels associated with
+  // them.  These generated labels will cause the symbol tables to potentially
+  // be in conflict with other symbol tables either from other imported fsts, or
+  // from the ones created in this grammar.  Since all of the generated labels
+  // from all the imported files as well as the ones generated in this grammar
+  // are stored in the StringFst class, and since these will be added back in to
+  // any byte or utf8 symbol tables on write-out, the easiest thing to do is
+  // reset the symbol tables to be just the basic byte or utf8 symbol tables,
+  // and then when the new fsts are written out, reconstruct all of the
+  // generated labels in those symbol tables.
+  void ReassignSymbols(MutableTransducer* fst) {
+    if (fst->InputSymbols()) {
+      if (fst->InputSymbols()->Name() ==
+          function::kByteSymbolTableName) {
+        fst->SetInputSymbols(function::GetByteSymbolTable());
+      } else if (fst->InputSymbols()->Name() ==
+                 function::kUtf8SymbolTableName) {
+        fst->SetInputSymbols(function::GetUtf8SymbolTable());
+      }
+    }
+    if (fst->OutputSymbols()) {
+      if (fst->OutputSymbols()->Name() ==
+          function::kByteSymbolTableName) {
+        fst->SetOutputSymbols(function::GetByteSymbolTable());
+      } else if (fst->OutputSymbols()->Name() ==
+                 function::kUtf8SymbolTableName) {
+        fst->SetOutputSymbols(function::GetUtf8SymbolTable());
+      }
+    }
+  }
+
 
   Namespace* env_;
   AstIdentifierCounter* id_counter_;
@@ -700,7 +757,7 @@ class AstEvaluator : public AstWalker {
   // this.  It'd be nice to have a copy-function on the AST nodes so we can just
   // make a copy of the relevant bits of the AST (the function nodes) and store
   // just that.
-  static vector<GrmCompiler*> loaded_grammars_;
+  static vector<GrmCompilerSpec<Arc>*> loaded_grammars_;
 
   // This is the "return" datatype that is returned by a number of nodes.
   DataType* return_value_;
@@ -714,7 +771,7 @@ class AstEvaluator : public AstWalker {
 };
 
 template <typename Arc>
-vector<GrmCompiler*> AstEvaluator<Arc>::loaded_grammars_;
+vector<GrmCompilerSpec<Arc>*> AstEvaluator<Arc>::loaded_grammars_;
 
 }  // namespace thrax
 

@@ -12,6 +12,7 @@
 //
 // Copyright 2005-2011 Google, Inc.
 // Author: ttai@google.com (Terry Tai)
+//         rws@google.com (Richard Sproat)
 //
 // Wrapper for the union function, which expands the first argument and
 // unions into there (destructive-mode) or just uses UnionFst (delayed-mode).
@@ -19,16 +20,17 @@
 #ifndef THRAX_UNION_H_
 #define THRAX_UNION_H_
 
+#include <iostream>
 #include <vector>
 using std::vector;
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
-#include <fst/fst.h>
-#include <fst/union.h>
-#include <fst/vector-fst.h>
-#include <thrax/function.h>
+#include <fst/fstlib.h>
 #include <thrax/datatype.h>
+#include <thrax/function.h>
+
+DECLARE_bool(save_symbols);  // From util/flags.cc.
 
 namespace thrax {
 namespace function {
@@ -49,6 +51,21 @@ class Union : public BinaryFstFunction<Arc> {
     if (args.size() != 2) {
       cout << "Union: Expected 2 arguments but got " << args.size() << endl;
       return NULL;
+    }
+
+    if (FLAGS_save_symbols) {
+      if (!CompatSymbols(left.InputSymbols(), right.InputSymbols())) {
+        cout << "Union: input symbol table of 1st argument "
+             << "does not match input symbol table of 2nd argument"
+             << endl;
+        return NULL;
+      }
+      if (!CompatSymbols(left.OutputSymbols(), right.OutputSymbols())) {
+        cout << "Union: output symbol table of 1st argument "
+             << "does not match output symbol table of 2nd argument"
+             << endl;
+        return NULL;
+      }
     }
 
     MutableTransducer* mutable_left = new MutableTransducer(left);
@@ -76,6 +93,21 @@ class UnionDelayed : public BinaryFstFunction<Arc> {
       cout << "UnionDelayed: Expected 2 arguments but got " << args.size()
            << endl;
       return NULL;
+    }
+
+    if (FLAGS_save_symbols) {
+      if (!CompatSymbols(left.InputSymbols(), right.InputSymbols())) {
+        cout << "UnionDelayed: input symbol table of 1st argument "
+             << "does not match input symbol table of 2nd argument"
+             << endl;
+        return NULL;
+      }
+      if (!CompatSymbols(left.OutputSymbols(), right.OutputSymbols())) {
+        cout << "UnionDelayed: output symbol table of 1st argument "
+             << "does not match output symbol table of 2nd argument"
+             << endl;
+        return NULL;
+      }
     }
 
     return new fst::UnionFst<Arc>(left, right);

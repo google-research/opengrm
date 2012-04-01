@@ -15,9 +15,6 @@
 
 #include <thrax/statement-node.h>
 
-#include <iostream>
-#include <string>
-
 #include <thrax/walker.h>
 
 namespace thrax {

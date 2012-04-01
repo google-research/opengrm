@@ -12,6 +12,7 @@
 //
 // Copyright 2005-2011 Google, Inc.
 // Author: ttai@google.com (Terry Tai)
+//         rws@google.com (Richard Sproat)
 //
 // Composes two FSTs together.  This function leaves its arguments unexpanded
 // (if they weren't expanded to begin with) and creates an on-the-fly
@@ -27,17 +28,19 @@
 #ifndef THRAX_COMPOSE_H_
 #define THRAX_COMPOSE_H_
 
+#include <iostream>
+#include <string>
 #include <vector>
 using std::vector;
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
-#include <fst/arcsort.h>
-#include <fst/compose.h>
-#include <fst/fst.h>
-#include <thrax/function.h>
+#include <fst/fstlib.h>
 #include <thrax/datatype.h>
+#include <thrax/function.h>
 #include <thrax/compat/stlfunctions.h>
+
+DECLARE_bool(save_symbols);  // From util/flags.cc.
 
 namespace thrax {
 namespace function {
@@ -65,6 +68,15 @@ class Compose : public Function<Arc> {
     const Transducer* left = *args[0]->get<Transducer*>();
     const Transducer* right = *args[1]->get<Transducer*>();
     bool delete_left = false, delete_right = false;
+
+    if (FLAGS_save_symbols) {
+      if (!CompatSymbols(left->OutputSymbols(), right->InputSymbols())) {
+        cout << "Compose: output symbol table of 1st argument "
+             << "does not match input symbol table of 2nd argument"
+             << endl;
+        return NULL;
+      }
+    }
 
     if (args.size() == 3) {
       if (!args[2]->is<string>()) {

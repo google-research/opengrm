@@ -198,7 +198,7 @@ number = numbers.NUMBERS;
 #
 # Note that the grouping parentheses are *required* in this instance:
 
-word = (anyword <1.0>) | number | ernest;
+word = (anyword <1.5>) | number | ernest;
 
 # A sentence consists of a sequence of words interspersed with spaces. Initial
 # and final spaces get deleted, and interword spaces get reduced to exactly one

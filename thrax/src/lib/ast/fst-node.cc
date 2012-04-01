@@ -15,7 +15,6 @@
 
 #include <thrax/fst-node.h>
 
-#include <iostream>
 #include <string>
 #include <vector>
 using std::vector;

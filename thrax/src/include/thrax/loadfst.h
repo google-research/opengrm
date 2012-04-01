@@ -12,12 +12,14 @@
 //
 // Copyright 2005-2011 Google, Inc.
 // Author: ttai@google.com (Terry Tai)
+//         rws@google.com (Richard Sproat)
 //
 // Loads up an FST from the provided filename.
 
 #ifndef THRAX_LOADFST_H_
 #define THRAX_LOADFST_H_
 
+#include <iostream>
 #include <string>
 #include <vector>
 using std::vector;
@@ -26,9 +28,10 @@ using std::vector;
 #include <thrax/compat/compat.h>
 #include <thrax/compat/utils.h>
 #include <fst/fst.h>
-#include <thrax/function.h>
 #include <thrax/datatype.h>
+#include <thrax/function.h>
 
+DECLARE_bool(save_symbols);  // From util/flags.cc.
 DECLARE_string(indir);  // From util/flags.cc.
 
 namespace thrax {
@@ -60,6 +63,17 @@ class LoadFst : public Function<Arc> {
     if (!fst) {
       cout << "LoadFst: Failed to load FST from file: " << file << endl;
       return NULL;
+    }
+
+    if (FLAGS_save_symbols) {
+      if (!fst->InputSymbols()) {
+        LOG(WARNING) << "LoadFst: FLAGS_save_symbols is set "
+                     << "but fst has no input symbols";
+      }
+      if (!fst->OutputSymbols()) {
+        LOG(WARNING) << "LoadFst: FLAGS_save_symbols is set "
+                     << "but fst has no output symbols";
+      }
     }
 
     return new DataType(fst);
