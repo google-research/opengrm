@@ -194,7 +194,7 @@ class NGramModel {
   static double NegLogDiff(double a, double b) {
     if (b == StdArc::Weight::Zero().Value()) return a;
     if (a >= b) {
-      if (a - b < kNormEps) // equal within fp error
+      if (a - b < 100 * kNormEps) // equal within fp error 
 	return StdArc::Weight::Zero().Value();
       LOG(FATAL) << "NegLogDiff: undefined " << a << " " << b;
     }
@@ -251,13 +251,14 @@ class NGramModel {
   // avoid full copy
   bool FindMutableArc(MutableArcIterator<StdMutableFst> *biter,
 		      Label label) const {
-    StdArc barc = biter->Value();
-    while (!biter->Done() && barc.ilabel < label) {
-      biter->Next();
-      barc = biter->Value();
+    while (!biter->Done()) {  // scan through arcs
+      StdArc barc = biter->Value();
+      if (barc.ilabel == label) return true;  // if label matches, true
+      else if (barc.ilabel < label)  // if less than value, go to next
+	biter->Next();
+      else return false;  // otherwise no match
     }
-    if (biter->Done() || barc.ilabel != label) return false;
-    return true;
+    return false;  // no match found
   }
 
   // Scale weights by some factor, for normalizing and use in model merging

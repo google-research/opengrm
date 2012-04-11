@@ -3,7 +3,8 @@ dist_check_SCRIPTS = ngramprint_test.sh ngramcount_test.sh \
                      ngramshrink_test.sh ngraminfo_test.sh \
                      ngramperplexity_test.sh ngramsymbols_test.sh \
                      ngramrandgen_test.sh ngramapply_test.sh \
-                     ngramapply_test.sh ngramrand_test.sh
+                     ngramapply_test.sh ngramrand_test.sh \
+                     ngramrand_params.sh
 
 dist_noinst_DATA = testdata/earnest-absolute.mod \
                    testdata/earnest-count_prune.pru \
