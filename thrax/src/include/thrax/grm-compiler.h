@@ -76,13 +76,19 @@ class GrmCompilerSpec : public GrmCompilerParserInterface {
 
   // Evaluate the AST from scratch, creating a new walker with no preset
   // environment.  Returns true on success and false on failure.
-  bool EvaluateAst() { return EvaluateAstWithEnvironment(NULL); }
+  bool EvaluateAst() { return EvaluateAstWithEnvironment(NULL, true); }
 
   // Evaluate the AST using the provided environment namespace.  This is likely
   // for imported files and modules and should really only be called by AST
   // walkers (i.e., not by users).  Call using NULL to create a new environment.
   // Returns true on success and false on failure.
-  bool EvaluateAstWithEnvironment(Namespace* env);
+  //
+  // Boolean argument top_level indicates whether or not this is a top level
+  // grammar file (i.e. not an imported grammar). This information gets passed
+  // down ultimately to StringFst's GetLabelSymbolTable to determine (assuming
+  // --save_symbols is set), whether or not to add generated labels to the byte
+  // and utf8 symbol tables.
+  bool EvaluateAstWithEnvironment(Namespace* env, bool top_level);
 
   // ***************************************************************************
   // The following functions give access to, modify, or serialize internal data.
@@ -134,7 +140,8 @@ void GrmCompilerSpec<Arc>::SetAst(Node* root) {
 }
 
 template <typename Arc>
-bool GrmCompilerSpec<Arc>::EvaluateAstWithEnvironment(Namespace* env) {
+bool GrmCompilerSpec<Arc>::EvaluateAstWithEnvironment(Namespace* env,
+                                                      bool top_level) {
   if (!success_ || !root_) {
     int line_number = GetLexer()->line_number();
     cout << "****************************************\n";
@@ -176,7 +183,7 @@ bool GrmCompilerSpec<Arc>::EvaluateAstWithEnvironment(Namespace* env) {
     // We can always retrieve the FSTs.  If there are none (ex., since we're
     // only importing the file), this operation is still safe/fast.
     VLOG(1) << "Compilation complete.  Expanding exported FSTs.";
-    evaluator->GetFsts(grm_manager_.GetFstMap());
+    evaluator->GetFsts(grm_manager_.GetFstMap(), top_level);
   } else {
     cout << "Compilation failed." << endl;
     success_ = false;

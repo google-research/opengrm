@@ -218,7 +218,7 @@ class AstEvaluator : public AstWalker {
     }
     GrmCompilerSpec<Arc>* grammar = new GrmCompilerSpec<Arc>();
     if (!grammar->ParseFile(path) ||
-        !grammar->EvaluateAstWithEnvironment(env_)) {
+        !grammar->EvaluateAstWithEnvironment(env_, false)) {
       Error(*node, StrCat("Errors while importing grm source file: ", path));
       env_ = prev_env_;
       return;
@@ -355,11 +355,17 @@ class AstEvaluator : public AstWalker {
 
   // Inserts the exported FSTs from this file into the provided map.
   // Preexisting data with the same key will be clobbered.
-  void GetFsts(map<string, Transducer*>* fsts) {
+  //
+  // Boolean argument top_level indicates whether or not the Evaluator is
+  // currently dealing with a top level grammar file (i.e. not an imported
+  // grammar). This information gets passed down ultimately to StringFst's
+  // GetLabelSymbolTable to determine (assuming --save_symbols is set), whether
+  // or not to add generated labels to the byte and utf8 symbol tables.
+  void GetFsts(map<string, Transducer*>* fsts, bool top_level) {
     // Check if we ever used generated labels.  If so, get the symbol table and
     // add it to a unique FST called kStringFstSymtabFst.
     fst::SymbolTable* generated_labels =
-        function::StringFst<Arc>::GetLabelSymbolTable();
+        function::StringFst<Arc>::GetLabelSymbolTable(top_level);
     if (generated_labels) {
       MutableTransducer* label_fst = new MutableTransducer();
       label_fst->SetInputSymbols(generated_labels);

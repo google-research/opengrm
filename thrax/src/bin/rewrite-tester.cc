@@ -31,8 +31,6 @@ using std::vector;
 #include <fst/vector-fst.h>
 #include <thrax/grm-manager.h>
 #include <thrax/symbols.h>
-#include <unicode/unistr.h>
-#include <unicode/ustring.h>
 
 using fst::StdArc;
 using fst::StringCompiler;

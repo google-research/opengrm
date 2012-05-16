@@ -208,10 +208,14 @@ class StringFst : public Function<Arc> {
  public:
   // Returns a symbol table corresponding to the generated labels used thus far
   // in this compilation.  This returns NULL if there were no generated labels.
-  // If FLAGS_save_symbols is set, We also add these labels to the byte and utf8
+  //
+  // If FLAGS_save_symbols is set, we also add these labels to the byte and utf8
   // symbol tables, so that these can get reassigned to the transducers as
-  // appropriate on write-out.
-  static fst::SymbolTable* GetLabelSymbolTable() {
+  // appropriate on write-out. However, we only want to do this is this is a
+  // top-level grammar and we are saving out the fars for this grammar ---
+  // i.e. it is not being imported into another grammar. The boolean argument
+  // top_level indicates this.
+  static fst::SymbolTable* GetLabelSymbolTable(bool top_level) {
     fst::MutexLock lock(&map_mutex_);
 
     if (symbol_label_map_.empty())
@@ -221,7 +225,7 @@ class StringFst : public Function<Arc> {
     for (Map::const_iterator i = symbol_label_map_.begin();
          i != symbol_label_map_.end(); ++i) {
       symtab->AddSymbol(i->first, i->second);
-      if (FLAGS_save_symbols) {
+      if (FLAGS_save_symbols && top_level) {
         AddToByteSymbolTable(i->first, i->second);
         AddToUtf8SymbolTable(i->first, i->second);
       }
