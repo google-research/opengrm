@@ -64,7 +64,13 @@ class StringFile : public Function<Arc> {
     }
     int imode = fst::StringCompiler<Arc>::BYTE;
     const fst::SymbolTable* isymbols = NULL;
-    if (args.size() > 1) {
+    if (args.size() == 1) {
+      // If the StringFile call doesn't specify a parse mode, but if
+      // FLAGS_save_symbols is set, we should set the symbol table to byte
+      // mode.
+      if (FLAGS_save_symbols) isymbols = GetByteSymbolTable();
+    }
+    else if (args.size() > 1) {
       if (args[1]->is<string>()) {
         if (*args[1]->get<string>() == "utf8") {
           imode = fst::StringCompiler<Arc>::UTF8;
@@ -84,7 +90,9 @@ class StringFile : public Function<Arc> {
       }
     }
     int omode = fst::StringCompiler<Arc>::BYTE;
-    const fst::SymbolTable* osymbols = NULL;
+    // If this is an acceptor then the output symbols are whatever the input
+    // symbols are.
+    const fst::SymbolTable* osymbols = isymbols;
     if (args.size() > 2) {
       if (args[2]->is<string>()) {
         if (*args[2]->get<string>() == "utf8") {

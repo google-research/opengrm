@@ -49,7 +49,7 @@ using thrax::JoinPath;
 
 int main(int argc, char** argv) {
   std::set_new_handler(FailedNewHandler);
-  SetFlags(argv[0], &argc, &argv, true);
+  SET_FLAGS(argv[0], &argc, &argv, true);
 
   FarReader<Arc>* reader = FarReader<Arc>::Open(FLAGS_input_far);
   CHECK(reader != NULL)

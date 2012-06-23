@@ -1,4 +1,4 @@
-AC_INIT([Thrax], [1.0.1], [help@www.opengrm.org])
+AC_INIT([Thrax], [1.0.2], [help@www.opengrm.org])
 AM_INIT_AUTOMAKE([foreign nostdinc -Wall -Werror])
 
 AC_PROG_CXX

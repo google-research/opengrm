@@ -119,7 +119,7 @@ bool FstToStrings(const Transducer& fst,
 
 int main(int argc, char** argv) {
   std::set_new_handler(FailedNewHandler);
-  SetFlags(argv[0], &argc, &argv, true);
+  SET_FLAGS(argv[0], &argc, &argv, true);
 
   GrmManagerSpec<StdArc> grm;
   CHECK(grm.LoadArchive(FLAGS_far));
