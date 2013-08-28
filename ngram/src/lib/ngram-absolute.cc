@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2009-2011 Brian Roark and Google, Inc.
+// Copyright 2009-2013 Brian Roark and Google, Inc.
 // Authors: roarkbr@gmail.com  (Brian Roark)
 //          allauzen@google.com (Cyril Allauzen)
 //          riley@google.com (Michael Riley)
 //
 // \file
+// Absolute Discounting derived class for smoothing
 
 #include <vector>
 
@@ -38,19 +39,20 @@ using fst::StdILabelCompare;
 //  'parameter': discount D
 //   number of 'bins' used by Absolute Discounting (>=1)
 void NGramAbsolute::MakeNGramModel() {
-  if (bins_ <= 0) bins_ = 1;
-  InitializeCountBins(&histogram_, bins_);
-  InitializeCountBins(&discount_, bins_);
-  CalculateHistograms();
+  count_of_counts_.CalculateCounts(*this);
   CalculateDiscounts();
   if (FLAGS_v > 0)
-    ShowDiscounts(&discount_, "Absolute", bins_);
+    count_of_counts_.ShowCounts(discount_, "Absolute discounts");
   NGramMake::MakeNGramModel();
 }
 
 // Calculate discounts for each order
 void NGramAbsolute::CalculateDiscounts() {
+  discount_.clear();
+  discount_.resize(HiOrder());
+
   for (int order = 0; order < HiOrder(); ++order) {
+    discount_[order].resize(bins_ + 1, 0.0); // space for bins + 1
     for (int bin = 0; bin < bins_; ++bin)
       CalculateAbsoluteDiscount(order, bin);
     // counts higher than largest bin are discounted at largest bin rate
@@ -58,22 +60,13 @@ void NGramAbsolute::CalculateDiscounts() {
   }
 }
 
-// return the number of bins
-int NGramAbsolute::GetBins() const {
-  return bins_;
-}
-
-// increment histogram bin
-void NGramAbsolute::IncrementCountBin(int order, int bin) {
-  ++histogram_[order][bin];
-}
 
 // Return negative log discounted count for provided negative log count
 double NGramAbsolute::GetDiscount(double neglogcount, int order) const {
   double discounted = neglogcount, neglogdiscount;
   if (neglogcount == StdArc::Weight::Zero().Value())  // count = 0
     return neglogcount;
-  int bin = GetCountBin(neglogcount, bins_, 1);
+  int bin = count_of_counts_.GetCountBin(neglogcount, bins_, true);
   if (bin >= 0) {
     neglogdiscount = -log(discount_[order][bin]);
     if (neglogdiscount <= neglogcount)  // c - D <= 0
@@ -81,7 +74,7 @@ double NGramAbsolute::GetDiscount(double neglogcount, int order) const {
     else
       discounted = NegLogDiff(neglogcount, neglogdiscount);  // subtract
   } else {
-    LOG(FATAL) << "NGramMake: No discount bin for discounting";
+    LOG(FATAL) << "NGramAbsolute: No discount bin for discounting";
   }
   return discounted;
 }

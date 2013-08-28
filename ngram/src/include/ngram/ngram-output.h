@@ -12,27 +12,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2009-2011 Brian Roark and Google, Inc.
+// Copyright 2009-2013 Brian Roark and Google, Inc.
 // Authors: roarkbr@gmail.com  (Brian Roark)
 //          allauzen@google.com (Cyril Allauzen)
 //          riley@google.com (Michael Riley)
 //
 // \file
-// 
 // NGram model class for outputting a model or outputting perplexity of text
 
 #ifndef NGRAM_NGRAM_OUTPUT_H__
 #define NGRAM_NGRAM_OUTPUT_H__
 
 #include <iostream>
+#include <string>
 #include <fst/compose.h>
 
-#include <ngram/ngram-model.h>
+#include <ngram/ngram-context.h>
+#include <ngram/ngram-mutable-model.h>
 
 namespace ngram {
 
 using std::ostream;
+using std::ostringstream;
 
+using fst::StdFst;
 using fst::ComposeFst;
 using fst::ComposeFstOptions;
 using fst::CacheOptions;
@@ -42,14 +45,23 @@ using fst::PhiMatcher;
 
 static const int kSpecialLabel = -2;
 
-class NGramOutput : public NGramModel {
+class NGramOutput : public NGramMutableModel {
  public:
+  typedef StdArc::StateId StateId;
+
   // Construct an NGramModel object, consisting of the fst and some
   // information about the states under the assumption that the fst is a model
  NGramOutput(StdMutableFst *infst, ostream &ostrm = cout,
-	     Label backoff_label = 0, bool check_consistency = false)
-     : NGramModel(infst, backoff_label, kNormEps, check_consistency),
-       ostrm_(ostrm) {}
+	     Label backoff_label = 0, bool check_consistency = false,
+	     const string &context_pattern = "",
+             bool include_all_suffixes = false)
+     : NGramMutableModel(infst, backoff_label, kNormEps,
+                         !context_pattern.empty()),
+       ostrm_(ostrm), include_all_suffixes_(include_all_suffixes),
+       context_(context_pattern, HiOrder()) {
+   if (!GetFst().InputSymbols())
+     LOG(FATAL) << "NGramOutput: no symbol tables provided";
+ }
 
   // Print the N-gram model: each n-gram is on a line with its weight
   void ShowNGramModel(bool showeps, bool neglogs,
@@ -84,7 +96,7 @@ class NGramOutput : public NGramModel {
   void FailLMCompose(const StdMutableFst &infst,
 		    StdMutableFst *ofst,
 		     Label special_label) const {
-    *ofst = 
+    *ofst =
       ComposeFst<StdArc>(infst, GetFst(),
 			 ComposeFstOptions<StdArc, NGPhiMatcher>
 			 (CacheOptions(),
@@ -98,9 +110,20 @@ class NGramOutput : public NGramModel {
   // assumed to be order preserving (as it is with <epsilon> and -2)
   void MakePhiMatcherLM(Label special_label);
 
+  // Apply n-gram model to fst.  For now, assumes linear fst, accumulates stats
+  double ApplyNGramToFst(StdMutableFst *infst, Fst<StdArc> *symbolfst,
+			 bool phimatch, bool verbose, Label special_label,
+			 Label OOV_label, double OOV_cost, double *logprob,
+			 int *words, int *oovs, int *words_skipped);
+
+  // Adds a phi loop (rho) at unigram state for OOVs
+  // OOV_class_size (N) and OOV_probability (p) determine weight of loop: p/N
+  // Rest of unigrams renormalized accordingly, by 1-p
+  void RenormUnigramForOOV(Label special_label, Label OOV_label,
+			   double OOV_class_size,
+			   double OOV_probability);
+
  private:
-
-
   // Convert to a new log base for printing (ARPA)
   double ShowLogNewBase(double neglogcost, double base) const {
     return -neglogcost / log(base);
@@ -124,12 +147,6 @@ class NGramOutput : public NGramModel {
   void RelabelAndSetSymbols(StdMutableFst *infst,
 			    Fst<StdArc> *symbolfst);
 
-  // Apply n-gram model to fst.  For now, assumes linear fst, accumulates stats
-  double ApplyNGramToFst(StdMutableFst *infst, Fst<StdArc> *symbolfst,
-			 bool phimatch, bool verbose, Label special_label,
-			 Label OOV_label, double OOV_cost, double *logprob, 
-			 int *words, int *oovs, int *words_skipped);
-
   void ShowPhiPerplexity(const ComposeFst<StdArc> &cfst, bool verbose,
 			 int special_label, Label OOV_label, double *logprob,
 			 int *words, int *oovs, int *words_skipped) const;
@@ -140,8 +157,9 @@ class NGramOutput : public NGramModel {
 
   void FindNextStateInModel(StateId *mst, Label label, double OOV_cost,
 			    Label OOV_label, double *neglogprob, int *word_cnt,
-			    int *oov_cnt, int *words_skipped, 
-			    string *history, bool verbose) const;
+			    int *oov_cnt, int *words_skipped,
+			    string *history, bool verbose,
+                            vector<Label> *ngram) const;
 
   // add symbol to n-gram history string
   void AppendWordToNGramHistory(string *str, const string &symbol) const {
@@ -152,9 +170,9 @@ class NGramOutput : public NGramModel {
 
   // Calculate and show (if verbose) </s> n-gram, and accumulate stats
   void ApplyFinalCost(StateId mst, string history, int word_cnt, int oov_cnt,
-		      int skipped, double neglogprob, double *logprob, 
-		      int *words, int *oovs, int *words_skipped, 
-		      bool verbose) const;
+		      int skipped, double neglogprob, double *logprob,
+		      int *words, int *oovs, int *words_skipped,
+		      bool verbose, const vector<Label> &ngram) const;
 
 
   // Header for verbose n-gram entries
@@ -199,19 +217,17 @@ class NGramOutput : public NGramModel {
   // Produce and output random samples from model using rand/srand
   void RandNGramModel(int64 samples, bool show_backoff) const;
 
- private:
-  ostream &ostrm_;
-
-  // Adds a phi loop (rho) at unigram state for OOVs
-  // OOV_class_size (N) and OOV_probability (p) determine weight of loop: p/N
-  // Rest of unigrams renormalized accordingly, by 1-p
-  void RenormUnigramForOOV(Label special_label, Label OOV_label, 
-			   double OOV_class_size,
-			   double OOV_probability);
+  // Checks to see if a state or ngram is in context
+  bool InContext(StateId st) const;
+  bool InContext(const vector<Label> &ngram) const;
 
   // Checks parameterization of perplexity calculation and sets OOV_label
   StdArc::Label GetOOVLabel(double *OOV_probability, string *OOV_symbol);
 
+ private:
+  ostream &ostrm_;
+  bool include_all_suffixes_;
+  NGramContext context_;
   DISALLOW_COPY_AND_ASSIGN(NGramOutput);
 };
 

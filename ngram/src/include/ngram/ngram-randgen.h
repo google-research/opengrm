@@ -12,13 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2009-2011 Brian Roark and Google, Inc.
+// Copyright 2009-2013 Brian Roark and Google, Inc.
 // Authors: roarkbr@gmail.com  (Brian Roark)
 //          allauzen@google.com (Cyril Allauzen)
 //          riley@google.com (Michael Riley)
 //
 // \file
-//
 // Classes to generate random sentences from an LM or more generally
 // paths through any FST where epsilons are treated as failure transitions.
 
@@ -26,6 +25,8 @@
 #define NGRAM_NGRAM_RANDGEN_H__
 
 #include <vector>
+#include <sys/types.h>
+#include <unistd.h>
 
 // Faster multinomial sampling possible if Gnu Scientific Library available.
 #ifdef HAVE_GSL
@@ -52,7 +53,7 @@ class NGramArcSelector {
   typedef typename A::StateId StateId;
   typedef typename A::Weight Weight;
 
-  NGramArcSelector(int seed = time(0) + getpid()) 
+  NGramArcSelector(int seed = time(0) + getpid())
     : seed_(seed) { srand(seed); }
 
   // Samples one transition.

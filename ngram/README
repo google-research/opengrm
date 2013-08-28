@@ -1,4 +1,4 @@
-OpenGrm NGram - Release 1.0
+OpenGrm NGram - Release 1.1.0
 
 The OpenGrm NGram library is used for making and modifying n-gram
 language models encoded as weighted finite-state transducers
@@ -10,7 +10,7 @@ REQUIREMENTS:
   g++ (>= 4.2). Expected to work wherever adequate POSIX (dlopen, ssize_t, 
   basename), c99 (snprintf, strtoll, <stdint.h>), and tr1 (<tr1/ordered_set>, 
   <tr1/ordered_map>) support are available. It assumes you have installed
-  OpenFst (www.openfst.org) 1.3.1 or higher and have configure it with
+  OpenFst (www.openfst.org) 1.3.3 or higher and have configure it with
   the --enable-far flag.
   	
 INSTALLATION:

@@ -1,6 +1,3 @@
-// Copyright 2011 Richard Sproat.
-// Author: rws@xoba.com (Richard Sproat)
-//
 // lexicographic-map.h
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -94,8 +91,13 @@ struct ToLexicographicMapper {
     } else if (arc.nextstate == kNoStateId) {
       return ToArc(0, 0, LW(W::One(), arc.weight), kNoStateId);
     // Epsilon label: in this case if it's an LM we need to check the
-    // order of the backoff
+    // order of the backoff, unless this is Zero(), which can happen
+    // in some topologies.
     } else if (arc.ilabel == 0 && arc.olabel == 0 && model_) {
+      if (arc.weight == W::Zero())
+	return ToArc(arc.ilabel, arc.olabel,
+		     LW(arc.weight, arc.weight),
+		     arc.nextstate);
       int expt = model_->HiOrder() - model_->StateOrder(arc.nextstate);
       return ToArc(arc.ilabel, arc.olabel,
                    LW(Power<W>(kBackoffPenalty, expt), arc.weight),
@@ -175,7 +177,7 @@ VectorFst<A>* LexicographicRescorer<A>::Rescore(MutableFst<A>* lattice) {
   VectorFst<ToArc> lexlat;
   Map(*lattice, &lexlat, ToMapper(NULL));
   VectorFst<ToArc> comp;
-  Compose(lm_, lexlat, &comp);
+  Compose(lexlat, lm_, &comp);
   RmEpsilon(&comp);
   VectorFst<ToArc> det;
   Determinize(comp, &det);

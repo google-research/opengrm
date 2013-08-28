@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2009-2011 Brian Roark and Google, Inc.
+// Copyright 2009-2013 Brian Roark and Google, Inc.
 // Authors: roarkbr@gmail.com  (Brian Roark)
 //          allauzen@google.com (Cyril Allauzen)
 //          riley@google.com (Michael Riley)
@@ -117,7 +117,7 @@ int main(int argc, char **argv) {
   string usage = "Generates random sentences from an LM.\n\n  Usage: ";
   usage += argv[0];
   usage += " [--options] [in.fst [out.far]]\n";
-  InitFst(usage.c_str(), &argc, &argv, true);
+  SET_FLAGS(usage.c_str(), &argc, &argv, true);
 
   if (argc > 3) {
     ShowUsage();

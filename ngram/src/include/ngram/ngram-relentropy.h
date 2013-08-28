@@ -12,13 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2009-2011 Brian Roark and Google, Inc.
+// Copyright 2009-2013 Brian Roark and Google, Inc.
 // Authors: roarkbr@gmail.com  (Brian Roark)
 //          allauzen@google.com (Cyril Allauzen)
 //          riley@google.com (Michael Riley)
 //
 // \file
-// 
 // Stolcke relative entropy style model shrinking derived class
 
 #ifndef NGRAM_NGRAM_RELENTROPY_H__
@@ -30,22 +29,23 @@ namespace ngram {
 
 class NGramRelEntropy : public NGramShrink {
  public:
-  // Construct an NGramShrink object, including an NGramModel and parameters
-  NGramRelEntropy(StdMutableFst *infst, double theta, 
+  // Constructs an NGramRelEntropy object that prunes an LM using relative
+  // entropy criterion.
+  NGramRelEntropy(StdMutableFst *infst, double theta,
 		  int shrink_opt = 0, double tot_uni = -1.0,
 		  Label backoff_label = 0, double norm_eps = kNormEps,
-		  bool check_consistency = false) 
-    : NGramShrink(infst, shrink_opt, tot_uni, backoff_label, norm_eps, 
+		  bool check_consistency = false)
+    : NGramShrink(infst, shrink_opt, tot_uni, backoff_label, norm_eps,
 		  check_consistency), theta_(theta) {}
-    
+
   // Shrink n-gram model, based on initialized parameters
   void ShrinkNGramModel() {
     // Threshold provided in real domain, convert to log
     theta_ = log(theta_ + 1);  // e^D - 1 <= theta_ -> D <= log(theta_ + 1)
-    NGramShrink::ShrinkNGramModel(1);
+    NGramShrink::ShrinkNGramModel(true);
   }
 
-  private:
+ protected:
   // provide the pruning threshold
   double GetTheta(StateId state) const {
     return theta_;
@@ -55,19 +55,20 @@ class NGramRelEntropy : public NGramShrink {
   // D(p||p') = -p(h) { p(w|h) [ log p(w|h') + log \alpha'(h) - log p(w|h) ] +
   //            \alpha_numerator(h) [ log \alpha'(h) - log \alpha (h) ] }
   // return exp(D(p||p')) - 1
-  double ShrinkScore(const ShrinkStateStats *state, 
-		     const ShrinkArcStats *arc) const {
+  double ShrinkScore(const ShrinkStateStats &state,
+		     const ShrinkArcStats &arc) const {
     double new_log_backoff = CalcNewLogBackoff(arc);
-    double score = arc->log_backoff_prob + new_log_backoff - arc->log_prob;
-    double secondterm = new_log_backoff + (GetNLogBackoffNum() - 
+    double score = arc.log_backoff_prob + new_log_backoff - arc.log_prob;
+    double secondterm = new_log_backoff + (GetNLogBackoffNum() -
 					   GetNLogBackoffDenom());
     secondterm *= exp(-GetNLogBackoffNum());
-    score *= exp(arc->log_prob);
+    score *= exp(arc.log_prob);
     score += secondterm;
-    score *= -exp(state->log_prob);
+    score *= -exp(state.log_prob);
     return score;
   }
 
+ private:
   double theta_;  // Shrinking parameter
   DISALLOW_COPY_AND_ASSIGN(NGramRelEntropy);
 };

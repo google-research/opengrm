@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2009-2011 Brian Roark and Google, Inc.
+// Copyright 2009-2013 Brian Roark and Google, Inc.
 // Authors: roarkbr@gmail.com  (Brian Roark)
 //          allauzen@google.com (Cyril Allauzen)
 //          riley@google.com (Michael Riley)
 //
 // \file
+// NGram model class for making a model from raw counts
 
 #include <vector>
 
@@ -35,8 +36,10 @@ using fst::StdILabelCompare;
 
 // Normalize n-gram counts and smooth to create an n-gram model
 void NGramMake::MakeNGramModel() {
+  for (StateId st = 0; st < GetExpandedFst().NumStates(); ++st)
+    has_all_ngrams_.push_back(false);
   for (int order = 1; order <= HiOrder(); ++order) {  // for each order
-    for (StateId st = 0; st < GetFst().NumStates(); ++st)  // scan states
+    for (StateId st = 0; st < GetExpandedFst().NumStates(); ++st)  // and state
       if (StateOrder(st) == order)  // if state is the current order
 	SmoothState(st);  // smooth it
   }
@@ -47,12 +50,12 @@ void NGramMake::MakeNGramModel() {
 }
 
 // Calculate smoothed values for all arcs leaving a state
-void NGramMake::NormalizeStateArcs(StateId st, double norm, 
-				   double neglog_bo_prob, 
-				   vector<double> *discounts) {
+void NGramMake::NormalizeStateArcs(StateId st, double norm,
+				   double neglog_bo_prob,
+				   const vector<double> &discounts) {
   StateId bo = GetBackoff(st, 0);
   if (GetFst().Final(st).Value() != StdArc::Weight::Zero().Value()) {
-    GetMutableFst()->SetFinal(st, SmoothVal((*discounts)[0], norm,
+    GetMutableFst()->SetFinal(st, SmoothVal(discounts[0], norm,
 					    neglog_bo_prob,
 					    GetFst().Final(bo).Value()));
   }
@@ -65,7 +68,7 @@ void NGramMake::NormalizeStateArcs(StateId st, double norm,
        aiter.Next()) {
     StdArc arc = aiter.Value();
     if (arc.ilabel != BackoffLabel()) {  // backoff weights calculated later
-      arc.weight = SmoothVal((*discounts)[discount_index++], norm,
+      arc.weight = SmoothVal(discounts[discount_index++], norm,
 			     neglog_bo_prob, bo_arc_weight[arc_counter++]);
       aiter.SetValue(arc);
     }
@@ -74,17 +77,18 @@ void NGramMake::NormalizeStateArcs(StateId st, double norm,
 
 // Collects discounted counts into vector, and returns -log(sum(counts))
 // If no discounting, vector collects undiscounted counts
-double NGramMake::CollectDiscounts(StateId st, 
+double NGramMake::CollectDiscounts(StateId st,
 				   vector<double> *discounts) const {
-  double nlog_count_sum = GetFst().Final(st).Value();
+  double nlog_count_sum = GetFst().Final(st).Value(), KahanVal = 0;
   int order = StateOrder(st) - 1;  // for retrieving discount parameters
   discounts->push_back(GetDiscount(GetFst().Final(st).Value(), order));
-  for (ArcIterator<StdExpandedFst> aiter(GetFst(), st);
+  for (ArcIterator<StdExpandedFst> aiter(GetExpandedFst(), st);
        !aiter.Done();
        aiter.Next()) {
     StdArc arc = aiter.Value();
     if (arc.ilabel != BackoffLabel()) {  // skip backoff arc
-      nlog_count_sum = NegLogSum(nlog_count_sum, arc.weight.Value());
+      nlog_count_sum =
+	NegLogSum(nlog_count_sum, arc.weight.Value(), &KahanVal);
       discounts->push_back(GetDiscount(arc.weight.Value(), order));
     }
   }
@@ -94,50 +98,51 @@ double NGramMake::CollectDiscounts(StateId st,
 // Normalize and smooth states, using parameterized smoothing method
 void NGramMake::SmoothState(StateId st) {
   vector<double> discounts;  // collect discounted counts for later use.
-  double nlog_count_sum = CollectDiscounts(st, &discounts);
-  if (GetBackoff(st, 0) < 0) {
+  double nlog_count_sum = CollectDiscounts(st, &discounts), nlog_stored_sum;
+  if (GetBackoff(st, &nlog_stored_sum) < 0) {
+    has_all_ngrams_[st] = true;
     ScaleStateWeight(st, -nlog_count_sum);  // no backoff arc, unsmoothed
   } else {
     // Calculate total count mass and higher order count mass to normalize
-    double total_mass = CalculateTotalMass(nlog_count_sum, st);
-    double hi_order_mass = CalculateHiOrderMass(&discounts, nlog_count_sum);
+    double total_mass = CalculateTotalMass(nlog_stored_sum, st);
+    double hi_order_mass = CalculateHiOrderMass(discounts, nlog_stored_sum);
+    has_all_ngrams_[st] = HasAllArcsInBackoff(st);
+    if (has_all_ngrams_[st] && total_mass < hi_order_mass) {
+      discounts[0] = 
+	NegLogSum(discounts[0], NegLogDiff(total_mass, hi_order_mass));
+      hi_order_mass = total_mass;
+    }
     double low_order_mass;
-    if (fabs(total_mass - hi_order_mass) < NormEps())  // if approx equal
+    if (total_mass >= hi_order_mass &&  // if approx equal
+	fabs(total_mass - hi_order_mass) < kFloatEps)
       total_mass = hi_order_mass;  // then make equal, for later testing
-    if (total_mass == hi_order_mass && EpsilonMassIfNoneReserved() <= 0) {
-      low_order_mass = StdArc::Weight::Zero().Value();
+    if (has_all_ngrams_[st] || (total_mass == hi_order_mass && 
+				EpsilonMassIfNoneReserved() <= 0)) {
+      low_order_mass = kInfBackoff;
     } else {
       if (total_mass == hi_order_mass)  // if no mass reserved, add epsilon
 	total_mass = -log(exp(-total_mass) + EpsilonMassIfNoneReserved());
       low_order_mass = NegLogDiff(total_mass, hi_order_mass);
     }
-    NormalizeStateArcs(st, total_mass,
-		       low_order_mass - total_mass, &discounts);
+    NormalizeStateArcs(st, total_mass, low_order_mass - total_mass,
+		       discounts);
   }
 }
 
-// Display discount values to cerr if requested
-void NGramMake::ShowDiscounts(vector < vector <double> > *discounts,
-			      const char *label, int bins) const {
-  cerr << "Count bin   ";
-  cerr << label; 
-  cerr << " Discounts (";
-  for (int order = 0; order < HiOrder(); ++order) {
-    if (order > 0) cerr << "/";
-    cerr << order + 1 << "-grams";
-  }
-  cerr << ")\n";
-  for (int bin = 0; bin <= bins; ++bin) {
-    if (bin < bins)
-      cerr << "Count = " << bin + 1 << "   ";
-    else
-      cerr << "Count > " << bin  << "   ";
-    for (int order = 0; order < HiOrder(); ++order) {
-      if (order > 0) cerr << "/";
-      cerr << (*discounts)[order][bin];
-    }
-    cerr << "\n";
-  }
+// Checks to see if all n-grams already represented at state
+bool NGramMake::HasAllArcsInBackoff(StateId st) {
+  StateId bo = GetBackoff(st, 0);
+  if (!has_all_ngrams_[bo]) return false;  // backoff state doesn't have all
+  size_t starcs = GetFst().NumArcs(st), boarcs = GetFst().NumArcs(bo);
+  if (boarcs > starcs) return false;  // arcs at backoff not in current state
+  if (GetFst().Final(bo) != StdArc::Weight::Zero())  // count </s> symbol
+    boarcs++;
+  if (GetBackoff(bo, 0) >= 0) boarcs--;  // don't count backoff arc
+  if (GetFst().Final(st) != StdArc::Weight::Zero())  // count </s> symbol
+    starcs++;
+  starcs--;  // don't count backoff arc
+  if (boarcs == starcs) return true;
+  return false;
 }
 
 }  // namespace ngram

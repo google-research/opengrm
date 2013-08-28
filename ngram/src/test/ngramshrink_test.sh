@@ -4,30 +4,33 @@ bin=../bin
 testdata=$srcdir/testdata
 tmpdata=${TMPDIR:-/tmp}
 
-trap "rm -f $tmpdata/earnest*.pru" 0 2 13 15
+trap "rm -f $tmpdata/earnest*" 0 2 13 15
 
 set -e
+function compile_test_fst {
+  if [ ! -e $tmpdata/$1.ref ]
+  then
+    fstcompile -isymbols=$testdata/$1.sym -osymbols=$testdata/$1.sym \
+      -keep_isymbols -keep_osymbols \
+      -keep_state_numbering $testdata/$1.txt >$tmpdata/$1.ref
+  fi
+}
 
-# Count prune
-$bin/ngramshrink --method=count_prune --check_consistency \
-                 --count_pattern="3+:2" $testdata/earnest.mod \
-                 >$tmpdata/earnest-count_prune.pru
+compile_test_fst earnest-witten_bell.mod
+for method in count_prune relative_entropy seymore 
+do
+  case $method in
+    count_prune) param="--count_pattern=3+:2" ;;
+    relative_entropy) param="--theta=.00015" ;;
+    seymore) param="--theta=4" ;;
+  esac     
 
-fstequal $testdata/earnest-count_prune.pru \
-         $tmpdata/earnest-count_prune.pru
+  compile_test_fst earnest-$method.pru
+  $bin/ngramshrink --method=$method --check_consistency \
+                   $param $tmpdata/earnest-witten_bell.mod.ref \
+                   >$tmpdata/earnest-$method.pru
 
-# Relative entropy
-$bin/ngramshrink --method=relative_entropy --check_consistency \
-                 --theta=.00015 $testdata/earnest.mod \
-                 >$tmpdata/earnest-relative_entropy.pru
+  fstequal $tmpdata/earnest-$method.pru.ref \
+           $tmpdata/earnest-$method.pru
+done
 
-fstequal $testdata/earnest-relative_entropy.pru \
-         $tmpdata/earnest-relative_entropy.pru
-
-# Seymore
-$bin/ngramshrink --method=seymore --check_consistency \
-                 --theta=4 $testdata/earnest.mod \
-                 >$tmpdata/earnest-seymore.pru
-
-fstequal $testdata/earnest-seymore.pru \
-         $tmpdata/earnest-seymore.pru

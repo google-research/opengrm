@@ -12,13 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2009-2011 Brian Roark and Google, Inc.
+// Copyright 2009-2013 Brian Roark and Google, Inc.
 // Authors: roarkbr@gmail.com  (Brian Roark)
 //          allauzen@google.com (Cyril Allauzen)
 //          riley@google.com (Michael Riley)
 //
 // \file
-//
 // NGram model class for reading in a model or text for building a model
 
 #ifndef NGRAM_NGRAM_INPUT_H__
@@ -47,9 +46,8 @@ class NGramInput {
    typedef Arc::Weight Weight;
 
    // Construct an NGramInput object, with a symbol table, fst and streams
-   // NOTE BER: need to allow input of symbol table and <unk> symbol in table
-   NGramInput(const string &ifile, const string &ofile, 
-              const string &symbols, const string &epsilon_symbol, 
+   NGramInput(const string &ifile, const string &ofile,
+              const string &symbols, const string &epsilon_symbol,
               const string &OOV_symbol, const string &start_symbol,
               const string &end_symbol)
      : fst_(NULL), OOV_symbol_(OOV_symbol), start_symbol_(start_symbol),
@@ -60,7 +58,7 @@ class NGramInput {
        istrm_ = &std::cin;
      else {
        istrm_ = new ifstream(ifile.c_str());
-       if (!(*istrm_)) 
+       if (!(*istrm_))
 	 LOG(FATAL) << "Can't open " << ifile << " for reading";
        own_istrm_ = true;
      }
@@ -68,7 +66,7 @@ class NGramInput {
        ostrm_ = &std::cout;
      } else {
        ostrm_ = new ofstream(ofile.c_str());
-       if (!(*ostrm_)) 
+       if (!(*ostrm_))
 	 LOG(FATAL) << "Can't open " << ofile << " for writing";
        own_ostrm_ = true;
      }
@@ -220,15 +218,26 @@ class NGramInput {
 
    // Extract string token and convert into value of type A
    template <class A>
-     bool GetStringVal(string::iterator *strit, string *str, A *val) {
+     bool GetStringVal(string::iterator *strit, string *str, A *val,
+		       string *keeptoken) {
      string token;
      if (GetWhiteSpaceToken(strit, str, &token)) {
        stringstream ngram_ss(token);
        ngram_ss >> (*val);
+       if (keeptoken)
+	 (*keeptoken) = token;  // to store token string if needed
        return 1;
      } else {
        return 0;
      }
+   }
+
+   // When reading in string numerical tokens, ensures correct inf values
+   void CheckInfVal(string *token, double *val) {
+     if ((*token) == "-inf" || (*token) == "-Infinity")
+       (*val) = log(0);
+     if ((*token) == "inf" || (*token) == "Infinity")
+       (*val) = -log(0);
    }
 
    // Read the header at the top of the ARPA model file, collect n-gram orders
@@ -250,8 +259,8 @@ class NGramInput {
 	 LOG(FATAL)
 	   << "NGramInput: ARPA header mismatch!  No '=' in ngram count.";
        strit++;
-       int ngram_cnt;
-       if (!GetStringVal(&strit, &str, &ngram_cnt))  // must have n-gram count
+       int ngram_cnt;  // must have n-gram count, fails if not found
+       if (!GetStringVal(&strit, &str, &ngram_cnt, 0))
 	 LOG(FATAL) << "NGramInput: ARPA header mismatch!  No ngram count.";
        orders->push_back(ngram_cnt);
        if (ngram_cnt > 0) order++;  // Some reported n-gram orders may be empty
@@ -375,8 +384,10 @@ class NGramInput {
        }
        string::iterator strit = str.begin();
        double nlprob, boprob;
-       if (!GetStringVal(&strit, &str, &nlprob))
+       string token;
+       if (!GetStringVal(&strit, &str, &nlprob, &token))
 	 LOG(FATAL) << "NGramInput: ARPA format mismatch!  No ngram log prob.";
+       CheckInfVal(&token, &boprob);  // check for inf value
        nlprob *= -log(10);  // convert to neglog base e from log base 10
        ssize_t st = ngram_counter->NGramUnigramState(), nextstate = -1;
        for (int j = 0; j < order; j++)  // find n-gram history state
@@ -399,10 +410,11 @@ class NGramInput {
        } else {
 	 nextstate = ngram_counter->NGramStartState();
        }
-       if (GetStringVal(&strit, &str, &boprob) &&
+       if (GetStringVal(&strit, &str, &boprob, &token) &&
 	   (nextstate >= 0 || boprob != 0)) {  // found non-zero backoff cost
-	 if (nextstate < 0) 
+	 if (nextstate < 0)
 	   LOG(FATAL) << "NGramInput: Have a backoff cost with no state ID!";
+	 CheckInfVal(&token, &boprob);  // check for inf value
 	 boprob *= -log(10);  // convert to neglog base e from log base 10
 	 while (nextstate >= boweights->size())
 	   boweights->push_back(StdArc::Weight::Zero().Value());
@@ -538,9 +550,9 @@ class NGramInput {
      ngram_counter.GetFst(fst_);
      ArcSort(fst_, StdILabelCompare());
      SetARPABackoffWeights(&boweights);
+     FillARPAHoles();
      SetARPANGramDests();
      Connect(fst_);
-     FillARPAHoles();
      DumpFst(1);
    }
 
@@ -749,7 +761,7 @@ class NGramInput {
      }
    }
 
-   // From text corpus to symbol table 
+   // From text corpus to symbol table
    void CompileSymbolTable() {
      string str;
      bool gotline = getline((*istrm_), str);
@@ -758,7 +770,7 @@ class NGramInput {
        FillStringLabels(&str, &labels, 0);
        gotline = getline((*istrm_), str);
      }
-     if (!OOV_symbol_.empty()) 
+     if (!OOV_symbol_.empty())
        syms_->AddSymbol(OOV_symbol_);
      syms_->WriteText(*ostrm_);
    }

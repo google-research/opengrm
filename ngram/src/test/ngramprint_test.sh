@@ -4,12 +4,22 @@ bin=../bin
 testdata=$srcdir/testdata
 tmpdata=${TMPDIR:-/tmp}
 
-trap "rm -f $tmpdata/earnest.arpa*" 0 2 13 15
+trap "rm -f $tmpdata/earnest*" 0 2 13 15
 
 set -e
 
+function compile_test_fst {
+  if [ ! -e $tmpdata/$1.ref ]
+  then
+    fstcompile -isymbols=$testdata/$1.sym -osymbols=$testdata/$1.sym \
+      -keep_isymbols -keep_osymbols \
+      -keep_state_numbering $testdata/$1.txt >$tmpdata/$1.ref
+  fi
+}
+
+compile_test_fst earnest-witten_bell.mod
 $bin/ngramprint --ARPA --check_consistency \
-                $testdata/earnest.mod >$tmpdata/earnest.arpa
+                $tmpdata/earnest-witten_bell.mod.ref >$tmpdata/earnest.arpa
 
 cmp $testdata/earnest.arpa $tmpdata/earnest.arpa
 
@@ -22,8 +32,9 @@ $bin/ngramprint --ARPA --check_consistency \
 
 fstequal $tmpdata/earnest.arpa.mod $tmpdata/earnest.arpa.mod2
 
+compile_test_fst earnest.cnts
 $bin/ngramprint --check_consistency \
-                $testdata/earnest.cnts >$tmpdata/earnest.cnt.print
+                $tmpdata/earnest.cnts.ref >$tmpdata/earnest.cnt.print
 
 cmp $testdata/earnest.cnt.print $tmpdata/earnest.cnt.print
 
@@ -35,4 +46,3 @@ $bin/ngramprint --check_consistency $tmpdata/earnest.cnts | \
 		>$tmpdata/earnest.cnts2
 
 fstequal $tmpdata/earnest.cnts $tmpdata/earnest.cnts2
-

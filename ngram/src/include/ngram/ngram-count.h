@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2009-2011 Brian Roark and Google, Inc.
+// Copyright 2009-2013 Brian Roark and Google, Inc.
 // Authors: roarkbr@gmail.com  (Brian Roark)
 //          allauzen@google.com (Cyril Allauzen)
 //          riley@google.com (Michael Riley)
@@ -51,6 +51,7 @@ using fst::ShortestDistance;
 using fst::TopSort;
 
 using fst::ArcIterator;
+using fst::MutableArcIterator;
 using fst::StateIterator;
 
 using fst::kString;
@@ -126,7 +127,7 @@ class NGramCounter {
       fst->AddState();
       fst->SetFinal(s, states_[s].final_count.Value());
       if (states_[s].backoff_state != -1)
-        fst->AddArc(s, A(0, 0, A::Weight::One(),  // Which weight to put?
+        fst->AddArc(s, A(0, 0, A::Weight::Zero(),
                          states_[s].backoff_state));
     }
     for (size_t a = 0; a < arcs_.size(); ++a) {
@@ -135,6 +136,7 @@ class NGramCounter {
                   A(arc.label, arc.label, arc.count.Value(), arc.destination));
     }
     fst->SetStart(initial_);
+    StateCounts(fst);
   }
 
   // Given a state ID and a label, returns the ID of the corresponding
@@ -194,6 +196,11 @@ class NGramCounter {
     arcs_[arc_id].count = weight;
     return 1;
   }
+
+  // Size of ngram model is the sum of the number of states and number of arcs
+ ssize_t GetSize() const {
+   return states_.size() + arcs_.size();
+ }
 
  private:
   // Data representation for a state
@@ -304,6 +311,30 @@ class NGramCounter {
   }
 
   template <class A>
+  void StateCounts(MutableFst<A> *fst) {
+    for (size_t s = 0; s < states_.size(); ++s) {
+      Weight state_count = states_[s].final_count;
+      if (states_[s].backoff_state != -1) {
+        MutableArcIterator< MutableFst<A> > aiter(fst, s);
+        ssize_t bo_pos = -1;
+        for (; !aiter.Done(); aiter.Next()) {
+          const A &arc = aiter.Value();
+          if (arc.ilabel != 0) {
+            state_count = Plus(state_count, arc.weight.Value());
+          } else {
+            bo_pos = aiter.Position();
+          }
+        }
+        CHECK_GE(bo_pos, 0);
+        aiter.Seek(bo_pos);
+        A arc = aiter.Value();
+        arc.weight = state_count.Value();
+        aiter.SetValue(arc);
+      }
+    }
+  }
+
+  template <class A>
   bool CountFromTopSortedFst(const Fst<A> &fst);
   template <class A>
   bool CountFromStringFst(const Fst<A> &fst);
@@ -346,7 +377,7 @@ bool NGramCounter<W, L>::CountFromStringFst(const Fst<A> &fst) {
     const A &arc = aiter.Value();
     if (arc.ilabel) {
       count_state = UpdateCount(count_state, arc.ilabel, weight);
-    } else if(epsilon_as_backoff_) {
+    } else if (epsilon_as_backoff_) {
       ssize_t next_count_state = NGramBackoffState(count_state);
       count_state = next_count_state == -1 ? count_state : next_count_state;
     }
@@ -365,7 +396,7 @@ template <class A>
 bool NGramCounter<W, L>::CountFromTopSortedFst(const Fst<A> &fst) {
   CHECK(fst.Properties(kTopSorted, false));
 
-  VLOG(2) << "Counting from top-sorted Fst";
+  VLOG(1) << "Counting from top-sorted Fst";
 
   // Compute shortest-distances from the initial state and to the
   // final states.
@@ -382,6 +413,8 @@ bool NGramCounter<W, L>::CountFromTopSortedFst(const Fst<A> &fst) {
   heap.push_back(start_pair);
   push_heap(heap.begin(), heap.end(), compare);
 
+  size_t i = 0;
+
   while (!heap.empty()) {
     pop_heap(heap.begin(), heap.end(), compare);
     Pair current_pair = heap.back();
@@ -394,6 +427,13 @@ bool NGramCounter<W, L>::CountFromTopSortedFst(const Fst<A> &fst) {
     VLOG(2) << "fst_state = " << fst_state << ", count_state = "
             << count_state;
 
+    if (i % 1000000 == 0) {
+      VLOG(2) << " # dequeued = " << i << ", heap cap = " <<
+          heap.capacity() << ", hash cap = " << pair2weight_.max_size();
+    }
+    ++i;
+
+
     for (ArcIterator<Fst<A> > aiter(fst, fst_state); !aiter.Done();
          aiter.Next()) {
       const A &arc = aiter.Value();
@@ -403,7 +443,7 @@ bool NGramCounter<W, L>::CountFromTopSortedFst(const Fst<A> &fst) {
             current_weight, Times(Times(idistance[fst_state], arc.weight),
                                   fdistance[arc.nextstate])).Value();
         next_pair.second = UpdateCount(count_state, arc.ilabel, count);
-      } else if(epsilon_as_backoff_) {
+      } else if (epsilon_as_backoff_) {
         ssize_t next_count_state = NGramBackoffState(count_state);
         next_pair.second =
             next_count_state == -1 ? count_state : next_count_state;

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2009-2011 Brian Roark and Google, Inc.
+// Copyright 2009-2013 Brian Roark and Google, Inc.
 // Authors: roarkbr@gmail.com  (Brian Roark)
 //          allauzen@google.com (Cyril Allauzen)
 //          riley@google.com (Michael Riley)
@@ -23,22 +23,23 @@
 #ifndef NGRAM_NGRAM_H__
 #define NGRAM_NGRAM_H__
 
-<ngram/lexicographic-map.h>
-<ngram/ngram-absolute.h>
-<ngram/ngram-count.h>
-<ngram/ngram-countprune.h>
-<ngram/ngram-input.h>
-<ngram/ngram-katz.h>
-<ngram/ngram-kneserney.h>
-<ngram/ngram-make.h>
-<ngram/ngram-merge.h>
-<ngram/ngram-model.h>
-<ngram/ngram-output.h>
-<ngram/ngram-randgen.h>
-<ngram/ngram-relentropy.h>
-<ngram/ngram-seymoreshrink.h>
-<ngram/ngram-shrink.h>
-<ngram/ngram-unsmoothed.h>
-<ngram/ngram-wittenbell.h>
+#include <ngram/lexicographic-map.h>
+#include <ngram/ngram-absolute.h>
+#include <ngram/ngram-count.h>
+#include <ngram/ngram-countprune.h>
+#include <ngram/ngram-input.h>
+#include <ngram/ngram-katz.h>
+#include <ngram/ngram-kneserney.h>
+#include <ngram/ngram-make.h>
+#include <ngram/ngram-marginalize.h>
+#include <ngram/ngram-merge.h>
+#include <ngram/ngram-model.h>
+#include <ngram/ngram-output.h>
+#include <ngram/ngram-randgen.h>
+#include <ngram/ngram-relentropy.h>
+#include <ngram/ngram-seymoreshrink.h>
+#include <ngram/ngram-shrink.h>
+#include <ngram/ngram-unsmoothed.h>
+#include <ngram/ngram-wittenbell.h>
 
 #endif  // NGRAM_NGRAM_H__

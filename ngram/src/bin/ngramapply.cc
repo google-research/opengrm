@@ -1,4 +1,4 @@
-// ngramintersect.cc
+// ngramapply.cc
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2011 Richard Sproat, Brian Roark and Google, Inc.
+// Copyright 2011-2013 Richard Sproat, Brian Roark and Google, Inc.
 // Author: rws@xoba.com (Richard Sproat)
 //         roarkbr@gmail.com  (Brian Roark)
 //         allauzen@google.com (Cyril Allauzen)
@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
   string usage = "Intersect n-gram model with fst archive.\n\n  Usage: ";
   usage += argv[0];
   usage += " [--options] ngram.fst [in.far [out.far]]\n";
-  InitFst(usage.c_str(), &argc, &argv, true);
+  SET_FLAGS(usage.c_str(), &argc, &argv, true);
 
   if (argc < 2 || argc > 4) {
     ShowUsage();

@@ -12,13 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2009-2011 Brian Roark and Google, Inc.
+// Copyright 2009-2013 Brian Roark and Google, Inc.
 // Authors: roarkbr@gmail.com  (Brian Roark)
 //          allauzen@google.com (Cyril Allauzen)
 //          riley@google.com (Michael Riley)
 //
 // \file
-// 
 // Unsmoothed derived class for smoothing
 
 #ifndef NGRAM_NGRAM_UNSMOOTHED_H__
@@ -35,13 +34,21 @@ class NGramUnsmoothed : public NGramMake {
   // Construct Unsmoothed object, consisting of the FST and some
   // information about the states under the assumption that the FST is a model.
   // Ownership of the FST is retained by the caller.
-  NGramUnsmoothed(StdMutableFst *infst, 
-		  bool backoff, bool prefix_norm, Label backoff_label = 0,
+  NGramUnsmoothed(StdMutableFst *infst,
+		  bool backoff = true, bool prefix_norm = true,
+                  Label backoff_label = 0,
 		  double norm_eps = kNormEps, bool check_consistency = false)
-    : NGramMake(infst, backoff, backoff_label, norm_eps, check_consistency) {
+    : NGramMake(infst, backoff, backoff_label, norm_eps, check_consistency,
+		true) {
       SetNormCounts(prefix_norm);
     }
 
+  // Make unsmoothed model
+  void MakeNGramModel() {
+    NGramMake::MakeNGramModel();
+  }
+
+ protected:
   // For unsmoothed model, do not add epsilon to count mass
   double EpsilonMassIfNoneReserved() const {
     if (norm_counts_.empty()) return 0;
@@ -49,13 +56,13 @@ class NGramUnsmoothed : public NGramMake {
   }
 
   // For unsmoothed model, whole count is from high order
-  double CalculateHiOrderMass(vector<double> *discounts,
-			      double nlog_count) {
+  double CalculateHiOrderMass(const vector<double> &discounts,
+			      double nlog_count) const {
     return nlog_count;
   }
-  
+
   double CalculateTotalMass(double nlog_count, StateId st) {
-    if (norm_counts_.empty() || 
+    if (norm_counts_.empty() ||
 	norm_counts_[st] == StdArc::Weight::Zero().Value())
       return nlog_count;
     else {
@@ -68,13 +75,7 @@ class NGramUnsmoothed : public NGramMake {
     }
   }
 
-  // Make unsmoothed model
-  void MakeNGramModel() {
-    NGramMake::MakeNGramModel();
-  }
-
-  private:
-
+ private:
   void SetNormCounts(bool prefix_norm) {
     if (prefix_norm)
       FillStateCounts(&norm_counts_);

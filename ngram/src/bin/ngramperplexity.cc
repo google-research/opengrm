@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2009-2011 Brian Roark and Google, Inc.
+// Copyright 2009-2013 Brian Roark and Google, Inc.
 // Authors: roarkbr@gmail.com  (Brian Roark)
 //          allauzen@google.com (Cyril Allauzen)
 //          riley@google.com (Michael Riley)
 //
 // \file
-// To calculate perplexity of an input fst archive using the given model
+// Calculates perplexity of an input fst archive using the given model
 
 #include <ngram/ngram-output.h>
 #include <fst/extensions/far/far.h>
@@ -30,12 +30,15 @@ DEFINE_bool(use_phimatcher, false, "Use phi matcher and composition");
 DEFINE_string(OOV_symbol, "", "Existing symbol for OOV class");
 DEFINE_double(OOV_class_size, 10000, "Number of members of OOV class");
 DEFINE_double(OOV_probability, 0, "Unigram probability for OOVs");
+DEFINE_string(context_pattern, "",
+              "Restrict perplexity computation to contexts defined by"
+              " pattern (default: no restriction)");
 
 int main(int argc, char **argv) {
   string usage = "Apply n-gram model to input fst archive.\n\n  Usage: ";
   usage += argv[0];
   usage += " [--options] ngram.fst [in.far [out.txt]]\n";
-  InitFst(usage.c_str(), &argc, &argv, true);
+  SET_FLAGS(usage.c_str(), &argc, &argv, true);
 
   if (argc < 2 || argc > 4) {
     ShowUsage();
@@ -57,7 +60,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  NGramOutput ngram(fst, *ostrm);
+  NGramOutput ngram(fst, *ostrm, 0, false, FLAGS_context_pattern);
 
   FarReader<StdArc>* far_reader;
   if (in2_name.empty()) {

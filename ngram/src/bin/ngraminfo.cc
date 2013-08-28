@@ -12,14 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2009-2011 Brian Roark and Google, Inc.
+// Copyright 2009-2013 Brian Roark and Google, Inc.
 // Authors: roarkbr@gmail.com  (Brian Roark)
 //          allauzen@google.com (Cyril Allauzen)
 //          riley@google.com (Michael Riley)
 //
 // \file
-// Prints out various information about n-gram language modesl.
-//
+// Prints out various information about n-gram language models.
 
 #include <iomanip>
 #include <fst/vector-fst.h>
@@ -27,22 +26,24 @@
 
 using namespace std;
 
+DEFINE_bool(check_consistency, true, "Check model consistency");
+
 namespace ngram {
 
 void PrintNGramInfo(const NGramModel &ngram, ostream &ostrm) {
-  const StdExpandedFst &fst = ngram.GetFst();
+  const StdFst &fst = ngram.GetFst();
   vector<size_t> order_ngrams(ngram.HiOrder(), 0);
   size_t ngrams = 0;
   size_t backoffs = 0;
   size_t nfinal = 0;
-  for (size_t s = 0; s < fst.NumStates(); ++s) {
+  for (size_t s = 0; s < ngram.NumStates(); ++s) {
     int order = ngram.StateOrder(s);
     if (fst.Final(s) != StdArc::Weight::Zero()) {
       ++nfinal;
       if (order > 0)
 	++order_ngrams[order - 1];
     }
-    for(ArcIterator<StdExpandedFst> aiter(fst, s);
+    for (ArcIterator<StdFst> aiter(fst, s);
         !aiter.Done(); aiter.Next()) {
       const StdArc &arc = aiter.Value();
       if (arc.ilabel == 0) {
@@ -57,7 +58,7 @@ void PrintNGramInfo(const NGramModel &ngram, ostream &ostrm) {
 
   ios_base::fmtflags old = ostrm.setf(ios::left);
   ostrm.width(50);
-  ostrm << "# of states" << fst.NumStates() << "\n";
+  ostrm << "# of states" << ngram.NumStates() << "\n";
   ostrm.width(50);
   ostrm << "# of ngram arcs" << ngrams << "\n";
   ostrm.width(50);
@@ -99,7 +100,7 @@ int main(int argc, char **argv) {
   usage += argv[0];
   usage += " [--options] [in.fst [out.txt]]\n";
 
-  InitFst(usage.c_str(), &argc, &argv, true);
+  SET_FLAGS(usage.c_str(), &argc, &argv, true);
   if (argc > 3) {
     ShowUsage();
     return 1;
@@ -115,9 +116,12 @@ int main(int argc, char **argv) {
   if (!(*ostrm))
     LOG(FATAL) << "Can't open for writing";
 
-  ngram::NGramModel ngram(fst);
+  ngram::NGramModel ngram(*fst, 0, ngram::kNormEps, FLAGS_check_consistency);
+  if (FLAGS_check_consistency && !ngram.CheckTopology())
+    LOG(FATAL) << "Bad ngram model topology";
+
   ngram::PrintNGramInfo(ngram, *ostrm);
-  if (ostrm != &std::cout) 
+  if (ostrm != &std::cout)
     delete ostrm;
 
   return 0;
