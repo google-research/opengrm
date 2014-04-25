@@ -121,9 +121,10 @@ void NGramMarginal::HigherOrderArcSum(StateId st, bool sum_found) {
       if (!matcher.Find(arc.ilabel)) 
 	LOG(FATAL) << "lower order arc not found";
       StdArc barc = matcher.Value();
-      idx = GetCurrentArcIndex(barc.ilabel);  // get idx from current state
-      if (idx < 0)
+      int val = GetCurrentArcIndex(barc.ilabel);  // get idx from current state
+      if (val < 0)
 	LOG(FATAL) << "lower order arc index not set";
+      idx = val;
       UpdateAccum(st, bst, idx, hidx, sum_found, 
 		  arc.weight.Value(), bo_weight);
     }

@@ -1,5 +1,7 @@
-AC_INIT([OpenGrm NGram], [1.1.0], [ngram@www.opengrm.org])
+AC_INIT([OpenGrm NGram], [1.2.0], [ngram@www.opengrm.org])
 AM_INIT_AUTOMAKE([foreign nostdinc -Wall -Werror])
+
+CXXFLAGS="$CXXFLAGS -std=c++0x"
 
 AC_PROG_CXX
 AC_DISABLE_STATIC

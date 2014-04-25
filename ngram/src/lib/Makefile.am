@@ -9,4 +9,4 @@ libngram_la_SOURCES = ngram-make.cc ngram-merge.cc ngram-model.cc \
 		      ngram-count-prune.cc ngram-split.cc \
                       ngram-context.cc ngram-marginalize.cc \
                       ngram-complete.cc ngram-transfer.cc
-libngram_la_LDFLAGS = -version-info 0:1:0
+libngram_la_LDFLAGS = -version-info 1:0:0

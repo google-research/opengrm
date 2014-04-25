@@ -1,3 +1,6 @@
+OpenGrm NGram - Release 1.2
+  * Port to C++11
+
 OpenGrm NGram - Release 1.1
   * Substantially refactored code to allow for easy distributed model building.
   * Included a 'convenience' shell script bin/ngram.sh that runs some common
