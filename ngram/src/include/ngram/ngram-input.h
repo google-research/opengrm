@@ -275,12 +275,10 @@ class NGramInput {
    StateId GetLabelNextState(StateId st, Label label) {
      Matcher<StdFst> matcher(*fst_, MATCH_INPUT);
      matcher.SetState(st);
-     if (matcher.Find(label)) {
-       StdArc barc = matcher.Value();
-       return barc.nextstate;
-     } else {
+     if (!matcher.Find(label))
        LOG(FATAL) << "NGramInput: Lower order prefix n-gram not found: ";
-     }
+     StdArc barc = matcher.Value();
+     return barc.nextstate;
    }
 
    // Get the destination state of arc with requested label.  Assumed to exist.
@@ -290,9 +288,8 @@ class NGramInput {
      if (matcher.Find(label)) {
        StdArc barc = matcher.Value();
        return barc.nextstate;
-     } else {
-       return -1;
      }
+     return -1;
    }
 
    // GetLabelNextState() when arc exists; other results for <s> and </s>
@@ -302,13 +299,13 @@ class NGramInput {
 			      *ngram_counter) {
      if (stsym) {  // start symbol: <s>
        return ngram_counter->NGramStartState();
-     } else if (endsym) {  // end symbol </s>
-       LOG(FATAL) << "NGramInput: stop symbol occurred in n-gram prefix";
-     } else {
-       ssize_t arc_id = ngram_counter->FindArc(st, label);
-       return ngram_counter->NGramNextState(arc_id);
      }
-   }
+     if (endsym) {  // end symbol </s>
+       LOG(FATAL) << "NGramInput: stop symbol occurred in n-gram prefix";
+     }
+     ssize_t arc_id = ngram_counter->FindArc(st, label);
+     return ngram_counter->NGramNextState(arc_id);
+    }
 
    // Extract the token, find the label and the appropriate destination state
    ssize_t GetNextState(string::iterator *strit, string *str, ssize_t st,
@@ -497,6 +494,7 @@ class NGramInput {
        }
      }
      LOG(FATAL) << "NGramInput: No backoff arc found";
+     return 0.0;
    }
 
    // Descends backoff arcs to find backoff final cost and set
@@ -764,11 +762,11 @@ class NGramInput {
    // From text corpus to symbol table
    void CompileSymbolTable() {
      string str;
-     bool gotline = getline((*istrm_), str);
-     while (gotline) {  // for each string
+     getline((*istrm_), str);
+     while (!istrm_->eof()) {  // for each string
        vector<Label> labels;
        FillStringLabels(&str, &labels, 0);
-       gotline = getline((*istrm_), str);
+       getline((*istrm_), str);
      }
      if (!OOV_symbol_.empty())
        syms_->AddSymbol(OOV_symbol_);

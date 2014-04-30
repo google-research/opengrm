@@ -23,13 +23,11 @@
 #ifndef NGRAM_NGRAM_SHRINK_H__
 #define NGRAM_NGRAM_SHRINK_H__
 
-#include <tr1/unordered_map>
+#include <unordered_map>
 
 #include <ngram/ngram-mutable-model.h>
 
 namespace ngram {
-
-using std::tr1::unordered_map;
 
 class NGramShrink : public NGramMutableModel {
  public:

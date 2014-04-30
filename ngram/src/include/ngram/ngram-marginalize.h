@@ -23,7 +23,7 @@
 #ifndef NGRAM_NGRAM_MARG_H__
 #define NGRAM_NGRAM_MARG_H__
 
-#include <tr1/unordered_map>
+#include <unordered_map>
 
 #include <ngram/ngram-mutable-model.h>
 

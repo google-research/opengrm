@@ -26,7 +26,7 @@
 #include <algorithm>
 #include <string>
 #include <utility>
-#include <tr1/unordered_map>
+#include <unordered_map>
 
 #include <fst/fst.h>
 #include <fst/mutable-fst.h>
@@ -40,9 +40,6 @@ using std::vector;
 using std::string;
 using std::pop_heap;
 using std::push_heap;
-
-using std::tr1::unordered_map;
-using std::tr1::hash;
 
 using fst::Fst;
 using fst::MutableFst;
