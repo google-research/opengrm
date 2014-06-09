@@ -69,8 +69,7 @@ class StringFile : public Function<Arc> {
       // FLAGS_save_symbols is set, we should set the symbol table to byte
       // mode.
       if (FLAGS_save_symbols) isymbols = GetByteSymbolTable();
-    }
-    else if (args.size() > 1) {
+    } else if (args.size() > 1) {
       if (args[1]->is<string>()) {
         if (*args[1]->get<string>() == "utf8") {
           imode = fst::StringCompiler<Arc>::UTF8;
@@ -122,10 +121,12 @@ class StringFile : public Function<Arc> {
     bool acceptor = true;
     for (InputBuffer ibuf(fp); ibuf.ReadLine(&line);
          /* ReadLine() automatically increments */) {
-      vector<string> words;
-      SplitStringUsing(line, "\t", &words);
+      vector<string> words = Split(line, "\t");
       size_t size = words.size();
-      if (size == 0) continue;
+      if (size == 0) {
+        ++linenum;
+        continue;
+      }
       // TODO(rws): Add ability to include weights
       vector<Label> ilabels;
       vector<Label> olabels;
@@ -147,7 +148,7 @@ class StringFile : public Function<Arc> {
              << endl;
         continue;
       }
-      linenum++;
+      ++linenum;
     }
 
     MutableTransducer* fst = new MutableTransducer();

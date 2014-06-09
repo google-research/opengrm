@@ -46,10 +46,10 @@
 
 (defvar thrax-built-in-functions
   (regexp-opt
-   '("ArcSort" "CDRewrite" "Closure" "Compose" "Concat" "Connect" "Determinize"
-     "Difference" "Expand" "Invert" "LoadFst" "LoadFstFromFar" "Minimize"
-     "Optimize" "Project" "Reverse" "Rewrite" "RmEpsilon" "StringFile" "StringFst"
-     "SymbolTable" "Union")
+   '("Analyzer" "ArcSort" "AssertEqual" "Category" "CDRewrite" "Closure" "Compose" "Concat" "Connect"
+     "Determinize" "Difference" "Expand" "Feature" "FeatureVector" "Invert" "LoadFst"
+     "LoadFstFromFar" "Minimize" "Optimize" "ParadigmReplace" "PdtCompose" "Project" "Reverse" "Rewrite"
+     "RmEpsilon" "StringFile" "StringFst" "SymbolTable" "Tagger" "Union")
    'words))
 
 (defvar thrax-syntax "[\]\[=@:|*+\?\"(),;{}-]")

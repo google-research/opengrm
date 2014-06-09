@@ -37,6 +37,8 @@
 #include <thrax/grm-compiler.h>
 #include <thrax/lexer.h>
 
+DECLARE_bool(always_export);
+
 using namespace thrax;
 
 #define YYPARSE_PARAM parm
@@ -196,7 +198,10 @@ return_stmt:
 
 rule_stmt:
   descriptor tEQUALS rule_body tSEMICOLON
-    { RuleNode* node = new RuleNode($1, $3, RuleNode::DO_NOT_EXPORT);
+    { RuleNode* node = new RuleNode($1, $3,
+                                    FLAGS_always_export ?
+                                    RuleNode::EXPORT :
+                                    RuleNode::DO_NOT_EXPORT);
       $$ = node; }
 | tKEYWORD_EXPORT descriptor tEQUALS rule_body tSEMICOLON
     { RuleNode* node = new RuleNode($2, $4, RuleNode::EXPORT);

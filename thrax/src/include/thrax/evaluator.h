@@ -129,7 +129,7 @@ class AstEvaluator : public AstWalker {
     return success_;
   }
   void Error(const Node& node, const string& message) {
-    cout << "Line " << node.getline() << ": " << message << endl;
+    cout << file_ << ":" << node.getline() << ": " << message << endl;
     success_ = false;
   }
 
@@ -392,6 +392,8 @@ class AstEvaluator : public AstWalker {
       (*fsts)[(*fst_i)->Get()] = nfst;
     }
   }
+
+  void set_file(const string& file) { file_ = file; }
 
  private:
   // Extract and interpret the proper arguments from an FstNode and bind them to
@@ -772,6 +774,9 @@ class AstEvaluator : public AstWalker {
 
   // Signified whether the compilation (evaluation) was a success.
   bool success_;
+
+  // Name of file that we're currently evaluating.
+  string file_;
 
   DISALLOW_COPY_AND_ASSIGN(AstEvaluator<Arc>);
 };

@@ -15,9 +15,6 @@
 
 #include <thrax/identifier-counter.h>
 
-#include <tr1/unordered_map>
-using std::tr1::unordered_map;
-using std::tr1::unordered_multimap;
 #include <string>
 
 #include <thrax/collection-node.h>

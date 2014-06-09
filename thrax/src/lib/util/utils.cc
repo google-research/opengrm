@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <unistd.h>
 #include <fcntl.h>
 #include <fstream>
 #include <string>
@@ -88,18 +89,19 @@ void SplitStringAllowEmpty(const string& full, const char* delim,
 // Split a string according to the delimiters, skipping over
 // consecutive delimiters.
 
-void SplitStringUsing(const string& full, const char* delim,
-                      vector<string>* result) {
+vector<string> Split(const string& full, const char* delim) {
   size_t prev = 0;
   size_t found = full.find_first_of(delim);
   size_t size = found - prev;
-  if (size > 0) result->push_back(full.substr(prev, size));
+  vector<string> result;
+  if (size > 0) result.push_back(full.substr(prev, size));
   while (found != string::npos) {
     prev = found + 1;
     found = full.find_first_of(delim, prev);
     size_t size = found - prev;
-    if (size > 0) result->push_back(full.substr(prev, size));
-  }
+    if (size > 0) result.push_back(full.substr(prev, size));
+   }
+  return result;
 }
 
 // Operations on filenames
@@ -159,8 +161,7 @@ void ReadFileToStringOrDie(const string& file, string* store) {
 bool RecursivelyCreateDirWithOptions(const string& path,
                                      const RecursiveCreateOptions& options) {
   if (path.empty()) return true;
-  vector<string> path_comp;
-  SplitStringUsing(path, "/", &path_comp);
+  vector<string> path_comp = Split(path, "/");
   if (path[0] == '/') path_comp[0] = "/" + path_comp[0];
   struct stat stat_buf;
   string rpath;
@@ -181,17 +182,25 @@ bool RecursivelyCreateDirWithOptions(const string& path,
   return true;
 }
 
-File* OpenOrDie(const string& filename, const string& mode) {
+File* Open(const string& filename, const string& mode) {
   ios_base::openmode m = static_cast<ios_base::openmode>(0);
   if (mode.find('r') != string::npos) m |= ios::in;
   if (mode.find('w') != string::npos) m |= ios::out;
   if (mode.find('a') != string::npos) m |= ios::app;
-  ifstream *streamptr = new ifstream(filename.c_str(), m);
+  fstream *streamptr = new fstream(filename.c_str(), m);
   if (streamptr->fail()) {
     delete streamptr;
-    LOG(FATAL) << "Can't open file " << filename << " for reading";
+    return NULL;
   }
   File* file = new File(streamptr);
+  return file;
+}
+
+File* OpenOrDie(const string& filename, const string& mode) {
+  File* file = Open(filename, mode);
+  if (!file) {
+    LOG(FATAL) << "Can't open file " << filename << " for reading";
+  }
   return file;
 }
 

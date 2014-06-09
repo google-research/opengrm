@@ -148,7 +148,7 @@ class StringFst : public Function<Arc> {
             return NULL;
           }
         }
-        if (!AddGeneratedLabel(&chunk, fst)) {
+        if (!AddGeneratedLabel(&chunk, fst, mode)) {
           cout << "StringFst: Failed to generate label: " << chunk << endl;
           delete fst;
           return NULL;
@@ -287,7 +287,41 @@ class StringFst : public Function<Arc> {
     return true;
   }
 
-  bool AddGeneratedLabel(string* symbol, MutableTransducer* fst) {
+  inline void WarnSingleCharacter(const string& symbol, int64 label) {
+    LOG(WARNING) << "Single character generated labels are deprecated "
+                 << "since they introduce symbols that have more than one "
+                 << "encoding."
+                 << endl
+                 << '"'
+                 << symbol
+                 << '"'
+                 << " is being encoded as "
+                 << label
+                 << ".  "
+                 << "We suggest replacing "
+                 << "\"["
+                 << symbol
+                 << "]\" with just "
+                 << '"'
+                 << symbol
+                 << '"'
+                 << " in your grammar since single-characters enclosed in "
+                 << "brackets will eventually be phased out."
+                 << endl;
+  }
+
+  static bool GetSingleUtf8Label(const string& symbol, int64* label) {
+    vector<int64> labels;
+    fst::UTF8StringToLabels(symbol, &labels);
+    if (labels.size() == 1) {
+      *label = labels[0];
+      return true;
+    }
+    return false;
+  }
+
+  bool AddGeneratedLabel(string* symbol, MutableTransducer* fst,
+                         enum fst::StringCompiler<Arc>::TokenType mode) {
     VLOG(3) << "Finding label for symbol: " << *symbol;
     int64 label;
 
@@ -307,6 +341,17 @@ class StringFst : public Function<Arc> {
         label = FLAGS_initial_boundary_marker;
       } else if (*symbol == FLAGS_final_boundary_symbol) {
         label = FLAGS_final_boundary_marker;
+        // Check if the user enclosed a single character in square brackets ---
+        // either a single byte or, if in UTF8 mode, a single Unicode
+        // character. We don't want to generate a new label in that case since
+        // this will give two conflicting labels with the same name. Instead we
+        // warn the user that this may be deprecated in future versions.
+      } else if (symbol->size() == 1) {
+        label = (*symbol)[0];
+        WarnSingleCharacter(*symbol, label);
+      } else if (mode == fst::StringCompiler<Arc>::UTF8 &&
+                 GetSingleUtf8Label(*symbol, &label)) {
+        WarnSingleCharacter(*symbol, label);
       } else {
         // Find the right label - either the one previously generated for the
         // symbol, or a new one that we'll cache now.
@@ -324,7 +369,6 @@ class StringFst : public Function<Arc> {
         }
       }
     }
-
     // Create a machine with a single arc using that label.
     MutableTransducer genlab_fst;
     int p = genlab_fst.AddState();
@@ -352,6 +396,9 @@ class StringFst : public Function<Arc> {
   static int64 next_label_;
   static fst::Mutex map_mutex_;
 
+  friend class CategoryTest;
+  friend class FeatureTest;
+  friend class FeatureVectorTest;
   friend class StringFstTest;
   DISALLOW_COPY_AND_ASSIGN(StringFst<Arc>);
 };

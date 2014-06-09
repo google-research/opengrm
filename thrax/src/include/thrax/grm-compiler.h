@@ -121,6 +121,8 @@ class GrmCompilerSpec : public GrmCompilerParserInterface {
 
   bool success_;
 
+  string file_;  // File currently being processed
+
   DISALLOW_COPY_AND_ASSIGN(GrmCompilerSpec);
 };
 
@@ -177,6 +179,7 @@ bool GrmCompilerSpec<Arc>::EvaluateAstWithEnvironment(Namespace* env,
     evaluator = new AstEvaluator<Arc>();
     evaluator->SetIdCounter(id_counter);
   }
+  evaluator->set_file(file_);
   root_->Accept(evaluator);
 
   if (evaluator->Success()) {
@@ -198,7 +201,7 @@ void GrmCompilerSpec<Arc>::Error(const string& message) {
   success_ = false;
   if (!message.empty()) {
     cout << "****************************************\n"
-         << "Line " << GetLexer()->line_number() << ": " << message << "\n"
+         << file_ << ":" << GetLexer()->line_number() << ": " << message << "\n"
          << "Context: "
          << GetLexer()->GetCurrentContext() << endl;
   }
@@ -209,6 +212,7 @@ bool GrmCompilerSpec<Arc>::ParseFile(const string &filename) {
   string local_grammar = JoinPath(FLAGS_indir, filename);
   VLOG(1) << "Parsing file: " << local_grammar;
 
+  file_ = local_grammar;
   string contents;
   ReadFileToStringOrDie(local_grammar, &contents);
 

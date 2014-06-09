@@ -19,9 +19,8 @@
 #ifndef THRAX_IDENTIFIER_COUNTER_H_
 #define THRAX_IDENTIFIER_COUNTER_H_
 
-#include <tr1/unordered_map>
-using std::tr1::unordered_map;
-using std::tr1::unordered_multimap;
+#include <unordered_map>
+using std::unordered_map;
 #include <string>
 
 #include <fst/compat.h>

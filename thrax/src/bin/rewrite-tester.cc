@@ -30,17 +30,26 @@ using std::vector;
 #include <fst/symbol-table.h>
 #include <fst/vector-fst.h>
 #include <thrax/grm-manager.h>
+#include <../bin/utildefs.h>
 #include <thrax/symbols.h>
+#ifdef HAVE_READLINE
+using thrax::File;
+using thrax::Open;
+#include <readline/history.h>
+#include <readline/readline.h>
+#endif  // HAVE_READLINE
 
 using fst::StdArc;
 using fst::StringCompiler;
 using fst::SymbolTable;
 using fst::VectorFst;
+using thrax::FstToStrings;
+using thrax::GetGeneratedSymbolTable;
 using thrax::GrmManagerSpec;
-using thrax::SplitStringUsing;
+using thrax::Split;
+using thrax::VisitState;
 
 typedef StringCompiler<StdArc> Compiler;
-typedef VectorFst<StdArc> Transducer;
 
 DEFINE_string(far, "", "Path to the FAR.");
 DEFINE_string(rules, "", "Names of the rewrite rules.");
@@ -48,74 +57,44 @@ DEFINE_string(input_mode, "byte", "Either \"byte\", \"utf8\", or the path to a "
               "symbol table for input parsing.");
 DEFINE_string(output_mode, "byte", "Either \"byte\", \"utf8\", or the path to "
               "a symbol table for input parsing.");
+DEFINE_string(history_file, ".rewrite-tester-history",
+              "Location of history file");
 DEFINE_int64(noutput, 1, "Maximum number of output strings for each input.");
 
-enum TokenType { SYMBOL = 1, BYTE = 2, UTF8 = 3 };
+#ifdef HAVE_READLINE
+using thrax::File;
+using thrax::Open;
+static bool kHistoryFileInitialized = false;
 
+inline void InitializeHistoryFile() {
+  // Create history file if it doesn't exist
+  if (!Open(FLAGS_history_file, "r")) {
+    File* fp = Open(FLAGS_history_file, "w");
+    // Fail silently if we can't open it: just don't record history
+    if (fp) fp->Close();
+  }
+  // This will fail silently if history_file doesn't open
+  read_history(FLAGS_history_file.c_str());
+  // Doesn't mean it succeeded: just means don't try this again:
+  kHistoryFileInitialized = true;
+}
+
+bool ReadInput(string* s) {
+  if (!kHistoryFileInitialized) InitializeHistoryFile();
+  char* input = readline("Input string: ");
+  if (!input) return false;
+  s->assign(input);
+  add_history(input);
+  delete input;
+  write_history(FLAGS_history_file.c_str());
+  return true;
+}
+#else
 bool ReadInput(string* s) {
   cout << "Input string: ";
   return static_cast<bool>(getline(cin, *s));
 }
-
-bool VisitState(const Transducer& fst,
-                TokenType type,
-                SymbolTable* symtab,
-                StdArc::StateId state,
-                const string& path,
-                float cost,
-                vector<pair<string, float> >* paths) {
-  if (fst.Final(state) != StdArc::Weight::Zero() &&
-      !path.empty()) {
-    paths->push_back(make_pair(path, cost + fst.Final(state).Value()));
-  }
-  fst::ArcIterator<Transducer> aiter(fst, state);
-  for (; !aiter.Done(); aiter.Next()) {
-    const StdArc &arc = aiter.Value();
-    string newpath = path;
-    if (arc.olabel != 0) {
-      if (type == SYMBOL) {
-        string sym = symtab->Find(arc.olabel);
-        if (sym == "") {
-          LOG(ERROR) << "Missing symbol in symbol table for id: " << arc.olabel;
-          return false;
-        }
-        newpath += sym;
-      } else if (type == BYTE) {
-        newpath.push_back(arc.olabel);
-      } else if (type == UTF8) {
-        string utf8_string;
-        vector<int> labels;
-        labels.push_back(arc.olabel);
-        if (!fst::LabelsToUTF8String(labels, &utf8_string)) {
-          LOG(ERROR) << "LabelsToUTF8String: Bad code point: "
-                     << arc.olabel;
-          return false;
-        }
-        newpath += utf8_string;
-      }
-    }
-    if (!VisitState(fst, type, symtab, arc.nextstate, newpath,
-                    cost + arc.weight.Value(), paths)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-bool FstToStrings(const Transducer& fst,
-                  vector<pair<string, float> >* strings,
-                  TokenType type = BYTE,
-                  SymbolTable* symtab = NULL,
-                  size_t n = 1) {
-  Transducer temp;
-  fst::ShortestPath(fst, &temp, n);
-  fst::Project(&temp, fst::PROJECT_OUTPUT);
-  fst::RmEpsilon(&temp);
-  if (temp.Start() == fst::kNoStateId) {
-    return false;
-  }
-  return VisitState(temp, type, symtab, temp.Start(), string(), 0, strings);
-}
+#endif  // HAVE_READLINE
 
 int main(int argc, char** argv) {
   std::set_new_handler(FailedNewHandler);
@@ -124,14 +103,19 @@ int main(int argc, char** argv) {
   GrmManagerSpec<StdArc> grm;
   CHECK(grm.LoadArchive(FLAGS_far));
 
-  vector<string> rules;
-  SplitStringUsing(FLAGS_rules, ", \t", &rules);
+  vector<string> rules = Split(FLAGS_rules, ",");
   const fst::SymbolTable* byte_symtab = NULL;
   const fst::SymbolTable* utf8_symtab = NULL;
+  if (rules.empty())
+    LOG(FATAL) << "--rules must be specified";
   for (size_t i = 0; i < rules.size(); ++i) {
-    fst::Fst<StdArc>* fst = grm.GetFst(rules[i]);
+    vector<string> rule_bits =  Split(rules[i], "$");
+    string pdt_parens_rule = "";
+    if (rule_bits.size() == 2) pdt_parens_rule = rule_bits[1];
+    fst::Fst<StdArc>* fst = grm.GetFst(rule_bits[0]);
     if (!fst) {
-      LOG(FATAL) << "grm.GetFst() must be non NULL for rule: " << rules[i];
+      LOG(FATAL) << "grm.GetFst() must be non NULL for rule: "
+                 << rule_bits[0];
     }
     Transducer vfst(*fst);
     // If the input transducers in the FAR have symbol tables then we need to
@@ -148,8 +132,16 @@ int main(int argc, char** argv) {
         utf8_symtab = vfst.InputSymbols()->Copy();
       }
     }
+    if (!pdt_parens_rule.empty()) {
+      fst = grm.GetFst(pdt_parens_rule);
+      if (!fst) {
+        LOG(FATAL) << "grm.GetFst() must be non NULL for rule: "
+                   << pdt_parens_rule;
+      }
+    }
   }
 
+  const SymbolTable* generated_symtab = GetGeneratedSymbolTable(&grm);
   Compiler* compiler = NULL;
   SymbolTable* input_symtab = NULL;
   if (FLAGS_input_mode == "byte") {
@@ -197,15 +189,21 @@ int main(int argc, char** argv) {
 
     bool succeeded = true;
     for (size_t i = 0; i < rules.size(); ++i) {
-      if (grm.Rewrite(rules[i], input_fst, &output_fst)) {
+      vector<string> rule_bits = Split(rules[i], "$");
+      string pdt_parens_rule = "";
+      if (rule_bits.size() == 2) pdt_parens_rule = rule_bits[1];
+      if (grm.Rewrite(rule_bits[0], input_fst, &output_fst,
+                      pdt_parens_rule)) {
         input_fst = output_fst;
       } else {
         succeeded = false;
+        break;
       }
     }
 
     vector<pair<string, float> > strings;
-    if (succeeded && FstToStrings(output_fst, &strings, type,
+    if (succeeded && FstToStrings(output_fst, &strings,
+                                  generated_symtab, type,
                                   output_symtab, FLAGS_noutput)) {
       vector<pair<string, float> >::iterator itr = strings.begin();
       for (; itr != strings.end(); ++itr) {

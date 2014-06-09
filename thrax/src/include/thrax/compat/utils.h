@@ -31,7 +31,7 @@
 namespace thrax {
 
 using std::string;
-using std::ifstream;
+using std::fstream;
 using std::ios;
 using std::vector;
 
@@ -68,8 +68,7 @@ extern string StringPrintf(const char* format, ...);
 extern void SplitStringAllowEmpty(const string& full, const char* delim,
                                   vector<string>* result);
 
-extern void SplitStringUsing(const string& full, const char* delim,
-                             vector<string>* result);
+extern vector<string> Split(const string& full, const char* delim);
 
 extern string JoinPath(const string& dirname, const string& basename);
 
@@ -92,16 +91,21 @@ extern bool RecursivelyCreateDirWithOptions(const string& path,
 class File {
  public:
   File() : stream_(NULL) {}
-  explicit File(ifstream* stream) : stream_(stream) {}
+  explicit File(fstream* stream) : stream_(stream) {}
 
   ~File() { delete stream_; }
-  void SetStream(ifstream* stream) {
+  void SetStream(fstream* stream) {
     stream_ = stream;
   }
-  ifstream* stream() { return stream_; }
+  fstream* stream() { return stream_; }
+
+  void Close() {
+    stream_->close();
+    delete stream_;
+  }
 
  private:
-  ifstream* stream_;
+  fstream* stream_;
 };
 
 // 2^14 --- should be enough for 1 line for the intended use
@@ -112,7 +116,6 @@ class InputBuffer {
  public:
   explicit InputBuffer(File* fp) : fp_(fp) { }
   ~InputBuffer() { delete fp_; }
-  char buf[];
   bool ReadLine(string* line) {
     line->clear();
     fp_->stream()->getline(buf_, MAXLINE);
@@ -129,6 +132,8 @@ class InputBuffer {
   File* fp_;
   char buf_[MAXLINE];
 };
+
+File* Open(const string& filename, const string& mode);
 
 File* OpenOrDie(const string& filename, const string& mode);
 

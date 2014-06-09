@@ -6,16 +6,21 @@ compat_include_headers = thrax/compat/compat.h \
                          thrax/compat/registry.h thrax/compat/stlfunctions.h \
                          thrax/compat/utils.h 
 
-grm_include_headers = thrax/arcsort.h thrax/cdrewrite.h thrax/closure.h \
+grm_include_headers = thrax/arcsort.h thrax/assert-equal.h thrax/cdrewrite.h \
+                      thrax/closure.h \
                       thrax/collection-node.h thrax/compose.h thrax/concat.h \
                       thrax/connect.h thrax/datatype.h thrax/determinize.h \
                       thrax/difference.h thrax/evaluator.h thrax/expand.h \
+                      thrax/features.h \
                       thrax/fst-node.h thrax/function.h thrax/function-node.h \
-                      thrax/grammar-node.h thrax/grm-compiler.h thrax/grm-manager.h \
+                      thrax/grammar-node.h thrax/grm-compiler.h \
+		      thrax/abstract-grm-manager.h thrax/grm-manager.h \
                       thrax/identifier-counter.h thrax/identifier-node.h \
                       thrax/import-node.h thrax/invert.h thrax/lexer.h \
+                      thrax/make-parens-pair-vector.h \
                       thrax/loadfstfromfar.h thrax/loadfst.h thrax/minimize.h \
-                      thrax/namespace.h thrax/node.h thrax/optimize.h thrax/printer.h \
+                      thrax/namespace.h thrax/node.h thrax/optimize.h \
+                      thrax/paradigm.h thrax/pdtcompose.h thrax/printer.h \
 		      thrax/project.h thrax/return-node.h thrax/reverse.h thrax/rewrite.h \
                       thrax/rmepsilon.h thrax/rule-node.h thrax/statement-node.h \
                       thrax/stringfile.h thrax/stringfst.h thrax/string-node.h \

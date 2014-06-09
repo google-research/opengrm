@@ -1,19 +1,23 @@
-AM_CPPFLAGS = -I$(srcdir)/../include $(ICU_FLAGS)
-## /usr/local/lib/fst is needed for libfstfar
-## TODO(rws): investigate why this -rpath $(libdir) is necessary. It should not be:
-AM_LDFLAGS = -L/usr/local/lib/fst -lm -ldl -lfst -lfstfar $(ICU_LIBS) -rpath $(libdir)
+if HAVE_READLINE
+  AM_CPPFLAGS = -I$(srcdir)/../include -DHAVE_READLINE
+else
+  AM_CPPFLAGS = -I$(srcdir)/../include
+endif
 
 if HAVE_BIN
-bin_PROGRAMS = thraxcompiler fsts-from-far thraxrewrite-tester
+bin_PROGRAMS = thraxcompiler thraxrewrite-tester thraxrandom-generator
+
+if HAVE_READLINE
+  LDADD= -L/usr/local/lib/fst ../lib/libthrax.la -lfstfar -lfst -lm -ldl -lreadline
+else
+  LDADD= -L/usr/local/lib/fst ../lib/libthrax.la -lfstfar -lfst -lm -ldl
+endif
 
 thraxcompiler_SOURCES = compiler.cc
-thraxcompiler_LDADD = ../lib/libthrax.la
 
-fsts_from_far_SOURCES = fsts-from-far.cc
-fsts_from_far_LDADD = ../lib/libthrax.la
+thraxrewrite_tester_SOURCES = rewrite-tester.cc utildefs.cc utildefs.h
 
-thraxrewrite_tester_SOURCES = rewrite-tester.cc
-thraxrewrite_tester_LDADD = ../lib/libthrax.la
+thraxrandom_generator_SOURCES = random-generator.cc utildefs.cc utildefs.h
 endif
 
 EXTRA_DIST = thraxmakedep
