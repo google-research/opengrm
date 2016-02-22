@@ -30,6 +30,7 @@
 namespace ngram {
 
 using std::deque;
+using std::vector;
 
 using fst::VectorFst;
 using fst::StdILabelCompare;

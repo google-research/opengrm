@@ -34,6 +34,7 @@ namespace ngram {
 using fst::StdVectorFst;
 using std::multimap;
 using std::set;
+using std::vector;
 
 class NGramMerge : public NGramMutableModel {
  public:
@@ -208,7 +209,7 @@ class NGramMerge : public NGramMutableModel {
   // in ngram1, returns the set of states backing off to s, that also
   // have an arc labeled with l and going to destination d.  Computed
   // only for non-ascending arcs.
-  multimap< pair<StateId, Label>, StateId> backed_off_to_;
+  multimap< std::pair<StateId, Label>, StateId> backed_off_to_;
 
   size_t ngram1_ns_;    // original number of states in ngram1
   size_t ngram2_ns_;    // original number of states in ngram2

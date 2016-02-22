@@ -62,8 +62,8 @@ class NGramContextMerge : public NGramMerge {
   // existing shared arcs.  See 'ngram-context.h' for meaning of the
   // context specification.
   void MergeNGramModels(const StdFst &infst2,
-                        const vector<Label> context_begin,
-                        const vector<Label> context_end,
+                        const std::vector<Label> context_begin,
+                        const std::vector<Label> context_end,
                         bool norm = false) {
     if (context_) delete context_;
     context_ = new NGramContext(context_begin, context_end, HiOrder());
@@ -76,7 +76,7 @@ class NGramContextMerge : public NGramMerge {
 			      double w1, double w2,
                               bool in_fst1, bool in_fst2) const {
     if (in_fst1 && in_fst2) {
-      const vector<Label> &ngram = NGram2().StateNGram(s2);
+      const std::vector<Label> &ngram = NGram2().StateNGram(s2);
       return context_->HasContext(ngram) ? w2 : w1;
     } else if (in_fst1) {
       return w1;

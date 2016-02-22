@@ -76,7 +76,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  vector< MutableFst<StdArc> * > infsts;
+  std::vector< MutableFst<StdArc> * > infsts;
   while (!far_reader->Done()) {
     infsts.push_back(new StdVectorFst(far_reader->GetFst()));
     far_reader->Next();

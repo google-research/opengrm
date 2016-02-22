@@ -306,7 +306,7 @@ class NGramModel {
 			bool unigram = false) const;
 
   // Prints a state ngram to a stream
-  bool PrintStateNGram(StateId st, ostream &ostrm = cerr) const;
+  bool PrintStateNGram(StateId st, ostream &ostrm = std::cerr) const;
 
   // Modifies n-gram weights according to printing parameters
   static double WeightRep(double wt, bool neglogs, bool intcnts) {

@@ -1,4 +1,4 @@
-AC_INIT([OpenGrm NGram], [1.2.1], [ngram@www.opengrm.org])
+AC_INIT([OpenGrm NGram], [1.2.2], [ngram@www.opengrm.org])
 AM_INIT_AUTOMAKE([foreign nostdinc -Wall -Werror])
 
 CXXFLAGS="$CXXFLAGS -std=c++0x"

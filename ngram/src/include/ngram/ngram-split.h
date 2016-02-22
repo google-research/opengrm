@@ -35,6 +35,7 @@ namespace ngram {
 
 using std::map;
 using std::set;
+using std::vector;
 
 using fst::StdArc;
 using fst::StdFst;

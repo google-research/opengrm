@@ -30,7 +30,7 @@ namespace ngram {
 // Split based on context patterns (sse ngram-context.h for more
 // information).
 NGramSplit::NGramSplit(const StdFst &fst,
-                       const vector<string> &context_patterns,
+                       const std::vector<string> &context_patterns,
                        StdArc::Label backoff_label,
                        double norm_eps)
     : model_(fst, backoff_label, norm_eps, true),
@@ -53,7 +53,7 @@ NGramSplit::NGramSplit(const StdFst &fst,
 // Split based on context begin and end vectors (sse ngram-context.h
 // for more information).
 NGramSplit::NGramSplit(const StdFst &fst,
-                       const vector< vector<Label> > &contexts,
+                       const std::vector< std::vector<Label> > &contexts,
                        StdArc::Label backoff_label,
                        double norm_eps)
     : model_(fst, backoff_label, norm_eps, true),
@@ -71,7 +71,7 @@ NGramSplit::NGramSplit(const StdFst &fst,
 void NGramSplit::SplitNGramModel(const StdFst &fst) {
   // For each state, compute the strict split it belongs to.
   for (StateId state = 0; state < model_.NumStates(); ++state) {
-    const vector<Label> &ngram = model_.StateNGram(state);
+    const std::vector<Label> &ngram = model_.StateNGram(state);
     for (size_t i = 0; i < contexts_.size(); ++i) {
       if (contexts_[i]->HasContext(ngram, false))
         state_splits_[state].insert(i);
@@ -145,7 +145,7 @@ void NGramSplit::SplitNGramModel(const StdFst &fst) {
       if (state == fst.Start())
         fsts_[i]->SetStart(state_maps_[i][state]);
 
-      const vector<Label> &ngram = model_.StateNGram(state);
+      const std::vector<Label> &ngram = model_.StateNGram(state);
       bool in_context = contexts_[i]->HasContext(ngram, false);
 
       for (ArcIterator<StdFst> aiter(fst, state);

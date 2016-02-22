@@ -34,6 +34,7 @@ DEFINE_string(end_symbol, "</s>", "Class label for sentence start");
 namespace ngram {
 
 using std::deque;
+using std::vector;
 
 using fst::VectorFst;
 using fst::StdILabelCompare;

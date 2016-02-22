@@ -118,7 +118,7 @@ class NGramShrink : public NGramMutableModel {
   void FillStateProbs();
 
   struct BackedOffToHash {
-    size_t operator()(const pair<StateId, Label> &p) const {
+    size_t operator()(const std::pair<StateId, Label> &p) const {
       return p.first + p.second * 7853;
     }
   };
@@ -128,7 +128,7 @@ class NGramShrink : public NGramMutableModel {
     if (StateOrder(st) < StateOrder(dest))  // arc unique to dest; store there
       return shrink_state_[dest].incoming_backed_off;
     else   // o.w. hash it
-      return backed_off_to_[make_pair(st, label)];  // inserts if needed.
+      return backed_off_to_[std::make_pair(st, label)];  // inserts if needed.
   }
 
   // Efficiently checks if non-zero BackedOffTo() (no side-effects)
@@ -136,8 +136,8 @@ class NGramShrink : public NGramMutableModel {
     if (StateOrder(st) < StateOrder(dest))
       return shrink_state_[dest].incoming_backed_off > 0;
     else {
-      typedef unordered_map< pair<StateId, Label>, size_t, BackedOffToHash> B;
-      B::const_iterator it = backed_off_to_.find(make_pair(st, label));
+      typedef unordered_map< std::pair<StateId, Label>, size_t, BackedOffToHash> B;
+      B::const_iterator it = backed_off_to_.find(std::make_pair(st, label));
       if (it == backed_off_to_.end())
         return false;
       else
@@ -166,20 +166,20 @@ class NGramShrink : public NGramMutableModel {
   }
 
   // Calculate and store statistics for scoring arc in pruning
-  int AddArcStat(vector <ShrinkArcStats> *shrink_arcs, StateId st,
+  int AddArcStat(std::vector <ShrinkArcStats> *shrink_arcs, StateId st,
 		 const StdArc *arc, const StdArc *barc) ;
 
   // Fill in relevant statistics for arc pruning for a particular state
-  size_t FillShrinkArcInfo(vector <ShrinkArcStats> *shrink_arcs, StateId st);
+  size_t FillShrinkArcInfo(std::vector <ShrinkArcStats> *shrink_arcs, StateId st);
 
   // Non-greedy comparison to threshold, such as used for count pruning
-  size_t ArcsToPrune(vector <ShrinkArcStats> *shrink_arcs, StateId st) const;
+  size_t ArcsToPrune(std::vector <ShrinkArcStats> *shrink_arcs, StateId st) const;
 
   // Evaluate arcs and select arcs to prune in greedy fashion
-  size_t GreedyArcsToPrune(vector <ShrinkArcStats> *shrink_arcs, StateId st);
+  size_t GreedyArcsToPrune(std::vector <ShrinkArcStats> *shrink_arcs, StateId st);
 
   // Evaluate arcs and select arcs to prune
-  size_t ChooseArcsToPrune(vector <ShrinkArcStats> *shrink_arcs, StateId st) {
+  size_t ChooseArcsToPrune(std::vector <ShrinkArcStats> *shrink_arcs, StateId st) {
     if (shrink_opt_ < 2)
       return ArcsToPrune(shrink_arcs, st);
     else
@@ -187,7 +187,7 @@ class NGramShrink : public NGramMutableModel {
   }
 
   // For transitions selected to be pruned, point them to an unconnected state
-  size_t PointPrunedArcs(const vector <ShrinkArcStats> &shrink_arcs,
+  size_t PointPrunedArcs(const std::vector <ShrinkArcStats> &shrink_arcs,
                          StateId st);
 
   // Evaluate transitions from state and prune in greedy fashion
@@ -216,8 +216,8 @@ class NGramShrink : public NGramMutableModel {
   double nlog_backoff_denom_;  // denominator of backoff weight
   StateId ns_;  // Original number of states in the model
   StateId dead_state_;  // Sink state dest. for pruned arcs (not connected)
-  vector<ShrinkStateStats> shrink_state_;
-  unordered_map<pair<StateId, Label>, size_t, BackedOffToHash> backed_off_to_;
+  std::vector<ShrinkStateStats> shrink_state_;
+  unordered_map<std::pair<StateId, Label>, size_t, BackedOffToHash> backed_off_to_;
 
   DISALLOW_COPY_AND_ASSIGN(NGramShrink);
 };

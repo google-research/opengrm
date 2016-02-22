@@ -39,6 +39,7 @@ using std::ifstream;
 using std::istream;
 using std::ofstream;
 using std::ostream;
+using std::vector;
 
 // If 'include_all_suffixes' is true, then all suffixes of the
 // begin and end contexts are considered in context. When false,
@@ -116,7 +117,7 @@ void NGramContext::FindContexts(
   // state n-gram counts with given unigram suffix
   map<Label, size_t> suffix1_counts;
   // state n-gram counts with given (reversed) bigram suffix
-  map<pair<Label, Label>, size_t> suffix2_counts;
+  map<std::pair<Label, Label>, size_t> suffix2_counts;
   // state n-gram counts at a bigram state
   map<Label, size_t> bigram_counts;
   size_t total_count = 0;
@@ -139,7 +140,7 @@ void NGramContext::FindContexts(
     total_count += model.GetFst().NumArcs(s);
 
     if (l2 != kNoLabel) {
-      suffix2_counts[make_pair(l1, l2)] += model.GetFst().NumArcs(s);
+      suffix2_counts[std::make_pair(l1, l2)] += model.GetFst().NumArcs(s);
     } else {
       bigram_counts[l1] += model.GetFst().NumArcs(s);
     }
@@ -182,8 +183,8 @@ void NGramContext::FindContexts(
     } else {
       // Splits at a bigram state context
       total_count -= deltab;
-      map<pair<Label, Label>, size_t>::const_iterator it2 =
-          suffix2_counts.find(pair<Label, Label>(suffix1, 0));
+      map<std::pair<Label, Label>, size_t>::const_iterator it2 =
+          suffix2_counts.find(std::pair<Label, Label>(suffix1, 0));
       while (it2 != suffix2_counts.end() && it2->first.first <= suffix1) {
         ssize_t delta2 = it2->second;
         ++it2;
@@ -207,7 +208,7 @@ void NGramContext::FindContexts(
           bin_count = 0;
         } else {
           // Splits and continues with next bigram state suffix
-          pair<Label, Label> next_suffix2 = it2->first;
+          std::pair<Label, Label> next_suffix2 = it2->first;
           end_contexts->push_back(context);
           begin_contexts->push_back(context);
           end_contexts->back().push_back(next_suffix2.second);
@@ -243,7 +244,7 @@ void NGramContext::Init() {
 // Reads context specifications form a file into a vector.
 bool NGramReadContexts(const string &file, vector<string> *contexts) {
   contexts->clear();
-  istream *strm = &cin;
+  istream *strm = &std::cin;
   if (!file.empty()) {
     strm = new ifstream(file.c_str());
     if (!*strm) {
@@ -255,14 +256,14 @@ bool NGramReadContexts(const string &file, vector<string> *contexts) {
   while (getline(*strm, line))
     contexts->push_back(line);
 
-  if (strm != &cin)
+  if (strm != &std::cin)
     delete strm;
   return true;
 }
 
 // Writes context specifications from a vector to a file.
 bool NGramWriteContexts(const string &file, const vector<string> &contexts) {
-  ostream *strm = &cout;
+  ostream *strm = &std::cout;
   if (!file.empty()) {
     strm = new ofstream(file.c_str());
     if (!*strm) {
@@ -271,10 +272,10 @@ bool NGramWriteContexts(const string &file, const vector<string> &contexts) {
     }
   }
   for (int i = 0; i < contexts.size(); ++i)
-    *strm << contexts[i] << endl;
+    *strm << contexts[i] << std::endl;
 
   bool ret = strm;
-  if (strm != &cout)
+  if (strm != &std::cout)
     delete strm;
   return ret;
 }

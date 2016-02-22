@@ -32,7 +32,7 @@ namespace ngram {
 
 void PrintNGramInfo(const NGramModel &ngram, ostream &ostrm) {
   const StdFst &fst = ngram.GetFst();
-  vector<size_t> order_ngrams(ngram.HiOrder(), 0);
+  std::vector<size_t> order_ngrams(ngram.HiOrder(), 0);
   size_t ngrams = 0;
   size_t backoffs = 0;
   size_t nfinal = 0;

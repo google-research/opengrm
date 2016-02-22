@@ -45,7 +45,7 @@ StdMutableFst *ReadFst(const char *file) {
   return fst;
 }
 
-bool GetContexts(int in_count, vector<string> *contexts) {
+bool GetContexts(int in_count, std::vector<string> *contexts) {
   contexts->clear();
   if (!FLAGS_contexts.empty()) {
     NGramReadContexts(FLAGS_contexts, contexts);
@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
   StdMutableFst *index_fst = ReadFst(argv[FLAGS_index + 1]);
   if (!index_fst) return 1;
 
-  vector<string> contexts;
+  std::vector<string> contexts;
   if (!GetContexts(in_count,&contexts))
     return 1;
 

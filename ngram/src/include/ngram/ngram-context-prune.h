@@ -57,8 +57,8 @@ public:
   // specification.  The specified contexts will NOT be pruned from
   // the model; all others will be (where possible to maintaine a
   // well-formed LM).
-  NGramContextPrune(StdMutableFst *infst, const vector<Label> &context_begin,
-                    const vector<Label> &context_end,
+  NGramContextPrune(StdMutableFst *infst, const std::vector<Label> &context_begin,
+                    const std::vector<Label> &context_end,
                     int shrink_opt = 0, double tot_uni = -1.0,
                     Label backoff_label = 0, double norm_eps = kNormEps,
                     bool check_consistency = false)
@@ -81,7 +81,7 @@ public:
 
   virtual double ShrinkScore(const ShrinkStateStats &state,
 			     const ShrinkArcStats &arc) const {
-    const vector<Label> &ngram = StateNGram(state.state);
+    const std::vector<Label> &ngram = StateNGram(state.state);
     return context_.HasContext(ngram) ? 1.0 : -1.0;
   }
 
@@ -105,9 +105,9 @@ public:
       context_(context_pattern, HiOrder()) { }
 
   NGramContextCountPrune(StdMutableFst *infst,
-			 const vector<double> &count_minimums,
-			 const vector<Label> &context_begin,
-			 const vector<Label> &context_end,
+			 const std::vector<double> &count_minimums,
+			 const std::vector<Label> &context_begin,
+			 const std::vector<Label> &context_end,
 			 int shrink_opt = 0, double tot_uni = -1.0,
 			 Label backoff_label = 0, double norm_eps = kNormEps,
 			 bool check_consistency = false)
@@ -126,7 +126,7 @@ public:
  protected:
   virtual double ShrinkScore(const ShrinkStateStats &state,
 			     const ShrinkArcStats &arc) const {
-    const vector<Label> &ngram = StateNGram(state.state);
+    const std::vector<Label> &ngram = StateNGram(state.state);
     if (context_.HasContext(ngram)) {
       return NGramCountPrune::ShrinkScore(state, arc);
     } else {
@@ -155,8 +155,8 @@ public:
       context_(context_pattern, HiOrder()) { }
 
   NGramContextRelEntropy(StdMutableFst *infst, double theta,
-			 const vector<Label> &context_begin,
-			 const vector<Label> &context_end,
+			 const std::vector<Label> &context_begin,
+			 const std::vector<Label> &context_end,
 			 int shrink_opt = 0, double tot_uni = -1.0,
 			 Label backoff_label = 0, double norm_eps = kNormEps,
 			 bool check_consistency = false)
@@ -175,7 +175,7 @@ public:
  protected:
   virtual double ShrinkScore(const ShrinkStateStats &state,
 			     const ShrinkArcStats &arc) const {
-    const vector<Label> &ngram = StateNGram(state.state);
+    const std::vector<Label> &ngram = StateNGram(state.state);
     if (context_.HasContext(ngram)) {
       return NGramRelEntropy::ShrinkScore(state, arc);
     } else {
@@ -204,8 +204,8 @@ public:
       context_(context_pattern, HiOrder()) { }
 
   NGramContextSeymoreShrink(StdMutableFst *infst, double theta,
-			 const vector<Label> &context_begin,
-			 const vector<Label> &context_end,
+			 const std::vector<Label> &context_begin,
+			 const std::vector<Label> &context_end,
 			 int shrink_opt = 0, double tot_uni = -1.0,
 			 Label backoff_label = 0, double norm_eps = kNormEps,
 			 bool check_consistency = false)
@@ -225,7 +225,7 @@ public:
  protected:
   virtual double ShrinkScore(const ShrinkStateStats &state,
 			     const ShrinkArcStats &arc) const {
-    const vector<Label> &ngram = StateNGram(state.state);
+    const std::vector<Label> &ngram = StateNGram(state.state);
     if (context_.HasContext(ngram)) {
       return NGramSeymoreShrink::ShrinkScore(state, arc);
     } else {

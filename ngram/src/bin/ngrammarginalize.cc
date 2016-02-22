@@ -37,7 +37,7 @@ DEFINE_string(steady_state_file, "", "Read steady state probs from file");
 int UpdateIteration(string in_name, string out_name, int64 backoff_label,
 		    double norm_eps, int32 max_bo_updates,
 		    bool check_consistency, bool output_each_iteration,
-		    vector<double> *weights, int iter, int tot, int ftot) {
+		    std::vector<double> *weights, int iter, int tot, int ftot) {
   StdMutableFst *fst = StdMutableFst::Read(in_name, true);
   if (!fst) return -1;
 
@@ -74,16 +74,16 @@ int main(int argc, char **argv) {
 
   if (FLAGS_iterations != 1 && (argc < 2 || (strcmp(argv[1], "-") == 0)))
     LOG(FATAL) << "For " << FLAGS_iterations <<
-      " iterations, in.fst argument required" << endl << "Use --help for info";
+      " iterations, in.fst argument required" << std::endl << "Use --help for info";
   if (FLAGS_output_each_iteration && FLAGS_iterations == 1)
     FLAGS_output_each_iteration = false;  // just one iteration, no name change
   if (FLAGS_output_each_iteration && (argc < 3 || (strcmp(argv[2], "-") == 0))) {
     LOG(WARNING) << "No output file name given, cannot output each iteration." <<
-      endl << "Only final model will be produced.";
+      std::endl << "Only final model will be produced.";
     FLAGS_output_each_iteration = false;
   }
 
-  vector<double> weights;
+  std::vector<double> weights;
   if (!FLAGS_steady_state_file.empty()) {  // separate model giving marginals
     StdFst *ssfst = StdFst::Read(FLAGS_steady_state_file);
     if (!ssfst) return 1;

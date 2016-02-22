@@ -1,6 +1,7 @@
 OpenGrm NGram - Release 1.2
   * Port to C++11 (1.2.0)
   * Port to C++11 addenda (1.2.1)
+  * Compatability with OpenFst version 1.5.1 (1.2.2)
 
 OpenGrm NGram - Release 1.1
   * Substantially refactored code to allow for easy distributed model building.

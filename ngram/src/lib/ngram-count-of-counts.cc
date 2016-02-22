@@ -37,7 +37,7 @@ void NGramCountOfCounts::CalculateCounts(const NGramModel &model) {
 
   for (StateId st = 0; st < model.NumStates(); ++st) {  // get histograams
     if (!context_.NullContext()) {  // restricted context
-      const vector<Label> &ngram = model.StateNGram(st);
+      const std::vector<Label> &ngram = model.StateNGram(st);
       if (!context_.HasContext(ngram, false))
         continue;
     }
@@ -54,27 +54,27 @@ void NGramCountOfCounts::CalculateCounts(const NGramModel &model) {
 }
 
 // Display input histogram
-void NGramCountOfCounts::ShowCounts(const vector < vector <double> > &hist,
+void NGramCountOfCounts::ShowCounts(const std::vector < std::vector <double> > &hist,
                                     const string &label) const {
   int hi_order = hist.size();
-  cerr << "Count bin   ";
-  cerr << label;
-  cerr << " Counts (";
+  std::cerr << "Count bin   ";
+  std::cerr << label;
+  std::cerr << " Counts (";
   for (int order = 0; order < hi_order; ++order) {
-    if (order > 0) cerr << "/";
-    cerr << order + 1 << "-grams";
+    if (order > 0) std::cerr << "/";
+    std::cerr << order + 1 << "-grams";
   }
-  cerr << ")\n";
+  std::cerr << ")\n";
   for (int bin = 0; bin <= bins_; ++bin) {
     if (bin < bins_)
-      cerr << "Count = " << bin + 1 << "   ";
+      std::cerr << "Count = " << bin + 1 << "   ";
     else
-      cerr << "Count > " << bin  << "   ";
+      std::cerr << "Count > " << bin  << "   ";
     for (int order = 0; order < hi_order; ++order) {
-      if (order > 0) cerr << "/";
-      cerr << hist[order][bin];
+      if (order > 0) std::cerr << "/";
+      std::cerr << hist[order][bin];
     }
-    cerr << "\n";
+    std::cerr << "\n";
   }
 }
 
@@ -120,7 +120,7 @@ void NGramCountOfCounts::SetCounts(const StdFst &fst) {
     int bin = (arc.ilabel - 1) % (kMaxBins + 1);
     int order = (arc.ilabel - 1) / (kMaxBins + 1);
     while (order >= histogram_.size())
-      histogram_.push_back(vector<double>(bins_ + 1, 0.0));
+      histogram_.push_back(std::vector<double>(bins_ + 1, 0.0));
     if (bin <= bins_)
       histogram_[order][bin] = round(exp(-arc.weight.Value()));
   }

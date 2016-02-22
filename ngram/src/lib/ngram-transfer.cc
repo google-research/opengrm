@@ -51,7 +51,7 @@ StdArc::StateId NGramTransfer::FindNextState(StateId s, StdArc::Label label)
 }
 
 void NGramTransfer::TransferNGrams(bool normalize) const {
-  vector<StateId> states(src_model_->NumStates(), kNoStateId);
+  std::vector<StateId> states(src_model_->NumStates(), kNoStateId);
   states[src_fst_->Start()] = dest_fst_->Start();
   states[src_model_->UnigramState()] = dest_model_->UnigramState();
 

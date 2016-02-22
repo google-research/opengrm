@@ -65,7 +65,7 @@ class NGramMake : public NGramMutableModel {
   // Return high order count mass (sum of discounted counts)
   // Need to override if high order mass is not defined by discounts
   // Default can be used by discounting methods, e.g., Katz or Absolute Disc.
-  virtual double CalculateHiOrderMass(const vector<double> &discounts,
+  virtual double CalculateHiOrderMass(const std::vector<double> &discounts,
 				      double nlog_count) const {
     double discount_norm = discounts[0],  // discounted count of </s>
       KahanVal = 0;  // Value for Kahan summation
@@ -101,12 +101,12 @@ class NGramMake : public NGramMutableModel {
 
   // Calculate smoothed values for all arcs leaving a state
   void NormalizeStateArcs(StateId st, double Norm, double neglog_bo_prob,
-                          const vector<double> &discounts);
+                          const std::vector<double> &discounts);
 
   // Collects discounted counts into vector, and returns normalization constant
-  double CollectDiscounts(StateId st, vector<double> *discounts) const;
+  double CollectDiscounts(StateId st, std::vector<double> *discounts) const;
 
-  vector<bool> has_all_ngrams_;
+  std::vector<bool> has_all_ngrams_;
   bool backoff_;  // whether to make the model as backoff or mixture model
 
   DISALLOW_COPY_AND_ASSIGN(NGramMake);

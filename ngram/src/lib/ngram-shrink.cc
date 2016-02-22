@@ -66,7 +66,7 @@ void NGramShrink::ShrinkNGramModel(bool require_norm) {
 }
 
 void NGramShrink::FillStateProbs() {
-  vector<double> probs;
+  std::vector<double> probs;
   CalculateStateProbs(&probs);
   for (StateId st = 0; st < ns_; ++st)
     shrink_state_[st].log_prob = log(probs[st]);
@@ -102,7 +102,7 @@ void NGramShrink::FillShrinkStateInfo() {
 }
 
 // Calculate and store statistics for scoring arc in pruning
-int NGramShrink::AddArcStat(vector <ShrinkArcStats> *shrink_arcs,
+int NGramShrink::AddArcStat(std::vector <ShrinkArcStats> *shrink_arcs,
 			    StateId st, const StdArc *arc,
 			    const StdArc *barc) {
   bool needed = false;
@@ -135,7 +135,7 @@ int NGramShrink::AddArcStat(vector <ShrinkArcStats> *shrink_arcs,
 }
 
 // Fill in relevant statistics for arc pruning for a particular state
-size_t NGramShrink::FillShrinkArcInfo(vector <ShrinkArcStats> *shrink_arcs,
+size_t NGramShrink::FillShrinkArcInfo(std::vector <ShrinkArcStats> *shrink_arcs,
 				      StateId st) {
   size_t candidates = 0;
   if (normalized_) {
@@ -168,7 +168,7 @@ size_t NGramShrink::FillShrinkArcInfo(vector <ShrinkArcStats> *shrink_arcs,
 }
 
 // Non-greedy comparison to threshold
-size_t NGramShrink::ArcsToPrune(vector <ShrinkArcStats> *shrink_arcs,
+size_t NGramShrink::ArcsToPrune(std::vector <ShrinkArcStats> *shrink_arcs,
 				StateId st) const {
   size_t pruned_cnt = 0;
   double theta = GetTheta(st);
@@ -184,7 +184,7 @@ size_t NGramShrink::ArcsToPrune(vector <ShrinkArcStats> *shrink_arcs,
 }
 
 // Evaluate arcs and select arcs to prune in greedy fashion
-size_t NGramShrink::GreedyArcsToPrune(vector <ShrinkArcStats> *shrink_arcs,
+size_t NGramShrink::GreedyArcsToPrune(std::vector <ShrinkArcStats> *shrink_arcs,
 				      StateId st) {
   ssize_t pruned_cnt = 0, last_prune_cnt = -1;
   while (last_prune_cnt < pruned_cnt) {  // while arcs continue to be pruned
@@ -212,7 +212,7 @@ size_t NGramShrink::GreedyArcsToPrune(vector <ShrinkArcStats> *shrink_arcs,
 }
 
 // For transitions selected to be pruned, points them to an unconnected state
-size_t NGramShrink::PointPrunedArcs(const vector <ShrinkArcStats> &shrink_arcs,
+size_t NGramShrink::PointPrunedArcs(const std::vector <ShrinkArcStats> &shrink_arcs,
 				 StateId st) {
   size_t acnt = 0, pruned_cnt = 0;
   for (MutableArcIterator<StdMutableFst>
@@ -242,7 +242,7 @@ size_t NGramShrink::PointPrunedArcs(const vector <ShrinkArcStats> &shrink_arcs,
 
 // Evaluate transitions from state and prune in greedy fashion
 void NGramShrink::PruneState(StateId st) {
-  vector<ShrinkArcStats> shrink_arcs;
+  std::vector<ShrinkArcStats> shrink_arcs;
   size_t candidate_prune = FillShrinkArcInfo(&shrink_arcs, st);
   size_t pruned_cnt = ChooseArcsToPrune(&shrink_arcs, st);
   if (pruned_cnt > 0)  {

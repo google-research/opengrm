@@ -45,6 +45,7 @@ using fst::StdMutableFst;
 using fst::StdFst;
 
 using std::set;
+using std::vector;
 
 void NGramComplete(StdMutableFst *fst, StdArc::Label backoff_label) {
   vector<int> state_orders;

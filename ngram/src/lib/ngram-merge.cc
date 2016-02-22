@@ -209,8 +209,8 @@ void NGramMerge::MergeBackedOffToMap() {
       if (arc.ilabel == BackoffLabel())
         continue;
       if (StateOrder(st) > StateOrder(arc.nextstate)) {
-        pair<StateId, Label> pr(bo, arc.ilabel);
-        backed_off_to_.insert(make_pair(pr, st));
+        std::pair<StateId, Label> pr(bo, arc.ilabel);
+        backed_off_to_.insert(std::make_pair(pr, st));
       }
     }
   }
@@ -365,8 +365,8 @@ void  NGramMerge::MergeUnsharedArcs2(StateId st, StateId ist,
           arc.nextstate = dest;  // needs a new destination state
         if (!MergeUnshared(true) && bo >= 0 &&
             StateOrder(st) > StateOrder(arc.nextstate)) {
-          pair<StateId, Label> pr(bo, arc.ilabel);
-          backed_off_to_.insert(make_pair(pr, st));
+          std::pair<StateId, Label> pr(bo, arc.ilabel);
+          backed_off_to_.insert(std::make_pair(pr, st));
         }
       }
       arc.weight = MergeWeights(bst, ist, arc.ilabel, cost,
@@ -397,8 +397,8 @@ void  NGramMerge::MergeUnsharedArcs2(StateId st, StateId ist,
 // to 'old_dest'. Applies when MergeUnshared(true) is false.
 void NGramMerge::MergeDests1(StateId low_src, Label label,
                              StateId old_dest, StateId new_dest) {
-  pair<StateId, Label> pr(low_src, label);
-  multimap< pair<StateId, Label>, StateId>::iterator it =
+  std::pair<StateId, Label> pr(low_src, label);
+  multimap< std::pair<StateId, Label>, StateId>::iterator it =
     backed_off_to_.find(pr);
 
   bool non_ascending = StateOrder(low_src) >= StateOrder(new_dest);

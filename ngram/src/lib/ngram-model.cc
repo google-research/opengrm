@@ -32,6 +32,7 @@ namespace ngram {
 using fst::StdMutableFst;
 
 using std::deque;
+using std::vector;
 
 using fst::VectorFst;
 using fst::StdILabelCompare;
@@ -660,7 +661,7 @@ void NGramModel::CalculateStateProbs(vector<double> *probs,
   }
   if (FLAGS_v > 1) {
     for (size_t st = 0; st < probs->size(); ++st)
-      cerr << "st: " << st << " log_prob: " << log((*probs)[st]) << endl;
+      std::cerr << "st: " << st << " log_prob: " << log((*probs)[st]) << std::endl;
   }
 }
 

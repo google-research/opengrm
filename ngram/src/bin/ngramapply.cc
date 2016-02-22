@@ -126,7 +126,7 @@ int main(int argc, char **argv) {
     delete lattice;
     far_reader->Next();
     if (FLAGS_v > 0)
-      cerr << "Done:\t" << far_reader->GetKey() << '\n';
+      std::cerr << "Done:\t" << far_reader->GetKey() << '\n';
   }
   delete lmfst;
   delete far_reader;

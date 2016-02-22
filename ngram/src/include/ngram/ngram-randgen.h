@@ -173,7 +173,7 @@ class ArcSampler<A, ngram::NGramArcSelector<A> > {
 
   bool Done() const { return sample_iter_ == sample_map_.end(); }
   void Next() { ++sample_iter_; }
-  pair<size_t, size_t> Value() const { return *sample_iter_; }
+  std::pair<size_t, size_t> Value() const { return *sample_iter_; }
   void Reset() { sample_iter_ = sample_map_.begin(); }
   bool Error() const { return false; }
 
@@ -209,9 +209,9 @@ class ArcSampler<A, ngram::NGramArcSelector<A> > {
 
 #ifdef HAVE_GSL
   gsl_rng *rng_;                 // GNU Sci Lib random number generator
-  vector<double> pr_;            // multinomial parameters
-  vector<unsigned int> pos_;     // sample positions
-  vector<unsigned int> n_;       // sample counts
+  std::vector<double> pr_;            // multinomial parameters
+  std::vector<unsigned int> pos_;     // sample positions
+  std::vector<unsigned int> n_;       // sample counts
 #endif  // HAVE_GSL
 
   WeightConvert<Log64Weight, Weight> to_weight_;

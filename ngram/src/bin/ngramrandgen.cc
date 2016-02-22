@@ -66,7 +66,7 @@ void FarWriteFst(FarWriter<StdArc> *far_writer, StdFst *fst,
 }
 
 // from the given state to a final state, create linear fst for string
-void CreateStringFstFromPath(vector<int> *labels, StdVectorFst *nfst) {
+void CreateStringFstFromPath(std::vector<int> *labels, StdVectorFst *nfst) {
   StateId ost = 0, dst = 1;
   nfst->AddState();
   nfst->SetStart(ost);
@@ -79,7 +79,7 @@ void CreateStringFstFromPath(vector<int> *labels, StdVectorFst *nfst) {
 }
 
 // Given an fst (tree) of strings, create far of string fsts
-int WritePathsToFar(StdFst *fst, StateId st, vector<int> *labels,
+int WritePathsToFar(StdFst *fst, StateId st, std::vector<int> *labels,
 		    FarWriter<StdArc> *far_writer, int far_cnt,
 		    int far_len, int remove_epsilons) {
   for (ArcIterator< StdFst > aiter(*fst, st);
@@ -153,7 +153,7 @@ int main(int argc, char **argv) {
     FarWriteFst(far_writer, &ofst, &far_incr, far_len);
   } else {
     int far_cnt = 1, far_len = CalcExtLen(FLAGS_max_sents, 0, 0);
-    vector<int> labels;
+    std::vector<int> labels;
     WritePathsToFar(&ofst, ofst.Start(), &labels, far_writer,
 		    far_cnt, far_len, FLAGS_remove_epsilon);
   }

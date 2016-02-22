@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
    string in_name = strcmp(argv[1], "-") != 0 ? argv[1] : "";
    string out_name_prefix = argc > 2 ? argv[2] : in_name;
 
-   vector<string> context_patterns;
+   std::vector<string> context_patterns;
 
    if (FLAGS_contexts.empty()) {
      LOG(ERROR) << "Context patterns file need to be specified using "

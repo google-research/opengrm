@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
     return 1;
 
   NGramModel ngram(*in_fst, 0, kNormEps, true);
-  vector<string> contexts;
+  std::vector<string> contexts;
   NGramContext::FindContexts(ngram, FLAGS_contexts, &contexts,
                              FLAGS_bigram_threshold);
   bool ret = NGramWriteContexts(out_name, contexts);

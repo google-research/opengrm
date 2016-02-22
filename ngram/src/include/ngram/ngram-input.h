@@ -343,7 +343,7 @@ class NGramInput {
 	 backoff_st = GetLabelNextStateNoFail(GetBackoff(st), label);
        if (backoff_st < 0) {
 	 backoff_st = fst_->AddState();  // needs new state
-	 cerr << st << " " << label << " backoff\n";
+	 std::cerr << st << " " << label << " backoff\n";
        }
      }
      fst_->AddArc(nextstate, StdArc(0, 0, ngram_backoff_prob, backoff_st));

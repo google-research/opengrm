@@ -36,6 +36,7 @@ namespace ngram {
 
 using fst::StdArc;
 using std::ostringstream;
+using std::vector;
 
 class NGramContext {
  public:

@@ -51,7 +51,7 @@ class NGramOutput : public NGramMutableModel {
 
   // Construct an NGramModel object, consisting of the fst and some
   // information about the states under the assumption that the fst is a model
- NGramOutput(StdMutableFst *infst, ostream &ostrm = cout,
+ NGramOutput(StdMutableFst *infst, ostream &ostrm = std::cout,
 	     Label backoff_label = 0, bool check_consistency = false,
 	     const string &context_pattern = "",
              bool include_all_suffixes = false)
@@ -68,7 +68,7 @@ class NGramOutput : public NGramMutableModel {
 		      bool intcnts, bool ARPA) const;
 
   // Use n-gram model to calculate perplexity of input strings.
-  void PerplexityNGramModel(vector<StdMutableFst *> *infsts,
+  void PerplexityNGramModel(std::vector<StdMutableFst *> *infsts,
 			    int32 v, bool phimatch, string *OOV_symbol,
 			    double OOV_class_size, double OOV_probability);
 
@@ -159,7 +159,7 @@ class NGramOutput : public NGramMutableModel {
 			    Label OOV_label, double *neglogprob, int *word_cnt,
 			    int *oov_cnt, int *words_skipped,
 			    string *history, bool verbose,
-                            vector<Label> *ngram) const;
+                            std::vector<Label> *ngram) const;
 
   // add symbol to n-gram history string
   void AppendWordToNGramHistory(string *str, const string &symbol) const {
@@ -172,7 +172,7 @@ class NGramOutput : public NGramMutableModel {
   void ApplyFinalCost(StateId mst, string history, int word_cnt, int oov_cnt,
 		      int skipped, double neglogprob, double *logprob,
 		      int *words, int *oovs, int *words_skipped,
-		      bool verbose, const vector<Label> &ngram) const;
+		      bool verbose, const std::vector<Label> &ngram) const;
 
 
   // Header for verbose n-gram entries
@@ -219,7 +219,7 @@ class NGramOutput : public NGramMutableModel {
 
   // Checks to see if a state or ngram is in context
   bool InContext(StateId st) const;
-  bool InContext(const vector<Label> &ngram) const;
+  bool InContext(const std::vector<Label> &ngram) const;
 
   // Checks parameterization of perplexity calculation and sets OOV_label
   StdArc::Label GetOOVLabel(double *OOV_probability, string *OOV_symbol);

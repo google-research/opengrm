@@ -90,7 +90,7 @@ class NGramMutableModel : public NGramModel {
 
   // Sorts states in ngram-context lexicographic order.
   void SortStates() {
-    vector<StateId> order(NumStates()), inv_order(NumStates());
+    std::vector<StateId> order(NumStates()), inv_order(NumStates());
     for (StateId s = 0; s < NumStates(); ++s)
       order[s] = s;
     sort(order.begin(), order.end(), StateCompare(*this));
@@ -153,8 +153,8 @@ class NGramMutableModel : public NGramModel {
         : ngramlm_(ngramlm) { }
 
     bool operator() (StateId s1, StateId s2) const {
-      vector<Label> ngram1 = ngramlm_.StateNGram(s1);
-      vector<Label> ngram2 = ngramlm_.StateNGram(s2);
+      std::vector<Label> ngram1 = ngramlm_.StateNGram(s1);
+      std::vector<Label> ngram2 = ngramlm_.StateNGram(s2);
       return lexicographical_compare(ngram1.begin(), ngram1.end(),
                                      ngram2.begin(), ngram2.end());
     }

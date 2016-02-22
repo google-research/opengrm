@@ -58,8 +58,8 @@ class NGramCountOfCounts {
       LOG(FATAL) << "NGramCountOfCounts: Number of bins too large: " << bins_;
   }
 
-  NGramCountOfCounts(const vector<Label> &context_begin,
-                     const vector<Label> &context_end,
+  NGramCountOfCounts(const std::vector<Label> &context_begin,
+                     const std::vector<Label> &context_end,
                      int order, int bins = -1)
       : bins_(bins < 0 ? kMaxBins : bins),
         context_(context_begin, context_end, order) {
@@ -88,7 +88,7 @@ class NGramCountOfCounts {
   double Count(int order, int bin) const { return histogram_[order][bin]; }
 
   // Display input histogram
-  void ShowCounts(const vector < vector <double> > &hist,
+  void ShowCounts(const std::vector < std::vector <double> > &hist,
                   const string &label) const;
 
   // Display internal histogram
@@ -110,7 +110,7 @@ class NGramCountOfCounts {
       ++histogram_[order][bin];
   }
 
-  vector < vector <double> > histogram_;  // count histogram for orders
+  std::vector < std::vector <double> > histogram_;  // count histogram for orders
   int bins_;                              // Number of bins for discounting
   NGramContext context_;                  // context specification
   DISALLOW_COPY_AND_ASSIGN(NGramCountOfCounts);

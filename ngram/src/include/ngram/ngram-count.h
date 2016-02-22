@@ -148,7 +148,7 @@ class NGramCounter {
 
       const PairArcMap &arc_map = pair_arc_maps_[count_state.order - 1];
       typename PairArcMap::const_iterator iter =
-          arc_map.find(make_pair(label, state_id));
+          arc_map.find(std::make_pair(label, state_id));
       if (iter != arc_map.end())
         return iter->second;
     }
@@ -250,7 +250,7 @@ class NGramCounter {
       states_[state_id].first_arc = arc_id;
     else
       pair_arc_maps_[count_state.order - 1].insert(
-          make_pair(make_pair(label, state_id), arc_id));
+          std::make_pair(std::make_pair(label, state_id), arc_id));
 
     // Pre-fill arc with values valid when order_ == 1 and returns
     // if nothing else needs to be done
@@ -405,7 +405,7 @@ bool NGramCounter<W, L>::CountFromTopSortedFst(const Fst<A> &fst) {
   vector<Pair> heap;
   unordered_map<Pair, typename A::Weight, PairHash> pair2weight_;
   PairCompare compare;
-  Pair start_pair = make_pair(fst.Start(), initial_);
+  Pair start_pair = std::make_pair(fst.Start(), initial_);
   pair2weight_[start_pair] = A::Weight::One();
   heap.push_back(start_pair);
   push_heap(heap.begin(), heap.end(), compare);
