@@ -1,7 +1,17 @@
+OpenGrm NGram - Release 1.3 (compatible with OpenFst 1.5.3)
+  * Templated Arc to provide new hist-arc counting, supporting fractional count
+    based Katz backoff models.
+  * Updated error handling.
+  * Updated code to better conform to Google C++ guidelines.
+  * Added Bayesian model merging.
+  * Some re-factoring of functions to improve efficiency, particularly those
+    for distributed model building, such as ngram-complete and ngram-split.
+  * Updated unit tests to run more quickly and to be less bash-specific.
+
 OpenGrm NGram - Release 1.2
   * Port to C++11 (1.2.0)
   * Port to C++11 addenda (1.2.1)
-  * Compatability with OpenFst version 1.5.1 (1.2.2)
+  * Compatibility with OpenFst version 1.5.1 (1.2.2)
 
 OpenGrm NGram - Release 1.1
   * Substantially refactored code to allow for easy distributed model building.

@@ -1,5 +1,4 @@
-// ngram-model-merge.h
-//
+
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -12,22 +11,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2009-2013 Brian Roark and Google, Inc.
-// Authors: roarkbr@gmail.com  (Brian Roark)
-//          allauzen@google.com (Cyril Allauzen)
-//          riley@google.com (Michael Riley)
-//
-// \file
-// NGram model class for merging smoothed model FSTs
+// Copyright 2005-2016 Brian Roark and Google, Inc.
+// NGram model class for merging smoothed model FSTs.
 
-#ifndef NGRAM_NGRAM_MODEL_MERGE_H__
-#define NGRAM_NGRAM_MODEL_MERGE_H__
+#ifndef NGRAM_NGRAM_MODEL_MERGE_H_
+#define NGRAM_NGRAM_MODEL_MERGE_H_
 
 #include <ngram/ngram-merge.h>
+#include <ngram/util.h>
 
 namespace ngram {
 
-class NGramModelMerge : public NGramMerge {
+class NGramModelMerge : public NGramMerge<StdArc> {
  public:
   typedef StdArc::StateId StateId;
   typedef StdArc::Label Label;
@@ -35,12 +30,15 @@ class NGramModelMerge : public NGramMerge {
   // Constructs an NGramModelMerge object consisting of ngram model
   // to be merged.
   // Ownership of FST is retained by the caller.
-  NGramModelMerge(StdMutableFst *infst1, Label backoff_label = 0, 
-		  double norm_eps = kNormEps, bool check_consistency = false)
-      : NGramMerge(infst1, backoff_label, norm_eps, check_consistency) {
+  explicit NGramModelMerge(StdMutableFst *infst1, Label backoff_label = 0,
+                           double norm_eps = kNormEps,
+                           bool check_consistency = false)
+      : NGramMerge(infst1, backoff_label, norm_eps, check_consistency),
+        merge_norm_(true) {
     if (!CheckNormalization()) {
-      LOG(FATAL) << "NGramModelMerge: Model 1 must be normalized to"
-                 << " use smoothing in merging";
+      NGRAMERROR() << "NGramModelMerge: Model 1 must be normalized to"
+                   << " use smoothing in merging";
+      NGramModel::SetError();
     }
   }
 
@@ -48,40 +46,49 @@ class NGramModelMerge : public NGramMerge {
   // and mixing weights alpha and beta.
   void MergeNGramModels(const StdFst &infst2, double alpha, double beta,
                         bool norm = false) {
+    if (Error()) return;
+    NGramModel<StdArc> mod2(infst2);
+    if (!mod2.CheckNormalization()) {
+      NGRAMERROR() << "NGramModelMerge: Model 2 must be normalized to"
+                   << " use smoothing in merging";
+      NGramModel::SetError();
+      return;
+    }
     alpha_ = -log(alpha);
     beta_ = -log(beta);
-    NGramMerge::MergeNGramModels(infst2, norm);
-    if (!NGram2().CheckNormalization()) {
-      LOG(FATAL) << "NGramModelMerge: Model 2 must be normalized to"
-                 << " use smoothing in merging";
+    if (!NGramMerge<StdArc>::MergeNGramModels(infst2, norm)) {
+      NGRAMERROR() << "NGramModelMerge: Model merging failed";
+      NGramModel::SetError();
+      return;
     }
+    if (!norm) merge_norm_ = false;
   }
 
  protected:
   // Specifies resultant weight when combining a weight from each FST
-  virtual double MergeWeights(StateId s1, StateId s2, Label label,
-			      double w1, double w2,
-                              bool in_fst1, bool in_fst2) const {
+  Weight MergeWeights(StateId s1, StateId s2, Label label, Weight w1, Weight w2,
+                      bool in_fst1, bool in_fst2) const override {
     if (label == BackoffLabel()) {  // don't modify (needed) backoff weights
-      return in_fst1 ? w1 : w2;
+      return in_fst1 ? w1.Value() : w2.Value();
     } else {
-      return NegLogSum(w1 + alpha_, w2 + beta_);
+      return NegLogSum(w1.Value() + alpha_, w2.Value() + beta_);
     }
   }
 
-  // Specifies normalization constant per state depending whether
+  // Specifies normalization constant per state 'st' depending whether
   // state was present in one or boths FSTs.
-  virtual double NormWeight(bool in_fst1, bool in_fst2) const {
+  double NormWeight(StateId st, bool in_fst1, bool in_fst2) const override {
     return -NegLogSum(alpha_, beta_);
   }
 
  private:
-  double alpha_;  // weight to scale model ngram1
-  double beta_;  // weight to scale model ngram2
+  double alpha_;     // weight to scale model ngram1
+  double beta_;      // weight to scale model ngram2
+  bool merge_norm_;  // is the (possibly intermediate) result normalized?
 
   DISALLOW_COPY_AND_ASSIGN(NGramModelMerge);
 };
 
 }  // namespace ngram
 
-#endif  // NGRAM_NGRAM_MODEL_MERGE_H__
+#endif  // NGRAM_NGRAM_MODEL_MERGE_H_

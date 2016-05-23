@@ -1,5 +1,4 @@
-// ngram-context.h
-//
+
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -12,20 +11,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2009-2013 Brian Roark and Google, Inc.
-// Authors: roarkbr@gmail.com  (Brian Roark)
-//          allauzen@google.com (Cyril Allauzen)
-//          riley@google.com (Michael Riley)
-//
-// \file
+// Copyright 2005-2016 Brian Roark and Google, Inc.
 // Class to parse and maintain context specifications.
 
-#ifndef NGRAM_NGRAM_CONTEXT_H__
-#define NGRAM_NGRAM_CONTEXT_H__
+#ifndef NGRAM_NGRAM_CONTEXT_H_
+#define NGRAM_NGRAM_CONTEXT_H_
 
 #include <algorithm>
 #include <cstring>
-#include <iostream>
 #include <string>
 #include <vector>
 
@@ -36,8 +29,8 @@ namespace ngram {
 
 using fst::StdArc;
 using std::ostringstream;
-using std::vector;
 
+// Represents a context interval.
 class NGramContext {
  public:
   typedef StdArc::Label Label;
@@ -57,7 +50,7 @@ class NGramContext {
   //   specifies states that have a rightmost context in [1,5).
   //
   // Example2: context_begin = {1} and context_end = {5,6} with a 5-gram:
-  //   same as context_begin = {1,0,0,0} and context_end = {5,6,0,0}.
+  //   same as context_begin = {0,0,0,1} and context_end = {0,0,5,6}.
   NGramContext(const vector<Label> &context_begin,
                const vector<Label> &context_end, int hi_order)
       : hi_order_(hi_order),
@@ -83,9 +76,9 @@ class NGramContext {
   // Null context
   NGramContext() : hi_order_(0) {}
 
-  // If 'include_all_suffixes' is true, then all suffixes of the
-  // begin and end contexts are considered in context. When false,
-  // true (reverse) lexicographic order is used.
+  // Is ngram in context?  If 'include_all_suffixes' is true, then all
+  // suffixes of the begin and end contexts are considered in
+  // context. When false, true (reverse) lexicographic order is used.
   bool HasContext(vector<Label> ngram, bool include_all_suffixes = true) const;
 
   // No/empty context requested?
@@ -96,7 +89,6 @@ class NGramContext {
   static void ParseContextInterval(const string &context_pattern,
                                    vector<Label> *context_begin,
                                    vector<Label> *context_end);
-
 
   // Generates context string from begin and end context vectors
   static string GetContextString(const vector<Label> &context_begin,
@@ -110,48 +102,298 @@ class NGramContext {
     return context_pattern_strm.str();
   }
 
-
   // Given a n-gram model, returns 'ncontext' contexts balanced for
   // size.  Arg 'bigram_thresh' determines how overfull a context
   // bin has to be to force a split at a bigram context.  The model
   // must have state n-grams enabled.
-  static void FindContexts(const NGramModel &model,
-                           int ncontexts,
+  template <class Arc>
+  static void FindContexts(const NGramModel<Arc> &model, int ncontexts,
                            vector<string> *contexts,
                            float bigram_thresh = 1.1) {
-    vector< vector<Label> > begin_contexts;
-    vector< vector<Label> > end_contexts;
-    FindContexts(model, ncontexts, &begin_contexts, &end_contexts, bigram_thresh);
+    vector<vector<typename Arc::Label>> begin_contexts;
+    vector<vector<typename Arc::Label>> end_contexts;
+    FindContexts(model, ncontexts, &begin_contexts, &end_contexts,
+                 bigram_thresh);
 
     for (int i = 0; i < begin_contexts.size(); ++i)
-      contexts->push_back(GetContextString(begin_contexts[i],
-                                           end_contexts[i]));
+      contexts->push_back(GetContextString(begin_contexts[i], end_contexts[i]));
   }
-
 
   // Given a n-gram model, returns 'ncontext' contexts balanced for
   // size.  Arg 'bigram_thresh' determines how overfull a context
   // bin has to be to force a split at a bigram context.  The model
   // must have state n-grams enabled.
-  static void FindContexts(const NGramModel &model,
-                           int ncontexts,
-                           vector< vector<StdArc::Label> > *begin_contexts,
-                           vector< vector<StdArc::Label> > *end_contexts,
+  template <class Arc>
+  static void FindContexts(const NGramModel<Arc> &model, int ncontexts,
+                           vector<vector<typename Arc::Label>> *begin_contexts,
+                           vector<vector<typename Arc::Label>> *end_contexts,
                            float bigram_thresh = 1.1);
+
+  // Begin context as could be passed to class constructor
+  vector<Label> GetContextBegin() const {
+    vector<Label> ngram(context_begin_);
+    while (ngram.size() > 1 && ngram.back() == 0) ngram.pop_back();
+    reverse(ngram.begin(), ngram.end());
+    return ngram;
+  }
+
+  // End context as could be passed to class constructor
+  vector<Label> GetContextEnd() const {
+    vector<Label> ngram(context_end_);
+    while (ngram.size() > 1 && ngram.back() == 0) ngram.pop_back();
+    reverse(ngram.begin(), ngram.end());
+    return ngram;
+  }
+
+  // Context is reversed and padded to high-order
+  vector<Label> GetReverseContextBegin() const { return context_begin_; }
+
+  // Context is reversed and padded to high-order
+  vector<Label> GetReverseContextEnd() const { return context_end_; }
+
+  // Note order is wrt transitions not states in the model;
+  // so state ngram.size() == 1 has order 2
+  int GetHiOrder() const { return hi_order_; }
+
+  // Changes hi order (which affects context padding)
+  // Used by NGramExtendedContext to put several
+  // NGramContexts on the same hi-order.
+  void SetHiOrder(int hi_order) {
+    if (hi_order > hi_order_) {
+      if (!NullContext()) {
+        context_begin_.resize(hi_order - 1, 0);
+        context_end_.resize(hi_order - 1, 0);
+      }
+      hi_order_ = hi_order;
+    }
+  }
+
  private:
   void Init();
 
   int hi_order_;
   vector<Label> context_begin_;
   vector<Label> context_end_;
-  DISALLOW_COPY_AND_ASSIGN(NGramContext);
 };
 
-// Reads context specifications form a file into a vector.
+// Represents a set of disjoint context intervals.
+class NGramExtendedContext {
+ public:
+  typedef StdArc::Label Label;
+
+  // Constructs a context specification om begin and end context vectors.
+  // See the corresponding NGramContext constructor.
+  NGramExtendedContext(const vector<Label> &context_begin,
+                       const vector<Label> &context_end, int hi_order) {
+    contexts_.push_back(NGramContext(context_begin, context_end, hi_order));
+    Init(false);
+  }
+
+  // Constructs a context specification from an extended context
+  // pattern string.  An extended context pattern is a comma-separated
+  // set of NGramContext context patterns that must be disjoint.
+  // If 'merge_contexts' is true, adjacent contexts will be merged.
+  NGramExtendedContext(const string &extended_context_pattern, int hi_order,
+                       bool merge_contexts = true) {
+    ParseContextIntervals(extended_context_pattern, hi_order, &contexts_);
+    Init(merge_contexts);
+  }
+
+  // Constructs a context specification from a NGramContext vector.
+  // If 'merge_contexts' is true, adjacent contexts will be merged.
+  explicit NGramExtendedContext(const vector<NGramContext> &contexts,
+                                bool merge_contexts = true)
+      : contexts_(contexts) {
+    Init(merge_contexts);
+  }
+
+  // Null context
+  NGramExtendedContext() {}
+
+  // No/empty context requested?
+  int NullContext() const { return contexts_.empty(); }
+
+  // Is ngram in context?  If 'include_all_suffixes' is true, then all
+  // suffixes of the begin and end contexts are considered in
+  // context. When false, true (reverse) lexicographic order is used.
+  bool HasContext(const vector<Label> &ngram,
+                  bool include_all_suffixes = true) const;
+
+  // Find NGramContext that matches context. Returns a null pointer
+  // if no match or if the input is the null context.  If
+  // 'include_all_suffixes' is true, then all suffixes of the begin
+  // and end contexts are considered in context. When false, true
+  // (reverse) lexicographic order is used.
+  const NGramContext *GetContext(const vector<Label> &ngram,
+                                 bool include_all_suffixes = true) const;
+
+  // Derives NGramContext vector from input extended context pattern string.
+  static void ParseContextIntervals(const string &extended_context_pattern,
+                                    int hi_order,
+                                    vector<NGramContext> *contexts);
+
+  // Generates an extended context string from a vector of NGramContexts
+  static string GetExtendedContextString(const vector<NGramContext> &contexts) {
+    ostringstream extended_context_pattern_strm;
+    for (size_t i = 0; i < contexts.size(); ++i) {
+      if (i > 0) extended_context_pattern_strm << ",";
+      const vector<Label> &context_begin = contexts[i].GetContextBegin();
+      const vector<Label> &context_end = contexts[i].GetContextEnd();
+      extended_context_pattern_strm
+          << NGramContext::GetContextString(context_begin, context_end);
+    }
+    return extended_context_pattern_strm.str();
+  }
+
+  const vector<NGramContext> &GetContexts() const { return contexts_; }
+
+ private:
+  // Ensures disjoint, same hi-order and canonicalizes.
+  void Init(bool merge_contexts);
+
+  // Ensures contexts are non-empty, non-overlapping and that
+  // the high orders made to match.
+  bool CheckContexts();
+
+  // Merges contexts_ in range [i, j] and write to k.
+  void MergeContexts(size_t i, size_t j, size_t k);
+
+  // Comparison function object on contexts
+  struct ContextCompare {
+    bool operator()(const NGramContext &c1, const NGramContext &c2) {
+      // Sorts by beginning of the context interval. Will be a total
+      // order assuming the context intervals are disjoint.
+      const vector<Label> &b1 = c1.GetReverseContextBegin();
+      const vector<Label> &b2 = c2.GetReverseContextBegin();
+      return lexicographical_compare(b1.begin(), b1.end(), b2.begin(),
+                                     b2.end());
+    };
+  };
+
+  vector<NGramContext> contexts_;
+  DISALLOW_COPY_AND_ASSIGN(NGramExtendedContext);
+};
+
+// Reads (possibly extended) context specifications form a file into a vector.
 bool NGramReadContexts(const string &file, vector<string> *contexts);
-// Writes context specifications from a vector to a file.
+// Writes (possibly extended) context specifications from a vector to a file.
 bool NGramWriteContexts(const string &file, const vector<string> &contexts);
+
+template <class Arc>
+void NGramContext::FindContexts(
+    const NGramModel<Arc> &model, int ncontexts,
+    vector<vector<typename Arc::Label>> *begin_contexts,
+    vector<vector<typename Arc::Label>> *end_contexts, float bigram_thresh) {
+  // state n-gram counts with given unigram suffix
+  std::map<typename Arc::Label, size_t> suffix1_counts;
+  // state n-gram counts with given (reversed) bigram suffix
+  std::map<std::pair<typename Arc::Label, typename Arc::Label>, size_t>
+      suffix2_counts;
+  // state n-gram counts at a bigram state
+  std::unordered_map<typename Arc::Label, size_t> bigram_counts;
+  size_t total_count = 0;
+  typename Arc::Label max_label = kNoLabel;
+
+  for (StateId s = 0; s < model.NumStates(); ++s) {
+    for (ArcIterator<Fst<Arc>> aiter(model.GetFst(), s); !aiter.Done();
+         aiter.Next()) {
+      const Arc &arc = aiter.Value();
+      if (arc.ilabel == kNoLabel || arc.ilabel > max_label)
+        max_label = arc.ilabel;
+    }
+    const auto &ngram = model.StateNGram(s);
+    typename Arc::Label l1 =
+        ngram.size() > 0 ? ngram[ngram.size() - 1] : kNoLabel;
+    typename Arc::Label l2 =
+        ngram.size() > 1 ? ngram[ngram.size() - 2] : kNoLabel;
+    if (l1 == kNoLabel) continue;
+    suffix1_counts[l1] += model.GetFst().NumArcs(s);
+    total_count += model.GetFst().NumArcs(s);
+
+    if (l2 != kNoLabel) {
+      suffix2_counts[std::make_pair(l1, l2)] += model.GetFst().NumArcs(s);
+    } else {
+      bigram_counts[l1] += model.GetFst().NumArcs(s);
+    }
+  }
+  vector<typename Arc::Label> context;
+  begin_contexts->clear();
+  end_contexts->clear();
+  begin_contexts->push_back(context);
+  begin_contexts->back().push_back(0);
+  ssize_t bin_count = 0;
+  auto it1 = suffix1_counts.begin();
+
+  while (it1 != suffix1_counts.end()) {
+    auto suffix1 = it1->first;
+    ssize_t delta1 = it1->second;
+    ssize_t deltab = bigram_counts[suffix1];
+    ++it1;
+    if (it1 != suffix1_counts.end() &&
+        (bin_count + delta1) * ncontexts < total_count) {
+      // Continues to fill bin
+      bin_count += delta1;
+    } else if ((bin_count + delta1 - deltab) * ncontexts <
+               bigram_thresh * total_count) {
+      // Splits at a unigram state suffix when bin not overfull
+      if (it1 == suffix1_counts.end()) {
+        // Finalizes at end of contexts
+        end_contexts->push_back(context);
+        end_contexts->back().push_back(max_label + 1);
+      } else {
+        // Splits and continues with next unigram state suffix
+        auto next_suffix1 = it1->first;
+        end_contexts->push_back(context);
+        begin_contexts->push_back(context);
+        end_contexts->back().push_back(next_suffix1);
+        begin_contexts->back().push_back(next_suffix1);
+        total_count -= bin_count + delta1;
+        --ncontexts;
+        bin_count = 0;
+      }
+    } else {
+      // Splits at a bigram state context
+      total_count -= deltab;
+      auto it2 = suffix2_counts.find(std::make_pair(suffix1, 0));
+      while (it2 != suffix2_counts.end() && it2->first.first <= suffix1) {
+        ssize_t delta2 = it2->second;
+        ++it2;
+        if (it1 != suffix1_counts.end() &&
+            (bin_count + delta2) * ncontexts < total_count) {
+          // Continues to fill bin
+          bin_count += delta2;
+        } else if (it1 == suffix1_counts.end()) {
+          // Finalizes at end of contexts
+          end_contexts->push_back(context);
+          end_contexts->back().push_back(max_label + 1);
+        } else if (it2 == suffix2_counts.end() || it2->first.first > suffix1) {
+          // Splits and continues with next unigram state suffix
+          auto next_suffix1 = it1->first;
+          end_contexts->push_back(context);
+          begin_contexts->push_back(context);
+          end_contexts->back().push_back(next_suffix1);
+          begin_contexts->back().push_back(next_suffix1);
+          total_count -= bin_count + delta2;
+          --ncontexts;
+          bin_count = 0;
+        } else {
+          // Splits and continues with next bigram state suffix
+          auto next_suffix2 = it2->first;
+          end_contexts->push_back(context);
+          begin_contexts->push_back(context);
+          end_contexts->back().push_back(next_suffix2.second);
+          end_contexts->back().push_back(next_suffix2.first);
+          begin_contexts->back().push_back(next_suffix2.second);
+          begin_contexts->back().push_back(next_suffix2.first);
+          total_count -= bin_count + delta2;
+          --ncontexts;
+          bin_count = 0;
+        }
+      }
+    }
+  }
+}
 
 }  // namespace ngram
 
-#endif  // NGRAM_NGRAM_CONTEXT_H__
+#endif  // NGRAM_NGRAM_CONTEXT_H_

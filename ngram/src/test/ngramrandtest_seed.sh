@@ -1,4 +1,6 @@
-#! /bin/sh
+#!/bin/bash
+# Description:
+# Random test of ngram functionality with a given input seed.
 
 bin=../bin
 tmpdata=${TMPDIR:-/tmp}

@@ -1,5 +1,4 @@
-// lexicographic-map.h
-//
+
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -12,13 +11,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2011 Richard Sproat.
-// Author: rws@xoba.com (Richard Sproat)
-//
-// \file
-//
-// Implements the algorithm for using lexicographic semirings
-// discussed in:
+// Copyright 2005-2016 Brian Roark and Google, Inc.
+// Implements the algorithm for using lexicographic semirings discussed in:
 //
 // Brian Roark, Richard Sproat and Izhak Shafran. 2011. "Lexicographic
 // Semirings for Exact Automata Encoding of Sequence Models". ACL-HLT
@@ -38,8 +32,8 @@
 #include <fst/fst.h>
 #include <fst/lexicographic-weight.h>
 #include <fst/map.h>
-#include <fst/vector-fst.h>
 #include <fst/rmepsilon.h>
+#include <fst/vector-fst.h>
 #include <ngram/ngram-model.h>
 
 namespace ngram {
@@ -81,45 +75,51 @@ struct ToLexicographicMapper {
   typedef LexicographicArc<W, W> ToArc;
   typedef typename ToArc::Weight LW;
 
-  explicit ToLexicographicMapper(NGramModel* model) : model_(model) { }
+  explicit ToLexicographicMapper(NGramModel<StdArc>* in_model)
+      : model(in_model) {}
 
-  ToArc operator()(const FromArc &arc) const {
+  ToArc operator()(const FromArc& arc) const {
     // 'Super-non-final' arc
     if (arc.nextstate == kNoStateId && arc.weight == W::Zero()) {
       return ToArc(0, 0, LW(W::Zero(), arc.weight), kNoStateId);
-    // 'Super-final' arc
+      // 'Super-final' arc
     } else if (arc.nextstate == kNoStateId) {
       return ToArc(0, 0, LW(W::One(), arc.weight), kNoStateId);
-    // Epsilon label: in this case if it's an LM we need to check the
-    // order of the backoff, unless this is Zero(), which can happen
-    // in some topologies.
-    } else if (arc.ilabel == 0 && arc.olabel == 0 && model_) {
+      // Epsilon label: in this case if it's an LM we need to check the
+      // order of the backoff, unless this is Zero(), which can happen
+      // in some topologies.
+    } else if (arc.ilabel == 0 && arc.olabel == 0 && model) {
       if (arc.weight == W::Zero())
-	return ToArc(arc.ilabel, arc.olabel,
-		     LW(arc.weight, arc.weight),
-		     arc.nextstate);
-      int expt = model_->HiOrder() - model_->StateOrder(arc.nextstate);
+        return ToArc(arc.ilabel, arc.olabel, LW(arc.weight, arc.weight),
+                     arc.nextstate);
+      int expt = model->HiOrder() - model->StateOrder(arc.nextstate);
       return ToArc(arc.ilabel, arc.olabel,
                    LW(Power<W>(kBackoffPenalty, expt), arc.weight),
                    arc.nextstate);
-    // Real arc (called an "ngram" arc in Roark et al. 2011)
+      // Real arc (called an "ngram" arc in Roark et al. 2011)
     } else {
-      return ToArc(arc.ilabel, arc.olabel,
-                   LW(W::One(), arc.weight), arc.nextstate);
+      return ToArc(arc.ilabel, arc.olabel, LW(W::One(), arc.weight),
+                   arc.nextstate);
     }
   }
 
-  MapFinalAction FinalAction() const { return MAP_NO_SUPERFINAL; }
+  fst::MapFinalAction FinalAction() const {
+    return fst::MAP_NO_SUPERFINAL;
+  }
 
-  MapSymbolsAction InputSymbolsAction() const { return MAP_COPY_SYMBOLS; }
+  fst::MapSymbolsAction InputSymbolsAction() const {
+    return fst::MAP_COPY_SYMBOLS;
+  }
 
-  MapSymbolsAction OutputSymbolsAction() const { return MAP_COPY_SYMBOLS;}
+  fst::MapSymbolsAction OutputSymbolsAction() const {
+    return fst::MAP_COPY_SYMBOLS;
+  }
 
   uint64 Properties(uint64 props) const {
     return ProjectProperties(props, true) & kWeightInvariantProperties;
   }
 
-  NGramModel* model_;
+  NGramModel<StdArc>* model;
 };
 
 template <class A>
@@ -129,20 +129,26 @@ struct FromLexicographicMapper {
   typedef LexicographicArc<W, W> FromArc;
   typedef typename FromArc::Weight LW;
 
-  ToArc operator()(const FromArc &arc) const {
+  ToArc operator()(const FromArc& arc) const {
     // 'Super-final' arc and 'Super-non-final' arc
     if (arc.nextstate == kNoStateId)
       return ToArc(0, 0, W(arc.weight.Value2()), kNoStateId);
     else
-      return ToArc(arc.ilabel, arc.olabel,
-		   W(arc.weight.Value2()), arc.nextstate);
+      return ToArc(arc.ilabel, arc.olabel, W(arc.weight.Value2()),
+                   arc.nextstate);
   }
 
-  MapFinalAction FinalAction() const { return MAP_NO_SUPERFINAL; }
+  fst::MapFinalAction FinalAction() const {
+    return fst::MAP_NO_SUPERFINAL;
+  }
 
-  MapSymbolsAction InputSymbolsAction() const { return MAP_COPY_SYMBOLS; }
+  fst::MapSymbolsAction InputSymbolsAction() const {
+    return fst::MAP_COPY_SYMBOLS;
+  }
 
-  MapSymbolsAction OutputSymbolsAction() const { return MAP_COPY_SYMBOLS;}
+  fst::MapSymbolsAction OutputSymbolsAction() const {
+    return fst::MAP_COPY_SYMBOLS;
+  }
 
   uint64 Properties(uint64 props) const {
     return ProjectProperties(props, true) & kWeightInvariantProperties;
@@ -158,11 +164,11 @@ class LexicographicRescorer {
   typedef typename A::Weight W;
   typedef typename ToMapper::ToArc ToArc;
 
-  LexicographicRescorer(MutableFst<A>* lm, NGramModel* model) {
+  LexicographicRescorer(MutableFst<A>* lm, NGramModel<StdArc>* model) {
     Map(*lm, &lm_, ToMapper(model));
   }
 
-  ~LexicographicRescorer() { }
+  ~LexicographicRescorer() {}
 
   VectorFst<A>* Rescore(MutableFst<A>* lattice);
 
@@ -170,7 +176,6 @@ class LexicographicRescorer {
   VectorFst<ToArc> lm_;
   VectorFst<A> result_;
 };
-
 
 template <class A>
 VectorFst<A>* LexicographicRescorer<A>::Rescore(MutableFst<A>* lattice) {
@@ -185,9 +190,7 @@ VectorFst<A>* LexicographicRescorer<A>::Rescore(MutableFst<A>* lattice) {
   return &result_;
 }
 
-
 typedef LexicographicRescorer<StdArc> StdLexicographicRescorer;
-
 
 }  // namespace ngram
 

@@ -1,5 +1,4 @@
-// ngram-count-merge.h
-//
+
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -12,22 +11,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2009-2013 Brian Roark and Google, Inc.
-// Authors: roarkbr@gmail.com  (Brian Roark)
-//          allauzen@google.com (Cyril Allauzen)
-//          riley@google.com (Michael Riley)
-//
-// \file
-// NGram model class for merging count FSTs
+// Copyright 2005-2016 Brian Roark and Google, Inc.
+// NGram model class for merging count FSTs.
 
-#ifndef NGRAM_NGRAM_COUNT_MERGE_H__
-#define NGRAM_NGRAM_COUNT_MERGE_H__
+#ifndef NGRAM_NGRAM_COUNT_MERGE_H_
+#define NGRAM_NGRAM_COUNT_MERGE_H_
 
 #include <ngram/ngram-merge.h>
+#include <ngram/util.h>
 
 namespace ngram {
 
-class NGramCountMerge : public NGramMerge {
+class NGramCountMerge : public NGramMerge<StdArc> {
  public:
   typedef StdArc::StateId StateId;
   typedef StdArc::Label Label;
@@ -35,10 +30,10 @@ class NGramCountMerge : public NGramMerge {
   // Constructs an NGramCountMerge object consisting of ngram model
   // to be merged.
   // Ownership of FST is retained by the caller.
-  NGramCountMerge(StdMutableFst *infst1, Label backoff_label = 0,
-                  double norm_eps = kNormEps, bool check_consistency = false)
-      : NGramMerge(infst1, backoff_label, norm_eps, check_consistency) {
-  }
+  explicit NGramCountMerge(StdMutableFst *infst1, Label backoff_label = 0,
+                           double norm_eps = kNormEps,
+                           bool check_consistency = false)
+      : NGramMerge(infst1, backoff_label, norm_eps, check_consistency) {}
 
   // Perform count-model merger with n-gram model specified by the FST argument
   // and mixing weights alpha and beta.
@@ -46,26 +41,28 @@ class NGramCountMerge : public NGramMerge {
                         bool norm = false) {
     alpha_ = -log(alpha);
     beta_ = -log(beta);
-    NGramMerge::MergeNGramModels(infst2, norm);
+    if (!NGramMerge<StdArc>::MergeNGramModels(infst2, norm)) {
+      NGRAMERROR() << "Count merging failed";
+      NGramModel<StdArc>::SetError();
+    }
   }
 
  protected:
   // Specifies resultant weight when combining a weight from each FST.
-  virtual double MergeWeights(StateId s1, StateId s2, Label Label,
-			      double w1, double w2,
-                              bool in_fst1, bool in_fst2) const {
+  Weight MergeWeights(StateId s1, StateId s2, Label Label, Weight w1, Weight w2,
+                      bool in_fst1, bool in_fst2) const override {
     if (in_fst1 && in_fst2) {
-      return NegLogSum(w1 + alpha_, w2 + beta_);
+      return NegLogSum(w1.Value() + alpha_, w2.Value() + beta_);
     } else if (in_fst1) {
-      return w1 + alpha_;
+      return w1.Value() + alpha_;
     } else {
-      return w2 + beta_;
+      return w2.Value() + beta_;
     }
   }
 
-  // Specifies the normalization constant per state depending whether
+  // Specifies the normalization constant per state 'st' depending whether
   // state was present in one or boths FSTs.
-  virtual double NormWeight(bool in_fst1, bool in_fst2) const {
+  double NormWeight(StateId st, bool in_fst1, bool in_fst2) const override {
     if (in_fst1 && in_fst2) {
       return -NegLogSum(alpha_, beta_);
     } else if (in_fst1) {
@@ -81,7 +78,7 @@ class NGramCountMerge : public NGramMerge {
   // destination state changes are not relevant here. When false, more
   // efficient merging may be performed. If the arc/final_weight
   // comes from the first FST, then 'in_fst1' is true.
-  virtual bool MergeUnshared(bool in_fst1) const {
+  bool MergeUnshared(bool in_fst1) const override {
     return (in_fst1) ? (alpha_ != 0.0) : (beta_ != 0.0);
   }
 
@@ -93,4 +90,4 @@ class NGramCountMerge : public NGramMerge {
 
 }  // namespace ngram
 
-#endif  // NGRAM_NGRAM_COUNT_MERGE_H__
+#endif  // NGRAM_NGRAM_COUNT_MERGE_H_

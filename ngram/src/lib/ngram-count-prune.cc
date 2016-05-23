@@ -1,5 +1,4 @@
-// ngram-count-prune.cc
-//
+
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -12,36 +11,33 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2009-2013 Brian Roark and Google, Inc.
-// Authors: roarkbr@gmail.com  (Brian Roark)
-//          allauzen@google.com (Cyril Allauzen)
-//          riley@google.com (Michael Riley)
-//
-// \file
-// Count pruning style model shrinking derived class
+// Copyright 2005-2016 Brian Roark and Google, Inc.
+// Count pruning style model shrinking derived class.
 
 #include <sstream>
 #include <ngram/ngram-count-prune.h>
+#include <ngram/util.h>
 
 namespace ngram {
 
-using std::stringstream;
-
 // Reads from string while token is a numerical value
-template <class A>
-char NGramCountPrune::GetNextCharVal(string::const_iterator *strit, A *toget,
-				     const string &count_pattern) const {
+template <class T>
+char NGramCountPrune::GetNextCharVal(string::const_iterator *strit, T *toget,
+                                     const string &count_pattern) {
   char c = GetNextChar(strit);
   string tok;
   while (IsInNumber(c)) {
     tok += c;
     c = GetNextChar(strit);
   }
-  if (tok == "")
-    LOG(FATAL) << "NGramCountPrune: Count pruning parameter format error: "
-	       << count_pattern;
-  stringstream tok_ss(tok);
-  tok_ss >> (*toget);
+  if (tok == "") {
+    NGRAMERROR() << "NGramCountPrune: Count pruning parameter format error: "
+                 << count_pattern;
+    NGramModel<StdArc>::SetError();
+  } else {
+    std::stringstream tok_ss(tok);
+    tok_ss >> (*toget);
+  }
   return c;
 }
 
@@ -52,7 +48,7 @@ char NGramCountPrune::GetNextCharVal(string::const_iterator *strit, A *toget,
 // example: "2:2;3+:3" signifies:
 //   prune bigrams with count < 2; trigrams and above with count < 3
 void NGramCountPrune::ParseCountMinimums(const string &count_pattern) {
-  string:: const_iterator strit = count_pattern.begin();
+  string::const_iterator strit = count_pattern.begin();
   while (strit < count_pattern.end()) {
     int order;
     double count;
@@ -62,15 +58,23 @@ void NGramCountPrune::ParseCountMinimums(const string &count_pattern) {
       plus = true;
       c = GetNextChar(&strit);
     }
-    if (c != ':')
-      LOG(FATAL) << "NGramShink: Count pruning parameter format error: "
-		 << count_pattern;
+    if (c != ':') {
+      NGRAMERROR() << "NGramShink: Count pruning parameter format error: "
+                   << count_pattern;
+      NGramModel<StdArc>::SetError();
+      return;
+    }
     c = GetNextCharVal(&strit, &count, count_pattern);
-    if (c != ';' && strit < count_pattern.end())
-      LOG(FATAL) << "NGramShink: Count pruning parameter format error: "
-		 << count_pattern;
-    if (count <= 0) count = StdArc::Weight::Zero().Value();
-    else count = log(count);
+    if (c != ';' && strit < count_pattern.end()) {
+      NGRAMERROR() << "NGramShink: Count pruning parameter format error: "
+                   << count_pattern;
+      NGramModel<StdArc>::SetError();
+      return;
+    }
+    if (count <= 0)
+      count = StdArc::Weight::Zero().Value();
+    else
+      count = log(count);
     if (order >= 0 && order <= HiOrder())
       UpdateCountMinimums(order, count, plus);
   }
@@ -82,8 +86,7 @@ void NGramCountPrune::UpdateCountMinimums(int order, double count, bool plus) {
     count_minimums_[order - 1] = count;
   if (plus) {
     for (int i = order; i < HiOrder(); ++i) {
-      if (count_minimums_[i] < count)
-	count_minimums_[i] = count;
+      if (count_minimums_[i] < count) count_minimums_[i] = count;
     }
   }
 }

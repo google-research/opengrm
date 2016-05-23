@@ -1,7 +1,10 @@
-#! /bin/sh
+#!/bin/bash
+# Description:
+# Convenience script for training models in a distributed fashion.
 
 tmpdata=${TMPDIR:-/tmp}
-dir=$tmpdata/ngram$$
+dir="$tmpdata"/ngram$$
+bin=../bin
 
 trap "rm -fr $dir" 0 2 13 15
 
@@ -38,8 +41,8 @@ updated=false
 while [ $# != 0 ]
 do
   # Parse 'option=optarg' word
-  option="`awk 'BEGIN { split(ARGV[1], a, "=") ; print a[1] }' $1`"
-  optarg="`awk 'BEGIN { split(ARGV[1], a, "=") ; print a[2] }' $1`"
+  option="$(awk 'BEGIN { split(ARGV[1], a, "=") ; print a[1] }' $1)"
+  optarg="$(awk 'BEGIN { split(ARGV[1], a, "=") ; print a[2] }' $1)"
   shift
   case "$option" in
     --bins|-bins)
@@ -52,12 +55,12 @@ do
       round_to_int=true ;;
     --help|-help)
       usage=true ;;
-    --ifile|-ifile) 
+    --ifile|-ifile)
       ifile="$optarg" ;;
     --itype|-itype)
       itype="$optarg"
-      if [ $itype != text_sents -a $itype != fst_sents -a \
-          $itype != counts -a $itype != lm ] 
+      if [ "$itype" != text_sents -a "$itype" != fst_sents -a \
+          "$itype" != counts -a "$itype" != lm ]
       then
         echo "ERROR: bad input type: \"$itype\""
         exit 1
@@ -84,7 +87,7 @@ do
       symbols="$optarg" ;;
     --OOV_symbol|-OOV_symbol)
       OOV_symbols="$optarg" ;;
-    --theta|-theta) 
+    --theta|-theta)
       theta="$optarg" ;;
     --verbose|-verbose)
       verbose=true ;;
@@ -142,148 +145,149 @@ fi
 
 set -e
 
-function message {
-  if [ $verbose = true ]
+message() {
+  if [ "$verbose" = true ]
   then
-      echo "[`date`] $1"
+      echo "[$(date)] $1"
   fi
 }
 
 # Moves output to input.
 # Sets itype to 1st arg (if any).
-function update {
-  rm -fr $dir/input
-  mv $dir/output $dir/input
-  mkdir $dir/output
-  rm -f $dir/tmp/*
+update() {
+  rm -fr "$dir/input"
+  mv "$dir/output" "$dir/input"
+  mkdir "$dir/output"
+  rm -f "$dir"/tmp/*
   if [ -n "$1" ] ; then itype="$1" ; fi
   updated=true
 }
 
 # Creates FST sentences.
-function compile_sentences {
+compile_sentences() {
   message "Compiling text sentences"
   if [ -z "$symbols" ]
   then
     echo "ERROR: symbol table must be provided to compile sentences"
     exit 1
   fi
-  for inf in $dir/input/*
+  for inf in "$dir"/input/*
   do
-    outf=$dir/output/`basename $inf`
+    outf="$dir"/output/"$(basename $inf)"
     farcompilestrings \
       --symbols="$symbols" \
       --unknown_symbol="$OOV_symbol" \
       --keep_symbols=1 \
-      $inf $outf
+      "$inf" "$outf"
   done
   update fst_sents
 }
 
 # Splits each data shard by context.
-function ngram_split {
+ngram_split() {
   message "Splitting count shards by context"
-  for inf in $dir/input/*
+  for inf in "$dir"/input/*
   do
-    outf="$dir/output/`basename $inf`.c"
-    ngramsplit --contexts="$contexts" $inf $outf
+    outf="$dir"/output/"$(basename $inf).c"
+    "${bin}"/ngramsplit --contexts="$contexts" "$inf" "$outf"
   done
   update
-}    
+}
 
 # Merges all data shards of the same context.
-function ngram_merge_counts {
+ngram_merge_counts() {
   message "Merging context shards with the same context"
   while read c ignore
   do
-    outf=$dir/output/c$c
-    ngrammerge \
+    outf="$dir"/output/"c$c"
+    "${bin}"/ngrammerge \
       --check_consistency \
       --complete \
-      --round_to_int=$round_to_int \
+      --round_to_int="$round_to_int" \
       --method=count_merge \
-      --ofile=$outf \
-      $dir/input/d*.c$c
-  done <$dir/side/idcontexts
+      --ofile="$outf" \
+      "$dir"/input/d*."c$c"
+  done <"$dir/side/idcontexts"
   update
 }
 
 # Splits each context shard by context.
-function ngram_sub_split {
+ngram_sub_split() {
   message "Splitting contexts shards by context"
   while read c ignore
-  do  
-    inf=$dir/input/c$c
-    outf=$dir/output/c$c.s
-    ngramsplit --complete --contexts="$contexts" $inf $outf
-    # Replace diagonal with the original context shard.
-    rm -f $dir/output/c$c.s$c
-    ln $inf $dir/output/c$c.s$c
-  done <$dir/side/idcontexts
-  update
-}    
-
-# Transfers from sub-context shards.
-# Argument(s) are additional options to ngramtransfer.
-function ngram_transfer_to {
-  message "Transferring to sub-context shards from context shards."
-  while read s j ignore
   do
-    outf=$dir/output/s$s.c
-    ngramtransfer $@ \
-      --contexts="$contexts" \
-      --transfer_from=false \
-      --index=$j \
-      --complete \
-      --ofile=$outf \
-      $dir/input/c*.s$s
-    # Add diagonal using the original context shard.
-    ln $dir/input/c$s.s$s $outf$s
-  done <$dir/side/idcontexts
+    inf="$dir"/input/"c$c"
+    outf="$dir"/output/"c$c.s"
+    "${bin}"/ngramsplit --complete --contexts="$contexts" "$inf" "$outf"
+    # Replace diagonal with the original context shard.
+    rm -f "$dir"/output/"c$c"."s$c"
+    ln "$inf" "$dir"/output/"c$c"."s$c"
+  done <"$dir/side/idcontexts"
   update
 }
 
 # Transfers from sub-context shards.
 # Argument(s) are additional options to ngramtransfer.
-function ngram_transfer_from {
+ngram_transfer_to() {
+  message "Transferring to sub-context shards from context shards."
+  while read s j ignore
+  do
+    outf="$dir"/output/"s$s.c"
+    "${bin}"/ngramtransfer "$@" \
+      --contexts="$contexts" \
+      --transfer_from=false \
+      --index="$j" \
+      --complete \
+      --ofile="$outf" \
+      "$dir"/input/c*."s$s"
+    # Add diagonal using the original context shard.
+    ln "$dir"/input/"c$s"."s$s" "$outf$s"
+  done <"$dir/side/idcontexts"
+  update
+}
+
+# Transfers from sub-context shards.
+# Argument(s) are additional options to ngramtransfer.
+ngram_transfer_from() {
   message "Transferring from sub-context shards to context shards."
   while read c i ignore
   do
-    outf=$dir/output/c$c
-    ngramtransfer $@ \
+    outf="$dir"/output/"c$c"
+    "${bin}"/ngramtransfer "$@" \
       --contexts="$contexts" \
       --transfer_from=true \
-      --index=$i \
+      --index="$i" \
       --complete \
-      --ofile=$outf \
-      $dir/input/s*.c$c
-  done <$dir/side/idcontexts
+      --ofile="$outf" \
+      "$dir"/input/s*."c$c"
+  done <"$dir/side/idcontexts"
   update
 }
 
 # Completes each context shard.
 # Argument(s) are additional options to (final) ngramtransfer.
-function ngram_complete {
+ngram_complete() {
   ngram_sub_split
   ngram_transfer_to
   ngram_transfer_from "$@"
 }
 
 # Counts n-grams.
-function ngram_count {
+ngram_count() {
   message "Counting n-grams"
-  for inf in $dir/input/*
+  for inf in "$dir"/input/*
   do
-    outf=$dir/output/`basename $inf`
-    ngramcount --order="$order" --epsilon_as_backoff="$epsilon_as_backoff" \
-      --round_to_int=$round_to_int $inf $outf
+    outf="$dir"/output/"$(basename $inf)"
+    "${bin}"/ngramcount --order="$order" \
+      --epsilon_as_backoff="$epsilon_as_backoff" \
+      --round_to_int="$round_to_int" "$inf" "$outf"
   done
   update counts
 
   if [ -n "$contexts" ]
   then
     awk '{ printf "%05d %d %s\n", (NR-1), (NR-1), $0 }' \
-      "$contexts" >$dir/side/idcontexts
+      "$contexts" >"$dir/side/idcontexts"
     ngram_split
     ngram_merge_counts
     ngram_complete
@@ -291,44 +295,44 @@ function ngram_count {
 }
 
 # Computes count of counts.
-function ngram_count_of_counts {
+ngram_count_of_counts() {
   message "Computing count of counts"
   while read c i context
   do
-    inf=$dir/input/c$c
-    outf=$dir/tmp/c$c
-    ngramcount -method=count_of_counts --context_pattern="$context" \
-      $inf $outf
-  done <$dir/side/idcontexts
-  ngrammerge \
+    inf="$dir"/input/"c$c"
+    outf="$dir"/tmp/"c$c"
+    "${bin}"/ngramcount -method=count_of_counts --context_pattern="$context" \
+      "$inf" "$outf"
+  done <"$dir/side/idcontexts"
+  "${bin}"/ngrammerge \
     --check_consistency \
-    --ofile=$dir/side/count_of_counts \
+    --ofile="$dir/side/count_of_counts" \
     --method=count_merge \
     --contexts="$contexts" \
-    $dir/tmp/c*
-  rm -f $dir/tmp/c*
+    "$dir"/tmp/c*
+  rm -f "$dir"/tmp/c*
 }
 
 
 # Smoothes model.
 # Argument(s) are additional options to ngrammake.
-function ngram_make {
+ngram_make() {
   message "Smoothing model"
   if [ -n "$contexts" -a "$smooth_method" = kneser_ney ]
   then
-    echo "ERROR: \"$snooth_method\" not supported in distributed mode"
+    echo "ERROR: \"$smooth_method\" not supported in distributed mode"
     exit 1
   fi
 
-  for inf in $dir/input/*
+  for inf in "$dir"/input/*
   do
-    outf=$dir/output/`basename $inf`
-    ngrammake "$@" \
+    outf="$dir"/output/"$(basename $inf)"
+    "${bin}"/ngrammake "$@" \
       --check_consistency \
       --method="$smooth_method" \
       --witten_bell_k="$witten_bell_k" \
       --discount_D="$discount_D" \
-      --bins="$bins" $inf $outf
+      --bins="$bins" "$inf" "$outf"
   done
   update lm
 
@@ -339,35 +343,35 @@ function ngram_make {
 }
 
 # Shrinks model.
-function ngram_shrink {
+ngram_shrink() {
   message "Shrinking model"
   if [ -n "$contexts" ]
   then
     while read c i context
     do
-      inf=$dir/input/c$c
-      outf=$dir/output/c$c
-      ngramshrink \
+      inf="$dir"/input/"c$c"
+      outf="$dir"/output/"c$c"
+      "${bin}"/ngramshrink \
         --check_consistency \
         --method="$shrink_method" \
         -context_pattern="$context" \
         --theta="$theta" \
-        $inf $outf
-    done <$dir/side/idcontexts
+        "$inf" "$outf"
+    done <"$dir/side/idcontexts"
   else
-    inf=$dir/input/d00000
-    outf=$dir/output/d00000
-    ngramshrink \
+    inf="$dir/input/d00000"
+    outf="$dir/output/d00000"
+    "${bin}"/ngramshrink \
       --check_consistency \
       --method="$shrink_method" \
       --theta="$theta" \
-      $inf $outf
+      "$inf" "$outf"
   fi
   update pruned_lm
 }
 
 # Merges contexts into single result.
-function ngram_merge_contexts {
+ngram_merge_contexts() {
   message "Merging context shards"
   case "$otype" in
     fst_sents)
@@ -375,26 +379,26 @@ function ngram_merge_contexts {
       exit 1 ;;
     counts)
       unset normalize ;;
-    *) 
+    *)
       normalize="--normalize" ;;
   esac
-  outf=$dir/output/merged
-  ngrammerge \
+  outf="$dir"/output/merged
+  "${bin}"/ngrammerge \
     $normalize \
     --check_consistency \
     --method=context_merge \
     --contexts="$contexts" \
-    --ofile=$outf \
-    $dir/input/c*
+    --ofile="$outf" \
+    "$dir"/input/c*
   update
 }
 
-function run_pipeline {
+run_pipeline() {
    if [ "$itype" = text_sents ]
    then
      compile_sentences
    fi
-   
+
    if [ "$otype" = fst_sents ] ; then return; fi
 
    if [ "$itype" = fst_sents ]
@@ -409,7 +413,7 @@ function run_pipeline {
      if [ -n "$contexts" ]
      then
        ngram_count_of_counts
-       ngram_make --count_of_counts=$dir/side/count_of_counts
+       ngram_make --count_of_counts="$dir/side/count_of_counts"
      else
        ngram_make
      fi
@@ -423,19 +427,19 @@ function run_pipeline {
    fi
 }
 
-mkdir $dir $dir/input $dir/output $dir/side $dir/tmp
+mkdir "$dir" "$dir/input" "$dir/output" "$dir/side" "$dir/tmp"
 
 # Copies renamed input data to working directory.
 message "Copying data to working directory"
 j=0;
 for inf in $ifile
 do
-  i=`awk 'BEGIN { printf "%05d\n", '$j' }' </dev/null`
-  j="$(expr $j + 1)"
-  cp $inf $dir/input/d$i
+  i="$(awk 'BEGIN { printf "%05d\n", '$j' }' </dev/null)"
+  : $(( j = $j + 1 ))
+  cp "$inf" "$dir"/input/"d$i"
 done
 
-if [ -z "$contexts" -a $i -gt 1 ]
+if [ -z "$contexts" -a "$i" -gt 1 ]
 then
   echo "ERROR: contexts flag must be specified with multiple input files"
   exit 1
@@ -444,7 +448,7 @@ fi
 # Processes input.
 run_pipeline
 
-if [ $updated = false ]
+if [ "$updated" = false ]
 then
   echo "ERROR: bad input type ($itype) for output type ($otype)"
   exit 1
@@ -453,18 +457,17 @@ fi
 # Returns result.
 if [ -z "$contexts" ]
 then
-  mv $dir/input/* $ofile
-else if [ "$merge_contexts" = true ]
+  mv "$dir"/input/* "$ofile"
+elif [ "$merge_contexts" = true ]
 then
   ngram_merge_contexts
-  mv $dir/input/* $ofile
+  mv "$dir"/input/* "$ofile"
 else
-  for inf in $dir/input/*
+  for inf in "$dir"/input/*
   do
-    outf="$ofile".`basename $inf`
-    mv $inf $outf
+    outf="$ofile"."$(basename $inf)"
+    mv "$inf" "$outf"
   done
-fi
 fi
 
 message "Done"

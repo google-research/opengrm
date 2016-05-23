@@ -1,5 +1,4 @@
-// ngram-complete.h
-//
+
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -12,25 +11,196 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2009-2013 Brian Roark and Google, Inc.
-// Authors: roarkbr@gmail.com  (Brian Roark)
-//          allauzen@google.com (Cyril Allauzen)
-//          riley@google.com (Michael Riley)
-//
-// \file
+// Copyright 2005-2016 Brian Roark and Google, Inc.
 // Complete a partial model by adding transitions to ensure proper topology
 // as required by NGramModel.
 
-#ifndef NGRAM_NGRAM_COMPLETE_H__
-#define NGRAM_NGRAM_COMPLETE_H__
+#ifndef NGRAM_NGRAM_COMPLETE_H_
+#define NGRAM_NGRAM_COMPLETE_H_
 
 #include <fst/mutable-fst.h>
 
+#include <fst/arcsort.h>
+#include <fst/fst.h>
+#include <fst/matcher.h>
+
+#include <ngram/ngram-model.h>
+
 namespace ngram {
 
-void NGramComplete(fst::StdMutableFst *fst,
-                   fst::StdArc::Label backoff_label = 0);
+using fst::ArcIterator;
+using fst::kNoLabel;
+using fst::kNoStateId;
+using fst::Matcher;
+using fst::MATCH_INPUT;
+using fst::ILabelCompare;
+using fst::MutableFst;
+using fst::Fst;
+
+using std::set;
+
+// Ascends the NGram WFST from lower order states and collects state info.
+template <class Arc>
+bool AscendAndCollectStateInfo(
+    const Fst<Arc> &fst, int order, typename Arc::Label backoff_label,
+    vector<vector<typename Arc::StateId>> *order_states,
+    vector<int> *state_orders, vector<typename Arc::StateId> *backoff_states) {
+  if (order >= order_states->size()) return false;
+  for (int i = 0; i < (*order_states)[order].size(); ++i) {
+    auto s = (*order_states)[order][i];
+    if ((*state_orders)[s] != order) {
+      NGRAMERROR() << "State " << s << " included in vector of states with "
+                   << "order " << order << ", but that is not the case";
+      return false;
+    }
+    for (ArcIterator<Fst<Arc>> aiter(fst, s); !aiter.Done(); aiter.Next()) {
+      const Arc &arc = aiter.Value();
+      if (arc.ilabel == backoff_label) {
+        (*backoff_states)[s] = arc.nextstate;
+      } else if ((*state_orders)[arc.nextstate] <= 0) {
+        if (order_states->size() <= order + 1) order_states->resize(order + 2);
+        (*state_orders)[arc.nextstate] = order + 1;
+        (*order_states)[order + 1].push_back(arc.nextstate);
+      }
+    }
+    if (order > 1 && (*backoff_states)[s] == kNoStateId) {
+      NGRAMERROR() << "No backoff state for higher order state " << s;
+      return false;
+    }
+  }
+  return true;
+}
+
+template <class Arc>
+bool NGramComplete(fst::MutableFst<Arc> *fst,
+                   typename Arc::Label backoff_label = 0) {
+  typedef typename Arc::StateId StateId;
+  typedef typename Arc::Weight Weight;
+  typedef typename Arc::Label Label;
+  if (fst->NumStates() < 2) return true;
+  ArcIterator<Fst<Arc>> aiter(*fst, fst->Start());
+  const Arc &arc = aiter.Value();
+  if (arc.ilabel != backoff_label) {
+    NGRAMERROR() << "First arc out of start state is not backoff arc";
+    return false;
+  }
+  StateId unigram_state = arc.nextstate;
+  vector<int> state_orders(fst->NumStates());
+  vector<StateId> backoff_states(fst->NumStates(), kNoStateId);
+  vector<vector<StateId>> order_states(3);
+  order_states[1].push_back(unigram_state);
+  state_orders[unigram_state] = 1;
+  order_states[2].push_back(fst->Start());
+  state_orders[fst->Start()] = 2;
+  backoff_states[fst->Start()] = unigram_state;
+  int st_order = 1;
+  while (st_order < order_states.size() && order_states[st_order].size() > 0) {
+    if (!AscendAndCollectStateInfo(*fst, st_order++, backoff_label,
+                                   &order_states, &state_orders,
+                                   &backoff_states)) {
+      return false;
+    }
+  }
+
+  for (StateId s = 0; s < fst->NumStates(); ++s) {
+    if (s != unigram_state && backoff_states[s] == kNoStateId) {
+      NGRAMERROR() << "state with no backoff state: " << s;
+      return false;
+    }
+    if (state_orders[s] <= 0) {
+      NGRAMERROR() << "state not on ascending path: " << s;
+      return false;
+    }
+  }
+
+  vector<set<Label>> label_sets(fst->NumStates());
+  set<StateId> new_final_states;
+
+  std::unique_ptr<Matcher<Fst<Arc>>> matcher(
+      new Matcher<Fst<Arc>>(*fst, MATCH_INPUT));
+
+  for (int order = order_states.size() - 1; order > 1; --order) {
+    for (int idx = 0; idx < order_states[order].size(); ++idx) {
+      StateId s = order_states[order][idx];
+      StateId bs = backoff_states[s];
+      if (state_orders[s] != state_orders[bs] + 1) {
+        NGRAMERROR() << "State " << s << " backs off more than one order";
+        return false;
+      }
+      matcher->SetState(bs);
+      for (ArcIterator<Fst<Arc>> aiter(*fst, s); !aiter.Done(); aiter.Next()) {
+        const Arc &arc = aiter.Value();
+        if (arc.ilabel == backoff_label || matcher->Find(arc.ilabel)) continue;
+        label_sets[bs].insert(arc.ilabel);
+      }
+
+      for (auto iter = label_sets[s].begin(); iter != label_sets[s].end();
+           ++iter) {
+        if (matcher->Find(*iter)) continue;
+        label_sets[bs].insert(*iter);
+      }
+
+      if ((NGramModel<Arc>::ScalarValue(fst->Final(s)) !=
+               NGramModel<Arc>::ScalarValue(Weight::Zero()) ||
+           new_final_states.count(s) != 0) &&
+          NGramModel<Arc>::ScalarValue(fst->Final(bs)) ==
+              NGramModel<Arc>::ScalarValue(Weight::Zero())) {
+        new_final_states.insert(bs);
+      }
+    }
+  }
+
+  for (int order = 1; order < order_states.size() - 1; ++order) {
+    for (int idx = 0; idx < order_states[order].size(); ++idx) {
+      StateId s = order_states[order][idx];
+      if (label_sets[s].empty()) continue;
+      StateId bs = backoff_states[s];
+      std::unique_ptr<Matcher<Fst<Arc>>> updated_matcher(
+          new Matcher<Fst<Arc>>(*fst, MATCH_INPUT));
+      if (bs < 0) {
+        updated_matcher->SetState(s);
+      } else {
+        updated_matcher->SetState(bs);
+      }
+
+      vector<Arc> arcs;
+      arcs.reserve(fst->NumArcs(s) + label_sets[s].size());
+
+      for (auto iter = label_sets[s].begin(); iter != label_sets[s].end();
+           ++iter) {
+        StateId nextstate = unigram_state;
+        if (bs >= 0 && updated_matcher->Find(*iter))
+          nextstate = updated_matcher->Value().nextstate;
+        arcs.push_back(
+            Arc(*iter, *iter, NGramModel<Arc>::UnitCount(), nextstate));
+      }
+
+      if (arcs.empty()) {
+        NGRAMERROR() << "No arcs found";
+        return false;
+      }
+
+      for (ArcIterator<Fst<Arc>> aiter(*fst, s); !aiter.Done(); aiter.Next())
+        arcs.push_back(aiter.Value());
+
+      fst->DeleteArcs(s);
+      std::sort(arcs.begin(), arcs.end(), ILabelCompare<Arc>());
+
+      for (size_t i = 0; i < arcs.size(); ++i) fst->AddArc(s, arcs[i]);
+    }
+  }
+
+  for (auto iter = new_final_states.begin(); iter != new_final_states.end();
+       ++iter) {
+    fst->SetFinal(*iter, NGramModel<Arc>::UnitCount());
+  }
+
+  if (NGramModel<Arc>::ScalarValue(fst->Final(unigram_state)) ==
+      NGramModel<Arc>::ScalarValue(Weight::Zero()))
+    fst->SetFinal(unigram_state, NGramModel<Arc>::UnitCount());
+  return true;
+}
 
 }  // namespace ngram
 
-#endif  // NGRAM_NGRAM_COMPLETE_H__
+#endif  // NGRAM_NGRAM_COMPLETE_H_

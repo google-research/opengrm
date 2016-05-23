@@ -1,38 +1,43 @@
-#! /bin/sh
+#!/bin/bash
+# Description:
+# Tests the command line binary ngrammarginalize.
 
 bin=../bin
 testdata=$srcdir/testdata
 tmpdata=${TMPDIR:-/tmp}
+tmpprefix="${tmpdata}/ngrammarg-earnest-katz"
 
-trap "rm -f $tmpdata/earnest-katz*" 0 2 13 15
+trap "rm -f ${tmpprefix}*" 0 2 13 15
 
 set -e
-
-function compile_test_fst {
-  if [ ! -e $tmpdata/$1.ref ]
+compile_test_fst() {
+  if [ ! -e "${tmpdata}/ngrammarg-${1}.ref" ]
   then
-    fstcompile -isymbols=$testdata/$1.sym -osymbols=$testdata/$1.sym \
-      -keep_isymbols -keep_osymbols \
-      -keep_state_numbering $testdata/$1.txt >$tmpdata/$1.ref
+    fstcompile \
+      -isymbols="${testdata}/${1}.sym" -osymbols="${testdata}/${1}.sym" \
+      -keep_isymbols -keep_osymbols -keep_state_numbering \
+      "${testdata}/${1}.txt" "${tmpdata}/ngrammarg-${1}.ref"
   fi
 }
 
 compile_test_fst earnest-katz.mod
 compile_test_fst earnest-katz.marg.mod
 compile_test_fst earnest-katz.marg.iter2.mod
-$bin/ngrammarginalize $tmpdata/earnest-katz.mod.ref \
-  $tmpdata/earnest-katz.marg.mod
+"${bin}/ngrammarginalize" "${tmpprefix}".mod.ref "${tmpprefix}".marg.mod
 
-fstequal $tmpdata/earnest-katz.marg.mod.ref $tmpdata/earnest-katz.marg.mod
+fstequal \
+  "${tmpprefix}".marg.mod.ref "${tmpprefix}".marg.mod
 
-$bin/ngrammarginalize --steady_state_file=$tmpdata/earnest-katz.marg.mod.ref \
-  $tmpdata/earnest-katz.mod.ref $tmpdata/earnest-katz.marg.iter2.mod
+"${bin}/ngrammarginalize" --steady_state_file="${tmpprefix}".marg.mod.ref \
+  "${tmpprefix}".mod.ref "${tmpprefix}".marg.iter2.mod
 
-fstequal $tmpdata/earnest-katz.marg.iter2.mod.ref \
-  $tmpdata/earnest-katz.marg.iter2.mod
+fstequal \
+  "${tmpprefix}".marg.iter2.mod.ref "${tmpprefix}".marg.iter2.mod
 
-$bin/ngrammarginalize --iterations=2 \
-  $tmpdata/earnest-katz.mod.ref $tmpdata/earnest-katz.marg.iter2I.mod
+"${bin}/ngrammarginalize" --iterations=2 \
+  "${tmpprefix}".mod.ref "${tmpprefix}".marg.iter2I.mod
 
-fstequal $tmpdata/earnest-katz.marg.iter2.mod.ref \
-  $tmpdata/earnest-katz.marg.iter2I.mod
+fstequal \
+  "${tmpprefix}".marg.iter2.mod.ref "${tmpprefix}".marg.iter2I.mod
+
+echo PASS

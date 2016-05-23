@@ -1,5 +1,4 @@
-// ngram-context-prune.h
-//
+
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -12,16 +11,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2009-2013 Brian Roark and Google, Inc.
-// Authors: roarkbr@gmail.com  (Brian Roark)
-//          allauzen@google.com (Cyril Allauzen)
-//          riley@google.com (Michael Riley)
-//
-// \file
-// Context pruning style model shrinking derived class
+// Copyright 2005-2016 Brian Roark and Google, Inc.
+// Context pruning style model shrinking derived class.
 
-#ifndef NGRAM_NGRAM_CONTEXTPRUNE_H__
-#define NGRAM_NGRAM_CONTEXTPRUNE_H__
+#ifndef NGRAM_NGRAM_CONTEXT_PRUNE_H_
+#define NGRAM_NGRAM_CONTEXT_PRUNE_H_
 
 #include <string>
 #include <vector>
@@ -35,21 +29,22 @@
 namespace ngram {
 
 // Context-restricting pruning
-class NGramContextPrune : public NGramShrink {
-public:
+class NGramContextPrune : public NGramShrink<StdArc> {
+ public:
   // Constructs an NGramShrink object, including an NGramModel and
   // parameters.  This version is passed a context pattern string;  see
   // 'ngram-context.h' for meaning of the context specification.  The
   // specified contexts will NOT be pruned from the model; all others
   // will be (where possible to maintain a well-formed LM).
-  NGramContextPrune(StdMutableFst *infst, string context_pattern = "",
-                    int shrink_opt = 0, double tot_uni = -1.0,
-                    Label backoff_label = 0, double norm_eps = kNormEps,
-                    bool check_consistency = false)
-    // shrink_opt must be less than 2 for context pruning
-    : NGramShrink(infst, shrink_opt < 2 ? shrink_opt : 0, tot_uni,
-		  backoff_label, norm_eps, true),
-      context_(context_pattern, HiOrder()) { }
+  explicit NGramContextPrune(StdMutableFst *infst, string context_pattern = "",
+                             int shrink_opt = 0, double tot_uni = -1.0,
+                             Label backoff_label = 0,
+                             double norm_eps = kNormEps,
+                             bool check_consistency = false)
+      // shrink_opt must be less than 2 for context pruning
+      : NGramShrink<StdArc>(infst, shrink_opt < 2 ? shrink_opt : 0, tot_uni,
+                            backoff_label, norm_eps, true),
+        context_(context_pattern, HiOrder()) {}
 
   // Constructs an NGramShrink object, including an NGramModel and
   // parameters.  This version is given begin and end context
@@ -57,76 +52,70 @@ public:
   // specification.  The specified contexts will NOT be pruned from
   // the model; all others will be (where possible to maintaine a
   // well-formed LM).
-  NGramContextPrune(StdMutableFst *infst, const std::vector<Label> &context_begin,
-                    const std::vector<Label> &context_end,
-                    int shrink_opt = 0, double tot_uni = -1.0,
-                    Label backoff_label = 0, double norm_eps = kNormEps,
-                    bool check_consistency = false)
-    // shrink_opt must be less than 2 for context pruning
-    : NGramShrink(infst, shrink_opt < 2 ? shrink_opt : 0, tot_uni,
-		  backoff_label, norm_eps, true),
-      context_(context_begin, context_end, HiOrder()) { }
-  virtual ~NGramContextPrune() { }
+  NGramContextPrune(StdMutableFst *infst, const vector<Label> &context_begin,
+                    const vector<Label> &context_end, int shrink_opt = 0,
+                    double tot_uni = -1.0, Label backoff_label = 0,
+                    double norm_eps = kNormEps, bool check_consistency = false)
+      // shrink_opt must be less than 2 for context pruning
+      : NGramShrink(infst, shrink_opt < 2 ? shrink_opt : 0, tot_uni,
+                    backoff_label, norm_eps, true),
+        context_(context_begin, context_end, HiOrder()) {}
+  ~NGramContextPrune() override {}
 
   // Shrinks n-gram model, based on initialized parameters
-  void ShrinkNGramModel() {
-    NGramShrink::ShrinkNGramModel(false);
+  bool ShrinkNGramModel() {
+    return NGramShrink<StdArc>::ShrinkNGramModel(false);
   }
 
  protected:
   // Gives the pruning threshold
-  double GetTheta(StateId state) const {
-    return 0.0;
-  }
+  double GetTheta(StateId state) const override { return 0.0; }
 
-  virtual double ShrinkScore(const ShrinkStateStats &state,
-			     const ShrinkArcStats &arc) const {
-    const std::vector<Label> &ngram = StateNGram(state.state);
+  double ShrinkScore(const ShrinkStateStats &state,
+                     const ShrinkArcStats &arc) const override {
+    const vector<Label> &ngram = StateNGram(state.state);
     return context_.HasContext(ngram) ? 1.0 : -1.0;
   }
 
  private:
-  NGramContext context_;   // context specification
+  NGramContext context_;  // context specification
   DISALLOW_COPY_AND_ASSIGN(NGramContextPrune);
 };
 
-
 // Joint context-restricting and count pruning
 class NGramContextCountPrune : public NGramCountPrune {
-public:
+ public:
   NGramContextCountPrune(StdMutableFst *infst, string count_pattern,
-			 string context_pattern,
-			 int shrink_opt = 0, double tot_uni = -1.0,
-			 Label backoff_label = 0, double norm_eps = kNormEps,
-			 bool check_consistency = false)
-    // shrink_opt must be less than 2 for context pruning
-    : NGramCountPrune(infst, count_pattern, shrink_opt < 2 ? shrink_opt : 0,
-		      tot_uni, backoff_label, norm_eps, true),
-      context_(context_pattern, HiOrder()) { }
+                         string context_pattern, int shrink_opt = 0,
+                         double tot_uni = -1.0, Label backoff_label = 0,
+                         double norm_eps = kNormEps,
+                         bool check_consistency = false)
+      // shrink_opt must be less than 2 for context pruning
+      : NGramCountPrune(infst, count_pattern, shrink_opt < 2 ? shrink_opt : 0,
+                        tot_uni, backoff_label, norm_eps, true),
+        context_(context_pattern, HiOrder()) {}
 
   NGramContextCountPrune(StdMutableFst *infst,
-			 const std::vector<double> &count_minimums,
-			 const std::vector<Label> &context_begin,
-			 const std::vector<Label> &context_end,
-			 int shrink_opt = 0, double tot_uni = -1.0,
-			 Label backoff_label = 0, double norm_eps = kNormEps,
-			 bool check_consistency = false)
-    // shrink_opt must be less than 2 for context pruning
-    : NGramCountPrune(infst, count_minimums, shrink_opt < 2 ? shrink_opt : 0,
-			 tot_uni, backoff_label, norm_eps, true),
-      context_(context_begin, context_end, HiOrder()) { }
+                         const vector<double> &count_minimums,
+                         const vector<Label> &context_begin,
+                         const vector<Label> &context_end, int shrink_opt = 0,
+                         double tot_uni = -1.0, Label backoff_label = 0,
+                         double norm_eps = kNormEps,
+                         bool check_consistency = false)
+      // shrink_opt must be less than 2 for context pruning
+      : NGramCountPrune(infst, count_minimums, shrink_opt < 2 ? shrink_opt : 0,
+                        tot_uni, backoff_label, norm_eps, true),
+        context_(context_begin, context_end, HiOrder()) {}
 
-  virtual ~NGramContextCountPrune() { }
+  ~NGramContextCountPrune() override {}
 
   // Shrinks n-gram model, based on initialized parameters
-  void ShrinkNGramModel() {
-    NGramCountPrune::ShrinkNGramModel();
-  }
+  bool ShrinkNGramModel() { return NGramCountPrune::ShrinkNGramModel(); }
 
  protected:
-  virtual double ShrinkScore(const ShrinkStateStats &state,
-			     const ShrinkArcStats &arc) const {
-    const std::vector<Label> &ngram = StateNGram(state.state);
+  double ShrinkScore(const ShrinkStateStats &state,
+                     const ShrinkArcStats &arc) const override {
+    const vector<Label> &ngram = StateNGram(state.state);
     if (context_.HasContext(ngram)) {
       return NGramCountPrune::ShrinkScore(state, arc);
     } else {
@@ -135,47 +124,43 @@ public:
   }
 
  private:
-  NGramContext context_;   // context specification
+  NGramContext context_;  // context specification
   DISALLOW_COPY_AND_ASSIGN(NGramContextCountPrune);
 };
 
-
 // Joint context-restricting and relative entropy pruning
 class NGramContextRelEntropy : public NGramRelEntropy {
-public:
+ public:
   NGramContextRelEntropy(StdMutableFst *infst, double theta,
-			 string context_pattern,
-			 int shrink_opt = 0, double tot_uni = -1.0,
-			 Label backoff_label = 0, double norm_eps = kNormEps,
-			 bool check_consistency = false)
-    // shrink_opt must be less than 2 for context pruning
-    : NGramRelEntropy(infst, theta, shrink_opt < 2 ? shrink_opt : 0,
-		      tot_uni, backoff_label,
-		      norm_eps, true),
-      context_(context_pattern, HiOrder()) { }
+                         string context_pattern, int shrink_opt = 0,
+                         double tot_uni = -1.0, Label backoff_label = 0,
+                         double norm_eps = kNormEps,
+                         bool check_consistency = false)
+      // shrink_opt must be less than 2 for context pruning
+      : NGramRelEntropy(infst, theta, shrink_opt < 2 ? shrink_opt : 0, tot_uni,
+                        backoff_label, norm_eps, true),
+        context_(context_pattern, HiOrder()) {}
 
   NGramContextRelEntropy(StdMutableFst *infst, double theta,
-			 const std::vector<Label> &context_begin,
-			 const std::vector<Label> &context_end,
-			 int shrink_opt = 0, double tot_uni = -1.0,
-			 Label backoff_label = 0, double norm_eps = kNormEps,
-			 bool check_consistency = false)
-    // shrink_opt must be less than 2 for context pruning
-    : NGramRelEntropy(infst, theta, shrink_opt < 2 ? shrink_opt : 0, tot_uni,
-		      backoff_label, norm_eps, true),
-      context_(context_begin, context_end, HiOrder()) { }
+                         const vector<Label> &context_begin,
+                         const vector<Label> &context_end, int shrink_opt = 0,
+                         double tot_uni = -1.0, Label backoff_label = 0,
+                         double norm_eps = kNormEps,
+                         bool check_consistency = false)
+      // shrink_opt must be less than 2 for context pruning
+      : NGramRelEntropy(infst, theta, shrink_opt < 2 ? shrink_opt : 0, tot_uni,
+                        backoff_label, norm_eps, true),
+        context_(context_begin, context_end, HiOrder()) {}
 
-  virtual ~NGramContextRelEntropy() { }
+  ~NGramContextRelEntropy() override {}
 
   // Shrinks n-gram model, based on initialized parameters
-  void ShrinkNGramModel() {
-    NGramRelEntropy::ShrinkNGramModel();
-  }
+  bool ShrinkNGramModel() { return NGramRelEntropy::ShrinkNGramModel(); }
 
  protected:
-  virtual double ShrinkScore(const ShrinkStateStats &state,
-			     const ShrinkArcStats &arc) const {
-    const std::vector<Label> &ngram = StateNGram(state.state);
+  double ShrinkScore(const ShrinkStateStats &state,
+                     const ShrinkArcStats &arc) const override {
+    const vector<Label> &ngram = StateNGram(state.state);
     if (context_.HasContext(ngram)) {
       return NGramRelEntropy::ShrinkScore(state, arc);
     } else {
@@ -184,48 +169,43 @@ public:
   }
 
  private:
-  NGramContext context_;   // context specification
+  NGramContext context_;  // context specification
   DISALLOW_COPY_AND_ASSIGN(NGramContextRelEntropy);
 };
 
-
 // Joint context-restricting and SeymoreShrink-Rosenfeld pruning
 class NGramContextSeymoreShrink : public NGramSeymoreShrink {
-public:
+ public:
   NGramContextSeymoreShrink(StdMutableFst *infst, double theta,
-			 string context_pattern,
-			 int shrink_opt = 0, double tot_uni = -1.0,
-			 Label backoff_label = 0, double norm_eps = kNormEps,
-			 bool check_consistency = false)
-    // shrink_opt must be less than 2 for context pruning
-    : NGramSeymoreShrink(infst, theta, shrink_opt < 2 ? shrink_opt : 0,
-		      tot_uni, backoff_label,
-		      norm_eps, true),
-      context_(context_pattern, HiOrder()) { }
+                            string context_pattern, int shrink_opt = 0,
+                            double tot_uni = -1.0, Label backoff_label = 0,
+                            double norm_eps = kNormEps,
+                            bool check_consistency = false)
+      // shrink_opt must be less than 2 for context pruning
+      : NGramSeymoreShrink(infst, theta, shrink_opt < 2 ? shrink_opt : 0,
+                           tot_uni, backoff_label, norm_eps, true),
+        context_(context_pattern, HiOrder()) {}
 
   NGramContextSeymoreShrink(StdMutableFst *infst, double theta,
-			 const std::vector<Label> &context_begin,
-			 const std::vector<Label> &context_end,
-			 int shrink_opt = 0, double tot_uni = -1.0,
-			 Label backoff_label = 0, double norm_eps = kNormEps,
-			 bool check_consistency = false)
-    // shrink_opt must be less than 2 for context pruning
-    : NGramSeymoreShrink(infst, theta, shrink_opt < 2 ? shrink_opt : 0,
-			 tot_uni,
-			 backoff_label, norm_eps, true),
-      context_(context_begin, context_end, HiOrder()) { }
+                            const vector<Label> &context_begin,
+                            const vector<Label> &context_end,
+                            int shrink_opt = 0, double tot_uni = -1.0,
+                            Label backoff_label = 0, double norm_eps = kNormEps,
+                            bool check_consistency = false)
+      // shrink_opt must be less than 2 for context pruning
+      : NGramSeymoreShrink(infst, theta, shrink_opt < 2 ? shrink_opt : 0,
+                           tot_uni, backoff_label, norm_eps, true),
+        context_(context_begin, context_end, HiOrder()) {}
 
-  virtual ~NGramContextSeymoreShrink() { }
+  ~NGramContextSeymoreShrink() override {}
 
   // Shrinks n-gram model, based on initialized parameters
-  void ShrinkNGramModel() {
-    NGramSeymoreShrink::ShrinkNGramModel();
-  }
+  bool ShrinkNGramModel() { return NGramSeymoreShrink::ShrinkNGramModel(); }
 
  protected:
-  virtual double ShrinkScore(const ShrinkStateStats &state,
-			     const ShrinkArcStats &arc) const {
-    const std::vector<Label> &ngram = StateNGram(state.state);
+  double ShrinkScore(const ShrinkStateStats &state,
+                     const ShrinkArcStats &arc) const override {
+    const vector<Label> &ngram = StateNGram(state.state);
     if (context_.HasContext(ngram)) {
       return NGramSeymoreShrink::ShrinkScore(state, arc);
     } else {
@@ -234,10 +214,10 @@ public:
   }
 
  private:
-  NGramContext context_;   // context specification
+  NGramContext context_;  // context specification
   DISALLOW_COPY_AND_ASSIGN(NGramContextSeymoreShrink);
 };
 
 }  // namespace ngram
 
-#endif  // NGRAM_NGRAM_CONTEXTPRUNE_H__
+#endif  // NGRAM_NGRAM_CONTEXT_PRUNE_H_

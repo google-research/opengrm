@@ -1,5 +1,4 @@
-// ngram-absolute.cc
-//
+
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -12,13 +11,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2009-2013 Brian Roark and Google, Inc.
-// Authors: roarkbr@gmail.com  (Brian Roark)
-//          allauzen@google.com (Cyril Allauzen)
-//          riley@google.com (Michael Riley)
-//
-// \file
-// Absolute Discounting derived class for smoothing
+// Copyright 2005-2016 Brian Roark and Google, Inc.
+// Absolute Discounting derived class for smoothing.
 
 #include <vector>
 
@@ -38,12 +32,11 @@ using fst::StdILabelCompare;
 // Using Absolute Discounting Methods
 //  'parameter': discount D
 //   number of 'bins' used by Absolute Discounting (>=1)
-void NGramAbsolute::MakeNGramModel() {
+bool NGramAbsolute::MakeNGramModel() {
   count_of_counts_.CalculateCounts(*this);
   CalculateDiscounts();
-  if (FLAGS_v > 0)
-    count_of_counts_.ShowCounts(discount_, "Absolute discounts");
-  NGramMake::MakeNGramModel();
+  if (FLAGS_v > 0) count_of_counts_.ShowCounts(discount_, "Absolute discounts");
+  return NGramMake::MakeNGramModel();
 }
 
 // Calculate discounts for each order
@@ -52,29 +45,29 @@ void NGramAbsolute::CalculateDiscounts() {
   discount_.resize(HiOrder());
 
   for (int order = 0; order < HiOrder(); ++order) {
-    discount_[order].resize(bins_ + 1, 0.0); // space for bins + 1
-    for (int bin = 0; bin < bins_; ++bin)
-      CalculateAbsoluteDiscount(order, bin);
+    discount_[order].resize(bins_ + 1, 0.0);  // space for bins + 1
+    for (int bin = 0; bin < bins_; ++bin) CalculateAbsoluteDiscount(order, bin);
     // counts higher than largest bin are discounted at largest bin rate
     discount_[order][bins_] = discount_[order][bins_ - 1];
   }
 }
 
-
 // Return negative log discounted count for provided negative log count
-double NGramAbsolute::GetDiscount(double neglogcount, int order) const {
+double NGramAbsolute::GetDiscount(Weight neglogcount_weight, int order) {
+  double neglogcount = ScalarValue(neglogcount_weight);
   double discounted = neglogcount, neglogdiscount;
   if (neglogcount == StdArc::Weight::Zero().Value())  // count = 0
     return neglogcount;
   int bin = count_of_counts_.GetCountBin(neglogcount, bins_, true);
   if (bin >= 0) {
     neglogdiscount = -log(discount_[order][bin]);
-    if (neglogdiscount <= neglogcount)  // c - D <= 0
+    if (neglogdiscount <= neglogcount)              // c - D <= 0
       discounted = StdArc::Weight::Zero().Value();  // set count to 0
     else
       discounted = NegLogDiff(neglogcount, neglogdiscount);  // subtract
   } else {
-    LOG(FATAL) << "NGramAbsolute: No discount bin for discounting";
+    NGRAMERROR() << "NGramAbsolute: No discount bin for discounting";
+    NGramModel::SetError();
   }
   return discounted;
 }

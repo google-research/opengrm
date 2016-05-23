@@ -1,7 +1,8 @@
-AC_INIT([OpenGrm NGram], [1.2.2], [ngram@www.opengrm.org])
+AC_INIT([OpenGrm NGram], [1.3.0], [ngram@www.opengrm.org])
 AM_INIT_AUTOMAKE([foreign nostdinc -Wall -Werror])
+AM_PROG_AR
 
-CXXFLAGS="$CXXFLAGS -std=c++0x"
+CXXFLAGS="$CXXFLAGS -std=c++11"
 
 AC_PROG_CXX
 AC_DISABLE_STATIC
@@ -17,6 +18,7 @@ AC_CONFIG_FILES([
   src/bin/Makefile
   src/test/Makefile
 ])
+AC_CONFIG_MACRO_DIR([m4])
 AC_LANG([C++])
 
 AC_CHECK_HEADER([fst/fst.h], [],
@@ -26,5 +28,8 @@ AC_CHECK_HEADER([fst/fst.h], [],
 AC_CHECK_HEADER([fst/extensions/far/far.h], [],
  [AC_MSG_ERROR([fst/extensions/far/far.h header not found])]
 )
+
+AC_CHECK_LIB([dl], dlopen, [DL_LIBS=-ldl])
+AC_SUBST([DL_LIBS])
 
 AC_OUTPUT
