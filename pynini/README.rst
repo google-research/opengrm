@@ -8,15 +8,17 @@ Dependencies
 Pynini depends on:
 
 -  A standards-compliant C++ 11 compiler (GCC >= 4.8 or Clang >= 700)
--  [OpenFst 1.5.1](http://openfst.org) built with the ``far``, ``pdt``,
+-  The most recent version of `OpenFst <http://openfst.org>`__ (at the time of
+   writing, 1.5.3) built with the ``far``, ``pdt``,
    and ``mpdt`` extensions (i.e.,
-   ``./configure --enable-far --enable-pdt --enable-mpdt``)
--  `re2 <http:://github.com/google/re2>`__
--  `Python 2.7 <https://www.python.org>`__
+   ``./configure --enable-far --enable-pdt --enable-mpdt``) and headers
+-  A recent version of `re2 <http:://github.com/google/re2>`__ (at the time of
+   writing, 6bf3f71) and headers
+-  `Python 2.7 <https://www.python.org>`__ and headers
 
 It is regularly tested in two environments:
 
--  Ubuntu Linux 14.04 LTS on x86\_64, GCC 4.8, Python 2.7.6
+-  Ubuntu Linux 14.04 LTS x86\_64, GCC 4.8, Python 2.7.6
 -  Mac OS X 10.11 ("El Capitan"), XCode 7.1, Python 2.7.10
 
 Installation instructions
