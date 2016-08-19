@@ -85,7 +85,6 @@ class NGramCountMerge : public NGramMerge<StdArc> {
  private:
   double alpha_;  // weight to scale model ngram1
   double beta_;   // weight to scale model ngram2
-  DISALLOW_COPY_AND_ASSIGN(NGramCountMerge);
 };
 
 }  // namespace ngram

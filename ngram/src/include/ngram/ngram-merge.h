@@ -642,8 +642,6 @@ class NGramMerge : public NGramMutableModel<Arc> {
   size_t ngram2_ns_;  // original number of states in ngram2
 
   std::unique_ptr<VectorFst<Arc>> fst2_;  // copy of FST2 if needed.
-
-  DISALLOW_COPY_AND_ASSIGN(NGramMerge);
 };
 
 }  // namespace ngram

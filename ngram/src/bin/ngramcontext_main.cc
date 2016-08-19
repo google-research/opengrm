@@ -14,6 +14,8 @@
 // Copyright 2005-2016 Brian Roark and Google, Inc.
 // Generates a context set of a given size from an input LM.
 
+#include <memory>
+#include <string>
 #include <vector>
 
 #include <fst/mutable-fst.h>
@@ -39,7 +41,7 @@ int main(int argc, char **argv) {
   string in_name = argv[1];
   string out_name = argc > 2 ? argv[2] : "";
 
-  fst::StdFst *in_fst = fst::StdFst::Read(in_name);
+  std::unique_ptr<fst::StdFst> in_fst(fst::StdFst::Read(in_name));
   if (!in_fst) return 1;
 
   ngram::NGramModel<fst::StdArc> ngram(*in_fst, 0, ngram::kNormEps, true);

@@ -14,6 +14,7 @@
 // Copyright 2005-2016 Brian Roark and Google, Inc.
 // To intersect ngram fst with input fst archive.
 
+#include <memory>
 #include <string>
 
 #include <fst/extensions/far/far.h>

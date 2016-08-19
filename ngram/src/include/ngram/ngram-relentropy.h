@@ -74,7 +74,6 @@ class NGramRelEntropy : public NGramShrink<StdArc> {
 
  private:
   double theta_;  // Shrinking parameter
-  DISALLOW_COPY_AND_ASSIGN(NGramRelEntropy);
 };
 
 }  // namespace ngram

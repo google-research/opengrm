@@ -189,7 +189,6 @@ class NGramCountOfCounts {
   vector<vector<double>> histogram_;  // count histogram for orders
   int bins_;                          // Number of bins for discounting
   NGramContext context_;              // context specification
-  DISALLOW_COPY_AND_ASSIGN(NGramCountOfCounts);
 };
 
 // Find bin for the value provided and increment the histogram for that bin

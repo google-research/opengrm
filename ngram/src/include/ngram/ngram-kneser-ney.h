@@ -51,8 +51,6 @@ class NGramKneserNey : public NGramAbsolute {
 
   // Modify lower order counts according to Kneser Ney formula
   void AssignKneserNeyCounts();
-
-  DISALLOW_COPY_AND_ASSIGN(NGramKneserNey);
 };
 
 }  // namespace ngram

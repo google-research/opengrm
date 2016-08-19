@@ -91,7 +91,6 @@ class NGramContextMerge : public NGramMerge<StdArc> {
 
  private:
   std::unique_ptr<NGramExtendedContext> context_;
-  DISALLOW_COPY_AND_ASSIGN(NGramContextMerge);
 };
 
 }  // namespace ngram

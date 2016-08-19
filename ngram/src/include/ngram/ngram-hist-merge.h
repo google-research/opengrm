@@ -109,7 +109,6 @@ class NGramHistMerge : public NGramMerge<HistogramArc> {
 
   double alpha_;  // weight to scale model ngram1
   double beta_;   // weight to scale model ngram2
-  DISALLOW_COPY_AND_ASSIGN(NGramHistMerge);
 };
 
 }  // namespace ngram

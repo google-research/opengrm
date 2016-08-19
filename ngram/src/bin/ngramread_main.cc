@@ -15,6 +15,7 @@
 // Reads textual model representations and produces n-gram model FST.
 
 #include <string>
+
 #include <ngram/ngram-input.h>
 
 DEFINE_bool(ARPA, false, "Read model from ARPA format");

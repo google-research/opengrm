@@ -5,7 +5,8 @@
 bin=../bin
 testdata=$srcdir/testdata
 tmpdata=${TMPDIR:-/tmp}
-tmpprefix="${tmpdata}/ngramsymbols-earnest"
+tmpsuffix="$(mktemp -u XXXXXXXX 2>/dev/null)"
+tmpprefix="${tmpdata}/ngramsymbols-earnest-$tmpsuffix-$RANDOM-$$"
 
 trap "rm -f ${tmpprefix}*" 0 2 13 15
 

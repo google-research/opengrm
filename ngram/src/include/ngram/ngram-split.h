@@ -88,8 +88,6 @@ class NGramSplit {
   size_t split_;
   bool include_all_suffixes_;
   bool error_;
-
-  DISALLOW_COPY_AND_ASSIGN(NGramSplit);
 };
 
 // Split based on context patterns (sse ngram-context.h for more information).

@@ -209,9 +209,6 @@ class ArcSampler<A, ngram::NGramArcSelector<A> > {
   WeightConvert<Weight, Log64Weight> to_log_weight_;
   set<Label> forbidden_labels_;  // labels forbidden for failure transitions
   Matcher<Fst<A> > matcher_;
-
-  // disallow
-  ArcSampler<A, S> &operator=(const ArcSampler<A, S> &s);
 };
 
 // Finds and decomposes the backoff probability into its numerator and

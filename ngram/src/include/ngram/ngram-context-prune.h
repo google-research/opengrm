@@ -36,7 +36,8 @@ class NGramContextPrune : public NGramShrink<StdArc> {
   // 'ngram-context.h' for meaning of the context specification.  The
   // specified contexts will NOT be pruned from the model; all others
   // will be (where possible to maintain a well-formed LM).
-  explicit NGramContextPrune(StdMutableFst *infst, string context_pattern = "",
+  explicit NGramContextPrune(StdMutableFst *infst,
+                             const string &context_pattern = "",
                              int shrink_opt = 0, double tot_uni = -1.0,
                              Label backoff_label = 0,
                              double norm_eps = kNormEps,
@@ -79,13 +80,13 @@ class NGramContextPrune : public NGramShrink<StdArc> {
 
  private:
   NGramContext context_;  // context specification
-  DISALLOW_COPY_AND_ASSIGN(NGramContextPrune);
 };
 
 // Joint context-restricting and count pruning
 class NGramContextCountPrune : public NGramCountPrune {
  public:
-  NGramContextCountPrune(StdMutableFst *infst, string count_pattern,
+  NGramContextCountPrune(StdMutableFst *infst,
+                         const string &count_pattern,
                          string context_pattern, int shrink_opt = 0,
                          double tot_uni = -1.0, Label backoff_label = 0,
                          double norm_eps = kNormEps,
@@ -125,14 +126,15 @@ class NGramContextCountPrune : public NGramCountPrune {
 
  private:
   NGramContext context_;  // context specification
-  DISALLOW_COPY_AND_ASSIGN(NGramContextCountPrune);
+
+  NGramContextCountPrune(const NGramContextCountPrune &) = delete;
 };
 
 // Joint context-restricting and relative entropy pruning
 class NGramContextRelEntropy : public NGramRelEntropy {
  public:
   NGramContextRelEntropy(StdMutableFst *infst, double theta,
-                         string context_pattern, int shrink_opt = 0,
+                         const string &context_pattern, int shrink_opt = 0,
                          double tot_uni = -1.0, Label backoff_label = 0,
                          double norm_eps = kNormEps,
                          bool check_consistency = false)
@@ -170,14 +172,16 @@ class NGramContextRelEntropy : public NGramRelEntropy {
 
  private:
   NGramContext context_;  // context specification
-  DISALLOW_COPY_AND_ASSIGN(NGramContextRelEntropy);
+
+  NGramContextRelEntropy(const NGramContextRelEntropy &) = delete;
+  NGramContextRelEntropy &operator=(const NGramContextRelEntropy &) = delete;
 };
 
 // Joint context-restricting and SeymoreShrink-Rosenfeld pruning
 class NGramContextSeymoreShrink : public NGramSeymoreShrink {
  public:
   NGramContextSeymoreShrink(StdMutableFst *infst, double theta,
-                            string context_pattern, int shrink_opt = 0,
+                            const string &context_pattern, int shrink_opt = 0,
                             double tot_uni = -1.0, Label backoff_label = 0,
                             double norm_eps = kNormEps,
                             bool check_consistency = false)
@@ -215,7 +219,10 @@ class NGramContextSeymoreShrink : public NGramSeymoreShrink {
 
  private:
   NGramContext context_;  // context specification
-  DISALLOW_COPY_AND_ASSIGN(NGramContextSeymoreShrink);
+
+  NGramContextSeymoreShrink(const NGramContextSeymoreShrink &) = delete;
+  NGramContextSeymoreShrink
+      &operator=(const NGramContextSeymoreShrink &) = delete;
 };
 
 }  // namespace ngram

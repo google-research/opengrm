@@ -271,7 +271,6 @@ class NGramExtendedContext {
   };
 
   vector<NGramContext> contexts_;
-  DISALLOW_COPY_AND_ASSIGN(NGramExtendedContext);
 };
 
 // Reads (possibly extended) context specifications form a file into a vector.

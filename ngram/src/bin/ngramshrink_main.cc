@@ -14,16 +14,15 @@
 // Copyright 2005-2016 Brian Roark and Google, Inc.
 // Shrinks an input n-gram model using given pruning criteria.
 
-#include <ngram/ngram-context-prune.h>
-#include <ngram/ngram-count-prune.h>
-#include <ngram/ngram-relentropy.h>
-#include <ngram/ngram-seymore-shrink.h>
+#include <memory>
+#include <string>
+
 #include <ngram/ngram-shrink.h>
 
 DEFINE_double(total_unigram_count, -1.0, "Total unigram count");
 DEFINE_double(theta, 0.0, "Pruning threshold theta");
 DEFINE_int64(target_number_of_ngrams, -1,
-             "Maximum number of ngrams to leave in model after pruning."
+             "Maximum number of ngrams to leave in model after pruning. "
              "Value less than zero means no target number, just use theta.");
 DEFINE_string(method, "seymore",
               "One of: \"context_prune\", \"count_prune\", "
@@ -51,110 +50,19 @@ int main(int argc, char **argv) {
   string in_name = (argc > 1 && (strcmp(argv[1], "-") != 0)) ? argv[1] : "";
   string out_name = argc > 2 ? argv[2] : "";
 
-  fst::StdMutableFst *fst = fst::StdMutableFst::Read(in_name, true);
+  std::unique_ptr<fst::StdMutableFst> fst(
+      fst::StdMutableFst::Read(in_name, true));
   if (!fst) return 1;
 
-  bool full_context = FLAGS_context_pattern.empty();
-
-  if (FLAGS_target_number_of_ngrams >= 0) {
-    if ((FLAGS_method != "relative_entropy" && FLAGS_method != "seymore") ||
-        !full_context) {
-      LOG(ERROR) << "--target_number_of_ngrams flag only available for "
-                    "relative_entropy or seymore shrinking with a full context";
-    } else if (FLAGS_theta != 0.0) {
-      LOG(ERROR) << "If specifying target number of ngrams, "
-                    "theta must be at the default value of 0.0";
-    }
-  }
-
-  if (FLAGS_method == "count_prune" && full_context) {
-    ngram::NGramCountPrune ngramsh(
-        fst, FLAGS_count_pattern, FLAGS_shrink_opt, FLAGS_total_unigram_count,
-        FLAGS_backoff_label, FLAGS_norm_eps, FLAGS_check_consistency);
-    ngramsh.ShrinkNGramModel();
-    if (ngramsh.Error()) {
-      NGRAMERROR() << "NGramCountPrune: failed to shrink model";
-      return 1;
-    }
-    ngramsh.GetFst().Write(out_name);
-  } else if (FLAGS_method == "relative_entropy" && full_context) {
-    ngram::NGramRelEntropy ngramsh(
-        fst, FLAGS_theta, FLAGS_shrink_opt, FLAGS_total_unigram_count,
-        FLAGS_backoff_label, FLAGS_norm_eps, FLAGS_check_consistency);
-    if (FLAGS_target_number_of_ngrams >= 0)
-      ngramsh.CalculateTheta(FLAGS_target_number_of_ngrams);
-    if (ngramsh.Error()) {
-      NGRAMERROR() << "NGramRelEntropy: failed to calculate theta";
-      return 1;
-    }
-    ngramsh.ShrinkNGramModel();
-    if (ngramsh.Error()) {
-      NGRAMERROR() << "NGramRelEntropy: failed to shrink model";
-      return 1;
-    }
-    ngramsh.GetFst().Write(out_name);
-  } else if (FLAGS_method == "seymore" && full_context) {
-    ngram::NGramSeymoreShrink ngramsh(
-        fst, FLAGS_theta, FLAGS_shrink_opt, FLAGS_total_unigram_count,
-        FLAGS_backoff_label, FLAGS_norm_eps, FLAGS_check_consistency);
-    if (FLAGS_target_number_of_ngrams >= 0)
-      ngramsh.CalculateTheta(FLAGS_target_number_of_ngrams);
-    if (ngramsh.Error()) {
-      NGRAMERROR() << "NGramSeymoreShrink: failed to calculate theta";
-      return 1;
-    }
-    ngramsh.ShrinkNGramModel();
-    if (ngramsh.Error()) {
-      NGRAMERROR() << "NGramSeymoreShrink: failed to shrink model";
-      return 1;
-    }
-    ngramsh.GetFst().Write(out_name);
-  } else if (FLAGS_method == "context_prune") {
-    ngram::NGramContextPrune ngramsh(
-        fst, FLAGS_context_pattern, FLAGS_shrink_opt, FLAGS_total_unigram_count,
-        FLAGS_backoff_label, FLAGS_norm_eps, FLAGS_check_consistency);
-    ngramsh.ShrinkNGramModel();
-    if (ngramsh.Error()) {
-      NGRAMERROR() << "NGramContextPrune: failed to shrink model";
-      return 1;
-    }
-    ngramsh.GetFst().Write(out_name);
-  } else if (FLAGS_method == "count_prune" && !full_context) {
-    ngram::NGramContextCountPrune ngramsh(
-        fst, FLAGS_count_pattern, FLAGS_context_pattern, FLAGS_shrink_opt,
-        FLAGS_total_unigram_count, FLAGS_backoff_label, FLAGS_norm_eps,
-        FLAGS_check_consistency);
-    ngramsh.ShrinkNGramModel();
-    if (ngramsh.Error()) {
-      NGRAMERROR() << "NGramContextCountPrune: failed to shrink model";
-      return 1;
-    }
-    ngramsh.GetFst().Write(out_name);
-  } else if (FLAGS_method == "relative_entropy" && !full_context) {
-    ngram::NGramContextRelEntropy ngramsh(
-        fst, FLAGS_theta, FLAGS_context_pattern, FLAGS_shrink_opt,
-        FLAGS_total_unigram_count, FLAGS_backoff_label, FLAGS_norm_eps,
-        FLAGS_check_consistency);
-    ngramsh.ShrinkNGramModel();
-    if (ngramsh.Error()) {
-      NGRAMERROR() << "NGramContextRelEntropy: failed to shrink model";
-      return 1;
-    }
-    ngramsh.GetFst().Write(out_name);
-  } else if (FLAGS_method == "seymore" && !full_context) {
-    ngram::NGramContextSeymoreShrink ngramsh(
-        fst, FLAGS_theta, FLAGS_context_pattern, FLAGS_shrink_opt,
-        FLAGS_total_unigram_count, FLAGS_backoff_label, FLAGS_norm_eps,
-        FLAGS_check_consistency);
-    ngramsh.ShrinkNGramModel();
-    if (ngramsh.Error()) {
-      NGRAMERROR() << "NGramContextSeymoreShrink: failed to shrink model";
-      return 1;
-    }
-    ngramsh.GetFst().Write(out_name);
-  } else {
-    LOG(ERROR) << argv[0] << ": bad shrink method: " << FLAGS_method;
+  if (!ngram::NGramShrinkModel(fst.get(), FLAGS_method,
+                               FLAGS_total_unigram_count,
+                               FLAGS_theta, FLAGS_target_number_of_ngrams,
+                               FLAGS_count_pattern, FLAGS_context_pattern,
+                               FLAGS_shrink_opt, FLAGS_backoff_label,
+                               FLAGS_norm_eps, FLAGS_check_consistency))
     return 1;
-  }
+
+  fst->Write(out_name);
+
   return 0;
 }

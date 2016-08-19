@@ -5,24 +5,25 @@
 bin=../bin
 testdata=$srcdir/testdata
 tmpdata=${TMPDIR:-/tmp}
-tmpprefix="${tmpdata}/ngramprint-earnest"
+tmpsuffix="$(mktemp -u XXXXXXXX 2>/dev/null)"
+tmpprefix="${tmpdata}/ngramprint-earnest-$tmpsuffix-$RANDOM-$$"
 
 trap "rm -f ${tmpprefix}*" 0 2 13 15
 
 set -e
 compile_test_fst() {
-  if [ ! -e "${tmpdata}/ngramprint-${1}.ref" ]
+  if [ ! -e "${tmpprefix}-${1}.ref" ]
   then
     fstcompile \
       -isymbols="${testdata}/${1}.sym" -osymbols="${testdata}/${1}.sym" \
       -keep_isymbols -keep_osymbols -keep_state_numbering \
-      "${testdata}/${1}.txt" "${tmpdata}/ngramprint-${1}.ref"
+      "${testdata}/${1}.txt" "${tmpprefix}-${1}.ref"
   fi
 }
 
 compile_test_fst earnest-witten_bell.mod
 "${bin}/ngramprint" --ARPA --check_consistency \
-  "${tmpprefix}"-witten_bell.mod.ref "${tmpprefix}".arpa
+  "${tmpprefix}"-earnest-witten_bell.mod.ref "${tmpprefix}".arpa
 
 cmp "${testdata}"/earnest.arpa "${tmpprefix}".arpa
 
@@ -36,7 +37,7 @@ fstequal \
 
 compile_test_fst earnest.cnts
 "${bin}/ngramprint" --check_consistency \
-  "${tmpprefix}".cnts.ref "${tmpprefix}".cnt.print
+  "${tmpprefix}"-earnest.cnts.ref "${tmpprefix}".cnt.print
 
 cmp "${testdata}"/earnest.cnt.print "${tmpprefix}".cnt.print
 

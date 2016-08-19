@@ -14,7 +14,9 @@
 // Copyright 2005-2016 Brian Roark and Google, Inc.
 // Applies smoothed marginalization constraints to given model.
 
+#include <memory>
 #include <sstream>
+#include <string>
 #include <vector>
 
 #include <ngram/ngram-marginalize.h>

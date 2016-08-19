@@ -7,9 +7,15 @@
 
 bin=../bin
 tmpdata=${TMPDIR:-/tmp}
+tmpsuffix="$(mktemp -u XXXXXXXX 2>/dev/null)"
+tmpprefix="${tmpdata}/ngramrand-$tmpsuffix-$RANDOM-$$"
 DEFTRIALS=${NGRAMRANDTRIALS:-0}
 TRIALS=${1:-$DEFTRIALS}
-varfile="$tmpdata"/ngramrandtest.vars
+varfile="$tmpprefix"/ngramrandtest.vars
+
+mkdir -p "${tmpprefix}"
+
+trap "rm -rf ${tmpprefix}" 0 2 13 15
 
 set -e
 
@@ -17,18 +23,18 @@ i=0
 
 while [ "$i" -lt "$TRIALS" ]; do
   : $(( i = $i + 1 ))
-  rm -rf "$tmpdata"/ngramrandtest.*
+  rm -rf "$tmpprefix"/ngramrandtest.*
 
   # runs random test, outputs various count and model files and variables
-./ngramrandtest -directory="$tmpdata" --vars="$varfile"
+./ngramrandtest -directory="$tmpprefix" --vars="$varfile"
 
   # read in variables from rand test (SEED, ORDER ...)
   . "$varfile"
 
 ./ngramdistrand.sh "$SEED" "$ORDER"
 
-  rm -rf "$tmpdata"/"$SEED".*
-  rm -rf "$tmpdata"/ngramrandtest.*
+  rm -rf "$tmpprefix"/"$SEED".*
+  rm -rf "$tmpprefix"/ngramrandtest.*
 done
 
 echo PASS

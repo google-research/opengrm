@@ -58,7 +58,6 @@ class NGramWittenBell : public NGramMake<StdArc> {
 
  private:
   double parameter_;  // Witten-Bell K
-  DISALLOW_COPY_AND_ASSIGN(NGramWittenBell);
 };
 
 }  // namespace ngram

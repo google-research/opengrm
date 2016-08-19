@@ -15,7 +15,9 @@
 // Calculates perplexity of an input fst archive using the given model.
 
 #include <fstream>
+#include <memory>
 #include <ostream>
+#include <string>
 #include <vector>
 
 #include <fst/extensions/far/far.h>
@@ -46,7 +48,8 @@ int main(int argc, char **argv) {
   string in2_name = (argc > 2 && (strcmp(argv[2], "-") != 0)) ? argv[2] : "";
   string out_name = (argc > 3 && (strcmp(argv[3], "-") != 0)) ? argv[3] : "";
 
-  fst::StdMutableFst *fst = fst::StdMutableFst::Read(in1_name, true);
+  std::unique_ptr<fst::StdMutableFst> fst(
+      fst::StdMutableFst::Read(in1_name, true));
   if (!fst) return 1;
 
   std::ofstream ofstrm;
@@ -59,16 +62,16 @@ int main(int argc, char **argv) {
   }
   std::ostream &ostrm = ofstrm.is_open() ? ofstrm : std::cout;
 
-  ngram::NGramOutput ngram(fst, ostrm, 0, false, FLAGS_context_pattern);
+  ngram::NGramOutput ngram(fst.get(), ostrm, 0, false, FLAGS_context_pattern);
 
-  fst::FarReader<fst::StdArc> *far_reader;
   if (in2_name.empty()) {
     if (in1_name.empty()) {
       LOG(ERROR) << argv[0] << ": Can't use standard i/o for both inputs.";
       return 1;
     }
   }
-  far_reader = fst::FarReader<fst::StdArc>::Open(in2_name);
+  std::unique_ptr<fst::FarReader<fst::StdArc>> far_reader(
+      fst::FarReader<fst::StdArc>::Open(in2_name));
   if (!far_reader) {
     LOG(ERROR) << "unable to open fst archive " << in2_name;
     return 1;

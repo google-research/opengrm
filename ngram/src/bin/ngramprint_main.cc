@@ -15,7 +15,9 @@
 // Prints a given n-gram model to various kinds of textual formats.
 
 #include <fstream>
+#include <memory>
 #include <ostream>
+#include <string>
 
 #include <ngram/ngram-output.h>
 
@@ -31,6 +33,9 @@ DEFINE_int64(backoff_label, 0, "Backoff label");
 DEFINE_bool(check_consistency, false, "Check model consistency");
 DEFINE_string(context_pattern, "", "Pattern of contexts to print");
 DEFINE_bool(include_all_suffixes, false, "Include suffixes of contexts");
+DEFINE_string(symbols, "",
+              "Symbol table file. If not empty, causes it to be loaded from the"
+              " specified file instead of using the one inside the input FST.");
 
 int main(int argc, char **argv) {
   string usage = "Print ngram counts and models.\n\n  Usage: ";
@@ -48,8 +53,17 @@ int main(int argc, char **argv) {
   string out_name =
       (argc > 2 && (strcmp(argv[2], "-") != 0)) ? argv[2] : "stdout";
 
-  fst::StdMutableFst *fst = fst::StdMutableFst::Read(in_name, true);
+  std::unique_ptr<fst::StdMutableFst> fst(
+      fst::StdMutableFst::Read(in_name, true));
   if (!fst) return 1;
+
+  if (!FLAGS_symbols.empty()) {
+    std::unique_ptr<fst::SymbolTable> syms(
+        fst::SymbolTable::ReadText(FLAGS_symbols));
+    if (!syms) return 1;
+    fst->SetInputSymbols(syms.get());
+    fst->SetOutputSymbols(syms.get());
+  }
 
   std::ofstream ofstrm;
   if (argc > 2 && (strcmp(argv[2], "-") != 0)) {
@@ -61,7 +75,7 @@ int main(int argc, char **argv) {
   }
   std::ostream &ostrm = ofstrm.is_open() ? ofstrm : std::cout;
 
-  ngram::NGramOutput ngram(fst, ostrm, FLAGS_backoff_label,
+  ngram::NGramOutput ngram(fst.get(), ostrm, FLAGS_backoff_label,
                            FLAGS_check_consistency, FLAGS_context_pattern,
                            FLAGS_include_all_suffixes);
 

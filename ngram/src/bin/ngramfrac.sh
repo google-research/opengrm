@@ -4,7 +4,8 @@
 # in a distributed fashion.
 
 tmpdata=${TMPDIR:-/tmp}
-dir="$tmpdata/ngram$$"
+tmpsuffix="$(mktemp -u XXXXXXXX 2>/dev/null)"
+dir="$tmpdata/ngram-$tmpsuffix-$RANDOM-$$"
 bin=../bin
 
 trap "rm -fr $dir" 0 2 13 15

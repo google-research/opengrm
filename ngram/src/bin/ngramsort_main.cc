@@ -14,6 +14,9 @@
 // Copyright 2005-2016 Brian Roark and Google, Inc.
 // Sorts an ngram LM in lexicographic state context order.
 
+#include <memory>
+#include <string>
+
 #include <ngram/ngram-mutable-model.h>
 
 DEFINE_bool(check_consistency, false, "Check model consistency");
@@ -36,11 +39,12 @@ int main(int argc, char **argv) {
   string in_name = (argc > 1 && (strcmp(argv[1], "-") != 0)) ? argv[1] : "";
   string out_name = argc > 2 ? argv[2] : "";
 
-  fst::StdMutableFst *fst = fst::StdMutableFst::Read(in_name, true);
+  std::unique_ptr<fst::StdMutableFst> fst(
+      fst::StdMutableFst::Read(in_name, true));
   if (!fst) return 1;
 
-  ngram::NGramMutableModel<fst::StdArc> ngramlm(fst, FLAGS_backoff_label,
-                                                    FLAGS_norm_eps, true);
+  ngram::NGramMutableModel<fst::StdArc> ngramlm(fst.get(),
+      FLAGS_backoff_label, FLAGS_norm_eps, true);
   ngramlm.SortStates();
   ngramlm.InitModel();
   ngramlm.GetFst().Write(out_name);

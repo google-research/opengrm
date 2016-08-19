@@ -272,8 +272,6 @@ class NGramMutableModel : public NGramModel<Arc> {
 
   bool infinite_backoff_;
   MutableFst<Arc> *mutable_fst_;
-
-  DISALLOW_COPY_AND_ASSIGN(NGramMutableModel);
 };
 
 template <typename Arc>

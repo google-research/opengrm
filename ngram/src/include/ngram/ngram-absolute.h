@@ -102,7 +102,6 @@ class NGramAbsolute : public NGramMake<StdArc> {
   int bins_;          // number of bins for discounting
   NGramCountOfCounts<StdArc> count_of_counts_;  // count bins for orders
   vector<vector<double> > discount_;            // discount for bins
-  DISALLOW_COPY_AND_ASSIGN(NGramAbsolute);
 };
 
 }  // namespace ngram

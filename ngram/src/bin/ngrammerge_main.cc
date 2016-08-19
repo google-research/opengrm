@@ -14,6 +14,8 @@
 // Copyright 2005-2016 Brian Roark and Google, Inc.
 // Merges two input n-gram models into a single model.
 
+#include <memory>
+#include <string>
 #include <vector>
 
 #include <ngram/ngram-complete.h>

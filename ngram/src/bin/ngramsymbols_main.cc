@@ -15,6 +15,7 @@
 // Derives a symbol table from an input text corpus.
 
 #include <string>
+
 #include <ngram/ngram-input.h>
 
 DEFINE_string(epsilon_symbol, "<epsilon>", "Label for epsilon");

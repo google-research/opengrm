@@ -141,8 +141,6 @@ class NGramKatz : public NGramMake<Arc> {
   int bins_;                                 // number of bins for discounting
   NGramCountOfCounts<Arc> count_of_counts_;  // count bins for orders
   vector<vector<double> > discount_;         // discount for bins
-
-  DISALLOW_COPY_AND_ASSIGN(NGramKatz);
 };
 
 template <typename Arc>

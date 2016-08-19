@@ -14,6 +14,8 @@
 // Copyright 2005-2016 Brian Roark and Google, Inc.
 // Transfers n-grams from a source model(s) to a destination model.
 
+#include <memory>
+#include <string>
 #include <vector>
 
 #include <ngram/hist-arc.h>

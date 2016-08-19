@@ -24,7 +24,6 @@
 DECLARE_bool(ngram_error_fatal);
 
 #define NGRAMERROR() \
-  LOG(LEVEL(FLAGS_ngram_error_fatal ? \
-            base_logging::FATAL : base_logging::ERROR))
+  (FLAGS_ngram_error_fatal ? LOG(FATAL) : LOG(ERROR))
 
 #endif  // NGRAM_UTIL_H_

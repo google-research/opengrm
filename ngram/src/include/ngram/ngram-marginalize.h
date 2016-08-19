@@ -186,8 +186,6 @@ class NGramMarginal : public NGramMutableModel<StdArc> {
   vector<MarginalStateStats> marginal_stats_;
   vector<int> indices_;
   int max_bo_updates_;
-
-  DISALLOW_COPY_AND_ASSIGN(NGramMarginal);
 };
 
 }  // namespace ngram

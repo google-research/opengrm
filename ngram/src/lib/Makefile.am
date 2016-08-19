@@ -4,10 +4,13 @@ lib_LTLIBRARIES = libngram.la libngramhist.la hist-arc.la
 
 libngram_la_SOURCES = ngram-absolute.cc \
                       ngram-context.cc \
+                      ngram-count.cc \
                       ngram-count-prune.cc \
                       ngram-kneser-ney.cc \
+                      ngram-make.cc \
                       ngram-marginalize.cc \
                       ngram-output.cc \
+                      ngram-shrink.cc \
                       util.cc
 libngram_la_LDFLAGS = -version-info 2:0:0 -lfst -lm
 libngram_la_LIBADD = $(DL_LIBS)

@@ -16,8 +16,10 @@
 
 #include <fstream>
 #include <iomanip>
+#include <memory>
 #include <ostream>
 #include <sstream>
+#include <string>
 
 #include <fst/vector-fst.h>
 #include <ngram/ngram-model.h>
@@ -96,7 +98,8 @@ int main(int argc, char **argv) {
 
   string ifile = (argc > 1 && (strcmp(argv[1], "-") != 0)) ? argv[1] : "";
 
-  fst::StdMutableFst *fst = fst::StdMutableFst::Read(ifile, true);
+  std::unique_ptr<fst::StdMutableFst> fst(
+      fst::StdMutableFst::Read(ifile, true));
   if (!fst) return 1;
 
   std::ofstream ofstrm;

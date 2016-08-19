@@ -47,7 +47,8 @@ class NGramInput {
   typedef Arc::Label Label;
   typedef Arc::Weight Weight;
 
-  // Construct an NGramInput object, with a symbol table, fst and streams
+  // Construct an NGramInput object, consisting of a symbol table, an FST,
+  // and associated input and output streams.
   NGramInput(const string &ifile, const string &ofile, const string &symbols,
              const string &epsilon_symbol, const string &OOV_symbol,
              const string &start_symbol, const string &end_symbol)
@@ -87,7 +88,7 @@ class NGramInput {
     return false;
   }
 
-  const MutableFst<Arc> &GetFst() const { return *fst_; }
+  const MutableFst<Arc> *GetFst() const { return fst_.get(); }
 
   // Returns true if input setup is in a bad state.
   bool Error() const { return error_; }
@@ -148,28 +149,21 @@ class NGramInput {
     }
   }
 
-  // Function that returns 1 if whitespace, 0 otherwise
-  bool ws(char c) {
-    if (c == ' ') return 1;
-    if (c == '\t') return 1;
-    return 0;
-  }
-
-  // Using whitespace as delimiter, read token from string
+  // Using whitespace as delimiter, reads token from string.
   bool GetWhiteSpaceToken(string::iterator *strit, string *str, string *token) {
-    while (ws(*(*strit)))  // skip the whitespace preceding the token
+    while (isspace(*(*strit)))  // skip the whitespace preceding the token
       (*strit)++;
     if ((*strit) == str->end())  // no further tokens to be found in string
-      return 0;
-    while ((*strit) < str->end() && !ws(*(*strit))) {
+      return false;
+    while ((*strit) < str->end() && !isspace(*(*strit))) {
       (*token) += (*(*strit));
       (*strit)++;
     }
-    return 1;
+    return true;
   }
 
-  // Get symbol label from table, add it and ensure no duplicates if requested
-  Label GetLabel(string word, bool add, bool dups) {
+  // Gets symbol label from table, add it and ensure no duplicates if requested.
+  Label GetLabel(const string &word, bool add, bool dups) {
     Label symlabel = syms_->Find(word);  // find it in the symbol table
     if (!add_symbols_) {                 // fixed symbol table provided
       if (symlabel == fst::kNoLabel) {
@@ -195,8 +189,8 @@ class NGramInput {
   }
 
   // GetLabel() if not <s> or </s>, otherwise set appropriate bool values
-  Label GetNGramLabel(string ngram_word, bool add, bool dups, bool *stsym,
-                      bool *endsym) {
+  Label GetNGramLabel(const string &ngram_word, bool add, bool dups,
+                      bool *stsym, bool *endsym) {
     (*stsym) = (*endsym) = 0;
     if (ngram_word == start_symbol_) {
       (*stsym) = 1;
@@ -209,7 +203,7 @@ class NGramInput {
     }
   }
 
-  // Use string iterator to construct token, then get the label for it
+  // Uses string iterator to construct token, then gets the label for it.
   Label ExtractNGramLabel(string::iterator *strit, string *str, bool add,
                           bool dups, bool *stsym, bool *endsym) {
     string token;
@@ -221,7 +215,7 @@ class NGramInput {
     return GetNGramLabel(token, add, dups, stsym, endsym);
   }
 
-  // Get backoff state and backoff cost for state (following <epsilon> arc)
+  // Gets backoff state and backoff cost for state (following <epsilon> arc).
   StateId GetBackoffAndCost(StateId st, double *cost) {
     StateId backoff = -1;
     Label backoff_label = 0;  // <epsilon> is assumed to be label 0 here
@@ -229,7 +223,7 @@ class NGramInput {
     matcher.SetState(st);
     if (matcher.Find(backoff_label)) {
       for (; !matcher.Done(); matcher.Next()) {
-        StdArc arc = matcher.Value();
+        const StdArc &arc = matcher.Value();
         if (arc.ilabel == backoff_label) {
           backoff = arc.nextstate;
           if (cost) (*cost) = arc.weight.Value();
@@ -239,8 +233,8 @@ class NGramInput {
     return backoff;
   }
 
-  // Just return backoff state
-  StateId GetBackoff(StateId st) { return GetBackoffAndCost(st, 0); }
+  // Just returns backoff state.
+  StateId GetBackoff(StateId st) { return GetBackoffAndCost(st, nullptr); }
 
   // Ensure matching with appropriate ARPA header strings
   bool ARPAHeaderStringMatch(const string &tomatch) {
@@ -350,7 +344,7 @@ class NGramInput {
   // GetLabelNextState() when arc exists; other results for <s> and </s>
   ssize_t NextStateFromLabel(
       ssize_t st, Label label, bool stsym, bool endsym,
-      NGramCounter<LogWeightTpl<double> > *ngram_counter) {
+      NGramCounter<LogWeightTpl<double>> *ngram_counter) {
     if (Error()) return 0;
     if (stsym) {  // start symbol: <s>
       return ngram_counter->NGramStartState();
@@ -368,8 +362,10 @@ class NGramInput {
   ssize_t GetNextState(string::iterator *strit, string *str, ssize_t st,
                        NGramCounter<LogWeightTpl<double> > *ngram_counter) {
     if (Error()) return 0;
-    bool stsym = 0, endsym = 0;
-    Label label = ExtractNGramLabel(strit, str, 0, 0, &stsym, &endsym);
+    bool stsym = false;
+    bool endsym = false;
+    auto label = ExtractNGramLabel(strit, str, /* add = */ false,
+                                   /* dups = */ false, &stsym, &endsym);
     return NextStateFromLabel(st, label, stsym, endsym, ngram_counter);
   }
 
@@ -394,17 +390,18 @@ class NGramInput {
 
   // Read in n-grams for the particular order.
   void ReadARPAOrder(vector<int> *orders, int order, vector<double> *boweights,
-                     NGramCounter<LogWeightTpl<double> > *ngram_counter) {
+                     NGramCounter<LogWeightTpl<double>> *ngram_counter) {
     string str;
     bool add_words = (order == 0);
-    for (int i = 0; i < (*orders)[order]; i++) {
+    for (auto i = 0; i < (*orders)[order]; i++) {
       if (!getline((*istrm_), str)) {
         NGRAMERROR() << "Input stream read error";
         SetError();
         return;
       }
       string::iterator strit = str.begin();
-      double nlprob, boprob;
+      double nlprob;
+      double boprob;
       string token;
       if (!GetStringVal(&strit, &str, &nlprob, &token)) {
         NGRAMERROR() << "NGramInput: ARPA format mismatch!  No ngram log prob.";
@@ -415,23 +412,24 @@ class NGramInput {
       nlprob *= -log(10);  // convert to neglog base e from log base 10
       ssize_t st = ngram_counter->NGramUnigramState();
       StateId nextstate = fst::kNoStateId;
-      for (int j = 0; j < order; j++)  // find n-gram history state
+      for (auto j = 0; j < order; j++)  // find n-gram history state
         st = GetNextState(&strit, &str, st, ngram_counter);
       if (Error()) return;
-      bool stsym, endsym;  // stsym == 1 for <s> and endsym == 1 for </s>
-      Label label =
-          ExtractNGramLabel(&strit, &str, add_words, 0, &stsym, &endsym);
+      bool stsym;   // stsym == 1 for <s>.
+      bool endsym;  // endsym == 1 for </s>.
+      Label label = ExtractNGramLabel(&strit, &str, add_words,
+                                      /* dupls = */ false, &stsym, &endsym);
       if (Error()) return;
       if (endsym) {
         ngram_counter->SetFinalNGramWeight(st, nlprob);
       } else if (!stsym) {
         // Test for presence of all suffixes of n-gram
-        ssize_t backoff_st = ngram_counter->NGramBackoffState(st);
+        auto backoff_st = ngram_counter->NGramBackoffState(st);
         while (backoff_st >= 0) {
           ngram_counter->FindArc(backoff_st, label);
           backoff_st = ngram_counter->NGramBackoffState(backoff_st);
         }
-        ssize_t arc_id = ngram_counter->FindArc(st, label);
+        auto arc_id = ngram_counter->FindArc(st, label);
         ngram_counter->SetNGramWeight(arc_id, nlprob);
         nextstate = ngram_counter->NGramNextState(arc_id);
       } else {
@@ -468,17 +466,16 @@ class NGramInput {
     if (fst_->NumArcs(st) > 1 || fst_->Final(st) != StdArc::Weight::Zero())
       return newdest;
     MutableArcIterator<StdMutableFst> aiter(fst_.get(), st);
-    StdArc arc = aiter.Value();
+    const StdArc &arc = aiter.Value();
     if (arc.ilabel == 0) newdest = FindNewDest(arc.nextstate);
     return newdest;
   }
 
   void SetARPANGramDests() {
     vector<StateId> newdests;
-    for (StateId st = 0; st < fst_->NumStates(); ++st) {
+    for (StateId st = 0; st < fst_->NumStates(); ++st)
       newdests.push_back(FindNewDest(st));
-    }
-    for (StateId st = 0; st < fst_->NumStates(); ++st) {
+    for (auto st = 0; st < fst_->NumStates(); ++st) {
       for (MutableArcIterator<StdMutableFst> aiter(fst_.get(), st);
            !aiter.Done(); aiter.Next()) {
         StdArc arc = aiter.Value();
@@ -493,7 +490,7 @@ class NGramInput {
 
   // Put stored backoff weights on backoff arcs
   void SetARPABackoffWeights(vector<double> *boweights) {
-    for (StateId st = 0; st < fst_->NumStates(); ++st) {
+    for (auto st = 0; st < fst_->NumStates(); ++st) {
       if (st < boweights->size()) {
         double boprob = (*boweights)[st];
         MutableArcIterator<StdMutableFst> aiter(fst_.get(), st);
@@ -516,7 +513,7 @@ class NGramInput {
     Matcher<StdFst> matcher(*fst_, MATCH_INPUT);
     matcher.SetState(st);
     if (matcher.Find(label)) {
-      StdArc arc = matcher.Value();
+      const StdArc &arc = matcher.Value();
       return arc.weight.Value();
     }
     if (!matcher.Find(0)) {
@@ -525,7 +522,7 @@ class NGramInput {
       return StdArc::Weight::Zero().Value();
     }
     for (; !matcher.Done(); matcher.Next()) {
-      StdArc arc = matcher.Value();
+      const StdArc &arc = matcher.Value();
       if (arc.ilabel == 0) {
         return arc.weight.Value() + GetLowerOrderProb(arc.nextstate, label);
       }
@@ -540,18 +537,18 @@ class NGramInput {
     if (fst_->Final(st) != StdArc::Weight::Zero())
       return fst_->Final(st).Value();
     double bocost;
-    StateId bostate = GetBackoffAndCost(st, &bocost);
+    auto bostate = GetBackoffAndCost(st, &bocost);
     if (bostate >= 0) fst_->SetFinal(st, bocost + GetFinalBackoff(bostate));
     return fst_->Final(st).Value();
   }
 
   void FillARPAHoles() {
-    for (StateId st = 0; st < fst_->NumStates(); ++st) {
+    for (auto st = 0; st < fst_->NumStates(); ++st) {
       double boprob;
       StateId bostate = -1;
       for (MutableArcIterator<StdMutableFst> aiter(fst_.get(), st);
            !aiter.Done(); aiter.Next()) {
-        StdArc arc = aiter.Value();
+        auto arc = aiter.Value();
         if (arc.ilabel == 0) {
           boprob = arc.weight.Value();
           bostate = arc.nextstate;
@@ -577,7 +574,7 @@ class NGramInput {
     if (Error()) return false;
     vector<double> boweights;
     NGramCounter<LogWeightTpl<double> > ngram_counter(orders.size());
-    for (int i = 0; i < orders.size(); i++) {  // Read n-grams of each order
+    for (auto i = 0; i < orders.size(); i++) {  // Read n-grams of each order
       ReadARPAOrderHeader(i);
       if (Error()) return false;
       ReadARPAOrder(&orders, i, &boweights, &ngram_counter);
@@ -596,7 +593,7 @@ class NGramInput {
     Connect(fst_.get());
     if (renormalize) RenormalizeARPAModel();
     if (Error()) return false;
-    DumpFst(1, output);
+    DumpFst(true, output);
     return true;
   }
 
@@ -607,7 +604,7 @@ class NGramInput {
     StateId st = ngram_model.UnigramState();
     if (st == fst::kNoStateId) st = fst_->Start();
     double renorm_val = ngram_model.ScalarValue(fst_->Final(st));
-    double KahanVal = 0;
+    double KahanVal = 0.0;
     for (ArcIterator<MutableFst<Arc>> aiter(*fst_, st); !aiter.Done();
          aiter.Next()) {
       Arc arc = aiter.Value();
@@ -630,69 +627,71 @@ class NGramInput {
     }
   }
 
-  // Redirect hi order arcs in acyclic count format to states, record backoffs
-  void MakeCyclicTopology(StateId st, StateId bo, vector<StateId> bo_dest,
-                          vector<bool> bo_incoming) {
+  // Redirects hi order arcs in acyclic count format to proper next states.
+  void MakeCyclicTopology(StateId st, StateId bo,
+                          const vector<bool> &bo_incoming) {
     for (MutableArcIterator<StdMutableFst> aiter(fst_.get(), st); !aiter.Done();
          aiter.Next()) {
-      StdArc arc = aiter.Value();
-      StateId nst = GetLabelNextState(bo, arc.ilabel);
+      auto arc = aiter.Value();
+      auto nst = GetLabelNextState(bo, arc.ilabel);
       if (!bo_incoming[arc.nextstate] &&
           fst_->Final(arc.nextstate) == StdArc::Weight::Zero() &&
           fst_->NumArcs(arc.nextstate) == 0) {  // if nextstate not in model
         arc.nextstate = nst;  // point to state that will persist in the model
         aiter.SetValue(arc);
       } else {
-        MakeCyclicTopology(arc.nextstate, nst, bo_dest, bo_incoming);
+        MakeCyclicTopology(arc.nextstate, nst, bo_incoming);
       }
     }
   }
 
-  // Collect state level information prior to changing topology
+  // Collects state level information prior to changing topology.
   void SetStateBackoff(StateId st, StateId bo, vector<StateId> *bo_dest,
                        vector<double> *total_cnt, vector<bool> *bo_incoming) {
-    (*bo_dest)[st] = bo;  // record the backoff state to be added later
+    (*bo_dest)[st] = bo;  // Records the backoff state to be added later.
+
+    // Records that state is backed off to by another state in the model.
     (*bo_incoming)[bo] = true;
     (*total_cnt)[st] = fst_->Final(st).Value();
-    double correction_value = 0;
+    double correction_value = 0.0;
     for (MutableArcIterator<StdMutableFst> aiter(fst_.get(), st); !aiter.Done();
          aiter.Next()) {
-      StdArc arc = aiter.Value();
-      (*total_cnt)[st] =
-          NegLogSum((*total_cnt)[st], arc.weight.Value(), &correction_value);
-      StateId nst = GetLabelNextState(bo, arc.ilabel);
+      auto arc = aiter.Value();
+      (*total_cnt)[st] = NegLogSum((*total_cnt)[st],
+                                   arc.weight.Value(), &correction_value);
+      auto nst = GetLabelNextState(bo, arc.ilabel);
       SetStateBackoff(arc.nextstate, nst, bo_dest, total_cnt, bo_incoming);
     }
   }
 
   // Create re-entrant model topology from acyclic count automaton
   void AddBackoffAndCycles(StateId Unigram, Label bo_label) {
-    ArcSort(fst_.get(), StdILabelCompare());  // ensure arcs fully sorted
-    vector<StateId> bo_dest;   // to record backoff destination if needed
-    vector<bool> bo_incoming;  // whether state has incoming backoff arcs
-    vector<double> total_cnt;  // to hold sum of counts for backoff arcs
-    for (StateId st = 0; st < fst_->NumStates(); ++st) {
-      bo_dest.push_back(-1);
-      bo_incoming.push_back(false);
-      total_cnt.push_back(StdArc::Weight::Zero().Value());
-    }
-    if (fst_->Start() != Unigram)  // calculate state backoff information
-      SetStateBackoff(fst_->Start(), Unigram, &bo_dest, &total_cnt,
-                      &bo_incoming);
+    ArcSort(fst_.get(), StdILabelCompare());  // Ensures arcs fully sorted
+    vector<StateId> bo_dest(fst_->NumStates(), -1);
+    vector<bool> bo_incoming(fst_->NumStates(), false);
+    vector<double> total_cnt(fst_->NumStates(), StdArc::Weight::Zero().Value());
+
+    // Stores all bigram states in a vector for ascending state functions.
+    std::vector<StateId> bigram_states;
+    if (fst_->Start() != Unigram) bigram_states.push_back(fst_->Start());
     for (ArcIterator<StdMutableFst> aiter(*fst_, Unigram); !aiter.Done();
-         aiter.Next()) {  // calculate state backoff information
-      StdArc arc = aiter.Value();
-      SetStateBackoff(arc.nextstate, Unigram, &bo_dest, &total_cnt,
+         aiter.Next()) {
+      const StdArc &arc = aiter.Value();
+      bigram_states.push_back(arc.nextstate);
+    }
+
+    // Ascends to all states and collects state information.
+    for (auto i = 0; i < bigram_states.size(); ++i) {
+      SetStateBackoff(bigram_states[i], Unigram, &bo_dest, &total_cnt,
                       &bo_incoming);
     }
-    if (fst_->Start() != Unigram)  // repoint n-grams starting with <s>
-      MakeCyclicTopology(fst_->Start(), Unigram, bo_dest, bo_incoming);
-    for (ArcIterator<StdMutableFst> aiter(*fst_, Unigram); !aiter.Done();
-         aiter.Next()) {  // repoint n-grams starting with unigram arcs
-      StdArc arc = aiter.Value();
-      MakeCyclicTopology(arc.nextstate, Unigram, bo_dest, bo_incoming);
-    }
-    for (StateId st = 0; st < fst_->NumStates(); ++st) {  // add backoff arcs
+
+    // Ascends to all states from unigram and makes topology cyclic.
+    for (auto i = 0; i < bigram_states.size(); ++i)
+      MakeCyclicTopology(bigram_states[i], Unigram, bo_incoming);
+
+    // Adds backoff arcs for each state in the topology.
+    for (auto st = 0; st < fst_->NumStates(); ++st) {  // add backoff arcs
       if (bo_dest[st] >= 0)  // if backoff state has been recorded
         fst_->AddArc(st,
                      StdArc(bo_label, bo_label, total_cnt[st], bo_dest[st]));
@@ -716,7 +715,7 @@ class NGramInput {
   // Start new word when encountering whitespace, move iterator past whitespace
   bool InitNewWord(vector<string> *words, string::iterator *strit,
                    string *str) {
-    while (ws(*(*strit)))  // skip sequence of whitespace
+    while (isspace(*(*strit)))  // skip sequence of whitespace
       (*strit)++;
     if ((*strit) != str->end()) {  // if not empty string
       words->push_back(string());  // start new empty word
@@ -728,51 +727,52 @@ class NGramInput {
   // Read in N-gram tokens as well as count (last token) from string
   double ReadNGramFromString(string str, vector<string> *words, StateId *Init,
                              StateId Unigram, StateId Start) {
-    string::iterator strit = str.begin();
+    auto strit = str.begin();
     if (!InitNewWord(words, &strit, &str)) {  // init first word, empty
       NGRAMERROR() << "NGramInput: empty line in file: format error";
       SetError();
       return 0.0;
     }
     while (strit < str.end()) {
-      if (ws(*strit)) {
+      if (isspace(*strit)) {
         InitNewWord(words, &strit, &str);
       } else {
-        (*words)[words->size() - 1] += (*strit);  // add character to word
+        (*words)[words->size() - 1] += (*strit);  // Adds character to words.
         strit++;
       }
     }
     std::stringstream cnt_ss(
-        (*words)[words->size() - 1]);  // last token is count
+        (*words)[words->size() - 1]);  // The last token is the count.
     double ngram_count;
     cnt_ss >> ngram_count;
-    CheckInitState(words, Init, Unigram, Start);  // Check start state status
-    return -log(ngram_count);  // opengrm encoding of count is -log
+    CheckInitState(words, Init, Unigram, Start);  // Checks start state status.
+    return -log(ngram_count);  // Counts are encoded in -log-space.
   }
 
-  // iterate through words in the n-gram history to find current state
+  // Iterates through words in the n-gram history to find current state.
   StateId GetHistoryState(vector<string> *words, vector<Label> *last_labels,
                           vector<StateId> *last_states, StateId st) {
-    for (int i = 0; i < words->size() - 2; i++) {
-      bool stsym, endsym;
-      Label label = GetNGramLabel((*words)[i], 0, 0, &stsym, &endsym);
+    for (auto i = 0; i < words->size() - 2; i++) {
+      bool stsym;
+      bool endsym;
+      Label label = GetNGramLabel((*words)[i], false, false, &stsym, &endsym);
       if (Error()) return 0;
-      if (label != (*last_labels)[i]) {  // should be from last n-gram
+      if (label != (*last_labels)[i]) {  // Should be from last n-gram.
         NGRAMERROR() << "NGramInput: n-gram prefix not seen in previous n-gram";
         SetError();
         return 0;
       }
-      st = (*last_states)[i];  // retrieve previously stored state
+      st = (*last_states)[i];  // Retrieves previously stored state.
     }
     return st;
   }
 
-  // When reading in final token of n-gram, determine the nextstate
+  // When reading in final token of n-gram, determines the nextstate.
   StateId GetCntNextSt(StateId st, StateId Unigram, StateId Init,
                        StateId *Start, bool stsym, bool endsym) {
     StateId nextstate = -1;
-    if (stsym) {          // start symbol: <s>
-      if (st != Unigram) {  // should not occur
+    if (stsym) {            // Start symbol: <s>
+      if (st != Unigram) {  // Should not occur.
         NGRAMERROR() << "NGramInput: start symbol occurred in n-gram suffix";
         SetError();
         return nextstate;
@@ -788,11 +788,11 @@ class NGramInput {
     return nextstate;
   }
 
-  // Update last label and state, for retrieval with following n-grams
+  // Updates last label and state, for retrieval with following n-grams.
   int UpdateLast(vector<string> *words, int longest_ngram,
                  vector<Label> *last_labels, vector<StateId> *last_states,
                  Label label, StateId nextst) {
-    if (words->size() > longest_ngram + 1) {  // add a dimension to vectors
+    if (words->size() > longest_ngram + 1) {  // Adds a dimension to vectors.
       longest_ngram++;
       last_labels->push_back(-1);
       last_states->push_back(-1);
@@ -802,54 +802,60 @@ class NGramInput {
     return longest_ngram;
   }
 
-  // Read in a sorted n-gram count file, convert to opengrm format
+  // Reads in a sorted n-gram count file, converting to OpenGrm format.
   bool CompileNGramCounts(bool output) {
-    fst_.reset(new StdVectorFst());  // create new fst
-    StateId Init = fst_->AddState(), Unigram = Init, Start = -1;
-    int longram = 0;  // for keeping track of longest observed n-gram in file
+    fst_.reset(new StdVectorFst());  // Creates new FST.
+    auto init = fst_->AddState();
+    auto unigram = init;
+    auto start = fst::kNoStateId;
+    int longram = 0;  // Keeps track of longest observed n-gram in file.
     string str;
-    vector<Label> last_labels;         // store labels from prior n-grams
-    vector<StateId> last_states;       // store states from prior n-grams
-    while (getline((*istrm_), str)) {  // for each string
+    vector<Label> last_labels;         // Stores labels from prior n-grams.
+    vector<StateId> last_states;       // Stores states from prior n-grams.
+    while (getline((*istrm_), str)) {  // For each string...
       vector<string> words;
-      double ngram_count =  // read in word tokens from string, and return cnt
-          ReadNGramFromString(str, &words, &Init, Unigram, Start);
+      // Reads in word tokens from string, and returns count.
+      double ngram_count =  ReadNGramFromString(str, &words, &init, unigram,
+                                                start);
       if (Error()) return false;
-      StateId st =  // find n-gram history state from prefix words in n-gram
-          GetHistoryState(&words, &last_labels, &last_states, Unigram);
+      // Finds n-gram history state from prefix words in n-gram.
+      auto st = GetHistoryState(&words, &last_labels, &last_states, unigram);
       if (Error()) return false;
-      bool stsym, endsym;
-      Label label =  // get label of word suffix of n-gram
-          GetNGramLabel(words[words.size() - 2], 1, 1, &stsym, &endsym);
+      bool stsym;
+      bool endsym;
+      // Gets label of word suffix of n-gram.
+      auto label =  GetNGramLabel(words[words.size() - 2], 1, 1, &stsym,
+                                  &endsym);
       if (Error()) return false;
-      StateId nextst =  // Get the next state from history state and label
-          GetCntNextSt(st, Unigram, Init, &Start, stsym, endsym);
+      // Gets the next state from history state and label.
+      auto nextst = GetCntNextSt(st, unigram, init, &start, stsym, endsym);
       if (Error()) return false;
-      AddNGramArc(st, nextst, label, stsym, endsym, ngram_count);  // add arc
-      longram =  // update states and labels for subsequent n-grams
-          UpdateLast(&words, longram, &last_labels, &last_states, label,
-                     nextst);
+      // Adds arc.
+      AddNGramArc(st, nextst, label, stsym, endsym, ngram_count);
+      // Updates states and labels for subsequent n-grams.
+      longram = UpdateLast(&words, longram, &last_labels, &last_states, label,
+                           nextst);
     }
-    if (Init == Unigram)  // Set Init as start state for unigram model
-      fst_->SetStart(Init);
-    AddBackoffAndCycles(Unigram, 0);  // turn into reentrant opengrm format
-    DumpFst(1, output);
+    if (init == unigram)  // Sets init as start state for unigram model.
+      fst_->SetStart(init);
+    AddBackoffAndCycles(unigram, 0);  // Turns into reentrant OpenGrm format.
+    DumpFst(true, output);
     return true;
   }
 
-  // Tokenize string and store labels in a vector for building an fst
+  // Tokenizes string and store labels in a vector for building an FST.
   double FillStringLabels(string *str, vector<Label> *labels,
                           bool string_counts) {
     string token = "";
-    string::iterator strit = str->begin();
-    double count = 1;
+    auto strit = str->begin();
+    double count = 1.0;
     if (string_counts) {
       GetWhiteSpaceToken(&strit, str, &token);
       count = atof(token.c_str());
       token = "";
     }
     while (GetWhiteSpaceToken(&strit, str, &token)) {
-      labels->push_back(GetLabel(token, 1, 1));  // store index
+      labels->push_back(GetLabel(token, true, true));  // Stores index.
       token = "";
     }
     return count;
@@ -861,7 +867,7 @@ class NGramInput {
     bool gotline = static_cast<bool>(getline((*istrm_), str));
     while (gotline) {  // for each string
       vector<Label> labels;
-      FillStringLabels(&str, &labels, 0);
+      FillStringLabels(&str, &labels, false);
       if (Error()) return false;
       gotline = static_cast<bool>(getline((*istrm_), str));
     }

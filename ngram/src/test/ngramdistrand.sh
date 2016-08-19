@@ -4,11 +4,16 @@
 
 bin=../bin
 tmpdata=${TMPDIR:-/tmp}
+tmpsuffix="$(mktemp -u XXXXXXXX 2>/dev/null)"
+tmpprefix="${tmpdata}/ngramdistrand-$tmpsuffix-$RANDOM-$$"
 
 PATH="$bin":"$PATH"
 export PATH
 
-trap "rm -f "$tmpdata"/earnest*" 0 2 13 15
+rm -rf "{tmpprefix}"
+mkdir -p "${tmpprefix}"
+
+trap "rm -rf "${tmpprefix}" 0 2 13 15
 
 set -e
 
@@ -18,10 +23,10 @@ VERBOSE="$3"
 
 # Tests FST equality after assuring same ordering
 ngramequal() {
-  "$bin"/ngramsort "$1" >"$tmpdata"/"$RANDF".eq1
-  "$bin"/ngramsort "$2" >"$tmpdata"/"$RANDF".eq2
+  "$bin"/ngramsort "$1" >"$tmpprefix"/"$RANDF".eq1
+  "$bin"/ngramsort "$2" >"$tmpprefix"/"$RANDF".eq2
   fstequal -v=1 --delta=0.01 \
-    "$tmpdata"/"$RANDF".eq1 "$tmpdata"/"$RANDF".eq2
+    "$tmpprefix"/"$RANDF".eq1 "$tmpprefix"/"$RANDF".eq2
 }
 
 distributed_test() {
@@ -30,22 +35,22 @@ distributed_test() {
     --order="$ORDER" $VERBOSE \
     --round_to_int \
     --itype=fst_sents \
-    --ifile="$tmpdata/$RANDF.tocount.far" \
-    --ofile="$tmpdata"/"$RANDF".nodist  \
-    --symbols="$tmpdata"/"$RANDF".syms "$@"
+    --ifile="$tmpprefix/$RANDF.tocount.far" \
+    --ofile="$tmpprefix"/"$RANDF".nodist  \
+    --symbols="$tmpprefix"/"$RANDF".syms "$@"
 
   # Distributed version
   "$srcdir/../bin/ngram.sh" \
-    --contexts="$tmpdata"/"$RANDF".cntxs --merge_contexts \
+    --contexts="$tmpprefix"/"$RANDF".cntxs --merge_contexts \
     --order="$ORDER" $VERBOSE \
     --round_to_int \
     --itype=fst_sents \
-    --ifile="$tmpdata/$RANDF.tocount.far.*" \
-    --ofile="$tmpdata"/"$RANDF".dist \
-    --symbols="$tmpdata"/"$RANDF".syms "$@"
+    --ifile="$tmpprefix/$RANDF.tocount.far.*" \
+    --ofile="$tmpprefix"/"$RANDF".dist \
+    --symbols="$tmpprefix"/"$RANDF".syms "$@"
 
   # Verifies non-distributed and distributed versions give the same result
-  ngramequal "$tmpdata"/"$RANDF".nodist "$tmpdata"/"$RANDF".dist
+  ngramequal "$tmpprefix"/"$RANDF".nodist "$tmpprefix"/"$RANDF".dist
 }
 
 # checks distributed counting

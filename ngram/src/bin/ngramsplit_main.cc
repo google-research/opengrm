@@ -14,7 +14,9 @@
 // Copyright 2005-2016 Brian Roark and Google, Inc.
 // Splits an n-gram model based on given context patterns.
 
+#include <memory>
 #include <sstream>
+#include <string>
 #include <vector>
 
 #include <ngram/ngram-complete.h>

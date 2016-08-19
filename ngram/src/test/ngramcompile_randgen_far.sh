@@ -3,28 +3,29 @@
 # Compiles FARs required for testing command line binary ngramapply.
 
 testdata=$srcdir/testdata
-tmpdata=${TMPDIR:-/tmp}
+randgenname="${1}"
+outpath="${2}"
 
-FARNAME="${1}".apply
-TAR="${FARNAME}".FSTtxt.tgz
-SYM="${FARNAME}".sym
+FARNAME="${outpath}".apply
+TAR="${randgenname}".apply.FSTtxt.tgz
+SYM="${randgenname}".apply.sym
 FSTOPTS="-keep_isymbols -keep_osymbols -keep_state_numbering"
 
 farcompilestrings \
-  -key_prefix="FST" -generate_keys=4 -symbols="${testdata}/${1}".sym \
-  -keep_symbols=1 "${testdata}/${1}".txt >"${tmpdata}/${1}".far
+  -key_prefix="FST" -generate_keys=4 -symbols="${testdata}/${randgenname}".sym \
+  -keep_symbols=1 "${testdata}/${randgenname}".txt >"${outpath}".far
 
-rm -rf "${tmpdata}"/FST*
-tar -xzf "${testdata}/${TAR}" -C "${tmpdata}"
+rm -rf "${outpath}"
+mkdir -p "${outpath}"
+tar -xzf "${testdata}/${TAR}" -C "${outpath}"
 fstcompile \
   -isymbols="${testdata}/${SYM}" -osymbols="${testdata}/${SYM}" \
   -keep_isymbols -keep_osymbols -keep_state_numbering \
-  "${tmpdata}"/FST0001.txt > "${tmpdata}"/FST0001
-ls "${tmpdata}"/FST????.txt | grep -v FST0001 | sed 's/.txt$//g' | \
+  "${outpath}"/FST0001.txt > "${outpath}"/FST0001
+ls "${outpath}"/FST????.txt | grep -v FST0001 | sed 's/.txt$//g' | \
   while read i; do
     fstcompile "${i}".txt > "${i}";
   done
-cd "${tmpdata}"
+cd "${outpath}"
 farcreate \
   FST???? "${FARNAME}".far.ref
-rm FST*

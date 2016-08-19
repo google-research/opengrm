@@ -64,7 +64,6 @@ class NGramSeymoreShrink : public NGramShrink<StdArc> {
 
  private:
   double theta_;  // Shrinking parameter
-  DISALLOW_COPY_AND_ASSIGN(NGramSeymoreShrink);
 };
 
 }  // namespace ngram

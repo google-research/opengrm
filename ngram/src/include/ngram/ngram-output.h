@@ -228,7 +228,6 @@ class NGramOutput : public NGramMutableModel<StdArc> {
   std::ostream &ostrm_;
   bool include_all_suffixes_;
   NGramContext context_;
-  DISALLOW_COPY_AND_ASSIGN(NGramOutput);
 };
 
 }  // namespace ngram

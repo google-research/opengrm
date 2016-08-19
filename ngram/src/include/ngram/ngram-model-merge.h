@@ -85,8 +85,6 @@ class NGramModelMerge : public NGramMerge<StdArc> {
   double alpha_;     // weight to scale model ngram1
   double beta_;      // weight to scale model ngram2
   bool merge_norm_;  // is the (possibly intermediate) result normalized?
-
-  DISALLOW_COPY_AND_ASSIGN(NGramModelMerge);
 };
 
 }  // namespace ngram

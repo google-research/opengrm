@@ -5,19 +5,20 @@
 bin=../bin
 testdata=$srcdir/testdata
 tmpdata=${TMPDIR:-/tmp}
-tmpprefix="${tmpdata}/cnthist"
+tmpsuffix="$(mktemp -u XXXXXXXX 2>/dev/null)"
+tmpprefix="${tmpdata}/cnthist-$tmpsuffix-$RANDOM-$$"
 
-trap "rm -f ${tmpprefix}-*" 0 2 13 15
+trap "rm -f ${tmpprefix}*" 0 2 13 15
 
 set -e
 
 compile_test_fst() {
-  if [ ! -e "${tmpdata}"/cnthist-"${1}".ref ]
+  if [ ! -e "${tmpprefix}-${1}".ref ]
   then
     fstcompile \
       -isymbols="${testdata}/${2}".syms -osymbols="${testdata}/${2}".syms \
       -keep_isymbols -keep_osymbols -keep_state_numbering \
-      "${testdata}/${1}".txt >"${tmpdata}/cnthist-${1}".ref
+      "${testdata}/${1}".txt >"${tmpprefix}-${1}".ref
   fi
 }
 

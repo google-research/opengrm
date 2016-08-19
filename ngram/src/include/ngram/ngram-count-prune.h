@@ -31,7 +31,7 @@ class NGramCountPrune : public NGramShrink<StdArc> {
   //
   // Example: "2:2;3+:3" signifies:
   //   prune bigrams with count < 2; trigrams and above with count < 3
-  NGramCountPrune(StdMutableFst *infst, string count_pattern,
+  NGramCountPrune(StdMutableFst *infst, const string &count_pattern,
                   int shrink_opt = 0, double tot_uni = -1.0,
                   Label backoff_label = 0, double norm_eps = kNormEps,
                   bool check_consistency = false)
@@ -95,7 +95,6 @@ class NGramCountPrune : public NGramShrink<StdArc> {
   void UpdateCountMinimums(int order, double count, bool plus);
 
   vector<double> count_minimums_;  // minimums for count pruning
-  DISALLOW_COPY_AND_ASSIGN(NGramCountPrune);
 };
 
 }  // namespace ngram

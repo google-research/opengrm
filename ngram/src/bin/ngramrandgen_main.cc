@@ -15,8 +15,11 @@
 // Generates random sentences from an LM or more generally paths through any
 // FST where epsilons are treated as failure transitions.
 
-#include <sys/types.h>
 #include <unistd.h>
+
+#include <cstdlib>
+
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -30,7 +33,7 @@
 
 DEFINE_int32(max_length, INT_MAX, "Maximum sentence length");
 DEFINE_int64(max_sents, 1, "Maximum number of sentences to produce");
-DEFINE_int32(seed, time(0) + getpid(), "Randomization seed");
+DEFINE_int32(seed, time(nullptr) + getpid(), "Random seed");
 DEFINE_bool(remove_epsilon, false, "Remove epsilons from generated strings");
 DEFINE_bool(weighted, false,
             "Output tree weighted by sentence count vs. unweighted sentences");
@@ -115,7 +118,7 @@ int main(int argc, char **argv) {
   string ifile = (argc > 1 && (strcmp(argv[1], "-") != 0)) ? argv[1] : "";
   string ofile = (argc > 2 && (strcmp(argv[2], "-") != 0)) ? argv[2] : "";
 
-  fst::StdFst *ifst = fst::StdFst::Read(ifile);
+  std::unique_ptr<fst::StdFst> ifst(fst::StdFst::Read(ifile));
   if (!ifst) return 1;
 
   std::unique_ptr<fst::FarWriter<fst::StdArc>> far_writer(
@@ -128,7 +131,8 @@ int main(int argc, char **argv) {
   }
   fst::StdVectorFst ofst;
 
-  ngram::NGramArcSelector<fst::StdArc> selector(FLAGS_seed);
+  ngram::NGramArcSelector<fst::StdArc> selector(
+      FLAGS_seed ? FLAGS_seed : time(nullptr));
   fst::RandGenOptions<ngram::NGramArcSelector<fst::StdArc>> opts(
       selector, FLAGS_max_length, FLAGS_max_sents, FLAGS_weighted,
       FLAGS_remove_total_weight);
@@ -136,10 +140,12 @@ int main(int argc, char **argv) {
   ofst.SetInputSymbols(ifst->InputSymbols());  // takes model symbol tables
   ofst.SetOutputSymbols(ifst->OutputSymbols());
   if (FLAGS_weighted) {
-    int far_incr = 1, far_len = 1;
+    int far_incr = 1;
+    int far_len = 1;
     FarWriteFst(far_writer.get(), &ofst, &far_incr, far_len);
   } else {
-    int far_cnt = 1, far_len = CalcExtLen(FLAGS_max_sents, 0, 0);
+    int far_cnt = 1;
+    int far_len = CalcExtLen(FLAGS_max_sents, nullptr, 0);
     std::vector<int> labels;
     WritePathsToFar(&ofst, ofst.Start(), &labels, far_writer.get(), far_cnt,
                     far_len, FLAGS_remove_epsilon);

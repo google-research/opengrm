@@ -53,34 +53,34 @@ class NGramShrink : public NGramMutableModel<Arc> {
   using NGramMutableModel<Arc>::ScalarValue;
   using NGramMutableModel<Arc>::FindMutableArc;
 
-  // Construct an NGramShrink object, including an NGramModel and parameters
+  // Constructs an NGramShrink object, including an NGramModel and parameters.
   explicit NGramShrink(MutableFst<Arc> *infst, int shrink_opt = 0,
                        double tot_uni = -1.0, Label backoff_label = 0,
                        double norm_eps = kNormEps,
                        bool check_consistency = false, bool norm = true);
 
-  // Shrink n-gram model, based on initialized parameters
+  // Shrinks n-gram model, based on initialized parameters.
   bool ShrinkNGramModel(bool require_norm);
 
   // Calculates shrinking scores for all ngrams, without actually pruning (yet).
   void CalculateShrinkScores(bool require_norm);
 
-  // Provides ngram label vectors and/or vector of their shrink scores.
+  // Provides label vectors and/or vector of their shrink scores.
   void GetNGramsAndOrScores(vector<vector<Label>> *ngrams,
                             vector<double> *scores, bool collect_unigrams);
 
   virtual ~NGramShrink() {}
 
  protected:
-  // Data representation for an arc being considered for pruning
+  // Data representation for an arc being considered for pruning.
   struct ShrinkArcStats {
-    double log_prob;          // log probability of word given history
-    double log_backoff_prob;  // log probability of word given backoff history
-    double shrink_score;      // calculated score for shrinking.
-    Label label;              // arc label
-    StateId backoff_dest;     // destination state of backoff arc
-    bool needed;              // is the current arc needed within the automaton?
-    bool pruned;  // has the current arc been pruned already by shrinking?
+    double log_prob;          // Log probability of word given history.
+    double log_backoff_prob;  // Log probability of word given backoff history.
+    double shrink_score;      // Calculated score for shrinking.
+    Label label;              // Arc label.
+    StateId backoff_dest;     // Destination state of backoff arc.
+    bool needed;              // Is the current arc needed within the automaton?
+    bool pruned;  // Has the current arc been pruned already by shrinking?
 
     ShrinkArcStats(double lp, double lbp, Label lab, StateId dest, bool needed)
         : log_prob(lp),
@@ -92,20 +92,20 @@ class NGramShrink : public NGramMutableModel<Arc> {
           pruned(false) {}
   };
 
-  // Data representation for a state with arcs being considered for pruning
+  // Data representation for a state with arcs being considered for pruning.
   struct ShrinkStateStats {
-    double log_prob;        // log probability of history represented by state
-    StateId state;          // state ID of current state
-    StateId backoff_state;  // state ID of backoff state
-    StateId prefix_state;   // state ID of prior state on ascending path.
-    Label incoming_label;   // label of arc leading to state on ascending path.
-    bool state_dead;        // store whether state is to be removed from model
+    double log_prob;        // Log probability of history represented by state.
+    StateId state;          // State ID of current state.
+    StateId backoff_state;  // State ID of backoff state.
+    StateId prefix_state;   // State ID of prior state on ascending path.
+    Label incoming_label;   // Label of arc leading to state on ascending path.
+    bool state_dead;        // Store whether state is to be removed from model.
     // # of arcs that back off thru incoming arc. This is only for incoming
     // arcs that increase in state order and thus are uniquely determined
     // by their destination state.
-    // NB: dest. state uniquely determines arc label in this case.
+    // NB: destination state uniquely determines arc label in this case.
     size_t incoming_backed_off;
-    // # of final states that backoff to state
+    // # of final states that backoff to state.
     size_t incoming_st_back_off;
 
     ShrinkStateStats()
@@ -119,9 +119,9 @@ class NGramShrink : public NGramMutableModel<Arc> {
           incoming_st_back_off(0) {}
   };
 
-  // Provides the score provided to arc for particular shrinking method
-  // Need to override in derived class for anything but count pruning
-  // Default calculates count for normalized model; raw count for unnormalized
+  // Provides the score provided to arc for particular shrinking method. One
+  // must override this in any derived class for anything but count pruning.
+  // Default calculates count for normalized model; raw count for unnormalized.
   virtual double ShrinkScore(const ShrinkStateStats &state,
                              const ShrinkArcStats &arc) const {
     if (!normalized_) {
@@ -134,26 +134,26 @@ class NGramShrink : public NGramMutableModel<Arc> {
     return arc.log_prob + state.log_prob + log(total_unigram_count_);
   }
 
-  // Provides the threshold for comparing to the scores to decide to prune
-  // Required from derived classes
+  // Provides the threshold for comparing to the scores to decide to prune.
+  // Required from derived classes.
   virtual double GetTheta(StateId state) const = 0;
 
   // Returns the theta value that guarantees at most target_number_of_ngrams.
   double ThetaForMaxNGrams(int target_number_of_ngrams);
 
-  // Calculates the new backoff weight if arc removed
+  // Calculates the new backoff weight if arc removed.
   double CalcNewLogBackoff(const ShrinkArcStats &arc) const {
     return NegLogSum(nlog_backoff_denom_, -arc.log_backoff_prob) -
            NegLogSum(nlog_backoff_num_, -arc.log_prob);
   }
 
-  // Provides access to total unigram count
+  // Provides access to total unigram count.
   double GetTotalUnigramCount() const { return total_unigram_count_; }
 
-  // Provides access to negative log numerator of the backoff
+  // Provides access to negative log numerator of the backoff.
   double GetNLogBackoffNum() const { return nlog_backoff_num_; }
 
-  // Provides access to negative log denominator of the backoff
+  // Provides access to negative log denominator of the backoff.
   double GetNLogBackoffDenom() const { return nlog_backoff_denom_; }
 
  private:
@@ -165,21 +165,22 @@ class NGramShrink : public NGramMutableModel<Arc> {
     }
   };
 
-  // Fills ngram label vector in correct order via recursive function.
+  // Fills n-gram label vector in correct order via recursive function.
   void AddStateNGramLabels(StateId st, vector<Label> *ngram_labels);
 
-  // Finds an entry in the map with shrink score or fatal error.
+  // Finds an entry in the map with shrink score or produces fatal error.
   double FindOrDieShrinkScore(StateId st, Label label);
 
-  // transition from 'st' to 'dest' labeled with 'label'.
+  // Transition from 'st' to 'dest' labeled with 'label'.
   size_t &BackedOffTo(StateId st, Label label, StateId dest) {
-    if (StateOrder(st) < StateOrder(dest))  // arc unique to dest; store there
-      return shrink_state_[dest].incoming_backed_off;
-    else                                            // o.w. hash it
-      return backed_off_to_[std::make_pair(st, label)];  // inserts if needed.
+    if (StateOrder(st) < StateOrder(dest)) {           // Arc unique
+      return shrink_state_[dest].incoming_backed_off;  // to dest., store there.
+    } else {                                             // o.w. hash it.
+      return backed_off_to_[std::make_pair(st, label)];  // Inserts if needed.
+    }
   }
 
-  // Efficiently checks if non-zero BackedOffTo() (no side-effects)
+  // Efficiently checks if non-zero BackedOffTo() (no side-effects).
   bool IsBackedOffTo(StateId st, Label label, StateId dest) const {
     if (StateOrder(st) < StateOrder(dest))
       return shrink_state_[dest].incoming_backed_off > 0;
@@ -192,16 +193,16 @@ class NGramShrink : public NGramMutableModel<Arc> {
     }
   }
 
-  // Fill in relevant statistics for arc pruning at the state level
+  // Fills in relevant statistics for arc pruning at the state level.
   void FillShrinkStateInfo();
 
-  // Adds probs to backoff numerator and denominator
+  // Adds probabilities to backoff numerator and denominator.
   void AddToBackoffNumDenom(double num_upd_val, double denom_upd_val) {
     nlog_backoff_num_ = NegLogSum(nlog_backoff_num_, num_upd_val);
     nlog_backoff_denom_ = NegLogSum(nlog_backoff_denom_, denom_upd_val);
   }
 
-  // Subtracts probs from backoff numerator and denominator
+  // Subtracts probabilities from backoff numerator and denominator.
   void UpdateBackoffNumDenom(double num_upd_val, double denom_upd_val,
                              double *neg_log_correct_num,
                              double *neg_log_correct_denom) {
@@ -211,31 +212,32 @@ class NGramShrink : public NGramMutableModel<Arc> {
         NegLogSum(nlog_backoff_denom_, denom_upd_val, neg_log_correct_denom);
   }
 
-  // Updates maximum score for a given label leaving a given state. Returns max.
+  // Updates maximum score for a given label leaving a given state, and returns
+  // the maximum.
   double UpdateScoreHash(StateId st, Label label, double shrink_score);
 
   // Retrieves shrink score, calculating if requested.
   double GetShrinkScore(const ShrinkArcStats &arc, StateId st, Label label,
                         bool calc_score);
 
-  // Calculate and store statistics for scoring arc in pruning
+  // Calculates and store statistics for scoring arc in pruning.
   int AddArcStat(vector<ShrinkArcStats> *shrink_arcs, StateId st,
                  const Arc *arc, const Arc *barc, bool calc_score);
 
-  // Fill in relevant statistics for arc pruning for a particular state
+  // Fills in relevant statistics for arc pruning for a particular state.
   size_t FillShrinkArcInfo(vector<ShrinkArcStats> *shrink_arcs, StateId st,
                            bool calc_score);
 
   // Calculates scores of all arcs leaving all states in model.
   void ScoreAllArcs();
 
-  // Non-greedy comparison to threshold, such as used for count pruning
+  // Non-greedy comparison to threshold, such as used for count pruning.
   size_t ArcsToPrune(vector<ShrinkArcStats> *shrink_arcs, StateId st) const;
 
-  // Evaluate arcs and select arcs to prune in greedy fashion
+  // Evaluates arcs and select arcs to prune in greedy fashion.
   size_t GreedyArcsToPrune(vector<ShrinkArcStats> *shrink_arcs, StateId st);
 
-  // Evaluate arcs and select arcs to prune
+  // Evaluates arcs and select arcs to prune.
   size_t ChooseArcsToPrune(vector<ShrinkArcStats> *shrink_arcs, StateId st) {
     if (shrink_opt_ < 2)
       return ArcsToPrune(shrink_arcs, st);
@@ -278,8 +280,6 @@ class NGramShrink : public NGramMutableModel<Arc> {
       max_shrink_score_;
   std::unordered_map<std::pair<StateId, Label>, size_t, StateLabelHash>
       backed_off_to_;
-
-  DISALLOW_COPY_AND_ASSIGN(NGramShrink);
 };
 
 // Construct an NGramShrink object, including an NGramMutableModel
@@ -699,7 +699,7 @@ size_t NGramShrink<Arc>::PointPrunedArcs(
   return pruned_cnt;
 }
 
-// Evaluate transitions from state and prune in greedy fashion
+// Evaluates transitions from state and prune in greedy fashion.
 template <class Arc>
 void NGramShrink<Arc>::PruneState(StateId st) {
   vector<ShrinkArcStats> shrink_arcs;
@@ -719,7 +719,7 @@ void NGramShrink<Arc>::PruneState(StateId st) {
   }
 }
 
-// Find unpruned arcs pointing to unconnected states and point them elsewhere
+// Finds unpruned arcs pointing to unconnected states and points them elsewhere.
 template <class Arc>
 void NGramShrink<Arc>::PointArcsAwayFromDead() {
   for (StateId st = 0; st < ns_; ++st) {
@@ -738,7 +738,7 @@ void NGramShrink<Arc>::PointArcsAwayFromDead() {
   PointDeadBackoffArcs();
 }
 
-// Map backoff arcs of dead states to dead_state_ (except for start state)
+// Maps backoff arcs of dead states to dead_state_ (except for start state).
 template <class Arc>
 void NGramShrink<Arc>::PointDeadBackoffArcs() {
   for (StateId st = 0; st < ns_; ++st) {
@@ -755,6 +755,15 @@ void NGramShrink<Arc>::PointDeadBackoffArcs() {
     }
   }
 }
+
+// Makes model from NGram model FST with StdArc counts.
+bool NGramShrinkModel(fst::StdMutableFst *fst, const string &method,
+                      double tot_uni = -1.0, double theta = 0.0,
+                      int64 target_num = -1, const string &count_pattern = "",
+                      const string &context_pattern = "", int shrink_opt = 0,
+                      fst::StdArc::Label backoff_label = 0,
+                      double norm_eps = kNormEps,
+                      bool check_consistency = false);
 
 }  // namespace ngram
 

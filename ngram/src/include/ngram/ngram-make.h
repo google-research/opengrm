@@ -246,9 +246,23 @@ class NGramMake : public NGramMutableModel<Arc> {
 
   vector<bool> has_all_ngrams_;
   bool backoff_;  // whether to make the model as backoff or mixture model
-
-  DISALLOW_COPY_AND_ASSIGN(NGramMake);
 };
+
+// Makes models from NGram count FSTs with StdArc counts.
+bool NGramMakeModel(fst::StdMutableFst *fst, const string &method,
+                    fst::StdFst *ccfst = nullptr, bool backoff = false,
+                    bool interpolate = false, int64 bins = -1,
+                    double witten_bell_k = 1, double discount_D = -1.0,
+                    int64 backoff_label = 0, double norm_eps = kNormEps,
+                    bool check_consistency = false);
+
+// Makes models from NGram count FSTs with HistogramArc counts.
+bool NGramMakeHistModel(fst::MutableFst<ngram::HistogramArc> *hist_fst,
+                        fst::StdMutableFst *fst, const string &method,
+                        fst::StdFst *ccfst = nullptr,
+                        bool interpolate = false, int64 bins = -1,
+                        int64 backoff_label = 0, double norm_eps = kNormEps,
+                        bool check_consistency = false);
 
 }  // namespace ngram
 

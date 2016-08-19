@@ -103,8 +103,6 @@ class NGramBayesModelMerge : public NGramMerge<StdArc> {
 
   // stored normalized state weight to scale model ngram1
   mutable vector<double> state_alpha_;
-
-  DISALLOW_COPY_AND_ASSIGN(NGramBayesModelMerge);
 };
 
 }  // namespace ngram

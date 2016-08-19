@@ -1045,7 +1045,8 @@ class NGramModel {
   const vector<Label> empty_label_vector_;
   bool error_;
 
-  DISALLOW_COPY_AND_ASSIGN(NGramModel<Arc>);
+  NGramModel(const NGramModel &) = delete;
+  NGramModel &operator=(const NGramModel &) = delete;
 };
 
 template <typename T>

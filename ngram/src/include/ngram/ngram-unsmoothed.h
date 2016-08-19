@@ -75,7 +75,6 @@ class NGramUnsmoothed : public NGramMake<StdArc> {
   }
 
   vector<double> norm_counts_;
-  DISALLOW_COPY_AND_ASSIGN(NGramUnsmoothed);
 };
 
 }  // namespace ngram
