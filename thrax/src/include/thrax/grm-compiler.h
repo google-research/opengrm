@@ -118,7 +118,7 @@ class GrmCompilerSpec : public GrmCompilerParserInterface {
  private:
   Lexer lexer_;
 
-  vector<Node*> asts_;  // The list of actual ASTs owned by this compiler.
+  std::vector<Node*> asts_;  // The list of actual ASTs owned by this compiler.
   Node* root_;          // A pointer to the most recent AST.
 
   GrmManagerSpec<Arc> grm_manager_;  // The manager that holds all of the FSTs.

@@ -1,7 +1,8 @@
-AC_INIT([Thrax], [1.2.2], [help@opengrm.org])
+AC_INIT([Thrax], [1.2.3], [help@opengrm.org])
 AM_INIT_AUTOMAKE([foreign nostdinc -Wall -Werror])
 AM_PROG_AR
 
+CPPFLAGS="$CPPFLAGS -funsigned-char"
 CXXFLAGS="$CXXFLAGS -std=c++11"
 
 AC_PROG_CXX
