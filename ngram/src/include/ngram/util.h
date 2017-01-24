@@ -15,11 +15,10 @@
 #ifndef NGRAM_UTIL_H_
 #define NGRAM_UTIL_H_
 
-#include <fst/types.h>
+#include <fst/log.h>
+#include <fst/flags.h>
 
-//
 // UTILITY FOR ERROR HANDLING
-//
 
 DECLARE_bool(ngram_error_fatal);
 

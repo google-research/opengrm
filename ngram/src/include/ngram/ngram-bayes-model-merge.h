@@ -81,7 +81,7 @@ class NGramBayesModelMerge : public NGramMerge<StdArc> {
   double StateAlpha(StateId st) const {
     while (st >= state_alpha_.size()) state_alpha_.push_back(-1.0);
     if (state_alpha_[st] < 0.0) {
-      const vector<Label> &ngram = StateNGram(st);
+      const std::vector<Label> &ngram = StateNGram(st);
 
       // -log p(h|k), k=1,2
       double w1 = ScalarValue(GetNGramCost(ngram));
@@ -102,7 +102,7 @@ class NGramBayesModelMerge : public NGramMerge<StdArc> {
   double beta_;   // global weight to scale model ngram2
 
   // stored normalized state weight to scale model ngram1
-  mutable vector<double> state_alpha_;
+  mutable std::vector<double> state_alpha_;
 };
 
 }  // namespace ngram

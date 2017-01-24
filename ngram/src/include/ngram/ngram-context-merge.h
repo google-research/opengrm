@@ -56,8 +56,9 @@ class NGramContextMerge : public NGramMerge<StdArc> {
   // existing shared arcs.  See 'ngram-context.h' for meaning of the
   // context specification.
   void MergeNGramModels(const StdFst &infst2,
-                        const vector<Label> &context_begin,
-                        const vector<Label> &context_end, bool norm = false) {
+                        const std::vector<Label> &context_begin,
+                        const std::vector<Label> &context_end,
+                        bool norm = false) {
     context_.reset(
         new NGramExtendedContext(context_begin, context_end, HiOrder()));
     if (!NGramMerge<StdArc>::MergeNGramModels(infst2, norm)) {
@@ -72,7 +73,7 @@ class NGramContextMerge : public NGramMerge<StdArc> {
                       bool in_fst1, bool in_fst2) const override {
     if (in_fst1 && in_fst2) {
       // Takes weight from w2 if in both and ngram is strictly in context.
-      const vector<Label> &ngram = NGram2().StateNGram(s2);
+      const std::vector<Label> &ngram = NGram2().StateNGram(s2);
       return context_->HasContext(ngram, false) ? w2.Value() : w1.Value();
     } else if (in_fst1) {
       return w1.Value();

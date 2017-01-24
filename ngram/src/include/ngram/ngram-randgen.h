@@ -166,7 +166,7 @@ class ArcSampler<A, ngram::NGramArcSelector<A> > {
 
   bool Done() const { return sample_iter_ == sample_map_.end(); }
   void Next() { ++sample_iter_; }
-  pair<size_t, size_t> Value() const { return *sample_iter_; }
+  std::pair<size_t, size_t> Value() const { return *sample_iter_; }
   void Reset() { sample_iter_ = sample_map_.begin(); }
   bool Error() const { return false; }
 
@@ -194,8 +194,8 @@ class ArcSampler<A, ngram::NGramArcSelector<A> > {
   int max_length_;
 
   // Stores (N, K) as described for Value().
-  map<size_t, size_t> sample_map_;
-  map<size_t, size_t>::const_iterator sample_iter_;
+  std::map<size_t, size_t> sample_map_;
+  std::map<size_t, size_t>::const_iterator sample_iter_;
   std::unique_ptr<C> accumulator_;
 
 #ifdef HAVE_GSL
@@ -207,7 +207,8 @@ class ArcSampler<A, ngram::NGramArcSelector<A> > {
 
   WeightConvert<Log64Weight, Weight> to_weight_;
   WeightConvert<Weight, Log64Weight> to_log_weight_;
-  set<Label> forbidden_labels_;  // labels forbidden for failure transitions
+  std::set<Label>
+      forbidden_labels_;  // labels forbidden for failure transitions
   Matcher<Fst<A> > matcher_;
 };
 

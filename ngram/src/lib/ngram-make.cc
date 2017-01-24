@@ -49,9 +49,9 @@ namespace ngram {
 
 // Makes models from NGram count FSTs with StdArc counts.
 bool NGramMakeModel(fst::StdMutableFst *fst, const string &method,
-                    fst::StdFst *ccfst, bool backoff, bool interpolate,
-                    int64 bins, double witten_bell_k, double discount_D,
-                    int64 backoff_label, double norm_eps,
+                    const fst::StdFst *ccfst, bool backoff,
+                    bool interpolate, int64 bins, double witten_bell_k,
+                    double discount_D, int64 backoff_label, double norm_eps,
                     bool check_consistency) {
   if (backoff && interpolate) {
     // Checks that these parameters make sense.  If both are false, defaults
@@ -109,11 +109,24 @@ bool NGramMakeModel(fst::StdMutableFst *fst, const string &method,
   return true;
 }
 
+// The same, but uses scripting FSTs.
+bool NGramMakeModel(fst::script::MutableFstClass *fst, const string &method,
+                    const fst::script::FstClass *ccfst, bool backoff,
+                    bool interpolate, int64 bins, double witten_bell_k,
+                    double discount_D, int64 backoff_label, double norm_eps,
+                    bool check_consistency) {
+  StdMutableFst *typed_fst = fst->GetMutableFst<StdArc>();
+  const StdFst *typed_ccfst = ccfst ? ccfst->GetFst<StdArc>() : nullptr;
+  return NGramMakeModel(typed_fst, method, typed_ccfst, backoff, interpolate,
+                        bins, witten_bell_k, discount_D, backoff_label,
+                        norm_eps, check_consistency);
+}
+
 // Makes models from NGram count FSTs with HistogramArc counts.
 bool NGramMakeHistModel(fst::MutableFst<ngram::HistogramArc> *hist_fst,
                         fst::StdMutableFst *fst, const string &method,
-                        fst::StdFst *ccfst, bool interpolate, int64 bins,
-                        int64 backoff_label, double norm_eps,
+                        const fst::StdFst *ccfst, bool interpolate,
+                        int64 bins, int64 backoff_label, double norm_eps,
                         bool check_consistency) {
   if (method == "katz_frac") {
     ngram::NGramKatz<ngram::HistogramArc> ngram(hist_fst, !interpolate,

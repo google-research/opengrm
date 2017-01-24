@@ -22,6 +22,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include <fst/log.h>
 #include <fst/extensions/far/far.h>
 #include <fst/fstlib.h>
 #include <ngram/hist-arc.h>

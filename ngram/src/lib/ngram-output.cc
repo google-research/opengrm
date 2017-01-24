@@ -37,13 +37,13 @@ using fst::StdILabelCompare;
 // Determine whether n-gram state is in context or not
 bool NGramOutput::InContext(StateId st) const {
   if (context_.NullContext()) return true;
-  const vector<Label> &ngram = StateNGram(st);
+  const std::vector<Label> &ngram = StateNGram(st);
   if (context_.HasContext(ngram, include_all_suffixes_)) return true;
   return false;
 }
 
 // Determine whether n-gram state is in context or not
-bool NGramOutput::InContext(const vector<Label> &ngram) const {
+bool NGramOutput::InContext(const std::vector<Label> &ngram) const {
   if (context_.NullContext()) return true;
   if (context_.HasContext(ngram, include_all_suffixes_)) return true;
   return false;
@@ -111,7 +111,7 @@ bool NGramOutput::PerplexityNGramModel(
 // Print the header portion of the ARPA model format
 void NGramOutput::ShowARPAHeader() const {
   // initialize and fill output vector
-  vector<int> ngram_counts(HiOrder(), 0);
+  std::vector<int> ngram_counts(HiOrder(), 0);
   for (StateId st = 0; st < NumStates(); ++st) {
     if (!InContext(st))  // if state excluded from context
       continue;
@@ -344,7 +344,7 @@ void NGramOutput::ShowNonPhiPerplexity(const Fst<StdArc> &infst, bool verbose,
   int word_cnt = 0, oov_cnt = 0, skipped = 0;
   double neglogprob = 0;
   string history = FLAGS_start_symbol + " ";
-  vector<Label> ngram(HiOrder(), 0);
+  std::vector<Label> ngram(HiOrder(), 0);
   while (infst.NumArcs(st) != 0) {  // assumes linear fst (string)
     ArcIterator<Fst<StdArc>> aiter(infst, st);
     StdArc arc = aiter.Value();
@@ -362,7 +362,7 @@ void NGramOutput::FindNextStateInModel(StateId *mst, Label label,
                                        double *neglogprob, int *word_cnt,
                                        int *oov_cnt, int *skipped,
                                        string *history, bool verbose,
-                                       vector<Label> *ngram) const {
+                                       std::vector<Label> *ngram) const {
   bool in_context = InContext(*ngram);
   int order;
   double ngram_cost;
@@ -381,7 +381,7 @@ void NGramOutput::FindNextStateInModel(StateId *mst, Label label,
     (*mst) = (UnigramState() >= 0) ? UnigramState() : GetFst().Start();
     if (verbose) ShowNGramProb(symbol, (*history), 1, -1, ngram_cost);
     (*history) = "";
-    *ngram = vector<Label>(HiOrder(), 0);
+    *ngram = std::vector<Label>(HiOrder(), 0);
   } else {
     if (label == OOV_label) ++(*oov_cnt);
     ngram_cost = ShowLogNewBase(-ngram_cost, 10);
@@ -398,7 +398,7 @@ void NGramOutput::ApplyFinalCost(StateId mst, string history, int word_cnt,
                                  int oov_cnt, int skipped, double neglogprob,
                                  double *logprob, int *words, int *oovs,
                                  int *words_skipped, bool verbose,
-                                 const vector<Label> &ngram) const {
+                                 const std::vector<Label> &ngram) const {
   int order;
   double ngram_cost =
       ShowLogNewBase(-ScalarValue(FinalCostInModel(mst, &order)), 10);

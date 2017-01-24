@@ -54,8 +54,9 @@ class NGramCountOfCounts {
       NGRAMERROR() << "NGramCountOfCounts: Number of bins too large: " << bins;
   }
 
-  NGramCountOfCounts(const vector<Label> &context_begin,
-                     const vector<Label> &context_end, int order, int bins = -1)
+  NGramCountOfCounts(const std::vector<Label> &context_begin,
+                     const std::vector<Label> &context_end, int order,
+                     int bins = -1)
       : bins_(bins <= 0 || bins > kMaxBins ? kMaxBins : bins),
         context_(context_begin, context_end, order) {
     if (bins > kMaxBins)
@@ -70,7 +71,7 @@ class NGramCountOfCounts {
 
     for (StateId st = 0; st < model.NumStates(); ++st) {  // get histograms
       if (!context_.NullContext()) {                      // restricted context
-        const vector<Label> &ngram = model.StateNGram(st);
+        const std::vector<Label> &ngram = model.StateNGram(st);
         if (!context_.HasContext(ngram, false)) continue;
       }
       int order = model.StateOrder(st) - 1;  // order starts from 0 here, not 1
@@ -106,7 +107,7 @@ class NGramCountOfCounts {
   double Count(int order, int bin) const { return histogram_[order][bin]; }
 
   // Display input histogram
-  void ShowCounts(const vector<vector<double>> &hist,
+  void ShowCounts(const std::vector<std::vector<double>> &hist,
                   const string &label) const {
     int hi_order = hist.size();
     std::cerr << "Count bin   ";
@@ -172,7 +173,7 @@ class NGramCountOfCounts {
       int bin = (arc.ilabel - 1) % (kMaxBins + 1);
       int order = (arc.ilabel - 1) / (kMaxBins + 1);
       while (order >= histogram_.size())
-        histogram_.push_back(vector<double>(bins_ + 1, 0.0));
+        histogram_.push_back(std::vector<double>(bins_ + 1, 0.0));
       if (bin <= bins_)
         histogram_[order][bin] = round(exp(-arc.weight.Value()));
     }
@@ -186,7 +187,7 @@ class NGramCountOfCounts {
   //     histogram_[order][bin] = GetIncrement(value, histogram_[order][bin]);
   // }
 
-  vector<vector<double>> histogram_;  // count histogram for orders
+  std::vector<std::vector<double>> histogram_;  // count histogram for orders
   int bins_;                          // Number of bins for discounting
   NGramContext context_;              // context specification
 };

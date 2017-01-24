@@ -66,8 +66,8 @@ class NGramShrink : public NGramMutableModel<Arc> {
   void CalculateShrinkScores(bool require_norm);
 
   // Provides label vectors and/or vector of their shrink scores.
-  void GetNGramsAndOrScores(vector<vector<Label>> *ngrams,
-                            vector<double> *scores, bool collect_unigrams);
+  void GetNGramsAndOrScores(std::vector<std::vector<Label>> *ngrams,
+                            std::vector<double> *scores, bool collect_unigrams);
 
   virtual ~NGramShrink() {}
 
@@ -166,7 +166,7 @@ class NGramShrink : public NGramMutableModel<Arc> {
   };
 
   // Fills n-gram label vector in correct order via recursive function.
-  void AddStateNGramLabels(StateId st, vector<Label> *ngram_labels);
+  void AddStateNGramLabels(StateId st, std::vector<Label> *ngram_labels);
 
   // Finds an entry in the map with shrink score or produces fatal error.
   double FindOrDieShrinkScore(StateId st, Label label);
@@ -221,24 +221,27 @@ class NGramShrink : public NGramMutableModel<Arc> {
                         bool calc_score);
 
   // Calculates and store statistics for scoring arc in pruning.
-  int AddArcStat(vector<ShrinkArcStats> *shrink_arcs, StateId st,
+  int AddArcStat(std::vector<ShrinkArcStats> *shrink_arcs, StateId st,
                  const Arc *arc, const Arc *barc, bool calc_score);
 
   // Fills in relevant statistics for arc pruning for a particular state.
-  size_t FillShrinkArcInfo(vector<ShrinkArcStats> *shrink_arcs, StateId st,
+  size_t FillShrinkArcInfo(std::vector<ShrinkArcStats> *shrink_arcs, StateId st,
                            bool calc_score);
 
   // Calculates scores of all arcs leaving all states in model.
   void ScoreAllArcs();
 
   // Non-greedy comparison to threshold, such as used for count pruning.
-  size_t ArcsToPrune(vector<ShrinkArcStats> *shrink_arcs, StateId st) const;
+  size_t ArcsToPrune(std::vector<ShrinkArcStats> *shrink_arcs,
+                     StateId st) const;
 
   // Evaluates arcs and select arcs to prune in greedy fashion.
-  size_t GreedyArcsToPrune(vector<ShrinkArcStats> *shrink_arcs, StateId st);
+  size_t GreedyArcsToPrune(std::vector<ShrinkArcStats> *shrink_arcs,
+                           StateId st);
 
   // Evaluates arcs and select arcs to prune.
-  size_t ChooseArcsToPrune(vector<ShrinkArcStats> *shrink_arcs, StateId st) {
+  size_t ChooseArcsToPrune(std::vector<ShrinkArcStats> *shrink_arcs,
+                           StateId st) {
     if (shrink_opt_ < 2)
       return ArcsToPrune(shrink_arcs, st);
     else
@@ -246,7 +249,8 @@ class NGramShrink : public NGramMutableModel<Arc> {
   }
 
   // For transitions selected to be pruned, point them to an unconnected state
-  size_t PointPrunedArcs(const vector<ShrinkArcStats> &shrink_arcs, StateId st);
+  size_t PointPrunedArcs(const std::vector<ShrinkArcStats> &shrink_arcs,
+                         StateId st);
 
   // Evaluate transitions from state and prune in greedy fashion
   void PruneState(StateId st);
@@ -275,7 +279,7 @@ class NGramShrink : public NGramMutableModel<Arc> {
   double nlog_backoff_denom_;   // denominator of backoff weight
   StateId ns_;                  // Original number of states in the model
   StateId dead_state_;  // Sink state dest. for pruned arcs (not connected)
-  vector<ShrinkStateStats> shrink_state_;
+  std::vector<ShrinkStateStats> shrink_state_;
   std::unordered_map<std::pair<StateId, Label>, double, StateLabelHash>
       max_shrink_score_;
   std::unordered_map<std::pair<StateId, Label>, size_t, StateLabelHash>
@@ -308,7 +312,7 @@ void NGramShrink<Arc>::ScoreAllArcs() {
   for (int order = HiOrder(); order > 1; --order) {
     for (StateId st = 0; st < ns_; ++st) {
       if (StateOrder(st) == order) {  // current order
-        vector<ShrinkArcStats> shrink_arcs;
+        std::vector<ShrinkArcStats> shrink_arcs;
         FillShrinkArcInfo(&shrink_arcs, st, true);
         if (Error()) return;
       }
@@ -373,7 +377,7 @@ bool NGramShrink<Arc>::ShrinkNGramModel(bool require_norm) {
 
 template <class Arc>
 void NGramShrink<Arc>::FillStateProbs() {
-  vector<double> probs;
+  std::vector<double> probs;
   CalculateStateProbs(&probs);
   for (StateId st = 0; st < ns_; ++st)
     shrink_state_[st].log_prob = log(probs[st]);
@@ -443,14 +447,14 @@ double NGramShrink<Arc>::FindOrDieShrinkScore(StateId st, Label label) {
 // Provides ngram label vectors and/or vector of their shrink scores.
 template <class Arc>
 void NGramShrink<Arc>::GetNGramsAndOrScores(vector<vector<Label>> *ngrams,
-                                            vector<double> *scores,
+                                            std::vector<double> *scores,
                                             bool collect_unigrams) {
   if (ngrams == nullptr && scores == nullptr) return;
   for (StateId st = 0; st < ns_; ++st) {
-    vector<Label> state_ngram;
+    std::vector<Label> state_ngram;
     AddStateNGramLabels(st, &state_ngram);  // Labels of words leading to state.
     if (state_ngram.size() == 0 && !collect_unigrams) continue;
-    vector<Label> to_update;
+    std::vector<Label> to_update;
     for (ArcIterator<ExpandedFst<Arc>> aiter(GetExpandedFst(), st);
          !aiter.Done(); aiter.Next()) {
       Arc arc = aiter.Value();
@@ -462,7 +466,7 @@ void NGramShrink<Arc>::GetNGramsAndOrScores(vector<vector<Label>> *ngrams,
       to_update.push_back(kNoLabel);
     for (size_t idx = 0; idx < to_update.size(); ++idx) {
       if (ngrams != nullptr) {
-        vector<Label> ngram_labels = state_ngram;
+        std::vector<Label> ngram_labels = state_ngram;
         ngram_labels.push_back(to_update[idx]);
         ngrams->push_back(ngram_labels);
       }
@@ -596,7 +600,7 @@ double NGramShrink<Arc>::ThetaForMaxNGrams(int target_number_of_ngrams) {
     NGRAMERROR() << "ThetaForMaxNGrams: Error in calculating shrink scores";
     return 0.0;
   }
-  vector<double> scores;  // Only care about scores, not ngram identities.
+  std::vector<double> scores;  // Only care about scores, not ngram identities.
   NGramShrink<Arc>::GetNGramsAndOrScores(nullptr, &scores, false);
   if (Error()) {
     NGRAMERROR() << "ThetaForMaxNGrams: Error in getting ngram scores";
@@ -702,7 +706,7 @@ size_t NGramShrink<Arc>::PointPrunedArcs(
 // Evaluates transitions from state and prune in greedy fashion.
 template <class Arc>
 void NGramShrink<Arc>::PruneState(StateId st) {
-  vector<ShrinkArcStats> shrink_arcs;
+  std::vector<ShrinkArcStats> shrink_arcs;
   size_t candidate_prune = FillShrinkArcInfo(&shrink_arcs, st, false);
   if (Error()) return;
   size_t pruned_cnt = ChooseArcsToPrune(&shrink_arcs, st);

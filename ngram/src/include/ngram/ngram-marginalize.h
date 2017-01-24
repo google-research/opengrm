@@ -46,7 +46,7 @@ class NGramMarginal : public NGramMutableModel<StdArc> {
 
   // Marginalize n-gram model, based on initialized parameters.  Returns
   // true if no more iterations are required.
-  bool MarginalizeNGramModel(vector<double> *weights, int iter, int tot) {
+  bool MarginalizeNGramModel(std::vector<double> *weights, int iter, int tot) {
     if (!CheckNormalization()) {  // requires normalized model
       // Returns true to indicate that there should be no more iterations.
       NGRAMERROR() << "NGramMarginal: Model not normalized;"
@@ -70,9 +70,9 @@ class NGramMarginal : public NGramMutableModel<StdArc> {
     double log_prob;         // log probability of history represented by state
     double sum_ho_log_prob;  // log sum prob of hi-order states backing off
     double sum_ho_log_prob_w_bo;  // log sum prob including backoff weights
-    vector<StateId> hi_states;    // vector of states backing off to this
-    vector<double> arc_found;     // arc sums from states with arc
-    vector<double> arc_notfound;  // arc sums from states without arc
+    std::vector<StateId> hi_states;    // vector of states backing off to this
+    std::vector<double> arc_found;     // arc sums from states with arc
+    std::vector<double> arc_notfound;  // arc sums from states without arc
 
     MarginalStateStats()
         : log_prob(0),
@@ -81,7 +81,7 @@ class NGramMarginal : public NGramMutableModel<StdArc> {
   };
 
   // Calculates state marginal probs, and sums higher order log probs
-  void CalculateStateProbs(vector<double> *weights);
+  void CalculateStateProbs(std::vector<double> *weights);
 
   // Establish re-calculated denominator value (log_prob is minimum)
   double SaneDenominator(double total_wbo, double found_sum, double log_prob) {
@@ -111,9 +111,9 @@ class NGramMarginal : public NGramMutableModel<StdArc> {
   }
 
   // Recalculate state probs; if different, set iteration bool
-  bool CheckStateProbs(vector<double> *weights, int iter, int tot) {
+  bool CheckStateProbs(std::vector<double> *weights, int iter, int tot) {
     if (iter >= tot) return true;  // already the parameterized iterations
-    vector<double> new_weights;    // to hold prior weights
+    std::vector<double> new_weights;    // to hold prior weights
     NGramModel::CalculateStateProbs(&new_weights, true);
     if (new_weights.size() != weights->size()) {
       // Returns true to indicate that there should be no more iterations.
@@ -158,22 +158,23 @@ class NGramMarginal : public NGramMutableModel<StdArc> {
   double SaneArcWeight(StateId st, size_t idx, double prob, double minterm);
 
   // Use statistics to determine arc weights
-  double GetSaneArcWeights(StateId st, vector<double> *wts);
+  double GetSaneArcWeights(StateId st, std::vector<double> *wts);
 
   // Set arc weights with gathered weights
-  void SetSaneArcWeights(StateId st, vector<double> *wts, double norm);
+  void SetSaneArcWeights(StateId st, std::vector<double> *wts, double norm);
 
   // Use statistics to determine arc weights, second time around (new backoffs)
   // Add in formerly subtracted denominator, subtract updated denominator
-  double UpdSaneArcWeights(StateId st, vector<double> *wts,
-                           vector<double> *hold_notfound);
+  double UpdSaneArcWeights(StateId st, std::vector<double> *wts,
+                           std::vector<double> *hold_notfound);
 
   // Recalculate backoff weights of all higher order states; indicate if changed
   bool StateHigherOrderBackoffRecalc(StateId st);
 
   // Recalculate backoff weights of higher order states;
   // if updated, recalculate arcs based on this.
-  bool HigherOrderBackoffRecalc(StateId st, vector<double> *wts, double *norm);
+  bool HigherOrderBackoffRecalc(StateId st, std::vector<double> *wts,
+                                double *norm);
 
   // Calculate new weights enforcing marginalization constraints
   // P(w, h') - sum_of_found gamma(w | h) p(h) / sum_of_not alpha_h p(h)
@@ -183,8 +184,8 @@ class NGramMarginal : public NGramMutableModel<StdArc> {
   void CalculateNewWeights();
 
   StateId ns_;
-  vector<MarginalStateStats> marginal_stats_;
-  vector<int> indices_;
+  std::vector<MarginalStateStats> marginal_stats_;
+  std::vector<int> indices_;
   int max_bo_updates_;
 };
 

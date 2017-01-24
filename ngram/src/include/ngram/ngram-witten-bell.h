@@ -40,7 +40,7 @@ class NGramWittenBell : public NGramMake<StdArc> {
 
  protected:
   // No discount, hence hi order mass is count
-  double CalculateHiOrderMass(const vector<double> &discounts,
+  double CalculateHiOrderMass(const std::vector<double> &discounts,
                               double nlog_count) const override {
     return nlog_count;
   }

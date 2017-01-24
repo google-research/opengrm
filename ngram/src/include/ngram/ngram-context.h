@@ -51,8 +51,8 @@ class NGramContext {
   //
   // Example2: context_begin = {1} and context_end = {5,6} with a 5-gram:
   //   same as context_begin = {0,0,0,1} and context_end = {0,0,5,6}.
-  NGramContext(const vector<Label> &context_begin,
-               const vector<Label> &context_end, int hi_order)
+  NGramContext(const std::vector<Label> &context_begin,
+               const std::vector<Label> &context_end, int hi_order)
       : hi_order_(hi_order),
         context_begin_(context_begin),
         context_end_(context_end) {
@@ -79,7 +79,8 @@ class NGramContext {
   // Is ngram in context?  If 'include_all_suffixes' is true, then all
   // suffixes of the begin and end contexts are considered in
   // context. When false, true (reverse) lexicographic order is used.
-  bool HasContext(vector<Label> ngram, bool include_all_suffixes = true) const;
+  bool HasContext(std::vector<Label> ngram,
+                  bool include_all_suffixes = true) const;
 
   // No/empty context requested?
   int NullContext() const { return context_begin_.empty(); }
@@ -87,12 +88,12 @@ class NGramContext {
   // Derives begin and end context vectors from input context pattern
   // string.
   static void ParseContextInterval(const string &context_pattern,
-                                   vector<Label> *context_begin,
-                                   vector<Label> *context_end);
+                                   std::vector<Label> *context_begin,
+                                   std::vector<Label> *context_end);
 
   // Generates context string from begin and end context vectors
-  static string GetContextString(const vector<Label> &context_begin,
-                                 const vector<Label> &context_end) {
+  static string GetContextString(const std::vector<Label> &context_begin,
+                                 const std::vector<Label> &context_end) {
     ostringstream context_pattern_strm;
     for (int i = 0; i < context_begin.size(); ++i)
       context_pattern_strm << context_begin[i] << " ";
@@ -108,10 +109,10 @@ class NGramContext {
   // must have state n-grams enabled.
   template <class Arc>
   static void FindContexts(const NGramModel<Arc> &model, int ncontexts,
-                           vector<string> *contexts,
+                           std::vector<string> *contexts,
                            float bigram_thresh = 1.1) {
-    vector<vector<typename Arc::Label>> begin_contexts;
-    vector<vector<typename Arc::Label>> end_contexts;
+    std::vector<std::vector<typename Arc::Label>> begin_contexts;
+    std::vector<std::vector<typename Arc::Label>> end_contexts;
     FindContexts(model, ncontexts, &begin_contexts, &end_contexts,
                  bigram_thresh);
 
@@ -130,26 +131,26 @@ class NGramContext {
                            float bigram_thresh = 1.1);
 
   // Begin context as could be passed to class constructor
-  vector<Label> GetContextBegin() const {
-    vector<Label> ngram(context_begin_);
+  std::vector<Label> GetContextBegin() const {
+    std::vector<Label> ngram(context_begin_);
     while (ngram.size() > 1 && ngram.back() == 0) ngram.pop_back();
     reverse(ngram.begin(), ngram.end());
     return ngram;
   }
 
   // End context as could be passed to class constructor
-  vector<Label> GetContextEnd() const {
-    vector<Label> ngram(context_end_);
+  std::vector<Label> GetContextEnd() const {
+    std::vector<Label> ngram(context_end_);
     while (ngram.size() > 1 && ngram.back() == 0) ngram.pop_back();
     reverse(ngram.begin(), ngram.end());
     return ngram;
   }
 
   // Context is reversed and padded to high-order
-  vector<Label> GetReverseContextBegin() const { return context_begin_; }
+  std::vector<Label> GetReverseContextBegin() const { return context_begin_; }
 
   // Context is reversed and padded to high-order
-  vector<Label> GetReverseContextEnd() const { return context_end_; }
+  std::vector<Label> GetReverseContextEnd() const { return context_end_; }
 
   // Note order is wrt transitions not states in the model;
   // so state ngram.size() == 1 has order 2
@@ -172,8 +173,8 @@ class NGramContext {
   void Init();
 
   int hi_order_;
-  vector<Label> context_begin_;
-  vector<Label> context_end_;
+  std::vector<Label> context_begin_;
+  std::vector<Label> context_end_;
 };
 
 // Represents a set of disjoint context intervals.
@@ -183,8 +184,8 @@ class NGramExtendedContext {
 
   // Constructs a context specification om begin and end context vectors.
   // See the corresponding NGramContext constructor.
-  NGramExtendedContext(const vector<Label> &context_begin,
-                       const vector<Label> &context_end, int hi_order) {
+  NGramExtendedContext(const std::vector<Label> &context_begin,
+                       const std::vector<Label> &context_end, int hi_order) {
     contexts_.push_back(NGramContext(context_begin, context_end, hi_order));
     Init(false);
   }
@@ -201,7 +202,7 @@ class NGramExtendedContext {
 
   // Constructs a context specification from a NGramContext vector.
   // If 'merge_contexts' is true, adjacent contexts will be merged.
-  explicit NGramExtendedContext(const vector<NGramContext> &contexts,
+  explicit NGramExtendedContext(const std::vector<NGramContext> &contexts,
                                 bool merge_contexts = true)
       : contexts_(contexts) {
     Init(merge_contexts);
@@ -216,7 +217,7 @@ class NGramExtendedContext {
   // Is ngram in context?  If 'include_all_suffixes' is true, then all
   // suffixes of the begin and end contexts are considered in
   // context. When false, true (reverse) lexicographic order is used.
-  bool HasContext(const vector<Label> &ngram,
+  bool HasContext(const std::vector<Label> &ngram,
                   bool include_all_suffixes = true) const;
 
   // Find NGramContext that matches context. Returns a null pointer
@@ -224,28 +225,29 @@ class NGramExtendedContext {
   // 'include_all_suffixes' is true, then all suffixes of the begin
   // and end contexts are considered in context. When false, true
   // (reverse) lexicographic order is used.
-  const NGramContext *GetContext(const vector<Label> &ngram,
+  const NGramContext *GetContext(const std::vector<Label> &ngram,
                                  bool include_all_suffixes = true) const;
 
   // Derives NGramContext vector from input extended context pattern string.
   static void ParseContextIntervals(const string &extended_context_pattern,
                                     int hi_order,
-                                    vector<NGramContext> *contexts);
+                                    std::vector<NGramContext> *contexts);
 
   // Generates an extended context string from a vector of NGramContexts
-  static string GetExtendedContextString(const vector<NGramContext> &contexts) {
+  static string GetExtendedContextString(
+      const std::vector<NGramContext> &contexts) {
     ostringstream extended_context_pattern_strm;
     for (size_t i = 0; i < contexts.size(); ++i) {
       if (i > 0) extended_context_pattern_strm << ",";
-      const vector<Label> &context_begin = contexts[i].GetContextBegin();
-      const vector<Label> &context_end = contexts[i].GetContextEnd();
+      const std::vector<Label> &context_begin = contexts[i].GetContextBegin();
+      const std::vector<Label> &context_end = contexts[i].GetContextEnd();
       extended_context_pattern_strm
           << NGramContext::GetContextString(context_begin, context_end);
     }
     return extended_context_pattern_strm.str();
   }
 
-  const vector<NGramContext> &GetContexts() const { return contexts_; }
+  const std::vector<NGramContext> &GetContexts() const { return contexts_; }
 
  private:
   // Ensures disjoint, same hi-order and canonicalizes.
@@ -263,26 +265,28 @@ class NGramExtendedContext {
     bool operator()(const NGramContext &c1, const NGramContext &c2) {
       // Sorts by beginning of the context interval. Will be a total
       // order assuming the context intervals are disjoint.
-      const vector<Label> &b1 = c1.GetReverseContextBegin();
-      const vector<Label> &b2 = c2.GetReverseContextBegin();
+      const std::vector<Label> &b1 = c1.GetReverseContextBegin();
+      const std::vector<Label> &b2 = c2.GetReverseContextBegin();
       return lexicographical_compare(b1.begin(), b1.end(), b2.begin(),
                                      b2.end());
     };
   };
 
-  vector<NGramContext> contexts_;
+  std::vector<NGramContext> contexts_;
 };
 
 // Reads (possibly extended) context specifications form a file into a vector.
-bool NGramReadContexts(const string &file, vector<string> *contexts);
+bool NGramReadContexts(const string &file, std::vector<string> *contexts);
 // Writes (possibly extended) context specifications from a vector to a file.
-bool NGramWriteContexts(const string &file, const vector<string> &contexts);
+bool NGramWriteContexts(const string &file,
+                        const std::vector<string> &contexts);
 
 template <class Arc>
 void NGramContext::FindContexts(
     const NGramModel<Arc> &model, int ncontexts,
-    vector<vector<typename Arc::Label>> *begin_contexts,
-    vector<vector<typename Arc::Label>> *end_contexts, float bigram_thresh) {
+    std::vector<std::vector<typename Arc::Label>> *begin_contexts,
+    std::vector<std::vector<typename Arc::Label>> *end_contexts,
+    float bigram_thresh) {
   // state n-gram counts with given unigram suffix
   std::map<typename Arc::Label, size_t> suffix1_counts;
   // state n-gram counts with given (reversed) bigram suffix
@@ -315,7 +319,7 @@ void NGramContext::FindContexts(
       bigram_counts[l1] += model.GetFst().NumArcs(s);
     }
   }
-  vector<typename Arc::Label> context;
+  std::vector<typename Arc::Label> context;
   begin_contexts->clear();
   end_contexts->clear();
   begin_contexts->push_back(context);

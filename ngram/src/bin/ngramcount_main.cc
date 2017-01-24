@@ -20,6 +20,7 @@
 #include <string>
 #include <vector>
 
+#include <fst/log.h>
 #include <fst/extensions/far/far.h>
 #include <fst/fst.h>
 #include <fst/vector-fst.h>

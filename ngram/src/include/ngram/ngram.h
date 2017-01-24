@@ -13,8 +13,8 @@
 // Copyright 2005-2016 Brian Roark and Google, Inc.
 // This convenience file includes all other GRM NGram include files.
 
-#ifndef NGRAM_NGRAM_H__
-#define NGRAM_NGRAM_H__
+#ifndef NGRAM_NGRAM_H_
+#define NGRAM_NGRAM_H_
 
 #include <ngram/hist-arc.h>
 #include <ngram/hist-mapper.h>
@@ -50,4 +50,4 @@
 #include <ngram/ngram-witten-bell.h>
 #include <ngram/util.h>
 
-#endif  // NGRAM_NGRAM_H__
+#endif  // NGRAM_NGRAM_H_

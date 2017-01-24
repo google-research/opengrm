@@ -18,6 +18,8 @@
 #include <istream>
 #include <fstream>
 
+#include <fst/flags.h>
+#include <fst/log.h>
 #include <fst/script/compile.h>
 #include <fst/script/equal.h>
 

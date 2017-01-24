@@ -165,7 +165,7 @@ typename Arc::StateId NGramTransfer<Arc>::FindNextState(StateId s,
 template <typename Arc>
 bool NGramTransfer<Arc>::TransferNGrams() const {
   if (Error()) return false;
-  vector<StateId> states(src_model_->NumStates(), kNoStateId);
+  std::vector<StateId> states(src_model_->NumStates(), kNoStateId);
   states[src_fst_->Start()] = dest_fst_->Start();
   if (src_model_->UnigramState() >= 0) {  // src_model_ is not a unigram model.
     if (dest_model_->UnigramState() < 0) {

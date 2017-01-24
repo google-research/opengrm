@@ -45,10 +45,10 @@ class NGramCountPrune : public NGramShrink<StdArc> {
 
   // Constructs an NGramCountShrink object that count prunes an LM.
   // This version is given the count minimums per order.
-  NGramCountPrune(StdMutableFst *infst, const vector<double> &count_minimums,
-                  int shrink_opt = 0, double tot_uni = -1.0,
-                  Label backoff_label = 0, double norm_eps = kNormEps,
-                  bool check_consistency = false)
+  NGramCountPrune(StdMutableFst *infst,
+                  const std::vector<double> &count_minimums, int shrink_opt = 0,
+                  double tot_uni = -1.0, Label backoff_label = 0,
+                  double norm_eps = kNormEps, bool check_consistency = false)
       : NGramShrink(infst, shrink_opt < 2 ? shrink_opt : 0, tot_uni,
                     backoff_label, norm_eps, check_consistency) {
     // shrink_opt must be less than 2 for count pruning
@@ -94,7 +94,7 @@ class NGramCountPrune : public NGramShrink<StdArc> {
   // Updates count minimums for order, based on parsed parameter string
   void UpdateCountMinimums(int order, double count, bool plus);
 
-  vector<double> count_minimums_;  // minimums for count pruning
+  std::vector<double> count_minimums_;  // minimums for count pruning
 };
 
 }  // namespace ngram

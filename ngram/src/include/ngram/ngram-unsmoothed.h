@@ -50,7 +50,7 @@ class NGramUnsmoothed : public NGramMake<StdArc> {
   }
 
   // For unsmoothed model, whole count is from high order
-  double CalculateHiOrderMass(const vector<double> &discounts,
+  double CalculateHiOrderMass(const std::vector<double> &discounts,
                               double nlog_count) const override {
     return nlog_count;
   }
@@ -74,7 +74,7 @@ class NGramUnsmoothed : public NGramMake<StdArc> {
     if (prefix_norm) FillStateCounts(&norm_counts_);
   }
 
-  vector<double> norm_counts_;
+  std::vector<double> norm_counts_;
 };
 
 }  // namespace ngram

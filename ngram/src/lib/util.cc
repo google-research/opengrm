@@ -12,6 +12,7 @@
 // limitations under the License.
 //
 // Copyright 2005-2016 Brian Roark and Google, Inc.
+#include <fst/flags.h>
 #include <ngram/util.h>
 
 // WARNING: Do not set to false as non-fatal error handling is not yet

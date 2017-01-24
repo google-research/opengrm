@@ -19,6 +19,7 @@
 
 #include <vector>
 
+#include <fst/script/fst-class.h>
 #include <ngram/ngram-mutable-model.h>
 #include <ngram/util.h>
 
@@ -110,7 +111,7 @@ class NGramMake : public NGramMutableModel<Arc> {
   // Return high order count mass (sum of discounted counts)
   // Need to override if high order mass is not defined by discounts
   // Default can be used by discounting methods, e.g., Katz or Absolute Disc.
-  virtual double CalculateHiOrderMass(const vector<double> &discounts,
+  virtual double CalculateHiOrderMass(const std::vector<double> &discounts,
                                       double nlog_count) const {
     double discount_norm = discounts[0];          // discounted count of </s>
     double KahanVal = 0;                          // Value for Kahan summation
@@ -130,7 +131,7 @@ class NGramMake : public NGramMutableModel<Arc> {
  private:
   // Normalize and smooth states, using parameterized smoothing method
   void SmoothState(StateId st) {
-    vector<double> discounts;  // collect discounted counts for later use.
+    std::vector<double> discounts;  // collect discounted counts for later use.
     double nlog_count_sum = CollectDiscounts(st, &discounts), nlog_stored_sum;
     Weight nlog_stored_sum_weight;
     if (GetBackoff(st, &nlog_stored_sum_weight) < 0) {
@@ -198,7 +199,7 @@ class NGramMake : public NGramMutableModel<Arc> {
 
   // Calculate smoothed values for all arcs leaving a state
   void NormalizeStateArcs(StateId st, double norm, double neglog_bo_prob,
-                          const vector<double> &discounts) {
+                          const std::vector<double> &discounts) {
     StateId bo = GetBackoff(st, 0);
     if (ScalarValue(GetFst().Final(st)) != ScalarValue(Arc::Weight::Zero())) {
       GetMutableFst()->SetFinal(st,
@@ -206,7 +207,7 @@ class NGramMake : public NGramMutableModel<Arc> {
                                           ScalarValue(GetFst().Final(bo)) +
                                               FactorValue(GetFst().Final(st))));
     }
-    vector<double> bo_arc_weight;
+    std::vector<double> bo_arc_weight;
     // fill backoff weight vector
     if (!FillBackoffArcWeights(st, bo, &bo_arc_weight)) {
       NGRAMERROR() << "NGramMake: could not fill backoff arc weights";
@@ -227,7 +228,7 @@ class NGramMake : public NGramMutableModel<Arc> {
 
   // Collects discounted counts into vector, and returns -log(sum(counts))
   // If no discounting, vector collects undiscounted counts
-  double CollectDiscounts(StateId st, vector<double> *discounts) {
+  double CollectDiscounts(StateId st, std::vector<double> *discounts) {
     double nlog_count_sum = ScalarValue(GetFst().Final(st));
     double KahanVal = 0.0;
     int order = StateOrder(st) - 1;  // for retrieving discount parameters
@@ -244,25 +245,35 @@ class NGramMake : public NGramMutableModel<Arc> {
     return nlog_count_sum;
   }
 
-  vector<bool> has_all_ngrams_;
+  std::vector<bool> has_all_ngrams_;
   bool backoff_;  // whether to make the model as backoff or mixture model
 };
 
 // Makes models from NGram count FSTs with StdArc counts.
 bool NGramMakeModel(fst::StdMutableFst *fst, const string &method,
-                    fst::StdFst *ccfst = nullptr, bool backoff = false,
-                    bool interpolate = false, int64 bins = -1,
-                    double witten_bell_k = 1, double discount_D = -1.0,
-                    int64 backoff_label = 0, double norm_eps = kNormEps,
-                    bool check_consistency = false);
+                    const fst::StdFst *ccfst = nullptr,
+                    bool backoff = false, bool interpolate = false,
+                    int64 bins = -1, double witten_bell_k = 1,
+                    double discount_D = -1.0, int64 backoff_label = 0,
+                    double norm_eps = kNormEps, bool check_consistency = false);
+
+// The same, but uses scripting FSTs.
+bool NGramMakeModel(fst::script::MutableFstClass *fst, const string &method,
+                    const fst::script::FstClass *ccfst = nullptr,
+                    bool backoff = false, bool interpolate = false,
+                    int64 bins = -1, double witten_bell_k = 1,
+                    double discount_D = -1.0, int64 backoff_label = 0,
+                    double norm_eps = kNormEps, bool check_consistency = false);
 
 // Makes models from NGram count FSTs with HistogramArc counts.
 bool NGramMakeHistModel(fst::MutableFst<ngram::HistogramArc> *hist_fst,
                         fst::StdMutableFst *fst, const string &method,
-                        fst::StdFst *ccfst = nullptr,
+                        const fst::StdFst *ccfst = nullptr,
                         bool interpolate = false, int64 bins = -1,
                         int64 backoff_label = 0, double norm_eps = kNormEps,
                         bool check_consistency = false);
+
+// TODO(kbg): Figure out how to make this compatible with scripting interface.
 
 }  // namespace ngram
 

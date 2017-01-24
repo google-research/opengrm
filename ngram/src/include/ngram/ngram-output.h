@@ -128,7 +128,7 @@ class NGramOutput : public NGramMutableModel<StdArc> {
 
   // Checks to see if a state or ngram is in context
   bool InContext(StateId st) const;
-  bool InContext(const vector<Label> &ngram) const;
+  bool InContext(const std::vector<Label> &ngram) const;
 
  private:
   // Convert to a new log base for printing (ARPA)
@@ -164,7 +164,7 @@ class NGramOutput : public NGramMutableModel<StdArc> {
   void FindNextStateInModel(StateId *mst, Label label, double OOV_cost,
                             Label OOV_label, double *neglogprob, int *word_cnt,
                             int *oov_cnt, int *words_skipped, string *history,
-                            bool verbose, vector<Label> *ngram) const;
+                            bool verbose, std::vector<Label> *ngram) const;
 
   // add symbol to n-gram history string
   void AppendWordToNGramHistory(string *str, const string &symbol) const {
@@ -176,7 +176,7 @@ class NGramOutput : public NGramMutableModel<StdArc> {
   void ApplyFinalCost(StateId mst, string history, int word_cnt, int oov_cnt,
                       int skipped, double neglogprob, double *logprob,
                       int *words, int *oovs, int *words_skipped, bool verbose,
-                      const vector<Label> &ngram) const;
+                      const std::vector<Label> &ngram) const;
 
   // Header for verbose n-gram entries
   void ShowNGramProbHeader() const {
