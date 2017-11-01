@@ -1,12 +1,12 @@
 
-// Licensed under the Apache License, Version 2.0 (the "License");
+// Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
 //     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
+// distributed under the License is distributed on an 'AS IS' BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
@@ -757,8 +757,11 @@ class NGramInput {
       bool endsym;
       Label label = GetNGramLabel((*words)[i], false, false, &stsym, &endsym);
       if (Error()) return 0;
-      if (label != (*last_labels)[i]) {  // Should be from last n-gram.
-        NGRAMERROR() << "NGramInput: n-gram prefix not seen in previous n-gram";
+      if (last_labels->size() <= i || label != (*last_labels)[i]) {
+        string prefix = (*words)[0];
+        for (auto j = 1; j <= i; ++j) prefix += " " + (*words)[j];
+        NGRAMERROR() << "NGramInput: n-gram prefix (" << prefix
+                     << ") not seen in previous n-gram";
         SetError();
         return 0;
       }

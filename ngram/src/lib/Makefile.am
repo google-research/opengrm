@@ -12,11 +12,11 @@ libngram_la_SOURCES = ngram-absolute.cc \
                       ngram-output.cc \
                       ngram-shrink.cc \
                       util.cc
-libngram_la_LDFLAGS = -version-info 2:0:0 -lfst -lm
+libngram_la_LDFLAGS = -version-info 133:0:0 -lfst -lm
 libngram_la_LIBADD = $(DL_LIBS)
 
 libngramhist_la_SOURCES = hist-arc.cc
-libngramhist_la_LDFLAGS = -version-info 2:0:0 -lfst -lfstscript -lm
+libngramhist_la_LDFLAGS = -version-info 133:0:0 -lfst -lfstscript -lm
 libngramhist_la_LIBADD =  $(DL_LIBS)
 
 hist_arc_la_SOURCES = hist-arc.cc

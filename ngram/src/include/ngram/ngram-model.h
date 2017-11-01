@@ -1,12 +1,12 @@
 
-// Licensed under the Apache License, Version 2.0 (the "License");
+// Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
 //     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
+// distributed under the License is distributed on an 'AS IS' BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
@@ -87,14 +87,17 @@ static double NegLogSum(double a, double b, double *c) {
 // Summing reals and saving negative logs, no Kahan formula (backwards compat)
 static double NegLogSum(double a, double b) { return NegLogSum(a, b, 0); }
 
-// negative log of difference: -log(exp^{-a} - exp^{-b})
-//   FRAGILE: assumes exp^{-a} >= exp^{-b}
-static double NegLogDiff(double a, double b) {
+// Negative log of difference: -log(exp^{-a} - exp^{-b}).
+// FRAGILE: assumes exp^{-a} >= exp^{-b}
+// Sets (but does not clear) optional error field.
+static double NegLogDiff(double a, double b, bool *error = nullptr) {
   if (b == StdArc::Weight::Zero().Value()) return a;
   if (a >= b) {
-    if (a - b < kNormEps)  // equal within fp error
-      return StdArc::Weight::Zero().Value();
-    LOG(FATAL) << "NegLogDiff: undefined " << a << " " << b;
+    if (a - b >= kNormEps) {  // not equal within fp error
+      NGRAMERROR() << "NegLogDiff: undefined " << a << " " << b;
+      if (error) *error = true;
+    }
+    return StdArc::Weight::Zero().Value();
   }
   return b - log(exp(b - a) - 1);
 }
@@ -388,11 +391,13 @@ class NGramModel {
   // Calculate marginal state probs.  By default, uses the product of
   // the order-ascending ngram transition probabilities. If 'stationary'
   // is true, instead computes the stationary distribution of the Markov
-  // chain.
-  void CalculateStateProbs(vector<double> *probs,
-                           bool stationary = false) const {
+  // chain. Returns true on success.
+  bool CalculateStateProbs(vector<double> *probs,
+                           bool stationary = false,
+                           size_t maxiters = 10000) const {
+    bool ret = true;
     if (stationary) {
-      StationaryStateProbs(probs, .999999, norm_eps_);
+      ret = StationaryStateProbs(probs, .999999, norm_eps_, maxiters);
     } else {
       NGramStateProbs(probs);
     }
@@ -401,6 +406,7 @@ class NGramModel {
         std::cerr << "st: " << st << " log_prob: " << log((*probs)[st])
                   << std::endl;
     }
+    return ret;
   }
 
   // Change data for a state that would normally be computed
@@ -457,6 +463,11 @@ class NGramModel {
 
  protected:
   void SetError() { error_ = true; }
+
+  // Shadows in this class to catch errors.
+  double NegLogDiff(double a, double b) const {
+    return ngram::NegLogDiff(a, b, &error_);
+  }
 
   // Fills a vector with the counts of each state, based on prefix count
   void FillStateCounts(vector<double> *state_counts) {
@@ -638,11 +649,11 @@ class NGramModel {
     if (bo >= 0 && infinite_backoff && (*low_sum) == 0.0)  // ok for unsmoothed
       return true;
     if (bo >= 0 && (*low_sum) <= 0.0) {
-      VLOG(1) << "lower order sum less than zero: " << st << " " << (*low_sum);
+      VLOG(2) << "lower order sum less than zero: " << st << " " << (*low_sum);
       double start_low = ScalarValue(Arc::Weight::Zero());
       if (init_low == start_low) start_low = ScalarValue(fst_.Final(bo));
       (*low_sum) = CalcBruteLowSum(st, bo, start_low);
-      VLOG(1) << "new lower order sum: " << st << " " << (*low_sum);
+      VLOG(2) << "new lower order sum: " << st << " " << (*low_sum);
     }
     return true;
   }
@@ -664,19 +675,20 @@ class NGramModel {
           low_sum =  // sum of lower order probs of different labels
               NegLogSum(low_sum, ScalarValue(barc.weight), &KahanVal);
         biter.Next();
-        barc = biter.Value();
+        if (!biter.Done()) barc = biter.Value();
       }
       if (!biter.Done() && barc.ilabel == arc.ilabel) {
         biter.Next();
-        barc = biter.Value();
+        if (!biter.Done()) barc = biter.Value();
       }
+      if (biter.Done()) break;
     }
     while (!biter.Done()) {  // linear scan
       if (barc.ilabel != backoff_label_)
         low_sum =  // sum of lower order probs of different labels
             NegLogSum(low_sum, ScalarValue(barc.weight), &KahanVal);
       biter.Next();
-      barc = biter.Value();
+      if (!biter.Done()) barc = biter.Value();
     }
     return NegLogDiff(0.0, low_sum);
   }
@@ -839,9 +851,9 @@ class NGramModel {
     // NOTE: can we automatically derive an appropriate epsilon?
     if (fabs(newnorm) > norm_eps_ &&  // not normalized
         (bo < 0 || !ReevaluateNormalization(st, bocost, norm, norm1))) {
-      VLOG(1) << "State ID: " << st << "; " << fst_.NumArcs(st) << " arcs;"
+      VLOG(2) << "State ID: " << st << "; " << fst_.NumArcs(st) << " arcs;"
               << "  -log(sum(P)) = " << newnorm << ", should be 0";
-      VLOG(1) << norm << " " << norm1;
+      VLOG(2) << norm << " " << norm1;
       return false;
     }
     return true;
@@ -854,7 +866,7 @@ class NGramModel {
                                double norm1) const {
     double newalpha = CalculateBackoffCost(norm, norm1);
     // NOTE: can we automatically derive an appropriate epsilon?
-    VLOG(1) << "Required re-evaluation of normalization: state " << st << " "
+    VLOG(2) << "Required re-evaluation of normalization: state " << st << " "
             << norm << " " << norm1 << " " << newalpha << " " << norm_eps_;
     if (fabs(newalpha - bocost) > norm_eps_) return false;
     return true;
@@ -1002,15 +1014,17 @@ class NGramModel {
   // Calculate marginal state probs as the stationary distribution
   // of the Markov chain consisting of the closure of the LM
   // with re-entry probability 'alpha'. The convergence is controlled
-  // by 'converge_eps'
-  void StationaryStateProbs(vector<double> *probs, double alpha,
-                            double converge_eps) const {
+  // by 'converge_eps' and the number of iterations by 'maxiters'
+  // Returns true on convergence.
+  bool StationaryStateProbs(vector<double> *probs, double alpha,
+                            double converge_eps, size_t maxiters) const {
     vector<double> init_probs, last_probs;
     // Initialize based on ngram transition probabilities
     NGramStateProbs(&init_probs, true);
     last_probs = init_probs;
 
     size_t changed;
+    size_t iters = 0;
     do {
       probs->clear();
       probs->resize(nstates_, 0.0);
@@ -1027,9 +1041,12 @@ class NGramModel {
           ++changed;
         last_probs[st] = init_probs[st] = (*probs)[st];
       }
-      VLOG(1) << "NGramModel::StationaryStateProbs: state probs changed: "
+      VLOG(2) << "NGramModel::StationaryStateProbs: state probs changed: "
               << changed;
+      if (++iters > maxiters)
+        return false;
     } while (changed > 0);
+    return true;
   }
 
   const Fst<Arc> &fst_;
@@ -1043,7 +1060,7 @@ class NGramModel {
   mutable size_t ascending_ngrams_;     // # of n-gram arcs that increase order
   vector<vector<Label>> state_ngrams_;  // n-gram always read to reach state
   const vector<Label> empty_label_vector_;
-  bool error_;
+  mutable bool error_;
 
   NGramModel(const NGramModel &) = delete;
   NGramModel &operator=(const NGramModel &) = delete;

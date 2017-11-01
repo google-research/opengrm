@@ -53,8 +53,6 @@ dist_noinst_DATA = testdata/ab.syms \
                    testdata/earnest.fst.sym \
                    testdata/earnest.fst.txt \
                    testdata/earnest.info \
-                   testdata/earnest-katz.marg.iter2.mod.sym \
-                   testdata/earnest-katz.marg.iter2.mod.txt \
                    testdata/earnest-katz.marg.mod.sym \
                    testdata/earnest-katz.marg.mod.txt \
                    testdata/earnest-katz.mod.sym \

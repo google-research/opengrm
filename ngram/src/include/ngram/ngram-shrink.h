@@ -1,12 +1,12 @@
 
-// Licensed under the Apache License, Version 2.0 (the "License");
+// Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
 //     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
+// distributed under the License is distributed on an 'AS IS' BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
@@ -18,10 +18,10 @@
 #define NGRAM_NGRAM_SHRINK_H_
 
 #include <sstream>
-#include <unordered_map>
 
 #include <ngram/ngram-mutable-model.h>
 #include <ngram/util.h>
+#include <unordered_map>
 
 namespace ngram {
 
@@ -59,8 +59,10 @@ class NGramShrink : public NGramMutableModel<Arc> {
                        double norm_eps = kNormEps,
                        bool check_consistency = false, bool norm = true);
 
-  // Shrinks n-gram model, based on initialized parameters.
-  bool ShrinkNGramModel(bool require_norm);
+  // Shrinks n-gram model, based on initialized parameters.  No ngrams smaller
+  // than min_order will be pruned; min_order must be at least 2 (the default
+  // value).
+  bool ShrinkNGramModel(bool require_norm, int min_order = 2);
 
   // Calculates shrinking scores for all ngrams, without actually pruning (yet).
   void CalculateShrinkScores(bool require_norm);
@@ -68,6 +70,10 @@ class NGramShrink : public NGramMutableModel<Arc> {
   // Provides label vectors and/or vector of their shrink scores.
   void GetNGramsAndOrScores(std::vector<std::vector<Label>> *ngrams,
                             std::vector<double> *scores, bool collect_unigrams);
+
+  // Provides label vectors and/or vector of their shrink scores.
+  void GetNGramsAndOrScoresMinOrder(std::vector<std::vector<Label>> *ngrams,
+                                    std::vector<double> *scores, int min_order);
 
   virtual ~NGramShrink() {}
 
@@ -138,8 +144,9 @@ class NGramShrink : public NGramMutableModel<Arc> {
   // Required from derived classes.
   virtual double GetTheta(StateId state) const = 0;
 
-  // Returns the theta value that guarantees at most target_number_of_ngrams.
-  double ThetaForMaxNGrams(int target_number_of_ngrams);
+  // Returns the theta value that guarantees at most target_number_of_ngrams,
+  // while optionally specifying a minimum pruning order.
+  double ThetaForMaxNGrams(int target_number_of_ngrams, int min_order = 2);
 
   // Calculates the new backoff weight if arc removed.
   double CalcNewLogBackoff(const ShrinkArcStats &arc) const {
@@ -256,8 +263,14 @@ class NGramShrink : public NGramMutableModel<Arc> {
   void PruneState(StateId st);
 
   // Evaluate states from highest order to lowest order for shrinking.
-  void PruneModel() {
-    for (int order = HiOrder(); order > 1; --order) {
+  void PruneModel(int requested_min_order) {
+    int min_order = requested_min_order;
+    if (requested_min_order < 2) {
+      LOG(WARNING) << "Minimum order for pruning below 2.  Bigrams are the "
+                      "minimum possible, so resetting this parameter to 2.";
+      min_order = 2;
+    }
+    for (int order = HiOrder(); order >= min_order; --order) {
       for (StateId st = 0; st < ns_; ++st) {
         if (StateOrder(st) == order)  // current order
           PruneState(st);
@@ -344,13 +357,13 @@ void NGramShrink<Arc>::CalculateShrinkScores(bool require_norm) {
 
 // Shrink n-gram model, based on initialized parameters
 template <class Arc>
-bool NGramShrink<Arc>::ShrinkNGramModel(bool require_norm) {
+bool NGramShrink<Arc>::ShrinkNGramModel(bool require_norm, int min_order) {
   CalculateShrinkScores(require_norm);  // Calculates scores for all ngrams.
   if (Error()) {
     NGRAMERROR() << "NGramShrink: Error in calculating shrink scores";
     return false;
   }
-  PruneModel();                 // prunes arcs and points to unconnected state
+  PruneModel(min_order);  // prunes arcs and points to unconnected state
   if (Error()) {
     NGRAMERROR() << "NGramShrink: Error in pruning model";
     return false;
@@ -449,11 +462,22 @@ template <class Arc>
 void NGramShrink<Arc>::GetNGramsAndOrScores(vector<vector<Label>> *ngrams,
                                             std::vector<double> *scores,
                                             bool collect_unigrams) {
+  // Assigns min_order based on collect_unigrams, to preserve behavior.
+  GetNGramsAndOrScoresMinOrder(ngrams, scores,
+                               /* min_order = */ collect_unigrams ? 1 : 2);
+}
+
+// Provides ngram label vectors and/or vector of their shrink scores.
+template <class Arc>
+void NGramShrink<Arc>::GetNGramsAndOrScoresMinOrder(
+    vector<vector<Label>> *ngrams, std::vector<double> *scores, int min_order) {
   if (ngrams == nullptr && scores == nullptr) return;
   for (StateId st = 0; st < ns_; ++st) {
     std::vector<Label> state_ngram;
     AddStateNGramLabels(st, &state_ngram);  // Labels of words leading to state.
-    if (state_ngram.size() == 0 && !collect_unigrams) continue;
+
+    // Skips unigrams if min_order higher, matches prior behavior.
+    if (state_ngram.empty() && min_order > 1) continue;
     std::vector<Label> to_update;
     for (ArcIterator<ExpandedFst<Arc>> aiter(GetExpandedFst(), st);
          !aiter.Done(); aiter.Next()) {
@@ -471,8 +495,12 @@ void NGramShrink<Arc>::GetNGramsAndOrScores(vector<vector<Label>> *ngrams,
         ngrams->push_back(ngram_labels);
       }
       if (scores != nullptr) {
-        if (state_ngram.size() < 1) {  // No shrink scores for unigrams.
+        if (state_ngram.empty()) {
+          // Unigram score is 0.0 if included, matching prior behavior.
           scores->push_back(0.0);
+        } else if (state_ngram.size() < min_order - 1) {
+          // Excludes min_order n-grams by assigning max possible shrink score.
+          scores->push_back(std::numeric_limits<double>::max());
         } else {
           scores->push_back(FindOrDieShrinkScore(st, to_update[idx]));
           if (Error()) return;
@@ -486,15 +514,12 @@ void NGramShrink<Arc>::GetNGramsAndOrScores(vector<vector<Label>> *ngrams,
 template <class Arc>
 double NGramShrink<Arc>::UpdateScoreHash(StateId st, Label label,
                                          double shrink_score) {
-  auto map_iterator = max_shrink_score_.find(std::make_pair(st, label));
-  if (map_iterator != max_shrink_score_.end() &&
-      shrink_score <= map_iterator->second) {  // Previous higher score exists.
-    shrink_score = map_iterator->second;  // Sets score to previous maximum.
-  } else {
-    max_shrink_score_[std::make_pair(st, label)] =
-        shrink_score;  // Records new max.
+  double &max_shrink_score = max_shrink_score_.emplace(  // Insert if not found.
+      std::make_pair(st, label), shrink_score).first->second;
+  if (shrink_score > max_shrink_score) {
+    max_shrink_score = shrink_score;
   }
-  return shrink_score;
+  return max_shrink_score;
 }
 
 // Retrieves shrink score, calculating if requested.  If calculating the score,
@@ -592,16 +617,18 @@ size_t NGramShrink<Arc>::FillShrinkArcInfo(vector<ShrinkArcStats> *shrink_arcs,
   return candidates;
 }
 
-// Returns the theta value that guarantees at most target_number_of_ngrams.
+// Returns the theta value that guarantees at most target_number_of_ngrams,
+// taking into account the minimum order to prune.
 template <class Arc>
-double NGramShrink<Arc>::ThetaForMaxNGrams(int target_number_of_ngrams) {
+double NGramShrink<Arc>::ThetaForMaxNGrams(int target_number_of_ngrams,
+                                           int min_order) {
   NGramShrink<Arc>::CalculateShrinkScores(true);
   if (Error()) {
     NGRAMERROR() << "ThetaForMaxNGrams: Error in calculating shrink scores";
     return 0.0;
   }
   std::vector<double> scores;  // Only care about scores, not ngram identities.
-  NGramShrink<Arc>::GetNGramsAndOrScores(nullptr, &scores, false);
+  NGramShrink<Arc>::GetNGramsAndOrScores(nullptr, &scores, min_order);
   if (Error()) {
     NGRAMERROR() << "ThetaForMaxNGrams: Error in getting ngram scores";
     return 0.0;

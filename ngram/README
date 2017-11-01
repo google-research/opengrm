@@ -24,6 +24,10 @@ INSTALLATION:
   Compiling with '-Wall -Wno-sign-compare' under g++ should give no
   warnings from this library.
 
+  NOTE: In some versions of MacOS X we have noticed a problem with configure
+  whereby it fails to find fst.h. If this occurs, try configuring as follows:
+  CPPFLAGS=-I/usr/local/include LDFLAGS=-L/usr/local/lib ./configure
+
 USAGE:
   Assuming you've installed under the default =/usr/local=, the GRM
   binaries are found on /usr/local/bin. Headers will be in

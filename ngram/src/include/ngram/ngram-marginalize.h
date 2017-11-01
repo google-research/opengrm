@@ -1,12 +1,12 @@
 
-// Licensed under the Apache License, Version 2.0 (the "License");
+// Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
 //     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
+// distributed under the License is distributed on an 'AS IS' BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
@@ -16,10 +16,6 @@
 
 #ifndef NGRAM_NGRAM_MARGINALIZE_H_
 #define NGRAM_NGRAM_MARGINALIZE_H_
-
-#include <unordered_map>
-using std::unordered_map;
-using std::unordered_multimap;
 
 #include <ngram/ngram-mutable-model.h>
 #include <ngram/util.h>
@@ -42,27 +38,30 @@ class NGramMarginal : public NGramMutableModel<StdArc> {
     ns_ = infst->NumStates();
     for (StateId st = 0; st < ns_; ++st)
       marginal_stats_.push_back(MarginalStateStats());
-  };
+  }
 
   // Marginalize n-gram model, based on initialized parameters.  Returns
-  // true if no more iterations are required.
-  bool MarginalizeNGramModel(std::vector<double> *weights, int iter, int tot) {
+  // true on success.
+  bool MarginalizeNGramModel() {
     if (!CheckNormalization()) {  // requires normalized model
-      // Returns true to indicate that there should be no more iterations.
       NGRAMERROR() << "NGramMarginal: Model not normalized;"
                    << " Model must be normalized for this estimation method";
       NGramModel<StdArc>::SetError();
-      return true;
+      return false;
     }
-    CalculateStateProbs(weights);  // calculate p(h)
+    if (!CalculateStateProbs()) {  // calculate p(h)
+      NGRAMERROR() << "NGramMarginal: state probability calculation failed";
+      NGramModel<StdArc>::SetError();
+      return false;
+    }
     CalculateNewWeights();         // calculate new arc weights
     RecalcBackoff();               // re-calcs backoff weights
     if (!CheckNormalization()) {   // model should be normalized
       NGRAMERROR() << "NGramMarginal: Marginalized model not fully normalized";
       NGramModel<StdArc>::SetError();
-      return true;
+      return false;
     }
-    return CheckStateProbs(weights, iter, tot);  // check convergence
+    return true;
   }
 
  private:
@@ -77,11 +76,14 @@ class NGramMarginal : public NGramMutableModel<StdArc> {
     MarginalStateStats()
         : log_prob(0),
           sum_ho_log_prob(-LogArc::Weight::Zero().Value()),
-          sum_ho_log_prob_w_bo(-LogArc::Weight::Zero().Value()){};
+          sum_ho_log_prob_w_bo(-LogArc::Weight::Zero().Value()){}
   };
 
   // Calculates state marginal probs, and sums higher order log probs
-  void CalculateStateProbs(std::vector<double> *weights);
+  // Returns true on success.
+  bool CalculateStateProbs();
+
+  void DiffProbs(std::vector<double> *weights) const;
 
   // Establish re-calculated denominator value (log_prob is minimum)
   double SaneDenominator(double total_wbo, double found_sum, double log_prob) {
@@ -110,31 +112,22 @@ class NGramMarginal : public NGramMutableModel<StdArc> {
                         marginal_stats_[st].log_prob);
   }
 
-  // Recalculate state probs; if different, set iteration bool
-  bool CheckStateProbs(std::vector<double> *weights, int iter, int tot) {
-    if (iter >= tot) return true;  // already the parameterized iterations
-    std::vector<double> new_weights;    // to hold prior weights
-    NGramModel::CalculateStateProbs(&new_weights, true);
-    if (new_weights.size() != weights->size()) {
-      // Returns true to indicate that there should be no more iterations.
-      NGRAMERROR() << "Different numbers of states with steady state probs";
-      NGramModel<StdArc>::SetError();
-      return true;
+  // Returns change in state norm to control mass reserved for backoff.
+  double MassReservedForBackoff(StateId st,
+                                double original_norm, double new_norm) {
+    if (st == UnigramState() || new_norm <= 0.0) {
+      // Keeps original mass reserved for backoff.
+      if (st != UnigramState()) {
+        VLOG(2) << "NGramMarginalize: using original reserved mass: st: "
+                << st;
+      }
+      return new_norm - original_norm;
+    } else {
+      // Keeps new mass reserved for backoff.
+      return 0.0;
     }
-    int changed = 0;
-    for (size_t st = 0; st < new_weights.size(); st++) {
-      if (fabs(new_weights[st] - (*weights)[st]) >=
-          fmax(kFloatEps, NGramModel::NormEps() * (*weights)[st]))
-        ++changed;
-      (*weights)[st] = new_weights[st];
-    }
-    if (changed > 0) {
-      VLOG(1) << "NGramMarginal::CheckStateProbs: state probs changed: "
-              << changed << " (iteration " << iter << ")";
-      return false;
-    }
-    return true;
   }
+
 
   // Initialize every arc 'not there' value with total; or reset index to -1
   void SetArcIndices(StateId st, bool initialize);
@@ -155,7 +148,7 @@ class NGramMarginal : public NGramMutableModel<StdArc> {
   void HigherOrderStateSum(StateId st);
 
   // Calculate arc weight while ensuring resulting value is sane
-  double SaneArcWeight(StateId st, size_t idx, double prob, double minterm);
+  double SaneArcWeight(StateId st, size_t idx, double prob);
 
   // Use statistics to determine arc weights
   double GetSaneArcWeights(StateId st, std::vector<double> *wts);
@@ -180,7 +173,7 @@ class NGramMarginal : public NGramMutableModel<StdArc> {
   // P(w, h') - sum_of_found gamma(w | h) p(h) / sum_of_not alpha_h p(h)
   void CalculateNewStateWeights(StateId st);
 
-  // Calculate state weights from lowest order to highest order
+  // Calculate state weights from highest order to lowest order
   void CalculateNewWeights();
 
   StateId ns_;

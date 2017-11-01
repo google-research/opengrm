@@ -11,6 +11,8 @@ TAR="${randgenname}".apply.FSTtxt.tgz
 SYM="${randgenname}".apply.sym
 FSTOPTS="-keep_isymbols -keep_osymbols -keep_state_numbering"
 
+set -e
+
 farcompilestrings \
   -key_prefix="FST" -generate_keys=4 -symbols="${testdata}/${randgenname}".sym \
   -keep_symbols=1 "${testdata}/${randgenname}".txt >"${outpath}".far
@@ -24,7 +26,8 @@ fstcompile \
   "${outpath}"/FST0001.txt > "${outpath}"/FST0001
 ls "${outpath}"/FST????.txt | grep -v FST0001 | sed 's/.txt$//g' | \
   while read i; do
-    fstcompile "${i}".txt > "${i}";
+    fstcompile \
+      "${i}".txt > "${i}";
   done
 cd "${outpath}"
 farcreate \

@@ -23,9 +23,10 @@ compile_test_fst() {
   fi
 }
 
-$srcdir/ngramcompile_randgen_far.sh "${randgenname}" "${tmpprefix2}"
+$srcdir/./ngramcompile_randgen_far.sh "${randgenname}" "${tmpprefix2}"
 compile_test_fst earnest-witten_bell.mod
-"${bin}/ngramapply" "${tmpprefix}"-earnest-witten_bell.mod.ref \
+"${bin}/ngramapply" \
+  "${tmpprefix}"-earnest-witten_bell.mod.ref \
   "${tmpprefix2}".far "${tmpprefix2}".apply.far
 
 farequal \

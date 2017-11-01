@@ -23,24 +23,10 @@ compile_test_fst() {
 
 compile_test_fst earnest-katz.mod
 compile_test_fst earnest-katz.marg.mod
-compile_test_fst earnest-katz.marg.iter2.mod
 "${bin}/ngrammarginalize" "${tmpprefix}"-earnest-katz.mod.ref \
   "${tmpprefix}".marg.mod
 
 fstequal \
   "${tmpprefix}"-earnest-katz.marg.mod.ref "${tmpprefix}".marg.mod
-
-"${bin}/ngrammarginalize" \
-  --steady_state_file="${tmpprefix}"-earnest-katz.marg.mod.ref \
-  "${tmpprefix}"-earnest-katz.mod.ref "${tmpprefix}".marg.iter2.mod
-
-fstequal \
-  "${tmpprefix}"-earnest-katz.marg.iter2.mod.ref "${tmpprefix}".marg.iter2.mod
-
-"${bin}/ngrammarginalize" --iterations=2 \
-  "${tmpprefix}"-earnest-katz.mod.ref "${tmpprefix}".marg.iter2I.mod
-
-fstequal \
-  "${tmpprefix}"-earnest-katz.marg.iter2.mod.ref "${tmpprefix}".marg.iter2I.mod
 
 echo PASS

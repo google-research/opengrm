@@ -1,12 +1,12 @@
 
-// Licensed under the Apache License, Version 2.0 (the "License");
+// Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
 //     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
+// distributed under the License is distributed on an 'AS IS' BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
@@ -30,16 +30,21 @@ class NGramSeymoreShrink : public NGramShrink<StdArc> {
                      double norm_eps = kNormEps, bool check_consistency = false)
       : NGramShrink<StdArc>(infst, shrink_opt, tot_uni, backoff_label, norm_eps,
                             check_consistency),
-        theta_(theta) {}
+        theta_(theta){}
 
-  // Shrink n-gram model, based on initialized parameters (req's normalized)
-  bool ShrinkNGramModel() {
-    return NGramShrink<StdArc>::ShrinkNGramModel(true);
+  // Shrink n-gram model, based on initialized parameters (requires normalized).
+  // No ngrams smaller than min_order will be pruned; min_order must be at
+  // least 2 (the default value).
+  bool ShrinkNGramModel(int min_order = 2) {
+    return NGramShrink<StdArc>::ShrinkNGramModel(/* require_norm = */ true,
+                                                 min_order);
   }
 
   // Returns a theta that will yield the target number of ngrams and no more.
-  void CalculateTheta(int target_number_of_ngrams) {
-    theta_ = ThetaForMaxNGrams(target_number_of_ngrams);
+  // No ngrams smaller than min_order will be pruned; min_order must be at
+  // least 2 (the default value).
+  void CalculateTheta(int target_number_of_ngrams, int min_order = 2) {
+    theta_ = ThetaForMaxNGrams(target_number_of_ngrams, min_order);
   }
 
   // provide the pruning threshold

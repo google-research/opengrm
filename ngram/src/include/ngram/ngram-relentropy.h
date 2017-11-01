@@ -1,12 +1,12 @@
 
-// Licensed under the Apache License, Version 2.0 (the "License");
+// Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
 //     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
+// distributed under the License is distributed on an 'AS IS' BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
@@ -34,17 +34,21 @@ class NGramRelEntropy : public NGramShrink<StdArc> {
     theta_ = log(theta + 1);  // e^D - 1 <= theta_ -> D <= log(theta_ + 1)
   }
 
-  // Shrink n-gram model, based on initialized parameters
-  bool ShrinkNGramModel() {
-    return NGramShrink<StdArc>::ShrinkNGramModel(true);
+  // Shrink n-gram model, based on initialized parameters. No ngrams smaller
+  // than min_order will be pruned; min_order must be at least 2 (the default
+  // value).
+  bool ShrinkNGramModel(int min_order = 2) {
+    return NGramShrink<StdArc>::ShrinkNGramModel(/* require_norm = */ true,
+                                                 min_order);
   }
 
   // Returns a theta that will yield the target number of ngrams and no more.
   // In relative entropy shrinking, theta is initially in real domain, then
   // converted to log domain for pruning.  In this function we convert back
-  // from log domain to real domain for the threshold.
-  void CalculateTheta(int target_number_of_ngrams) {
-    theta_ = ThetaForMaxNGrams(target_number_of_ngrams);
+  // from log domain to real domain for the threshold.  Default minimum order
+  // is bigrams (2), which is the minimum possible.
+  void CalculateTheta(int target_number_of_ngrams, int min_order = 2) {
+    theta_ = ThetaForMaxNGrams(target_number_of_ngrams, min_order);
   }
 
  protected:

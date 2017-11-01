@@ -1,12 +1,12 @@
 
-// Licensed under the Apache License, Version 2.0 (the "License");
+// Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
 //     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
+// distributed under the License is distributed on an 'AS IS' BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
@@ -596,15 +596,35 @@ class NGramMerge : public NGramMutableModel<Arc> {
   }
 
   // Applies normalization constant to arcs and final cost at state.
+  // If, after application of the normalization constant, the probabilities
+  // sum to greater than 1 (perhaps due to float imprecision) then a second
+  // round of brute force normalization is applied.
   void NormState(StateId st, bool in_fst1, bool in_fst2) {
     double norm = NormWeight(st, in_fst1, in_fst2);
     GetMutableFst()->SetFinal(st, ScaleWeight(GetFst().Final(st), norm));
+    double kahan_factor = 0;
+    double tot_neg_log_prob = ScalarValue(GetFst().Final(st));
     for (MutableArcIterator<MutableFst<Arc>> aiter(GetMutableFst(), st);
          !aiter.Done(); aiter.Next()) {
       Arc arc = aiter.Value();
       if (arc.ilabel != BackoffLabel()) {
         arc.weight = ScaleWeight(arc.weight, norm);
         aiter.SetValue(arc);
+        tot_neg_log_prob =
+            NegLogSum(tot_neg_log_prob, ScalarValue(arc.weight), &kahan_factor);
+      }
+    }
+    if (tot_neg_log_prob < 0.0) {
+      // Normalizes directly since total probability mass greater than one.
+      GetMutableFst()->SetFinal(
+          st, ScaleWeight(GetFst().Final(st), -tot_neg_log_prob));
+      for (MutableArcIterator<MutableFst<Arc>> aiter(GetMutableFst(), st);
+           !aiter.Done(); aiter.Next()) {
+        Arc arc = aiter.Value();
+        if (arc.ilabel != BackoffLabel()) {
+          arc.weight = ScaleWeight(arc.weight, -tot_neg_log_prob);
+          aiter.SetValue(arc);
+        }
       }
     }
   }
