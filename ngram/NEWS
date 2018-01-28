@@ -1,4 +1,4 @@
-OpenGrm NGram - Release 1.3 (compatible with OpenFst 1.6.4)
+OpenGrm NGram - Release 1.3 (compatible with OpenFst 1.6.6)
   * Templated Arc to provide new hist-arc counting, supporting fractional count
     based Katz backoff models. (1.3.0)
   * Updated error handling. (1.3.0)
@@ -19,6 +19,7 @@ OpenGrm NGram - Release 1.3 (compatible with OpenFst 1.6.4)
   * Update to ngram-shrink methods to allow specification of a minimum order
     to prune. (1.3.3)
   * Some changes to container types, following usage recommendations. (1.3.3)
+  * Avoid copying in the context library (1.3.4)
 
 OpenGrm NGram - Release 1.2
   * Port to C++11 (1.2.0)

@@ -10,7 +10,7 @@ REQUIREMENTS:
   using XCode 5. Expected to work wherever adequate POSIX (dlopen, ssize_t,
   basename), c99 (snprintf, strtoll, <stdint.h>), and C__11 (ordered_set>,
   ordered_map>, <forward_list>) support are available. It assumes you
-  have installed OpenFst (www.openfst.org) 1.5.2 or higher and have
+  have installed OpenFst (www.openfst.org) 1.6.6 or higher and have
   configured it with the --enable-far flag.
 
 INSTALLATION:

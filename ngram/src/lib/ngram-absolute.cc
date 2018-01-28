@@ -19,6 +19,7 @@
 #include <fst/arcsort.h>
 #include <fst/vector-fst.h>
 
+#include <fst/flags.h>
 #include <ngram/ngram-absolute.h>
 
 namespace ngram {
@@ -35,7 +36,8 @@ using fst::StdILabelCompare;
 bool NGramAbsolute::MakeNGramModel() {
   count_of_counts_.CalculateCounts(*this);
   CalculateDiscounts();
-  if (FLAGS_v > 0) count_of_counts_.ShowCounts(discount_, "Absolute discounts");
+  if (FLAGS_v > 0)
+    count_of_counts_.ShowCounts(discount_, "Absolute discounts");
   return NGramMake::MakeNGramModel();
 }
 

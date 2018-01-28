@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <cstring>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <fst/fst.h>
@@ -52,11 +53,11 @@ class NGramContext {
   //
   // Example2: context_begin = {1} and context_end = {5,6} with a 5-gram:
   //   same as context_begin = {0,0,0,1} and context_end = {0,0,5,6}.
-  NGramContext(const std::vector<Label> &context_begin,
-               const std::vector<Label> &context_end, int hi_order)
+  NGramContext(std::vector<Label> context_begin,
+               std::vector<Label> context_end, int hi_order)
       : hi_order_(hi_order),
-        context_begin_(context_begin),
-        context_end_(context_end) {
+        context_begin_(std::move(context_begin)),
+        context_end_(std::move(context_end)) {
     Init();
   }
 
@@ -80,7 +81,7 @@ class NGramContext {
   // Is ngram in context?  If 'include_all_suffixes' is true, then all
   // suffixes of the begin and end contexts are considered in
   // context. When false, true (reverse) lexicographic order is used.
-  bool HasContext(std::vector<Label> ngram,
+  bool HasContext(const std::vector<Label>& ngram,
                   bool include_all_suffixes = true) const;
 
   // No/empty context requested?
@@ -148,10 +149,14 @@ class NGramContext {
   }
 
   // Context is reversed and padded to high-order
-  std::vector<Label> GetReverseContextBegin() const { return context_begin_; }
+  const std::vector<Label>& GetReverseContextBegin() const {
+    return context_begin_;
+  }
 
   // Context is reversed and padded to high-order
-  std::vector<Label> GetReverseContextEnd() const { return context_end_; }
+  const std::vector<Label>& GetReverseContextEnd() const {
+    return context_end_;
+  }
 
   // Note order is wrt transitions not states in the model;
   // so state ngram.size() == 1 has order 2

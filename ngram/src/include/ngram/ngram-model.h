@@ -21,6 +21,7 @@
 #include <set>
 #include <vector>
 
+#include <fst/flags.h>
 #include <fst/arcsort.h>
 #include <fst/compose.h>
 #include <fst/fst.h>

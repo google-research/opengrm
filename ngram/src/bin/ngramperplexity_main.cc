@@ -20,6 +20,7 @@
 #include <string>
 #include <vector>
 
+#include <fst/flags.h>
 #include <fst/extensions/far/far.h>
 #include <ngram/ngram-output.h>
 
@@ -84,7 +85,7 @@ int main(int argc, char **argv) {
     far_reader->Next();
   }
 
-  return !ngram.PerplexityNGramModel(infsts, FLAGS_v, FLAGS_use_phimatcher,
-                                     &FLAGS_OOV_symbol, FLAGS_OOV_class_size,
-                                     FLAGS_OOV_probability);
+  return !ngram.PerplexityNGramModel(
+      infsts, FLAGS_v, FLAGS_use_phimatcher, &FLAGS_OOV_symbol,
+      FLAGS_OOV_class_size, FLAGS_OOV_probability);
 }

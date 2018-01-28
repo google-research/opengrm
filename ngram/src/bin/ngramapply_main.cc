@@ -17,6 +17,7 @@
 #include <memory>
 #include <string>
 
+#include <fst/flags.h>
 #include <fst/extensions/far/far.h>
 #include <fst/fst.h>
 #include <ngram/lexicographic-map.h>
@@ -117,7 +118,8 @@ int main(int argc, char** argv) {
     cfst->SetOutputSymbols(lattice->OutputSymbols());
     far_writer->Add(far_reader->GetKey(), *cfst);
     far_reader->Next();
-    if (FLAGS_v > 0) std::cerr << "Done:\t" << far_reader->GetKey() << '\n';
+    if (FLAGS_v > 0)
+      std::cerr << "Done:\t" << far_reader->GetKey() << '\n';
   }
   return 0;
 }

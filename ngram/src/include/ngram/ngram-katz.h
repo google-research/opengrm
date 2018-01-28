@@ -19,6 +19,7 @@
 
 #include <vector>
 
+#include <fst/flags.h>
 #include <ngram/ngram-count-of-counts.h>
 #include <ngram/ngram-make.h>
 #include <ngram/util.h>
@@ -53,7 +54,8 @@ class NGramKatz : public NGramMake<Arc> {
   bool MakeNGramModel() {
     count_of_counts_.CalculateCounts(*this);
     CalculateDiscounts();
-    if (FLAGS_v > 0) count_of_counts_.ShowCounts(discount_, "Katz discounts");
+    if (FLAGS_v > 0)
+      count_of_counts_.ShowCounts(discount_, "Katz discounts");
     return NGramMake<Arc>::MakeNGramModel();
   }
 

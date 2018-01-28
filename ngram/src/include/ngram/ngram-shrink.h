@@ -17,11 +17,11 @@
 #ifndef NGRAM_NGRAM_SHRINK_H_
 #define NGRAM_NGRAM_SHRINK_H_
 
+#include <limits>
 #include <sstream>
 
 #include <ngram/ngram-mutable-model.h>
 #include <ngram/util.h>
-#include <unordered_map>
 
 namespace ngram {
 
@@ -166,10 +166,15 @@ class NGramShrink : public NGramMutableModel<Arc> {
  private:
   void FillStateProbs();
 
-  struct StateLabelHash {
-    size_t operator()(const std::pair<StateId, Label> &p) const {
-      return p.first + p.second * 7853;
-    }
+  struct LabelData {
+    LabelData(Label l)
+        : label(l),
+          max_shrink_score(std::numeric_limits<double>::lowest()),
+          backed_off_to(0) {}
+
+    Label label;
+    double max_shrink_score;
+    size_t backed_off_to;
   };
 
   // Fills n-gram label vector in correct order via recursive function.
@@ -178,26 +183,108 @@ class NGramShrink : public NGramMutableModel<Arc> {
   // Finds an entry in the map with shrink score or produces fatal error.
   double FindOrDieShrinkScore(StateId st, Label label);
 
-  // Transition from 'st' to 'dest' labeled with 'label'.
-  size_t &BackedOffTo(StateId st, Label label, StateId dest) {
-    if (StateOrder(st) < StateOrder(dest)) {           // Arc unique
-      return shrink_state_[dest].incoming_backed_off;  // to dest., store there.
-    } else {                                             // o.w. hash it.
-      return backed_off_to_[std::make_pair(st, label)];  // Inserts if needed.
+  // Manages the counter of the number of arcs backing off to an arc. Returns
+  // true if counter is found and incremented.  Passing an increment of 0 simply
+  // tests whether that the counter is found and has value greater than zero.
+  bool IncrementAndCheckIsBackedOffTo(StateId st, Label label, StateId dest,
+                                      size_t increment_size = 0,
+                                      bool decrement = false) {
+    size_t *counter = nullptr;
+    if (StateOrder(st) < StateOrder(dest)) {
+      // Accesses counter at the destination state, since this arc is
+      // the unique ascending arc to that state.
+      counter = &(shrink_state_[dest].incoming_backed_off);
+    } else {
+      // Accesses counter from hash, since there is no unique destination state.
+      auto it = FindStateAndLabel(st, label);
+      if (it == state_label_data_.end()) {
+        NGRAMERROR() << "Label " << label << " not found from state " << st;
+        NGramModel<Arc>::SetError();
+        return false;
+      } else {
+        counter = &(it->backed_off_to);
+      }
+    }
+    CHECK(counter != nullptr);
+    if (increment_size == 0) {
+      return *counter > 0;
+    } else {
+      if (decrement) {
+        CHECK_GE(*counter, increment_size);
+        *counter -= increment_size;
+      } else {
+        *counter += increment_size;
+      }
+      return true;
     }
   }
 
-  // Efficiently checks if non-zero BackedOffTo() (no side-effects).
-  bool IsBackedOffTo(StateId st, Label label, StateId dest) const {
-    if (StateOrder(st) < StateOrder(dest))
-      return shrink_state_[dest].incoming_backed_off > 0;
-    else {
-      auto it = backed_off_to_.find(std::make_pair(st, label));
-      if (it == backed_off_to_.end())
-        return false;
-      else
-        return it->second > 0;
+  // This creates a lookup table which maps (state, label) pairs to
+  // max_shrink_score and backed_off_to values in the following way: for
+  // a given state st, all entries have indices in state_label_data_
+  // satisfying state_start_index_[st] <= i < state_start_index_[st + 1].
+  // Then those entries are sorted by label. The values in the table may
+  // be returned by reference so that other functions can modify them.
+  void InitStateLabelData() {
+    max_shrink_score_computed_ = false;
+
+    state_label_data_.clear();
+    size_t num_arcs = 1;
+    for (StateId st = 0; st < ns_; ++st) {
+      // Make room for all arcs except the backoff arc. Note that the unigram
+      // state doesn't have this, which we account for by starting num_arcs
+      // at 1 above instead of 0.
+      num_arcs += GetExpandedFst().NumArcs(st) - 1;
+      // Add one more entry if this is a final state, given by kNoLabel below.
+      if (GetExpandedFst().Final(st) != ScalarValue(Arc::Weight::Zero())) {
+        ++num_arcs;
+      }
     }
+    state_label_data_.reserve(num_arcs);
+
+    state_start_index_.clear();
+    state_start_index_.reserve(ns_ + 1);
+    state_start_index_.push_back(0);
+
+    for (StateId st = 0; st < ns_; ++st) {
+      const size_t start = state_start_index_.back();
+      if (ScalarValue(GetFst().Final(st)) != ScalarValue(Arc::Weight::Zero())) {
+        state_label_data_.emplace_back(kNoLabel);
+      }
+      for (ArcIterator<ExpandedFst<Arc>> aiter(GetExpandedFst(), st);
+           !aiter.Done(); aiter.Next()) {
+        Arc arc = aiter.Value();
+        if (arc.ilabel != BackoffLabel()) {
+          state_label_data_.emplace_back(arc.ilabel);
+        }
+      }
+      CHECK(std::is_sorted(
+          state_label_data_.begin() + start, state_label_data_.end(),
+          [](const LabelData& a, const LabelData& b) {
+            return a.label < b.label;
+          }));
+      // State st+1 must now start at the next element of state_label_data_.
+      state_start_index_.push_back(state_label_data_.size());
+    }
+    state_label_data_.shrink_to_fit();
+  }
+
+  // Returns a non-const iterator to the unique element of state_label_data_
+  // with the given StateId and Label, or returns state_label_data_.end() if
+  // no such element exists.
+  typename std::vector<LabelData>::iterator
+  FindStateAndLabel(StateId st, Label label) const {
+    if (st < 0 || st >= ns_) return state_label_data_.end();
+    typename std::vector<LabelData>::iterator begin =
+        state_label_data_.begin() + state_start_index_[st];
+    typename std::vector<LabelData>::iterator end =
+        state_label_data_.begin() + state_start_index_[st + 1];
+    auto it = std::lower_bound(
+        begin, end, LabelData(label),
+        [](const LabelData& a, const LabelData& b) {
+          return a.label < b.label;
+        });
+    return (it == end || it->label != label) ? state_label_data_.end() : it;
   }
 
   // Fills in relevant statistics for arc pruning at the state level.
@@ -221,7 +308,7 @@ class NGramShrink : public NGramMutableModel<Arc> {
 
   // Updates maximum score for a given label leaving a given state, and returns
   // the maximum.
-  double UpdateScoreHash(StateId st, Label label, double shrink_score);
+  double UpdateScore(StateId st, Label label, double shrink_score);
 
   // Retrieves shrink score, calculating if requested.
   double GetShrinkScore(const ShrinkArcStats &arc, StateId st, Label label,
@@ -293,10 +380,21 @@ class NGramShrink : public NGramMutableModel<Arc> {
   StateId ns_;                  // Original number of states in the model
   StateId dead_state_;  // Sink state dest. for pruned arcs (not connected)
   std::vector<ShrinkStateStats> shrink_state_;
-  std::unordered_map<std::pair<StateId, Label>, double, StateLabelHash>
-      max_shrink_score_;
-  std::unordered_map<std::pair<StateId, Label>, size_t, StateLabelHash>
-      backed_off_to_;
+
+  // Ordered "map" from label to (max shrink score, backed off to) pair. For
+  // a given state 0 <= st < ns_, all known labels appear between indices
+  // state_start_index_[st] and state_start_index_[st + 1] and are sorted by
+  // label within that index range. This should only be initialized once, but
+  // is mutable so that functions may return non-const references to its data.
+  mutable std::vector<LabelData> state_label_data_;
+
+  // state_start_index_[st] is the smallest value i such that
+  // st == state_label_data_[i].label. For convenience, it has an extra
+  // entry at the end which is simply state_label_data_.size().
+  std::vector<size_t> state_start_index_;
+
+  // Whether any max shrink scores have been computed yet.
+  bool max_shrink_score_computed_ = false;
 };
 
 // Construct an NGramShrink object, including an NGramMutableModel
@@ -322,6 +420,7 @@ NGramShrink<Arc>::NGramShrink(MutableFst<Arc> *infst, int shrink_opt,
 // Calculates scores of all arcs leaving all states in model.
 template <class Arc>
 void NGramShrink<Arc>::ScoreAllArcs() {
+  if (state_label_data_.empty()) InitStateLabelData();
   for (int order = HiOrder(); order > 1; --order) {
     for (StateId st = 0; st < ns_; ++st) {
       if (StateOrder(st) == order) {  // current order
@@ -336,7 +435,7 @@ void NGramShrink<Arc>::ScoreAllArcs() {
 // Calculates shrink scores for all ngrams in a model, stores in a hash.
 template <class Arc>
 void NGramShrink<Arc>::CalculateShrinkScores(bool require_norm) {
-  if (max_shrink_score_.size() > 0) return;  // Scores already calculated.
+  if (max_shrink_score_computed_) return;  // Scores already calculated.
   if (normalized_) {                // only required for normalized models
     FillStateProbs();               // calculate p(h)
     if (total_unigram_count_ <= 0)  // auto derive unigram count if req'd
@@ -399,6 +498,7 @@ void NGramShrink<Arc>::FillStateProbs() {
 // Fill in relevant statistics for arc pruning at the state level
 template <class Arc>
 void NGramShrink<Arc>::FillShrinkStateInfo() {
+  if (state_label_data_.empty()) InitStateLabelData();
   for (StateId st = 0; st < ns_; ++st) {
     shrink_state_[st].state = st;
     StateId bos = shrink_state_[st].backoff_state = GetBackoff(st, 0);
@@ -421,10 +521,10 @@ void NGramShrink<Arc>::FillShrinkStateInfo() {
       }
       if (bos < 0) continue;  // that is all the work at the unigram state.
       shrink_state_[st].state_dead = false;
-      if (matcher.Find(arc.ilabel)) {  // increment backoff counter
-        Arc barc = matcher.Value();
-        ++BackedOffTo(bos, barc.ilabel, barc.nextstate);
-      } else {
+      if (!matcher.Find(arc.ilabel) ||
+          !IncrementAndCheckIsBackedOffTo(bos, matcher.Value().ilabel,
+                                          matcher.Value().nextstate,
+                                          /* increment_size = */ 1)) {
         NGRAMERROR() << "NGramShrink: No arc label match in backoff state";
         NGramModel<Arc>::SetError();
         return;
@@ -448,13 +548,14 @@ void NGramShrink<Arc>::AddStateNGramLabels(StateId st,
 // Finds an entry in the hash table with shrink score or fatal error.
 template <class Arc>
 double NGramShrink<Arc>::FindOrDieShrinkScore(StateId st, Label label) {
-  auto map_iterator = max_shrink_score_.find(std::make_pair(st, label));
-  if (map_iterator == max_shrink_score_.end()) {
+  auto map_iterator = FindStateAndLabel(st, label);
+  if (map_iterator == state_label_data_.end() ||
+      map_iterator->max_shrink_score == std::numeric_limits<double>::lowest()) {
     NGRAMERROR() << "NGramShrink: score has not been calculated yet.";
     NGramModel<Arc>::SetError();
     return 0.0;
   }
-  return map_iterator->second;
+  return map_iterator->max_shrink_score;
 }
 
 // Provides ngram label vectors and/or vector of their shrink scores.
@@ -512,12 +613,18 @@ void NGramShrink<Arc>::GetNGramsAndOrScoresMinOrder(
 
 // Updates maximum score for a given label leaving a given state. Returns max.
 template <class Arc>
-double NGramShrink<Arc>::UpdateScoreHash(StateId st, Label label,
-                                         double shrink_score) {
-  double &max_shrink_score = max_shrink_score_.emplace(  // Insert if not found.
-      std::make_pair(st, label), shrink_score).first->second;
+double NGramShrink<Arc>::UpdateScore(StateId st, Label label,
+                                     double shrink_score) {
+  auto it = FindStateAndLabel(st, label);
+  if (it == state_label_data_.end()) {
+    NGRAMERROR() << "Label " << label << " not found from state " << st;
+    NGramModel<Arc>::SetError();
+    return 0.0;
+  }
+  double &max_shrink_score = it->max_shrink_score;
   if (shrink_score > max_shrink_score) {
     max_shrink_score = shrink_score;
+    max_shrink_score_computed_ = true;
   }
   return max_shrink_score;
 }
@@ -530,14 +637,14 @@ double NGramShrink<Arc>::GetShrinkScore(const ShrinkArcStats &arc, StateId st,
   double shrink_score = 0.0;
   if (calc_score) {  // Calculates local score and compares with maximum.
     shrink_score =
-        UpdateScoreHash(st, label, ShrinkScore(shrink_state_[st], arc));
+        UpdateScore(st, label, ShrinkScore(shrink_state_[st], arc));
 
     // Updates suffix ngram with maximum.
-    UpdateScoreHash(shrink_state_[st].backoff_state, label, shrink_score);
+    UpdateScore(shrink_state_[st].backoff_state, label, shrink_score);
 
     // Updates prefix ngram with maximum.
     if (shrink_state_[st].prefix_state != kNoStateId)
-      UpdateScoreHash(shrink_state_[st].prefix_state,
+      UpdateScore(shrink_state_[st].prefix_state,
                       shrink_state_[st].incoming_label, shrink_score);
   } else {
     shrink_score = FindOrDieShrinkScore(st, label);
@@ -560,7 +667,7 @@ int NGramShrink<Arc>::AddArcStat(vector<ShrinkArcStats> *shrink_arcs,
     //   arc points to higher order (needed) state or is backed off to
     if ((StateOrder(st) < StateOrder(arc->nextstate) &&
          !shrink_state_[arc->nextstate].state_dead) ||
-        IsBackedOffTo(st, arc->ilabel, arc->nextstate)) {
+        IncrementAndCheckIsBackedOffTo(st, arc->ilabel, arc->nextstate)) {
       needed = true;
     }
     nextstate = barc->nextstate;
@@ -714,9 +821,16 @@ size_t NGramShrink<Arc>::PointPrunedArcs(
     if (shrink_arcs[acnt].pruned) {
       arc.nextstate = dead_state_;  // points to unconnected state
       aiter.SetValue(arc);
-      // decrements backoff counter
-      --BackedOffTo(shrink_state_[st].backoff_state, arc.ilabel,
-                    shrink_arcs[acnt].backoff_dest);
+
+      // Decrements backoff counter.
+      if (!IncrementAndCheckIsBackedOffTo(
+              shrink_state_[st].backoff_state, arc.ilabel,
+              shrink_arcs[acnt].backoff_dest, /* increment_size = */ 1,
+              /* decrement = */ true)) {
+        NGRAMERROR() << "NGramShrink: Error decrementing counter";
+        NGramModel<Arc>::SetError();
+        return 0;
+      }
       ++pruned_cnt;
     }
     ++acnt;
@@ -733,6 +847,7 @@ size_t NGramShrink<Arc>::PointPrunedArcs(
 // Evaluates transitions from state and prune in greedy fashion.
 template <class Arc>
 void NGramShrink<Arc>::PruneState(StateId st) {
+  if (state_label_data_.empty()) InitStateLabelData();
   std::vector<ShrinkArcStats> shrink_arcs;
   size_t candidate_prune = FillShrinkArcInfo(&shrink_arcs, st, false);
   if (Error()) return;

@@ -31,12 +31,64 @@ namespace ngram {
 using fst::StdArc;
 using std::map;
 
-bool NGramContext::HasContext(vector<Label> ngram,
+namespace {
+// Utility wrapper for HasContext that avoids copying the input vector.
+class ReversedPaddedVector {
+ public:
+  typedef StdArc::Label Label;
+
+  // The input must outlive this.
+  explicit ReversedPaddedVector(const std::vector<Label>& in, size_t len)
+      : in_(in), len_(len) {}
+
+  class Iterator : public std::iterator<std::input_iterator_tag, Label> {
+   public:
+    explicit Iterator(const ReversedPaddedVector* v, size_t i): i_(i), v_(v) {}
+
+    Iterator(const Iterator&) = default;
+    Iterator& operator=(const Iterator&) = default;
+
+    Iterator& operator++() {
+      i_ = std::min(i_ + 1, v_->len_);
+      return *this;
+    }
+    Iterator operator++(int) {
+      Iterator ret = *this;
+      i_ = std::min(i_ + 1, v_->len_);
+      return ret;
+    }
+
+    bool operator==(Iterator other) const {
+      return i_ == other.i_ && v_ == other.v_;
+    }
+    bool operator!=(Iterator other) const {
+      return i_ != other.i_ || v_ != other.v_;
+    }
+
+    Label operator*() {
+      return (i_ < v_->in_.size()) ? v_->in_[v_->in_.size() - i_ - 1] : 0;
+    }
+
+   private:
+    size_t i_;
+    const ReversedPaddedVector* v_;
+  };
+
+  Iterator begin() const { return Iterator(this, 0); }
+  Iterator end() const { return Iterator(this, len_); }
+
+ private:
+  const std::vector<Label>& in_;
+  const size_t len_;
+};
+}  // namespace
+
+bool NGramContext::HasContext(const vector<Label>& ngram,
                               bool include_all_suffixes) const {
   if (NullContext())  // accept all
     return true;
 
-  reverse(ngram.begin(), ngram.end());
+  ReversedPaddedVector ngram_for_cmp(ngram, hi_order_ - 1);
 
   vector<Label>::const_iterator context_begin_end;
   if (include_all_suffixes) {
@@ -46,12 +98,13 @@ bool NGramContext::HasContext(vector<Label> ngram,
     // True (reverse) lexicographic order
     context_begin_end = context_begin_.end();
   }
-  ngram.resize(hi_order_ - 1, 0);
 
   bool less_begin = lexicographical_compare(
-      ngram.begin(), ngram.end(), context_begin_.begin(), context_begin_end);
+      ngram_for_cmp.begin(), ngram_for_cmp.end(),
+      context_begin_.begin(), context_begin_end);
   bool less_end = lexicographical_compare(
-      ngram.begin(), ngram.end(), context_end_.begin(), context_end_.end());
+      ngram_for_cmp.begin(), ngram_for_cmp.end(),
+      context_end_.begin(), context_end_.end());
 
   return !less_begin && less_end;
 }
@@ -72,11 +125,11 @@ void NGramContext::ParseContextInterval(const string &context_pattern,
   vector<char *> contexts;
   vector<char *> labels1, labels2;
   strncpy(line, context_pattern.c_str(), linelen);
-  fst::SplitToVector(line, ":", &contexts, true);
+  fst::SplitString(line, ":", &contexts, true);
   if (contexts.size() != 2)
     LOG(FATAL) << "NGramContext: bad context pattern: " << context_pattern;
-  fst::SplitToVector(contexts[0], " ", &labels1, true);
-  fst::SplitToVector(contexts[1], " ", &labels2, true);
+  fst::SplitString(contexts[0], " ", &labels1, true);
+  fst::SplitString(contexts[1], " ", &labels2, true);
   for (int i = 0; i < labels1.size(); ++i) {
     Label label = fst::StrToInt64(labels1[i], "context begin", 1, false);
     context_begin->push_back(label);
@@ -178,7 +231,7 @@ void NGramExtendedContext::ParseContextIntervals(
   std::unique_ptr<char[]> line(new char[linelen]);
   strncpy(line.get(), extended_context_pattern.c_str(), linelen);
   vector<char *> context_patterns;
-  fst::SplitToVector(line.get(), ",", &context_patterns, true);
+  fst::SplitString(line.get(), ",", &context_patterns, true);
 
   for (size_t i = 0; i < context_patterns.size(); ++i)
     contexts->push_back(NGramContext(context_patterns[i], hi_order));
@@ -189,7 +242,7 @@ bool NGramExtendedContext::HasContext(const vector<Label> &ngram,
   if (contexts_.empty())
     return true;
   else
-    return GetContext(ngram, include_all_suffixes) != 0;
+    return GetContext(ngram, include_all_suffixes) != nullptr;
 }
 
 const NGramContext *NGramExtendedContext::GetContext(
@@ -198,8 +251,10 @@ const NGramContext *NGramExtendedContext::GetContext(
   if (ngram_end.empty()) ngram_end.push_back(0);
   vector<Label> ngram_beg(ngram_end);
   ++ngram_end[0];  // ensures non-empty interval below
+
   int hi_order = contexts_[0].GetHiOrder();
-  NGramContext ngram_context(ngram_beg, ngram_end, hi_order);
+  NGramContext ngram_context(std::move(ngram_beg), std::move(ngram_end),
+                             hi_order);
   ContextCompare context_cmp;
   auto it = upper_bound(contexts_.begin(), contexts_.end(), ngram_context,
                         context_cmp);
@@ -210,7 +265,7 @@ const NGramContext *NGramExtendedContext::GetContext(
              it->HasContext(ngram, include_all_suffixes)) {
     return &*it;  // suffix match
   } else {
-    return 0;  // no match (or null context)
+    return nullptr;  // no match (or null context)
   }
 }
 
