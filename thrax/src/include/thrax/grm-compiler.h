@@ -23,7 +23,6 @@
 #include <iostream> // NOLINT
 #include <string>
 #include <vector>
-using std::vector;
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
@@ -80,12 +79,12 @@ class GrmCompilerSpec : public GrmCompilerParserInterface {
 
   // Evaluate the AST from scratch, creating a new walker with no preset
   // environment.  Returns true on success and false on failure.
-  bool EvaluateAst() { return EvaluateAstWithEnvironment(NULL, true); }
+  bool EvaluateAst() { return EvaluateAstWithEnvironment(nullptr, true); }
 
   // Evaluate the AST using the provided environment namespace.  This is likely
   // for imported files and modules and should really only be called by AST
-  // walkers (i.e., not by users).  Call using NULL to create a new environment.
-  // Returns true on success and false on failure.
+  // walkers (i.e., not by users).  Call using nullptr to create a new
+  // environment. Returns true on success and false on failure.
   //
   // Boolean argument top_level indicates whether or not this is a top level
   // grammar file (i.e. not an imported grammar). This information gets passed
@@ -131,8 +130,7 @@ class GrmCompilerSpec : public GrmCompilerParserInterface {
 };
 
 template <typename Arc>
-GrmCompilerSpec<Arc>::GrmCompilerSpec()
-    : root_(NULL) {}
+GrmCompilerSpec<Arc>::GrmCompilerSpec() : root_(nullptr) {}
 
 template <typename Arc>
 GrmCompilerSpec<Arc>::~GrmCompilerSpec() {
