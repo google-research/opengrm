@@ -66,7 +66,7 @@ class NGramContextPrune : public NGramShrink<StdArc> {
 
   // Shrinks n-gram model, based on initialized parameters
   bool ShrinkNGramModel() {
-    return NGramShrink<StdArc>::ShrinkNGramModel(false);
+    return NGramShrink<StdArc>::ShrinkNGramModel(/*require_norm=*/false);
   }
 
  protected:
@@ -112,7 +112,9 @@ class NGramContextCountPrune : public NGramCountPrune {
   ~NGramContextCountPrune() override {}
 
   // Shrinks n-gram model, based on initialized parameters
-  bool ShrinkNGramModel() { return NGramCountPrune::ShrinkNGramModel(); }
+  bool ShrinkNGramModel(int min_order = 2) {
+    return NGramCountPrune::ShrinkNGramModel(min_order);
+  }
 
  protected:
   double ShrinkScore(const ShrinkStateStats &state,
@@ -158,7 +160,9 @@ class NGramContextRelEntropy : public NGramRelEntropy {
   ~NGramContextRelEntropy() override {}
 
   // Shrinks n-gram model, based on initialized parameters
-  bool ShrinkNGramModel() { return NGramRelEntropy::ShrinkNGramModel(); }
+  bool ShrinkNGramModel(int min_order = 2) {
+    return NGramRelEntropy::ShrinkNGramModel(min_order);
+  }
 
  protected:
   double ShrinkScore(const ShrinkStateStats &state,
@@ -205,7 +209,9 @@ class NGramContextSeymoreShrink : public NGramSeymoreShrink {
   ~NGramContextSeymoreShrink() override {}
 
   // Shrinks n-gram model, based on initialized parameters
-  bool ShrinkNGramModel() { return NGramSeymoreShrink::ShrinkNGramModel(); }
+  bool ShrinkNGramModel(int min_order = 2) {
+    return NGramSeymoreShrink::ShrinkNGramModel(min_order);
+  }
 
  protected:
   double ShrinkScore(const ShrinkStateStats &state,

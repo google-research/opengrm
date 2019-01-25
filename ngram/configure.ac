@@ -1,11 +1,15 @@
-AC_INIT([OpenGrm NGram], [1.3.4], [ngram@www.opengrm.org])
+AC_INIT([NGram], [1.3.5], [ngram@www.opengrm.org])
 AM_INIT_AUTOMAKE([foreign nostdinc -Wall -Werror])
 AM_PROG_AR
 
+# NGram does not throw exceptions, so we do not generate exception handling
+# code. However, users are free to re-enable exception handling.
+# NGram assumes `char` is `unsigned char`; -fsigned-char is likely unsafe.
+CPPFLAGS="$CPPFLAGS -fno-exceptions -funsigned-char"
 CXXFLAGS="$CXXFLAGS -std=c++11"
 
-AC_PROG_CXX
 AC_DISABLE_STATIC
+AC_PROG_CXX
 AC_PROG_LIBTOOL
 
 AC_CONFIG_HEADERS([config.h])

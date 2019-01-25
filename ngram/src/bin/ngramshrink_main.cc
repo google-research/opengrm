@@ -14,9 +14,11 @@
 // Copyright 2005-2016 Brian Roark and Google, Inc.
 // Shrinks an input n-gram model using given pruning criteria.
 
+#include <fstream>
 #include <memory>
 #include <string>
 
+#include <ngram/ngram-list-prune.h>
 #include <ngram/ngram-shrink.h>
 
 DEFINE_double(total_unigram_count, -1.0, "Total unigram count");
@@ -24,9 +26,11 @@ DEFINE_double(theta, 0.0, "Pruning threshold theta");
 DEFINE_int64(target_number_of_ngrams, -1,
              "Maximum number of ngrams to leave in model after pruning. "
              "Value less than zero means no target number, just use theta.");
+DEFINE_int32(min_order_to_prune, 2, "Minimum n-gram order to prune");
 DEFINE_string(method, "seymore",
               "One of: \"context_prune\", \"count_prune\", "
-              "\"relative_entropy\", \"seymore\"");
+              "\"relative_entropy\", \"seymore\", \"list_prune\"");
+DEFINE_string(list_file, "", "File with list of n-grams to prune");
 DEFINE_string(count_pattern, "", "Pattern of counts to prune");
 DEFINE_string(context_pattern, "", "Pattern of contexts to prune");
 DEFINE_int32(shrink_opt, 0,
@@ -54,12 +58,32 @@ int main(int argc, char **argv) {
       fst::StdMutableFst::Read(in_name, true));
   if (!fst) return 1;
 
-  if (!ngram::NGramShrinkModel(fst.get(), FLAGS_method,
-                               FLAGS_total_unigram_count,
-                               FLAGS_theta, FLAGS_target_number_of_ngrams,
-                               FLAGS_count_pattern, FLAGS_context_pattern,
-                               FLAGS_shrink_opt, FLAGS_backoff_label,
-                               FLAGS_norm_eps, FLAGS_check_consistency))
+  std::set<std::vector<fst::StdArc::Label>> ngram_list;
+  if (FLAGS_method == "list_prune") {
+    if (FLAGS_list_file.empty()) {
+      LOG(WARNING) << "list_file parameter empty, no n-grams given";
+      return 1;
+    }
+    std::ifstream ifstrm(FLAGS_list_file);
+    if (!ifstrm) {
+      LOG(WARNING) << "NGramShrink: Can't open " << FLAGS_list_file
+                   << " for reading";
+      return 1;
+    }
+    string line;
+    std::vector<string> ngrams_to_prune;
+    while (getline(ifstrm, line)) {
+      ngrams_to_prune.push_back(line);
+    }
+    ifstrm.close();
+    ngram::GetNGramListToPrune(ngrams_to_prune, fst->InputSymbols(),
+                               &ngram_list);
+  }
+  if (!ngram::NGramShrinkModel(
+          fst.get(), FLAGS_method, ngram_list, FLAGS_total_unigram_count,
+          FLAGS_theta, FLAGS_target_number_of_ngrams, FLAGS_min_order_to_prune,
+          FLAGS_count_pattern, FLAGS_context_pattern, FLAGS_shrink_opt,
+          FLAGS_backoff_label, FLAGS_norm_eps, FLAGS_check_consistency))
     return 1;
 
   fst->Write(out_name);

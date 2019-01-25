@@ -24,6 +24,7 @@
 #include <ngram/ngram-count-merge.h>
 #include <ngram/ngram-hist-merge.h>
 #include <ngram/ngram-model-merge.h>
+#include <ngram/ngram-replace-merge.h>
 
 DEFINE_double(alpha, 1.0, "Weight for first FST");
 DEFINE_double(beta, 1.0, "Weight for second (and subsequent) FST(s)");
@@ -32,7 +33,9 @@ DEFINE_string(contexts, "", "Context patterns file (all FSTs)");
 DEFINE_bool(normalize, false, "Normalize resulting model");
 DEFINE_string(method, "count_merge",
               "One of: \"context_merge\", \"count_merge\", \"model_merge\" "
-              "\"bayes_model_merge\", \"histogram_merge\"");
+              "\"bayes_model_merge\", \"histogram_merge\", \"replace_merge\"");
+DEFINE_int32(max_replace_order, -1,
+             "Maximum order to replace in replace_merge, ignored if < 1.");
 DEFINE_string(ofile, "", "Output file");
 DEFINE_int64(backoff_label, 0, "Backoff label");
 DEFINE_double(norm_eps, ngram::kNormEps, "Normalization check epsilon");
@@ -43,7 +46,7 @@ DEFINE_bool(round_to_int, false, "Round all merged counts to integers");
 bool ValidMergeMethod() {
   if (FLAGS_method == "count_merge" || FLAGS_method == "context_merge" ||
       FLAGS_method == "model_merge" || FLAGS_method == "bayes_model_merge" ||
-      FLAGS_method == "histogram_merge") {
+      FLAGS_method == "histogram_merge" || FLAGS_method == "replace_merge") {
     return true;
   }
   return false;
@@ -155,6 +158,17 @@ int main(int argc, char **argv) {
         ngramrg.MergeNGramModels(*fst2, FLAGS_alpha, FLAGS_beta);
         if (ngramrg.Error()) return 1;
       }
+      ngramrg.GetFst().Write(out_name);
+    } else if (FLAGS_method == "replace_merge") {
+      if (in_count != 2) {
+        LOG(ERROR) << argv[0] << "Only 2 models allowed for replace merge";
+        return 1;
+      }
+      ngram::NGramReplaceMerge ngramrg(fst1.get(), FLAGS_backoff_label,
+                                       FLAGS_norm_eps);
+      if (!ReadFst<fst::StdArc>(argv[2], &fst2)) return 1;
+      ngramrg.MergeNGramModels(*fst2, FLAGS_max_replace_order, FLAGS_normalize);
+      if (ngramrg.Error()) return 1;
       ngramrg.GetFst().Write(out_name);
     } else if (FLAGS_method == "context_merge") {
       ngram::NGramContextMerge ngramrg(fst1.get(), FLAGS_backoff_label,

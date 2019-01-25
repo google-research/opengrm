@@ -84,16 +84,19 @@ class NGramShrink : public NGramMutableModel<Arc> {
     double log_backoff_prob;  // Log probability of word given backoff history.
     double shrink_score;      // Calculated score for shrinking.
     Label label;              // Arc label.
+    StateId dest;             // Destination state of arc.
     StateId backoff_dest;     // Destination state of backoff arc.
     bool needed;              // Is the current arc needed within the automaton?
     bool pruned;  // Has the current arc been pruned already by shrinking?
 
-    ShrinkArcStats(double lp, double lbp, Label lab, StateId dest, bool needed)
+    ShrinkArcStats(double lp, double lbp, Label lab, StateId dest,
+                   StateId backoff_dest, bool needed)
         : log_prob(lp),
           log_backoff_prob(lbp),
           shrink_score(0.0),
           label(lab),
-          backoff_dest(dest),
+          dest(dest),
+          backoff_dest(backoff_dest),
           needed(needed),
           pruned(false) {}
   };
@@ -163,6 +166,9 @@ class NGramShrink : public NGramMutableModel<Arc> {
   // Provides access to negative log denominator of the backoff.
   double GetNLogBackoffDenom() const { return nlog_backoff_denom_; }
 
+  // Allows the norm_ bool to be set after initialization.
+  void SetModelNormBool(bool norm) { norm_ = norm; }
+
  private:
   void FillStateProbs();
 
@@ -205,12 +211,20 @@ class NGramShrink : public NGramMutableModel<Arc> {
         counter = &(it->backed_off_to);
       }
     }
-    CHECK(counter != nullptr);
+    if (counter == nullptr) {
+      NGRAMERROR() << "Counter not found.";
+      NGramModel<Arc>::SetError();
+      return false;
+    }
     if (increment_size == 0) {
       return *counter > 0;
     } else {
       if (decrement) {
-        CHECK_GE(*counter, increment_size);
+        if (*counter < increment_size) {
+          NGRAMERROR() << "Counter value less than increment size.";
+          NGramModel<Arc>::SetError();
+          return false;
+        }
         *counter -= increment_size;
       } else {
         *counter += increment_size;
@@ -258,11 +272,15 @@ class NGramShrink : public NGramMutableModel<Arc> {
           state_label_data_.emplace_back(arc.ilabel);
         }
       }
-      CHECK(std::is_sorted(
-          state_label_data_.begin() + start, state_label_data_.end(),
-          [](const LabelData& a, const LabelData& b) {
-            return a.label < b.label;
-          }));
+      if (!std::is_sorted(state_label_data_.begin() + start,
+                          state_label_data_.end(),
+                          [](const LabelData &a, const LabelData &b) {
+                            return a.label < b.label;
+                          })) {
+        NGRAMERROR() << "Not sorted.";
+        NGramModel<Arc>::SetError();
+        return;
+      }
       // State st+1 must now start at the next element of state_label_data_.
       state_start_index_.push_back(state_label_data_.size());
     }
@@ -659,6 +677,7 @@ int NGramShrink<Arc>::AddArcStat(vector<ShrinkArcStats> *shrink_arcs,
                                  bool calc_score) {
   bool needed = false;
   StateId nextstate = kNoStateId;
+  StateId bo_nextstate = kNoStateId;
   double hi_val, lo_val;
   Label label = kNoLabel;
 
@@ -670,7 +689,8 @@ int NGramShrink<Arc>::AddArcStat(vector<ShrinkArcStats> *shrink_arcs,
         IncrementAndCheckIsBackedOffTo(st, arc->ilabel, arc->nextstate)) {
       needed = true;
     }
-    nextstate = barc->nextstate;
+    nextstate = arc->nextstate;
+    bo_nextstate = barc->nextstate;
     hi_val = ScalarValue(arc->weight);   // higher order model value
     lo_val = ScalarValue(barc->weight);  // lower order model value
     label = arc->ilabel;
@@ -682,7 +702,7 @@ int NGramShrink<Arc>::AddArcStat(vector<ShrinkArcStats> *shrink_arcs,
   }
   int arc_index = shrink_arcs->size();
   shrink_arcs->push_back(
-      ShrinkArcStats(-hi_val, -lo_val, label, nextstate, needed));
+      ShrinkArcStats(-hi_val, -lo_val, label, nextstate, bo_nextstate, needed));
   (*shrink_arcs)[arc_index].shrink_score =
       GetShrinkScore((*shrink_arcs)[arc_index], st, label, calc_score);
   return 1;
@@ -708,7 +728,7 @@ size_t NGramShrink<Arc>::FillShrinkArcInfo(vector<ShrinkArcStats> *shrink_arcs,
     if (arc.ilabel == BackoffLabel()) {
       // placeholder
       shrink_arcs->push_back(
-          ShrinkArcStats(0, 0, arc.ilabel, kNoStateId, true));
+          ShrinkArcStats(0, 0, arc.ilabel, kNoStateId, kNoStateId, true));
     } else if (matcher.Find(arc.ilabel)) {
       Arc barc = matcher.Value();
       candidates += AddArcStat(shrink_arcs, st, &arc, &barc, calc_score);
@@ -735,7 +755,7 @@ double NGramShrink<Arc>::ThetaForMaxNGrams(int target_number_of_ngrams,
     return 0.0;
   }
   std::vector<double> scores;  // Only care about scores, not ngram identities.
-  NGramShrink<Arc>::GetNGramsAndOrScores(nullptr, &scores, min_order);
+  NGramShrink<Arc>::GetNGramsAndOrScoresMinOrder(nullptr, &scores, min_order);
   if (Error()) {
     NGRAMERROR() << "ThetaForMaxNGrams: Error in getting ngram scores";
     return 0.0;
@@ -902,10 +922,23 @@ void NGramShrink<Arc>::PointDeadBackoffArcs() {
   }
 }
 
+// Makes model from NGram model FST with StdArc counts.  Unlike the function
+// below, has an ngram_list argument, which allows specification of a list of
+// n-grams to be removed from the model, via the 'list_prune' method.
+bool NGramShrinkModel(
+    fst::StdMutableFst *fst, const string &method,
+    const std::set<std::vector<fst::StdArc::Label>> &ngram_list,
+    double tot_uni = -1.0, double theta = 0.0, int64 target_num = -1,
+    int32 min_order = 2, const string &count_pattern = "",
+    const string &context_pattern = "", int shrink_opt = 0,
+    fst::StdArc::Label backoff_label = 0, double norm_eps = kNormEps,
+    bool check_consistency = false);
+
 // Makes model from NGram model FST with StdArc counts.
 bool NGramShrinkModel(fst::StdMutableFst *fst, const string &method,
                       double tot_uni = -1.0, double theta = 0.0,
-                      int64 target_num = -1, const string &count_pattern = "",
+                      int64 target_num = -1, int32 min_order = 2,
+                      const string &count_pattern = "",
                       const string &context_pattern = "", int shrink_opt = 0,
                       fst::StdArc::Label backoff_label = 0,
                       double norm_eps = kNormEps,

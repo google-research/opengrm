@@ -36,7 +36,7 @@ class NGramKneserNey : public NGramAbsolute {
                       check_consistency, parameter, bins) {}
 
   // Smooth model according to 'method' and parameters.
-  bool MakeNGramModel();
+  bool MakeNGramModel() override;
 
  private:
   // Update arc and final values, either initializing or incrementing

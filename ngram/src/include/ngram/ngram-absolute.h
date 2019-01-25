@@ -39,7 +39,7 @@ class NGramAbsolute : public NGramMake<StdArc> {
         count_of_counts_(bins_) {}
 
   // Smooth model according to 'method' and parameters.
-  bool MakeNGramModel();
+  bool MakeNGramModel() override;
 
   // Pass in count of counts (rather than computing them)
   void SetCountOfCounts(const StdFst &fst) { count_of_counts_.SetCounts(fst); }

@@ -268,7 +268,7 @@ class NGramExtendedContext {
 
   // Comparison function object on contexts
   struct ContextCompare {
-    bool operator()(const NGramContext &c1, const NGramContext &c2) {
+    bool operator()(const NGramContext &c1, const NGramContext &c2) const {
       // Sorts by beginning of the context interval. Will be a total
       // order assuming the context intervals are disjoint.
       const std::vector<Label> &b1 = c1.GetReverseContextBegin();

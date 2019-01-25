@@ -40,6 +40,9 @@ using fst::StdVectorFst;
 using fst::SymbolTable;
 using std::vector;
 
+// Read vector of tokens from string.
+void ReadTokenString(const string &str, vector<string> *words);
+
 class NGramInput {
  public:
   typedef StdArc Arc;
@@ -473,6 +476,7 @@ class NGramInput {
 
   void SetARPANGramDests() {
     vector<StateId> newdests;
+    newdests.reserve(fst_->NumStates());
     for (StateId st = 0; st < fst_->NumStates(); ++st)
       newdests.push_back(FindNewDest(st));
     for (auto st = 0; st < fst_->NumStates(); ++st) {
@@ -712,34 +716,14 @@ class NGramInput {
     }
   }
 
-  // Start new word when encountering whitespace, move iterator past whitespace
-  bool InitNewWord(vector<string> *words, string::iterator *strit,
-                   string *str) {
-    while (isspace(*(*strit)))  // skip sequence of whitespace
-      (*strit)++;
-    if ((*strit) != str->end()) {  // if not empty string
-      words->push_back(string());  // start new empty word
-      return 1;
-    }
-    return 0;
-  }
-
-  // Read in N-gram tokens as well as count (last token) from string
+  // Reads in N-gram tokens as well as count (last token) from string.
   double ReadNGramFromString(string str, vector<string> *words, StateId *Init,
                              StateId Unigram, StateId Start) {
-    auto strit = str.begin();
-    if (!InitNewWord(words, &strit, &str)) {  // init first word, empty
+    ReadTokenString(str, words);
+    if (words->empty()) {
       NGRAMERROR() << "NGramInput: empty line in file: format error";
       SetError();
       return 0.0;
-    }
-    while (strit < str.end()) {
-      if (isspace(*strit)) {
-        InitNewWord(words, &strit, &str);
-      } else {
-        (*words)[words->size() - 1] += (*strit);  // Adds character to words.
-        strit++;
-      }
     }
     std::stringstream cnt_ss(
         (*words)[words->size() - 1]);  // The last token is the count.

@@ -51,7 +51,7 @@ class NGramKatz : public NGramMake<Arc> {
   // Normalize n-gram counts and smooth to create an n-gram model
   // Using Katz smoothing methods
   //   number of 'bins' used by Katz (>=1)
-  bool MakeNGramModel() {
+  bool MakeNGramModel() override {
     count_of_counts_.CalculateCounts(*this);
     CalculateDiscounts();
     if (FLAGS_v > 0)

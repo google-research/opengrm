@@ -16,6 +16,7 @@ nobase_include_HEADERS = ngram/hist-arc.h \
                          ngram/ngram-input.h \
                          ngram/ngram-katz.h \
                          ngram/ngram-kneser-ney.h \
+                         ngram/ngram-list-prune.h \
                          ngram/ngram-make.h \
                          ngram/ngram-marginalize.h \
                          ngram/ngram-merge.h \
@@ -25,6 +26,7 @@ nobase_include_HEADERS = ngram/hist-arc.h \
                          ngram/ngram-output.h \
                          ngram/ngram-randgen.h \
                          ngram/ngram-relentropy.h \
+                         ngram/ngram-replace-merge.h \
                          ngram/ngram-seymore-shrink.h \
                          ngram/ngram-shrink.h \
                          ngram/ngram-split.h \

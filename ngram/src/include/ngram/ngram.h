@@ -33,6 +33,7 @@
 #include <ngram/ngram-input.h>
 #include <ngram/ngram-katz.h>
 #include <ngram/ngram-kneser-ney.h>
+#include <ngram/ngram-list-prune.h>
 #include <ngram/ngram-make.h>
 #include <ngram/ngram-marginalize.h>
 #include <ngram/ngram-merge.h>
@@ -42,6 +43,7 @@
 #include <ngram/ngram-output.h>
 #include <ngram/ngram-randgen.h>
 #include <ngram/ngram-relentropy.h>
+#include <ngram/ngram-replace-merge.h>
 #include <ngram/ngram-seymore-shrink.h>
 #include <ngram/ngram-shrink.h>
 #include <ngram/ngram-split.h>

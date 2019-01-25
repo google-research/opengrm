@@ -86,7 +86,8 @@ class NGramMerge : public NGramMutableModel<Arc> {
   //    including the matching arc weight
 
   // Perform merger with NGram model specified by the FST argument.
-  bool MergeNGramModels(const Fst<Arc> &infst2, bool norm = false) {
+  bool MergeNGramModels(const Fst<Arc> &infst2, bool norm = false,
+                        int max_order = -1) {
     ngram2_.reset(new NGramModel<Arc>(infst2, BackoffLabel(), NormEps(),
                                       check_consistency_));
     if (ngram2_->Error()) return false;
@@ -94,7 +95,7 @@ class NGramMerge : public NGramMutableModel<Arc> {
     ngram2_ns_ = ngram2_->NumStates();
     if (!MergeWordLists()) return false;  // merge symbol tables
     SetupMergeMaps();   // setup state mappings between two FSTs
-    MergeFsts();        // combines Fsts; not necessarily normalized
+    MergeFsts(max_order);  // combines Fsts; not necessarily normalized
     if (Error()) return false;
     if (norm) {         // normalize and recalculate backoff weights if required
       NormStates();     // normalization
@@ -124,6 +125,11 @@ class NGramMerge : public NGramMutableModel<Arc> {
   virtual double NormWeight(StateId st, bool in_fst1, bool in_fst2) const {
     return 0.0;
   }
+
+  // Setting a maximum merging order less than the high order of the model is
+  // not supported for most merging methods. In order to allow this, this bool
+  // must be set appropriately within the merging sub-class itself.
+  virtual bool MaxOrderOkay(int order) const { return order == HiOrder(); }
 
   // Specifies if unshared arcs/final weights between the two
   // FSTs in a merge have a non-trivial merge. In particular, this
@@ -332,7 +338,7 @@ class NGramMerge : public NGramMutableModel<Arc> {
   }
 
   // Combines Fsts; not necessarily normalized.
-  void MergeFsts() {
+  void MergeFsts(int max_order) {
     bool merge_unshared1 = MergeUnshared(true);
 
     // Adds all states from ngram2 not in ngram1
@@ -360,7 +366,14 @@ class NGramMerge : public NGramMutableModel<Arc> {
 
     // Merges arcs from shared and unshared states
     set<Label> shared;  // shared arcs between st and ist
-    for (int order = HiOrder(); order > 0; --order) {
+    int order = max_order < 1 || max_order > HiOrder() ? HiOrder() : max_order;
+    if (!MaxOrderOkay(order)) {
+      NGRAMERROR() << "max order other than the highest order not supported "
+                      "for this merging method";
+      SetError();
+      return;
+    }
+    for (; order > 0; --order) {
       for (StateId ist = 0; ist < ngram2_ns_; ++ist) {
         if (ngram2_->StateOrder(ist) == order) {
           StateId st = exact_map_2to1_[ist];

@@ -14,44 +14,78 @@
 // Copyright 2005-2016 Brian Roark and Google, Inc.
 #include <ngram/ngram-context-prune.h>
 #include <ngram/ngram-count-prune.h>
+#include <ngram/ngram-list-prune.h>
 #include <ngram/ngram-relentropy.h>
 #include <ngram/ngram-seymore-shrink.h>
 #include <ngram/ngram-shrink.h>
 
 namespace ngram {
 
-// Makes model from NGram model FST with StdArc counts.
-bool NGramShrinkModel(fst::StdMutableFst *fst, const string &method,
-                      double tot_uni, double theta, int64 target_num,
-                      const string &count_pattern,
-                      const string &context_pattern, int shrink_opt,
-                      fst::StdArc::Label backoff_label,
-                      double norm_eps, bool check_consistency) {
-  bool full_context = context_pattern.empty();
-  if (method == "context_prune") {
-    if (target_num >= 0) {
+namespace impl {
+namespace {
+
+// Checks several of the parameters to make sure they are consistent.
+void CheckShrinkOptions(const string &method, int64 target_num,
+                        bool full_context, int min_order) {
+  if (target_num >= 0) {
+    if (method == "context_prune" || method == "count_prune") {
       LOG(ERROR) << "Target number of ngrams requires \"relative_entropy\" or "
                  << "\"seymore\" shrinking";
+    } else if (!full_context) {
+      LOG(ERROR) << "Target number of ngrams requires a full context";
     }
+  }
+  if (method == "context_prune" && min_order > 2) {
+    LOG(ERROR) << "Context prune does not support a minimum order parameter";
+  }
+}
+
+}  // namespace
+}  // namespace impl
+
+bool NGramShrinkModel(
+    fst::StdMutableFst *fst, const string &method,
+    double tot_uni, double theta, int64 target_num, int32 min_order,
+    const string &count_pattern, const string &context_pattern, int shrink_opt,
+    fst::StdArc::Label backoff_label, double norm_eps,
+    bool check_consistency) {
+  return NGramShrinkModel(
+      fst, method, std::set<std::vector<fst::StdArc::Label>>(), tot_uni,
+      theta, target_num, min_order, count_pattern, context_pattern, shrink_opt,
+      backoff_label, norm_eps, check_consistency);
+}
+
+// Makes model from NGram model FST with StdArc counts.
+bool NGramShrinkModel(
+    fst::StdMutableFst *fst, const string &method,
+    const std::set<std::vector<fst::StdArc::Label>> &ngram_list,
+    double tot_uni, double theta, int64 target_num, int32 min_order,
+    const string &count_pattern, const string &context_pattern, int shrink_opt,
+    fst::StdArc::Label backoff_label, double norm_eps,
+    bool check_consistency) {
+  bool full_context = context_pattern.empty();
+  impl::CheckShrinkOptions(method, target_num, full_context, min_order);
+  if (method == "list_prune") {
+    NGramListPrune ngramsh(fst, ngram_list, shrink_opt, tot_uni, backoff_label,
+                           norm_eps, check_consistency);
+    ngramsh.ShrinkNGramModel(min_order);
+    return !ngramsh.Error();
+  } else if (method == "context_prune") {
     NGramContextPrune ngramsh(fst, context_pattern, shrink_opt, tot_uni,
                               backoff_label, norm_eps, check_consistency);
     ngramsh.ShrinkNGramModel();
     return !ngramsh.Error();
   } else if (method == "count_prune") {
-    if (target_num >= 0) {
-      LOG(ERROR) << "Target number of ngrams requires \"relative_entropy\" or "
-                 << "\"seymore\" shrinking";
-    }
     if (full_context) {
       NGramCountPrune ngramsh(fst, count_pattern, shrink_opt, tot_uni,
                               backoff_label, norm_eps, check_consistency);
-      ngramsh.ShrinkNGramModel();
+      ngramsh.ShrinkNGramModel(min_order);
       return !ngramsh.Error();
     } else {
       NGramContextCountPrune ngramsh(fst, count_pattern, context_pattern,
                                      shrink_opt, tot_uni, backoff_label,
                                      norm_eps, check_consistency);
-      ngramsh.ShrinkNGramModel();
+      ngramsh.ShrinkNGramModel(min_order);
       return !ngramsh.Error();
     }
   } else if (method == "relative_entropy") {
@@ -59,18 +93,16 @@ bool NGramShrinkModel(fst::StdMutableFst *fst, const string &method,
       NGramRelEntropy ngramsh(fst, theta, shrink_opt, tot_uni, backoff_label,
                               norm_eps, check_consistency);
       if (target_num >= 0) {
-        ngramsh.CalculateTheta(target_num);
+        ngramsh.CalculateTheta(target_num, min_order);
         if (ngramsh.Error()) return false;
       }
-      ngramsh.ShrinkNGramModel();
+      ngramsh.ShrinkNGramModel(min_order);
       return !ngramsh.Error();
     } else {
-      if (target_num >= 0)
-        LOG(ERROR) << "Target number of ngrams requires a full context";
       NGramContextRelEntropy ngramsh(fst, theta, context_pattern, shrink_opt,
                                      tot_uni, backoff_label, norm_eps,
                                      check_consistency);
-      ngramsh.ShrinkNGramModel();
+      ngramsh.ShrinkNGramModel(min_order);
       return !ngramsh.Error();
     }
   } else if (method == "seymore") {
@@ -78,18 +110,16 @@ bool NGramShrinkModel(fst::StdMutableFst *fst, const string &method,
       NGramSeymoreShrink ngramsh(fst, theta, shrink_opt, tot_uni,
                                  backoff_label, norm_eps, check_consistency);
       if (target_num >= 0) {
-        ngramsh.CalculateTheta(target_num);
+        ngramsh.CalculateTheta(target_num, min_order);
         if (ngramsh.Error()) return false;
       }
-      ngramsh.ShrinkNGramModel();
+      ngramsh.ShrinkNGramModel(min_order);
       return !ngramsh.Error();
     } else {
-      if (target_num >= 0)
-        LOG(ERROR) << "Target number of ngrams requires a full context";
-      NGramContextSeymoreShrink ngramsh(fst, theta, context_pattern,
-                                        shrink_opt, tot_uni, backoff_label,
-                                        norm_eps, check_consistency);
-      ngramsh.ShrinkNGramModel();
+      NGramContextSeymoreShrink ngramsh(fst, theta, context_pattern, shrink_opt,
+                                        tot_uni, backoff_label, norm_eps,
+                                        check_consistency);
+      ngramsh.ShrinkNGramModel(min_order);
       return !ngramsh.Error();
     }
   }

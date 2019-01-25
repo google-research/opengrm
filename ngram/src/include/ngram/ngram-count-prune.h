@@ -62,8 +62,9 @@ class NGramCountPrune : public NGramShrink<StdArc> {
   ~NGramCountPrune() override {}
 
   // Shrinks n-gram model, based on initialized parameters
-  bool ShrinkNGramModel() {
-    return NGramShrink<StdArc>::ShrinkNGramModel(false);
+  bool ShrinkNGramModel(int min_order = 2) {
+    return NGramShrink<StdArc>::ShrinkNGramModel(/*require_norm=*/false,
+                                                 min_order);
   }
 
  protected:

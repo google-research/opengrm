@@ -128,7 +128,7 @@ class NGramCounter {
     if (Error()) return;
     std::vector<int> incoming_words(states_.size(), -1);
     std::vector<int> previous_states(states_.size(), -1);
-    incoming_words[NGramStartState()] = 0;
+    if (order_ > 1) incoming_words[NGramStartState()] = 0;
     for (size_t a = 0; a < arcs_.size(); ++a) {
       const CountArc &arc = arcs_[a];
       if (states_[arc.origin].order < states_[arc.destination].order) {
@@ -354,7 +354,7 @@ class NGramCounter {
   bool CountFromStringFst(const Fst<Arc> &fst);
 
   struct PairCompare {
-    bool operator()(const Pair &p1, const Pair &p2) {
+    bool operator()(const Pair &p1, const Pair &p2) const {
       return p1.first == p2.first ? p1.second > p2.second : p1.first > p2.first;
     }
   };

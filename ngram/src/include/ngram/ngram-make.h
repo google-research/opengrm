@@ -62,10 +62,9 @@ class NGramMake : public NGramMutableModel<Arc> {
 
   virtual ~NGramMake() {}
 
- protected:
   // Normalizes n-gram counts and smoothes to create an n-gram model.
   // Returns true on success and false on failure.
-  bool MakeNGramModel() {
+  virtual bool MakeNGramModel() {
     if (Error()) return false;
     for (StateId st = 0; st < GetExpandedFst().NumStates(); ++st) {
       has_all_ngrams_.push_back(false);
@@ -96,6 +95,7 @@ class NGramMake : public NGramMutableModel<Arc> {
     return true;
   }
 
+ protected:
   // Return negative log discounted count for provided negative log count
   // Need to override if some discounting is done during smoothing
   // Default can be used by non-discounting methods, e.g., Witten-Bell
