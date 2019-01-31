@@ -12,47 +12,50 @@
 // limitations under the License.
 //
 // Copyright 2005-2016 Brian Roark and Google, Inc.
-// An Fst arc type for histograms.
+// An arc type for histograms.
 
 #ifndef NGRAM_HIST_ARC_H_
 #define NGRAM_HIST_ARC_H_
 
-#include <cctype>
-#include <cmath>
-#include <list>
-#include <sstream>
-#include <string>
+#include <utility>
 
-#include <fst/types.h>
 #include <fst/arc.h>
 
 namespace ngram {
 
-// Number of bins in histogram arc weights.  Set to 2 more than the highest
-// count that receives a Katz backoff estimate, to allow for bins representing
-// the 0 count and counts higher than the cutoff.
-const int kHistogramBins = 7;
+// Number of bins in histogram arc weights; set to 2 more than the highest count
+// that receives a Katz backoff estimate to allow for bins representing the 0
+// count and counts higher than the cutoff.
+constexpr size_t kHistogramBins = 7;
 
 }  // namespace ngram
 
 namespace fst {
 
-// Histogram Arc is a cartesian product of Std Arcs.
+// HistogramArc is the Cartesian product of kHistogramBins StdArcs.
 struct HistogramArc : public PowerArc<StdArc, ngram::kHistogramBins> {
-  HistogramArc(Label i, Label o, Weight w, StateId s)
-      : ilabel(i), olabel(o), weight(w), nextstate(s) {}
+  // Inherited types.
+  using Base = PowerArc<StdArc, ngram::kHistogramBins>;
+  using Base::Label;
+  using Base::StateId;
+  using Base::Weight;
 
-  HistogramArc() {}
+  // Inherited fields.
+  using Base::ilabel;
+  using Base::nextstate;
+  using Base::olabel;
+  using Base::weight;
 
-  static const string &Type() {  // Arc type name
-    static const string *const type = new string("hist");
+  HistogramArc() = default;
+
+  template <class W>
+  HistogramArc(Label ilabel, Label olabel, W &&weight, StateId nextstate)
+      : Base(ilabel, olabel, std::forward<W>(weight), nextstate) {}
+
+  static const string &Type() {
+    static const auto *const type = new string("hist");
     return *type;
   }
-
-  Label ilabel;       // Transition input label
-  Label olabel;       // Transition output label
-  Weight weight;      // Transition weight
-  StateId nextstate;  // Transition destination state
 };
 
 }  // namespace fst
