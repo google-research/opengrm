@@ -1,0 +1,31 @@
+v 0.2 (beta)
+============
+
+* More documentation (0.2.8)
+* Decode functions no longer reset their FARs (0.2.8)
+* Uses rvalue references in expectation tables (0.2.7)
+* Correctly catches non-(co)accessible weights (0.2.7)
+* OpenFst 1.7.0 compatibility fixes (0.2.6)
+* Modifies path decoding so it returns an alignment (0.2.4)
+* Adds A* count collection for idempotent semirings (0.2.4)
+* Correctly detects and logs composition failures (0.2.3)
+* Renames the binaries `baumwelchdecode` and `baumwelchtrain` (0.2.2)
+* Removes `--power` flag; use `fstmap --map_type=float_power` instead (0.2.1)
+* Adds A* decoding for non-path semirings (0.2.0)
+
+v. 0.1 (alpha)
+==============
+
+* Adds normalization as the first step before training (0.1.5)
+* Simplifies state-sorting during decoding (0.1.5)
+* Refactoring of BaumWelch class (0.1.5)
+* Improves logging verbosity (0.1.5)
+* Halts training when likelihood decreases (0.1.4)
+* Adds internal log-summation class (0.1.4)
+* Performs normalization earlier (0.1.4)
+* Renames 'baumwelch*' files to 'train*' (0.1.2)
+* Optimizations to training (0.1.2)
+* Fixes reading beyond the end of ShortestDistance weight vectors (0.1.1)
+* Adds documentation for decipherment problems (0.1.1)
+* Fixes likelihood logging (0.1.1)
+* Alpha release (0.1.0)
