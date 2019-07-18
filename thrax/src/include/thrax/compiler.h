@@ -6,13 +6,16 @@
 #include <thrax/grm-compiler.h>
 #include <thrax/grm-manager.h>
 
+DECLARE_string(indir);
+
 namespace thrax {
 
 template <typename Arc>
-bool CompileGrammar(const string& input_grammar, const string& output_far,
-                    bool emit_ast_only, bool line_numbers_in_ast) {
+bool CompileGrammar(const std::string& input_grammar,
+                    const std::string& output_far, bool emit_ast_only,
+                    bool line_numbers_in_ast) {
   GrmCompilerSpec<Arc> grammar;
-  if (!grammar.ParseFile(input_grammar)) {
+  if (!grammar.ParseFile(JoinPath(FLAGS_indir, input_grammar))) {
     return false;
   }
   if (emit_ast_only) {
@@ -25,12 +28,16 @@ bool CompileGrammar(const string& input_grammar, const string& output_far,
   return false;
 }
 
-extern template bool CompileGrammar<fst::StdArc>(const string&,
-                                                     const string&, bool, bool);
-extern template bool CompileGrammar<fst::LogArc>(const string&,
-                                                     const string&, bool, bool);
-extern template bool CompileGrammar<fst::Log64Arc>(const string&,
-                                                       const string&, bool,
+extern template bool CompileGrammar<fst::StdArc>(const std::string&,
+                                                     const std::string&, bool,
+                                                     bool);
+
+extern template bool CompileGrammar<fst::LogArc>(const std::string&,
+                                                     const std::string&, bool,
+                                                     bool);
+
+extern template bool CompileGrammar<fst::Log64Arc>(const std::string&,
+                                                       const std::string&, bool,
                                                        bool);
 
 }  // namespace thrax

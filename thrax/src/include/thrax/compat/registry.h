@@ -24,8 +24,6 @@
 
 namespace thrax {
 
-using std::string;
-
 template <class T>
 class Registry {
  public:
@@ -35,23 +33,23 @@ class Registry {
     STLDeleteValues(&registry_);
   };
 
-  void Register(const string &name, T object) {
+  void Register(const std::string &name, T object) {
     // Will silently do nothing if already present.
     registry_.emplace(name, object);
   }
 
-  T Get(const string &name) {
+  T Get(const std::string &name) {
     const auto it = registry_.find(name);
     return it == registry_.end() ? nullptr : it->second;
   }
 
-  const T Get(const string &name) const {
+  const T Get(const std::string &name) const {
     const auto it = registry_.find(name);
     return it == registry_.end() ? nullptr : it->second;
   }
 
  private:
-  std::map<string, T> registry_;
+  std::map<std::string, T> registry_;
 
   Registry(const Registry &) = delete;
   Registry &operator=(const Registry &) = delete;

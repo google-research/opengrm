@@ -38,7 +38,8 @@ class Invert : public UnaryFstFunction<Arc> {
   }
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(Invert<Arc>);
+  Invert<Arc>(const Invert<Arc>&) = delete;
+  Invert<Arc>& operator=(const Invert<Arc>&) = delete;
 };
 
 }  // namespace function

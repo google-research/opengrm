@@ -84,11 +84,11 @@ class PdtCompose : public Function<Arc> {
     MakeParensPairVector(parens_transducer, &parens);
     bool left_pdt = false;
     if (args.size() > 3) {
-      if (!args[3]->is<string>()) {
+      if (!args[3]->is<std::string>()) {
         std::cout << "PdtCompose: Expected string for argument 4" << std::endl;
         return nullptr;
       }
-      const string& pdt_direction = *args[3]->get<string>();
+      const auto& pdt_direction = *args[3]->get<std::string>();
       if (pdt_direction != "left_pdt" && pdt_direction != "right_pdt") {
         std::cout
             << "PdtCompose: Expected 'left_pdt' or 'right_pdt' for argument 4"
@@ -99,11 +99,11 @@ class PdtCompose : public Function<Arc> {
     }
     bool delete_left = false, delete_right = false;
     if (args.size() == 5) {
-      if (!args[4]->is<string>()) {
+      if (!args[4]->is<std::string>()) {
         std::cout << "PdtCompose: Expected string for argument 5" << std::endl;
         return nullptr;
       }
-      const string& sort_mode = *args[4]->get<string>();
+      const auto& sort_mode = *args[4]->get<std::string>();
       if (sort_mode != "left" && sort_mode != "right" && sort_mode != "both") {
         std::cout
             << "PdtCompose: Expected 'left', 'right', or 'both' for argument 5"
@@ -111,12 +111,14 @@ class PdtCompose : public Function<Arc> {
         return nullptr;
       }
       if (sort_mode != "right") {
-        left = new fst::ArcSortFst<Arc, fst::OLabelCompare<Arc> >(
-            *left, ocomp);
+        static const fst::OLabelCompare<Arc> ocomp;
+        left = new fst::ArcSortFst<Arc, fst::OLabelCompare<Arc>>(*left,
+                                                                         ocomp);
         delete_left = true;
       }
       if (sort_mode != "left") {
-        right = new fst::ArcSortFst<Arc, fst::ILabelCompare<Arc> >(
+        static const fst::ILabelCompare<Arc> icomp;
+        right = new fst::ArcSortFst<Arc, fst::ILabelCompare<Arc>>(
             *right, icomp);
         delete_right = true;
       }
@@ -129,10 +131,8 @@ class PdtCompose : public Function<Arc> {
     } else {
       fst::Compose(*left, *right, parens, output, opts);
     }
-    if (delete_left)
-      delete left;
-    if (delete_right)
-      delete right;
+    if (delete_left) delete left;
+    if (delete_right) delete right;
     return new DataType(output);
   }
 
@@ -140,7 +140,8 @@ class PdtCompose : public Function<Arc> {
   fst::ILabelCompare<Arc> icomp;
   fst::OLabelCompare<Arc> ocomp;
 
-  DISALLOW_COPY_AND_ASSIGN(PdtCompose<Arc>);
+  PdtCompose<Arc>(const PdtCompose<Arc>&) = delete;
+  PdtCompose<Arc>& operator=(const PdtCompose<Arc>&) = delete;
 };
 
 }  // namespace function

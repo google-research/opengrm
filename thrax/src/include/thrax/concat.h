@@ -59,7 +59,8 @@ class Concat : public BinaryFstFunction<Arc> {
   }
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(Concat<Arc>);
+  Concat<Arc>(const Concat<Arc>&) = delete;
+  Concat<Arc>& operator=(const Concat<Arc>&) = delete;
 };
 
 template <typename Arc>
@@ -96,7 +97,8 @@ class ConcatDelayed : public BinaryFstFunction<Arc> {
   }
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(ConcatDelayed<Arc>);
+  ConcatDelayed<Arc>(const ConcatDelayed<Arc>&) = delete;
+  ConcatDelayed<Arc>& operator=(const ConcatDelayed<Arc>&) = delete;
 };
 
 }  // namespace function

@@ -16,9 +16,9 @@
 #ifndef THRAX_WALKER_H_
 #define THRAX_WALKER_H_
 
+
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
-
 namespace thrax {
 
 class CollectionNode;
@@ -53,7 +53,8 @@ class AstWalker {
   virtual void Visit(StringNode* node) = 0;
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(AstWalker);
+  AstWalker(const AstWalker&) = delete;
+  AstWalker& operator=(const AstWalker&) = delete;
 };
 
 }  // namespace thrax

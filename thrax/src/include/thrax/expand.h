@@ -37,7 +37,8 @@ class Expand : public UnaryFstFunction<Arc> {
   }
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(Expand<Arc>);
+  Expand<Arc>(const Expand<Arc>&) = delete;
+  Expand<Arc>& operator=(const Expand<Arc>&) = delete;
 };
 
 }  // namespace function

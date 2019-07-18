@@ -51,11 +51,11 @@ class Lexer {
     KEYWORD,               // reserved keywords
   };
 
-  static const std::set<string> kKeywords;
+  static const std::set<std::string> kKeywords;
 
   // Preprocessing - must be called before the grammar is processed via repeated
   // calls to YYLex().
-  void ScanString(const string &str) {
+  void ScanString(const std::string &str) {
     grammar_.push(GrammarFile("", str));
   }
 
@@ -64,7 +64,7 @@ class Lexer {
   TokenClass YYLex();
 
   // Access to the most recently read string.
-  const string &YYString() const;
+  const std::string &YYString() const;
 
   // Access to the beginning and one past end positions of the most recently
   // read string. The difference between the two may not equal the length of
@@ -82,11 +82,11 @@ class Lexer {
 
   // Context string (for error messages and debugging).
   // If grammar is popped empty, return empty string.
-  string GetCurrentContext() const {
+  std::string GetCurrentContext() const {
     if (grammar_.empty()) return "";
     int end = curr_file()->pos;
     int start = curr_file()->content.rfind('\n', end - 1);
-    if (start == string::npos)
+    if (start == std::string::npos)
       start = 0;
     else
       ++start;  // Skip over the actual newline.
@@ -94,16 +94,17 @@ class Lexer {
   }
 
   // Path to current grammar file.
-  const string &current_grammar_path() const {
+  const std::string &current_grammar_path() const {
     return curr_file()->filename;
   }
 
  private:
   // Information about the current token.
   struct Token {
-    string token_string;
+    std::string token_string;
     TokenClass token_class;
-    int begin_pos, end_pos;
+    int begin_pos;
+    int end_pos;
 
     void Reset() {
       token_string.clear();
@@ -114,13 +115,13 @@ class Lexer {
   };
 
   struct GrammarFile {
-    GrammarFile(const string &fn, const string &cont)
+    GrammarFile(const std::string &fn, const std::string &cont)
         : filename(fn), content(cont), pos(0), line_number(1) {}
     GrammarFile()
         : pos(0), line_number(1) {}
 
-    string filename;
-    string content;
+    std::string filename;
+    std::string content;
     int pos;
     int line_number;
   };
@@ -161,9 +162,7 @@ class Lexer {
   // Zero based position of the next character in a file. Returns -1 when the
   // grammar has been popped empty.
   int GetPos() const {
-    if (grammar_.empty()) {
-      return -1;
-    }
+    if (grammar_.empty()) return -1;
     return curr_file()->pos;
   }
 };

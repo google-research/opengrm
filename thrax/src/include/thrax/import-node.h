@@ -19,8 +19,6 @@
 #ifndef THRAX_IMPORT_NODE_H_
 #define THRAX_IMPORT_NODE_H_
 
-#include <string>
-
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
 #include <thrax/node.h>
@@ -34,9 +32,11 @@ class StringNode;
 class ImportNode : public Node {
  public:
   ImportNode(StringNode* path, IdentifierNode* alias);
+
   virtual ~ImportNode();
 
   StringNode* GetPath() const;
+
   IdentifierNode* GetAlias() const;
 
   virtual void Accept(AstWalker* walker);
@@ -45,7 +45,8 @@ class ImportNode : public Node {
   StringNode* path_;
   IdentifierNode* alias_;
 
-  DISALLOW_COPY_AND_ASSIGN(ImportNode);
+  ImportNode(const ImportNode&) = delete;
+  ImportNode& operator=(const ImportNode&) = delete;
 };
 
 }  // namespace thrax

@@ -55,13 +55,12 @@ class DataType {
   using ThingType = thrax::Oneof<fst::Fst<fst::StdArc> *,
                                   fst::Fst<fst::LogArc> *,
                                   fst::Fst<fst::Log64Arc> *,
-                                  fst::SymbolTable,
-                                  string,
-                                  int>;
+                                  fst::SymbolTable, std::string, int>;
 
   ThingType thing_;
 
-  DISALLOW_COPY_AND_ASSIGN(DataType);
+  DataType(const DataType &) = delete;
+  DataType &operator=(const DataType &) = delete;
 };
 
 }  // namespace thrax

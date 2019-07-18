@@ -34,7 +34,7 @@ template <typename Arc>
 class GrmManagerSpec : public AbstractGrmManager<Arc> {
   // `typedef` is used instead of `using` for SWIG compatibility.
   typedef AbstractGrmManager<Arc> Base;
-  typedef std::map<string, const typename Base::Transducer*> FstMap;
+  typedef std::map<std::string, const typename Base::Transducer *> FstMap;
 
  public:
   GrmManagerSpec() : Base() { }
@@ -42,20 +42,26 @@ class GrmManagerSpec : public AbstractGrmManager<Arc> {
 
   // Loads up the FSTs from a FAR file.  Returns true on success and false
   // otherwise.
-  bool LoadArchive(const string& filename);
+  bool LoadArchive(const std::string &filename);
 
   // This function will write the created FSTs into an FST archive with the
   // provided filename.
-  void ExportFar(const string& filename) const;
+  void ExportFar(const std::string &filename) const override;
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(GrmManagerSpec);
+  GrmManagerSpec(const GrmManagerSpec &) = delete;
+  GrmManagerSpec &operator=(const GrmManagerSpec &) = delete;
 };
 
 template <typename Arc>
-bool GrmManagerSpec<Arc>::LoadArchive(const string& filename) {
+bool GrmManagerSpec<Arc>::LoadArchive(const std::string &filename) {
+#ifndef NO_GOOGLE
   std::unique_ptr<fst::FarReader<Arc>> reader(
       fst::STTableFarReader<Arc>::Open(filename));
+#else
+  std::unique_ptr<fst::FarReader<Arc>> reader(
+      fst::STTableFarReader<Arc>::Open(filename));
+#endif  // NO_GOOGLE
   if (reader == nullptr) {
     LOG(ERROR) << "Unable to open FAR: " << filename;
     return false;
@@ -64,15 +70,20 @@ bool GrmManagerSpec<Arc>::LoadArchive(const string& filename) {
 }
 
 template <typename Arc>
-void GrmManagerSpec<Arc>::ExportFar(const string &filename) const {
-  const string dir(JoinPath(FLAGS_outdir, StripBasename(filename)));
+void GrmManagerSpec<Arc>::ExportFar(const std::string &filename) const {
+  const std::string dir(JoinPath(FLAGS_outdir, StripBasename(filename)));
   VLOG(1) << "Creating output directory: " << dir;
   if (!RecursivelyCreateDir(dir))
     LOG(FATAL) << "Unable to create output directory: " << dir;
 
-  const string out_path(JoinPath(FLAGS_outdir, filename));
-  fst::STTableFarWriter<Arc>* writer =
+  const std::string out_path(JoinPath(FLAGS_outdir, filename));
+#ifndef NO_GOOGLE
+  fst::FarWriter<Arc>* writer =
       fst::STTableFarWriter<Arc>::Create(out_path);
+#else
+  fst::FarWriter<Arc>* writer =
+      fst::STTableFarWriter<Arc>::Create(out_path);
+#endif  // NO_GOOGLE
   if (!writer)
     LOG(FATAL) << "Failed to create writer for: " << out_path;
 

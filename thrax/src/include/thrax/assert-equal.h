@@ -59,8 +59,8 @@ class AssertEqual : public BinaryFstFunction<Arc> {
     auto mode = fst::StringTokenType::BYTE;
     const fst::SymbolTable* symbols = nullptr;
     if (args.size() > 2) {
-      if (args[2]->is<string>()) {
-        if (*args[2]->get<string>() == "utf8") {
+      if (args[2]->is<std::string>()) {
+        if (*args[2]->get<std::string>() == "utf8") {
           mode = fst::StringTokenType::UTF8;
         } else {
           mode = fst::StringTokenType::BYTE;
@@ -115,19 +115,19 @@ class AssertEqual : public BinaryFstFunction<Arc> {
       // or UTF8
       fst::RmEpsilon(mutable_left);
       fst::RmEpsilon(&mutable_right);
-      string lstring;
+      std::string lstring;
       if (mutable_left->Start() == fst::kNoStateId) {
         lstring = "nullptr";
       } else {
-        string content;
+        std::string content;
         AssertEqual<Arc>::CoerceToString(*mutable_left, &content, symbols);
         lstring = "\"" + content + "\"";
       }
-      string rstring;
+      std::string rstring;
       if (mutable_right.Start() == fst::kNoStateId) {
         rstring = "nullptr";
       } else {
-        string content;
+        std::string content;
         AssertEqual<Arc>::CoerceToString(mutable_right, &content, symbols);
         rstring = "\"" + content + "\"";
       }
@@ -145,8 +145,8 @@ class AssertEqual : public BinaryFstFunction<Arc> {
   // Coerces an FST to a string by calling ShortestPath, TopSort, and the
   // string printer. This is necessary so we have exactly one string to
   // to show in the debug message.
-  static void CoerceToString(const MutableTransducer &fst, string *str,
-                             const fst::SymbolTable *symbols = nullptr) {
+  static void CoerceToString(const MutableTransducer& fst, std::string* str,
+                             const fst::SymbolTable* symbols = nullptr) {
     fst::StringPrinter<Arc> printer(fst::StringTokenType::BYTE,
                                         symbols);
     if (fst.Properties(fst::kString, true) == fst::kString) {
@@ -159,7 +159,6 @@ class AssertEqual : public BinaryFstFunction<Arc> {
     }
   }
 };
-
 
 }  // namespace function
 }  // namespace thrax

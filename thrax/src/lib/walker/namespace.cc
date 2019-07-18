@@ -31,8 +31,10 @@ namespace thrax {
 Namespace::Namespace()
     : toplevel_(false), resources_(new ResourceMap()), owns_resources_(true) {}
 
-Namespace::Namespace(const string& filename, ResourceMap* resource_map)
-    : toplevel_(false), filename_(filename), resources_(resource_map),
+Namespace::Namespace(const std::string& filename, ResourceMap* resource_map)
+    : toplevel_(false),
+      filename_(filename),
+      resources_(resource_map),
       owns_resources_(false) {}
 
 Namespace::~Namespace() {
@@ -43,8 +45,8 @@ Namespace::~Namespace() {
     delete resources_;
 }
 
-Namespace* Namespace::AddSubNamespace(const string& filename,
-                                      const string& alias) {
+Namespace* Namespace::AddSubNamespace(const std::string& filename,
+                                      const std::string& alias) {
   Namespace* new_namespace = new Namespace(filename, resources_);
   if (!InsertIfNotPresent(&alias_namespace_map_, alias, new_namespace))
     LOG(FATAL) << "Cannot reuse the same alias for two files: "
@@ -65,7 +67,7 @@ int Namespace::LocalEnvironmentDepth() const {
   return local_env_.size();
 }
 
-bool Namespace::EraseLocal(const string& identifier) {
+bool Namespace::EraseLocal(const std::string& identifier) {
   return local_env_.back()->Erase(identifier);
 }
 
@@ -83,7 +85,7 @@ Namespace* Namespace::ResolveNamespaceInternal(
   } else {
     // Here, we need to look up the next namespace and return that, maybe
     // creating it if requested.
-    const string& namespace_name = **identifier_nspos;
+    const std::string& namespace_name = **identifier_nspos;
     Namespace** next = FindOrNull(alias_namespace_map_, namespace_name);
     if (next) {
       ++(*identifier_nspos);
@@ -94,7 +96,7 @@ Namespace* Namespace::ResolveNamespaceInternal(
   }
 }
 
-string Namespace::GetFilename() const {
+std::string Namespace::GetFilename() const {
   return filename_.empty() ? "<unknown file>" : filename_;
 }
 
@@ -106,7 +108,8 @@ bool Namespace::IsTopLevel() const {
   return toplevel_;
 }
 
-string Namespace::ConstructMapName(const string& identifier_name) const {
+std::string Namespace::ConstructMapName(
+    const std::string& identifier_name) const {
   return thrax::StringCat(filename_, "/", identifier_name);
 }
 

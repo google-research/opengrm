@@ -19,8 +19,6 @@
 #ifndef THRAX_STATEMENT_NODE_H_
 #define THRAX_STATEMENT_NODE_H_
 
-#include <string>
-
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
 #include <thrax/node.h>
@@ -37,11 +35,13 @@ class StatementNode : public Node {
   };
 
   explicit StatementNode(StatementNodeType type);
+
   virtual ~StatementNode();
 
   StatementNodeType GetType() const;
 
   void Set(Node* statement);
+
   Node* Get() const;
 
   virtual void Accept(AstWalker* walker);
@@ -50,7 +50,8 @@ class StatementNode : public Node {
   StatementNodeType type_;
   Node* statement_;
 
-  DISALLOW_COPY_AND_ASSIGN(StatementNode);
+  StatementNode(const StatementNode&) = delete;
+  StatementNode& operator=(const StatementNode&) = delete;
 };
 
 }  // namespace thrax

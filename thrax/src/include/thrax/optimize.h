@@ -61,7 +61,8 @@ class Optimize : public UnaryFstFunction<Arc> {
   }
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(Optimize<Arc>);
+  Optimize<Arc>(const Optimize<Arc>&) = delete;
+  Optimize<Arc>& operator=(const Optimize<Arc>&) = delete;
 };
 
 }  // namespace function

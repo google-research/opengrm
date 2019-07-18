@@ -60,7 +60,7 @@ class FstNode : public Node {
   Node* GetArgument(int index) const;
 
   bool HasWeight() const;
-  const string& GetWeight() const;
+  const std::string& GetWeight() const;
   const bool ShouldOptimize() const;
   void SetOptimize();
 
@@ -73,7 +73,8 @@ class FstNode : public Node {
   bool optimize_;
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(FstNode);
+  FstNode(const FstNode&) = delete;
+  FstNode& operator=(const FstNode&) = delete;
 };
 
 // A specialization to string FSTs, containing parse information.  If we should
@@ -88,6 +89,7 @@ class StringFstNode : public FstNode {
   };
 
   explicit StringFstNode(ParseMode parse_mode);
+
   virtual ~StringFstNode();
 
   ParseMode GetParseMode() const;
@@ -97,7 +99,8 @@ class StringFstNode : public FstNode {
  private:
   ParseMode parse_mode_;
 
-  DISALLOW_COPY_AND_ASSIGN(StringFstNode);
+  StringFstNode(const StringFstNode&) = delete;
+  StringFstNode& operator=(const StringFstNode&) = delete;
 };
 
 class RepetitionFstNode : public FstNode {
@@ -108,6 +111,7 @@ class RepetitionFstNode : public FstNode {
     QUESTION = 2,
     RANGE = 3,
   };
+
   static const char* RepetitionFstNodeTypeToString(RepetitionFstNodeType type);
 
   explicit RepetitionFstNode(RepetitionFstNodeType type);
@@ -116,15 +120,18 @@ class RepetitionFstNode : public FstNode {
   RepetitionFstNodeType GetRepetitionType() const;
 
   void SetRange(int min, int max);
+
   void GetRange(int* min, int* max) const;
 
   virtual void Accept(AstWalker* walker);
 
  private:
   RepetitionFstNodeType repetition_type_;
-  int range_min_, range_max_;
+  int range_min_;
+  int range_max_;
 
-  DISALLOW_COPY_AND_ASSIGN(RepetitionFstNode);
+  RepetitionFstNode(const RepetitionFstNode&) = delete;
+  RepetitionFstNode& operator=(const RepetitionFstNode&) = delete;
 };
 
 }  // namespace thrax

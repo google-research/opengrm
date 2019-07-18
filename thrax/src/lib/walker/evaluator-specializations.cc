@@ -35,20 +35,20 @@ Registry<function::Function<fst::LogArc>* > function::kLogArcRegistry;
 Registry<function::Function<fst::Log64Arc>* > function::kLog64ArcRegistry;
 
 template <>
-function::Function<fst::StdArc>* GetFunction(const string& func_name) {
-  string name = "StdArc" + func_name;
+function::Function<fst::StdArc>* GetFunction(const std::string& func_name) {
+  std::string name = "StdArc" + func_name;
   return function::kStdArcRegistry.Get(name);
 }
 
 template <>
-function::Function<fst::LogArc>* GetFunction(const string& func_name) {
-  string name = "LogArc" + func_name;
+function::Function<fst::LogArc>* GetFunction(const std::string& func_name) {
+  std::string name = "LogArc" + func_name;
   return function::kLogArcRegistry.Get(name);
 }
 
 template <>
-function::Function<fst::Log64Arc>* GetFunction(const string& func_name) {
-  string name = "Log64Arc" + func_name;
+function::Function<fst::Log64Arc>* GetFunction(const std::string& func_name) {
+  std::string name = "Log64Arc" + func_name;
   return function::kLog64ArcRegistry.Get(name);
 }
 

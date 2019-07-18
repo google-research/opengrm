@@ -55,7 +55,8 @@ class Rewrite : public BinaryFstFunction<Arc> {
   }
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(Rewrite<Arc>);
+  Rewrite<Arc>(const Rewrite<Arc>&) = delete;
+  Rewrite<Arc>& operator=(const Rewrite<Arc>&) = delete;
 };
 
 }  // namespace function

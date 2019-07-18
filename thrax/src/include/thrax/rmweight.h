@@ -36,7 +36,8 @@ class RmWeight : public UnaryFstFunction<Arc> {
   }
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(RmWeight<Arc>);
+  RmWeight<Arc>(const RmWeight<Arc>&) = delete;
+  RmWeight<Arc>& operator=(const RmWeight<Arc>&) = delete;
 };
 
 }  // namespace function

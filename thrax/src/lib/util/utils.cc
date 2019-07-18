@@ -38,9 +38,9 @@ namespace thrax {
 namespace {
 
 // Computes size of joined string.
-size_t GetResultSize(const std::vector<string> &elements, size_t s_size) {
-  const auto lambda = [](size_t partial, const string &right) {
-      return partial + right.size();
+size_t GetResultSize(const std::vector<std::string> &elements, size_t s_size) {
+  const auto lambda = [](size_t partial, const std::string &right) {
+    return partial + right.size();
   };
   return (std::accumulate(elements.begin(), elements.end(), 0, lambda) +
           s_size * (elements.size() - 1));
@@ -49,8 +49,9 @@ size_t GetResultSize(const std::vector<string> &elements, size_t s_size) {
 }  // namespace
 
 // Joins a vector of strings on a given delimiter.
-string StringJoin(const std::vector<string> &elements, const string &delim) {
-  string result;
+std::string StringJoin(const std::vector<std::string> &elements,
+                       const std::string &delim) {
+  std::string result;
   if (elements.empty()) return result;
   size_t s_size = delim.size();
   result.reserve(GetResultSize(elements, s_size));
@@ -65,13 +66,14 @@ string StringJoin(const std::vector<string> &elements, const string &delim) {
 
 // Splits a string according to delimiter, skipping over consecutive
 // delimiters.
-std::vector<string> StringSplit(const string &full, const char *delim) {
+std::vector<std::string> StringSplit(const std::string &full,
+                                     const char *delim) {
   size_t prev = 0;
   size_t found = full.find_first_of(delim);
   size_t size = found - prev;
-  std::vector<string> result;
+  std::vector<std::string> result;
   if (size > 0) result.push_back(full.substr(prev, size));
-  while (found != string::npos) {
+  while (found != std::string::npos) {
     prev = found + 1;
     found = full.find_first_of(delim, prev);
     size = found - prev;
@@ -82,31 +84,31 @@ std::vector<string> StringSplit(const string &full, const char *delim) {
 
 // Split a string according to the delimiters, including consecutive
 // delimiters as empty strings.
-void StripSplitAllowEmpty(const string &full, const char *delim,
-                           std::vector<string> *result) {
+void StripSplitAllowEmpty(const std::string &full, const char *delim,
+                          std::vector<std::string> *result) {
   size_t prev = 0;
   size_t found = full.find_first_of(delim);
   result->push_back(full.substr(prev, found - prev));
-  while (found != string::npos) {
+  while (found != std::string::npos) {
     prev = found + 1;
     found = full.find_first_of(delim, prev);
     result->push_back(full.substr(prev, found - prev));
   }
 }
 
-string StringPrintf(const char *format, ...) {
+std::string StringPrintf(const char *format, ...) {
   va_list ap;
   va_start(ap, format);
   char buf[1024];
   vsnprintf(buf, 1024, format, ap);
-  string retval(buf);
+  std::string retval(buf);
   va_end(ap);
   return retval;
 }
 
 // Operations on filenames.
 
-string JoinPath(const string &dirname, const string &basename) {
+std::string JoinPath(const std::string &dirname, const std::string &basename) {
   if ((!basename.empty() && basename[0] == '/') || dirname.empty()) {
     return basename;
   } else if (dirname[dirname.size() - 1] == '/') {
@@ -123,55 +125,54 @@ const char *Suffix(const char *filename) {
   return (last_dot ? last_dot + 1 : nullptr);
 }
 
-const string Suffix(const string &filename) {
-  return string(Suffix(filename.c_str()));
+const std::string Suffix(const std::string &filename) {
+  return std::string(Suffix(filename.c_str()));
 }
 
-string StripBasename(const char *filename) {
+std::string StripBasename(const char *filename) {
   const char *base = strrchr(filename, '/');
-  if (!base) return(string(""));
-  string sfilename(filename);
+  if (!base) return (std::string(""));
+  std::string sfilename(filename);
   return sfilename.substr(0, base - filename);
 }
 
-string StripBasename(const string &filename) {
+std::string StripBasename(const std::string &filename) {
   return StripBasename(filename.c_str());
 }
 
-bool Readable(const string &filename) {
+bool Readable(const std::string &filename) {
   const int fdes = open(filename.c_str(), O_RDONLY);
   if (fdes == -1) return false;
   close(fdes);
   return true;
 }
 
-void ReadFileToStringOrDie(const string &file, string *store) {
-  std::ifstream stream(file.c_str(), std::ios::in);
-  if (stream.fail()) {
+void ReadFileToStringOrDie(const std::string &file, std::string *store) {
+  std::ifstream istrm(file);
+  if (!istrm) {
     if (file.empty()) {
       LOG(FATAL) << "No file specified for reading";
     } else {
       LOG(FATAL) << "Can't open file " << file << " for reading";
     }
   }
-  stream.seekg(0, std::ios::end);
-  const size_t length = stream.tellg();
-  stream.seekg(0, std::ios::beg);
+  istrm.seekg(0, std::ios::end);
+  const size_t length = istrm.tellg();
+  istrm.seekg(0, std::ios::beg);
   char *buf = new char[length];
-  stream.read(buf, length);
+  istrm.read(buf, length);
   store->append(buf, length);
   delete[] buf;
-  stream.close();
 }
 
 // A partial (largely non-) implementation of this functionality.
 
-bool RecursivelyCreateDir(const string &path) {
+bool RecursivelyCreateDir(const std::string &path) {
   if (path.empty()) return true;
-  std::vector<string> path_comp(StringSplit(path, "/"));
+  std::vector<std::string> path_comp(StringSplit(path, "/"));
   if (path[0] == '/') path_comp[0] = "/" + path_comp[0];
   struct stat stat_buf;
-  string rpath;
+  std::string rpath;
   for (auto it = path_comp.begin(); it != path_comp.end(); ++it) {
     rpath = rpath.empty() ? *it : rpath + "/" + *it;
     const char *crpath = rpath.c_str();
@@ -186,20 +187,16 @@ bool RecursivelyCreateDir(const string &path) {
   return true;
 }
 
-File *Open(const string &filename, const string &mode) {
-  std::ios_base::openmode m = static_cast<std::ios_base::openmode>(0);
-  if (mode.find('r') != string::npos) m |= std::ios::in;
-  if (mode.find('w') != string::npos) m |= std::ios::out;
-  if (mode.find('a') != string::npos) m |= std::ios::app;
-  auto *streamptr = new std::fstream(filename.c_str(), m);
-  if (streamptr->fail()) {
-    delete streamptr;
-    return nullptr;
-  }
-  return new File(streamptr);
+File *Open(const std::string &filename, const std::string &mode) {
+  auto m = static_cast<std::ios_base::openmode>(0);
+  if (mode.find('r') != std::string::npos) m |= std::ios::in;
+  if (mode.find('w') != std::string::npos) m |= std::ios::out;
+  if (mode.find('a') != std::string::npos) m |= std::ios::app;
+  std::unique_ptr<std::fstream> fstrm(new std::fstream(filename.c_str(), m));
+  return fstrm->fail() ? nullptr : new File(std::move(fstrm));
 }
 
-File *OpenOrDie(const string &filename, const string &mode) {
+File *OpenOrDie(const std::string &filename, const std::string &mode) {
   auto *file = Open(filename, mode);
   if (!file) {
     if (filename.empty()) {

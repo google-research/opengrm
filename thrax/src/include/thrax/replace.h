@@ -5,7 +5,6 @@
 
 #include <iostream>
 #include <set>
-#include <string>
 #include <vector>
 
 #include <fst/fstlib.h>
@@ -13,7 +12,7 @@
 #include <thrax/function.h>
 
 // TODO(rws): Figure out what to do with if we are keeping symbol tables around
-// here.  It looks as if Replace() may take care of this since it does
+// here. It looks as if Replace() may take care of this since it does the
 // appropriate symbol table equivalence testing.
 
 DECLARE_bool(save_symbols);  // From util/flags.cc.
@@ -106,10 +105,8 @@ class Replace : public Function<Arc> {
     }
   }
 
-  fst::ILabelCompare<Arc> icomp;
-  fst::OLabelCompare<Arc> ocomp;
-
-  DISALLOW_COPY_AND_ASSIGN(Replace<Arc>);
+  Replace<Arc>(const Replace<Arc>&) = delete;
+  Replace<Arc>& operator=(const Replace<Arc>&) = delete;
 };
 
 }  // namespace function

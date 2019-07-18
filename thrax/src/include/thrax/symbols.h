@@ -14,8 +14,8 @@ namespace function {
 // Defined in loader.cc
 fst::SymbolTable* GetByteSymbolTable();
 fst::SymbolTable* GetUtf8SymbolTable();
-void AddToByteSymbolTable(string symbol, int64 label);
-void AddToUtf8SymbolTable(string symbol, int64 label);
+void AddToByteSymbolTable(std::string symbol, int64 label);
+void AddToUtf8SymbolTable(std::string symbol, int64 label);
 
 static const char kByteSymbolTableName[] = "**Byte symbols";
 static const char kUtf8SymbolTableName[] = "**UTF8 symbols";
@@ -26,8 +26,8 @@ class SymbolTableBuilder {
   ~SymbolTableBuilder();
   fst::SymbolTable* GetByteSymbolTable();
   fst::SymbolTable* GetUtf8SymbolTable();
-  void AddToByteSymbolTable(string symbol, int64 label);
-  void AddToUtf8SymbolTable(string symbol, int64 label);
+  void AddToByteSymbolTable(std::string symbol, int64 label);
+  void AddToUtf8SymbolTable(std::string symbol, int64 label);
 
  private:
   void GenerateByteSymbolTable();
@@ -36,7 +36,8 @@ class SymbolTableBuilder {
   fst::Mutex map_mutex_;
   fst::SymbolTable* byte_symbols_;
   fst::SymbolTable* utf8_symbols_;
-  DISALLOW_COPY_AND_ASSIGN(SymbolTableBuilder);
+  SymbolTableBuilder(const SymbolTableBuilder&) = delete;
+  SymbolTableBuilder& operator=(const SymbolTableBuilder&) = delete;
 };
 
 }  // namespace function

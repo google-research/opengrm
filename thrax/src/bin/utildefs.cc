@@ -44,18 +44,18 @@ namespace {
 
 inline bool AppendLabel(StdArc::Label label, TokenType type,
                         const SymbolTable *generated_symtab,
-                        SymbolTable *symtab, string *path) {
+                        SymbolTable *symtab, std::string *path) {
   if (label != 0) {
     // Check first to see if this label is in the generated symbol set. Note
     // that this should not conflict with a user-provided symbol table since
     // the parser used by GrmCompiler doesn't generate extra labels if a
     // string is parsed using a user-provided symbol table.
     if (generated_symtab && !generated_symtab->Find(label).empty()) {
-      string sym = generated_symtab->Find(label);
+      const auto &sym = generated_symtab->Find(label);
       *path += "[" + sym + "]";
     } else if (type == SYMBOL) {
-      string sym = symtab->Find(label);
-      if (sym == "") {
+      const auto &sym = symtab->Find(label);
+      if (sym.empty()) {
         LOG(ERROR) << "Missing symbol in symbol table for id: " << label;
         return false;
       }
@@ -66,7 +66,7 @@ inline bool AppendLabel(StdArc::Label label, TokenType type,
     } else if (type == BYTE) {
       path->push_back(label);
     } else if (type == UTF8) {
-      string utf8_string;
+      std::string utf8_string;
       std::vector<StdArc::Label> labels;
       labels.push_back(label);
       if (!fst::LabelsToUTF8String(labels, &utf8_string)) {
@@ -82,7 +82,7 @@ inline bool AppendLabel(StdArc::Label label, TokenType type,
 }  // namespace
 
 bool FstToStrings(const StdVectorFst &fst,
-                  std::vector<std::pair<string, float>> *strings,
+                  std::vector<std::pair<std::string, float>> *strings,
                   const SymbolTable *generated_symtab, TokenType type,
                   SymbolTable *symtab, size_t n) {
   StdVectorFst shortest_path;
@@ -94,13 +94,13 @@ bool FstToStrings(const StdVectorFst &fst,
     StdVectorFst temp(fst);
     fst::Project(&temp, fst::PROJECT_OUTPUT);
     fst::RmEpsilon(&temp);
-    fst::ShortestPath(temp, &shortest_path, n, /* unique */ true);
+    fst::ShortestPath(temp, &shortest_path, n, /*unique=*/true);
   }
   if (shortest_path.Start() == fst::kNoStateId) return false;
   for (fst::PathIterator<StdArc> iter(shortest_path,
-                                          /* check_acyclic */ false);
+                                          /*check_acyclic=*/false);
        !iter.Done(); iter.Next()) {
-    string path;
+    std::string path;
     for (const auto label : iter.OLabels()) {
       if (!AppendLabel(label, type, generated_symtab, symtab, &path)) {
         return false;

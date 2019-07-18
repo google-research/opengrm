@@ -36,20 +36,19 @@ class LoadFstFromFar : public Function<Arc> {
                 << args.size() << std::endl;
       return nullptr;
     }
-    if (!args[0]->is<string>()) {
+    if (!args[0]->is<std::string>()) {
       std::cout << "LoadFstFromFar: Expected string (path) for argument 1"
                 << std::endl;
       return nullptr;
     }
-    const string& far_file =
-        JoinPath(FLAGS_indir, *args[0]->get<string>());
-
-    if (!args[1]->is<string>()) {
+    const auto& far_file =
+        JoinPath(FLAGS_indir, *args[0]->get<std::string>());
+    if (!args[1]->is<std::string>()) {
       std::cout << "LoadFstFromFar: Expected string (FST name) for argument 2"
                 << std::endl;
       return nullptr;
     }
-    const string& fst_name = *args[1]->get<string>();
+    const std::string& fst_name = *args[1]->get<std::string>();
     VLOG(2) << "Loading FST " << fst_name << " from " << far_file;
     fst::FarReader<Arc>* reader(fst::FarReader<Arc>::Open(far_file));
     if (!reader) {
@@ -80,7 +79,8 @@ class LoadFstFromFar : public Function<Arc> {
   }
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(LoadFstFromFar<Arc>);
+  LoadFstFromFar<Arc>(const LoadFstFromFar<Arc>&) = delete;
+  LoadFstFromFar<Arc>& operator=(const LoadFstFromFar<Arc>&) = delete;
 };
 
 }  // namespace function

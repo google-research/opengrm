@@ -40,10 +40,10 @@ namespace thrax {
 // label. Paths are sorted in ascending order of weights.
 
 bool FstToStrings(const fst::VectorFst<fst::StdArc> &fst,
-                  std::vector<std::pair<string, float>> *strings,
+                  std::vector<std::pair<std::string, float>> *strings,
                   const fst::SymbolTable *generated_symtab,
-                  TokenType type = BYTE,
-                  fst::SymbolTable *symtab = nullptr, size_t n = 1);
+                  TokenType type = BYTE, fst::SymbolTable *symtab = nullptr,
+                  size_t n = 1);
 
 // Find the generated labels from the grammar.
 

@@ -38,7 +38,8 @@ class Determinize : public UnaryFstFunction<Arc> {
   }
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(Determinize<Arc>);
+  Determinize<Arc>(const Determinize<Arc>&) = delete;
+  Determinize<Arc>& operator=(const Determinize<Arc>&) = delete;
 };
 
 }  // namespace function

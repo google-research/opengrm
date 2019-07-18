@@ -58,11 +58,11 @@ class Compose : public Function<Arc> {
       }
     }
     if (args.size() == 3) {
-      if (!args[2]->is<string>()) {
+      if (!args[2]->is<std::string>()) {
         std::cout << "Compose: Expected string for argument 3" << std::endl;
         return nullptr;
       }
-      const string& sort_mode = *args[2]->get<string>();
+      const auto& sort_mode = *args[2]->get<std::string>();
       if (sort_mode != "left" && sort_mode != "right" && sort_mode != "both") {
         std::cout
             << "Compose: Expected 'left', 'right', or 'both' for argument 3"
@@ -70,30 +70,27 @@ class Compose : public Function<Arc> {
         return nullptr;
       }
       if (sort_mode != "right") {
-        left = new fst::ArcSortFst<Arc, fst::OLabelCompare<Arc> >(
-            *left, ocomp_);
+        static const fst::OLabelCompare<Arc> ocomp;
+        left = new fst::ArcSortFst<Arc, fst::OLabelCompare<Arc>>(*left,
+                                                                         ocomp);
         delete_left = true;
       }
       if (sort_mode != "left") {
-        right = new fst::ArcSortFst<Arc, fst::ILabelCompare<Arc> >(
-            *right, icomp_);
+        static const fst::ILabelCompare<Arc> icomp;
+        right = new fst::ArcSortFst<Arc, fst::ILabelCompare<Arc>>(
+            *right, icomp);
         delete_right = true;
       }
     }
     Transducer* output = new fst::ComposeFst<Arc>(*left, *right);
-    if (delete_left)
-      delete left;
-    if (delete_right)
-      delete right;
+    if (delete_left) delete left;
+    if (delete_right) delete right;
     return new DataType(output);
   }
 
  private:
-  // These are stateless.
-  fst::ILabelCompare<Arc> icomp_;
-  fst::OLabelCompare<Arc> ocomp_;
-
-  DISALLOW_COPY_AND_ASSIGN(Compose<Arc>);
+  Compose<Arc>(const Compose<Arc>&) = delete;
+  Compose<Arc>& operator=(const Compose<Arc>&) = delete;
 };
 
 }  // namespace function

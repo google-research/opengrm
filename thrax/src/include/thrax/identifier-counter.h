@@ -66,23 +66,24 @@ class AstIdentifierCounter : public AstWalker {
   // Returns the number of times the identifier was referenced and -1 if the
   // provided name is exported (with an infinite reference count).  Crashes if
   // the provided name isn't found.
-  int GetCount(const string& identifier);
+  int GetCount(const std::string& identifier);
 
   // Decrements the count of the identifier and returns true if there're still
   // available references remaining (and false otherwise).  Crashes if the
   // provided identifier isn't found.
-  bool Decrement(const string& identifier);
+  bool Decrement(const std::string& identifier);
 
  private:
   // A map of references from the identifier name to the number of times it's
   // used.
-  std::unordered_map<string, int> references_;
+  std::unordered_map<std::string, int> references_;
 
   // A boolean to tell us whether the next IdentifierNode we encounter is
   // exported (and thus should have a reference count of infinity (-1)).
   bool next_identifier_exported_;
 
-  DISALLOW_COPY_AND_ASSIGN(AstIdentifierCounter);
+  AstIdentifierCounter(const AstIdentifierCounter&) = delete;
+  AstIdentifierCounter& operator=(const AstIdentifierCounter&) = delete;
 };
 
 }  // namespace thrax

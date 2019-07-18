@@ -21,14 +21,11 @@
 
 namespace thrax {
 
-StringNode::StringNode(const string& str)
-    : Node(), str_(str) {}
+StringNode::StringNode(const std::string& str) : Node(), str_(str) {}
 
 StringNode::~StringNode() {}
 
-const string& StringNode::Get() const {
-  return str_;
-}
+const std::string& StringNode::Get() const { return str_; }
 
 void StringNode::Accept(AstWalker* walker) {
   walker->Visit(this);

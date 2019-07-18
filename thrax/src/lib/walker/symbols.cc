@@ -20,11 +20,11 @@ fst::SymbolTable* GetUtf8SymbolTable() {
   return kSymbolTableBuilder.GetUtf8SymbolTable();
 }
 
-void AddToByteSymbolTable(string symbol, int64 label) {
+void AddToByteSymbolTable(std::string symbol, int64 label) {
   kSymbolTableBuilder.AddToByteSymbolTable(symbol, label);
 }
 
-void AddToUtf8SymbolTable(string symbol, int64 label) {
+void AddToUtf8SymbolTable(std::string symbol, int64 label) {
   kSymbolTableBuilder.AddToUtf8SymbolTable(symbol, label);
 }
 
@@ -145,12 +145,12 @@ fst::SymbolTable* SymbolTableBuilder::GetUtf8SymbolTable() {
   return utf8_symbols_;
 }
 
-void SymbolTableBuilder::AddToByteSymbolTable(string symbol, int64 label) {
+void SymbolTableBuilder::AddToByteSymbolTable(std::string symbol, int64 label) {
   if (!byte_symbols_) return;
   byte_symbols_->AddSymbol(symbol, label);
 }
 
-void SymbolTableBuilder::AddToUtf8SymbolTable(string symbol, int64 label) {
+void SymbolTableBuilder::AddToUtf8SymbolTable(std::string symbol, int64 label) {
   if (!utf8_symbols_) return;
   utf8_symbols_->AddSymbol(symbol, label);
 }
@@ -167,7 +167,7 @@ void SymbolTableBuilder::GenerateByteSymbolTable() {
     } else {
       snprintf(c_str, sizeof(c_str), "0x%02x", c);
     }
-    byte_symbols_->AddSymbol(string(c_str), c);
+    byte_symbols_->AddSymbol(std::string(c_str), c);
   }
 }
 
@@ -178,12 +178,12 @@ void SymbolTableBuilder::GenerateUtf8SymbolTable() {
   for (int c = 1; c < 0x10000; ++c) {
     std::vector<int> labels;
     labels.push_back(c);
-    string utf8_label;
+    std::string utf8_label;
     if (fst::LabelsToUTF8String(labels, &utf8_label)) {
       if (IsUnicodeSpaceOrControl(c)) {
         char c_str[7];
         snprintf(c_str, sizeof(c_str), "0x%04x", c);
-        utf8_symbols_->AddSymbol(string(c_str), c);
+        utf8_symbols_->AddSymbol(std::string(c_str), c);
       } else {
         utf8_symbols_->AddSymbol(utf8_label, c);
       }

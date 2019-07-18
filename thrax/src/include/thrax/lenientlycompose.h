@@ -8,7 +8,6 @@
 #define THRAX_LENIENTLYCOMPOSE_H_
 
 #include <iostream>
-#include <string>
 #include <vector>
 
 #include <fst/fstlib.h>
@@ -77,7 +76,8 @@ class LenientlyCompose : public Function<Arc> {
   }
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(LenientlyCompose<Arc>);
+  LenientlyCompose<Arc>(const LenientlyCompose<Arc>&) = delete;
+  LenientlyCompose<Arc>& operator=(const LenientlyCompose<Arc>&) = delete;
 };
 
 }  // namespace function

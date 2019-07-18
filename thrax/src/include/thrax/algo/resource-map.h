@@ -27,7 +27,7 @@
 //   ResourceMap map;
 //
 //   SymbolTable* main_symtab = GetSymbolTable();
-//   string* text = new string("...");
+//   string* text = new std::string("...");
 //
 //   map.Insert("main", main_symtab);
 //   map.Insert("textfile", text);
@@ -35,7 +35,7 @@
 //   // Do other stuff...
 //
 //   SymbolTable* main_symtab_reborn = map.Get<SymbolTable>("main");
-//   string* text_reborn = map.Get<string>("textfile");
+//   std::string* text_reborn = map.Get<std::string>("textfile");
 
 #ifndef THRAX_ALGO_RESOURCE_MAP_H_
 #define THRAX_ALGO_RESOURCE_MAP_H_
@@ -54,7 +54,7 @@ namespace thrax {
 class ResourceMap {
  private:
   struct Resource;
-  using Map = std::unordered_map<string, Resource*>;
+  using Map = std::unordered_map<std::string, Resource*>;
 
  public:
   ResourceMap() {}
@@ -70,7 +70,7 @@ class ResourceMap {
   // deleter that frees the object by calling delete (see DeletePointerClosure
   // in base/callback.h).
   template <typename T>
-  bool Insert(const string& name, T* thing) {
+  bool Insert(const std::string& name, T* thing) {
     return InsertWithDeleter(name, thing, DeletePointerClosure(thing));
   }
 
@@ -78,7 +78,7 @@ class ResourceMap {
   // closure. If a delete closure is provided, ResourceMap will take ownership
   // of the closure pointer and call it when the object dies.
   template <typename T>
-  bool InsertWithDeleter(const string& name, T* thing, Closure* deleter) {
+  bool InsertWithDeleter(const std::string& name, T* thing, Closure* deleter) {
     fst::MutexLock lock(&mutex_);
     // Searches the map for the correct hash position of the new insert. We'll
     // use a nullptr as the value for now since we'll create it from scratch in
@@ -100,7 +100,7 @@ class ResourceMap {
   // ownership of the pointer, so clients should not delete the pointer
   // received.
   template <typename T>
-  T* Get(const string& name) const {
+  T* Get(const std::string& name) const {
     fst::MutexLock lock(&mutex_);
     const auto it = map_.find(name);
     if (it == map_.end()) return nullptr;
@@ -113,7 +113,7 @@ class ResourceMap {
 
   // Returns true if the map contains an object with the given name
   // (disregarding the type of the stored object).
-  bool Contains(const string& name) const {
+  bool Contains(const std::string& name) const {
     fst::MutexLock lock(&mutex_);
     return map_.find(name) != map_.end();
   }
@@ -121,15 +121,15 @@ class ResourceMap {
   // Returns true if the map contains an object with the given name of the
   // proper type.
   template <typename T>
-  bool ContainsType(const string& name) const {
+  bool ContainsType(const std::string& name) const {
     fst::MutexLock lock(&mutex_);
     const auto it = map_.find(name);
     return it != map_.end() && it->second->type == typeid(T*);
   }
 
-  // Removes the specified object from the map.  Returns true if an object was
+  // Removes the specified object from the map. Returns true if an object was
   // successfully erased, and false if the object didn't exist.
-  bool Erase(const string& name) {
+  bool Erase(const std::string& name) {
     fst::MutexLock lock(&mutex_);
     auto it = map_.find(name);
     if (it == map_.end()) return false;
@@ -139,7 +139,7 @@ class ResourceMap {
   }
 
   template <typename T>
-  T* Release(const string& name) {
+  T* Release(const std::string& name) {
     fst::MutexLock lock(&mutex_);
     T* val = nullptr;
     auto it = map_.find(name);
@@ -172,7 +172,7 @@ class ResourceMap {
   // Checks that the desired type is actually the same as the one originally
   // stored.  T should be the base (non-pointer) type.
   template <typename T>
-  void CheckType(Map::const_iterator it, const string& name) const {
+  void CheckType(Map::const_iterator it, const std::string& name) const {
     const auto &original_type = it->second->type;
     const auto &requested_type = typeid(T*);
     CHECK(original_type == requested_type)
@@ -186,8 +186,7 @@ class ResourceMap {
         : data(data_), type(type_), destructor(destructor_) {}
 
     ~Resource() {
-      if (destructor)
-        destructor->Run();
+      if (destructor) destructor->Run();
     }
 
     void Release() {

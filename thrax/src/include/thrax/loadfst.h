@@ -35,12 +35,13 @@ class LoadFst : public Function<Arc> {
                 << std::endl;
       return nullptr;
     }
-    if (!args[0]->is<string>()) {
+    if (!args[0]->is<std::string>()) {
       std::cout << "LoadFst: Expected string (path) for argument 1"
                 << std::endl;
       return nullptr;
     }
-    const string& file = JoinPath(FLAGS_indir, *args[0]->get<string>());
+    const auto& file =
+        JoinPath(FLAGS_indir, *args[0]->get<std::string>());
     VLOG(2) << "Loading FST: " << file;
     Transducer* fst = Transducer::Read(file);
     if (!fst) {
@@ -62,7 +63,8 @@ class LoadFst : public Function<Arc> {
   }
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(LoadFst<Arc>);
+  LoadFst<Arc>(const LoadFst<Arc>&) = delete;
+  LoadFst<Arc>& operator=(const LoadFst<Arc>&) = delete;
 };
 
 }  // namespace function

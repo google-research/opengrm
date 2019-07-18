@@ -19,8 +19,6 @@
 #ifndef THRAX_GRAMMAR_NODE_H_
 #define THRAX_GRAMMAR_NODE_H_
 
-#include <string>
-
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
 #include <thrax/node.h>
@@ -35,10 +33,13 @@ class GrammarNode : public Node {
   GrammarNode(CollectionNode* imports,
               CollectionNode* functions,
               CollectionNode* statements);
+
   virtual ~GrammarNode();
 
   CollectionNode* GetImports() const;
+
   CollectionNode* GetFunctions() const;
+
   CollectionNode* GetStatements() const;
 
   virtual void Accept(AstWalker* walker);
@@ -48,7 +49,8 @@ class GrammarNode : public Node {
   CollectionNode* functions_;
   CollectionNode* statements_;
 
-  DISALLOW_COPY_AND_ASSIGN(GrammarNode);
+  GrammarNode(const GrammarNode&) = delete;
+  GrammarNode& operator=(const GrammarNode&) = delete;
 };
 
 }  // namespace thrax

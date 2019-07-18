@@ -98,11 +98,11 @@ class MPdtCompose : public Function<Arc> {
     // grammar writer, here we use left_mpdt/right_mpdt
     bool left_mpdt = false;
     if (args.size() > 4) {
-      if (!args[4]->is<string>()) {
+      if (!args[4]->is<std::string>()) {
         std::cout << "MPdtCompose: Expected string for argument 5" << std::endl;
         return nullptr;
       }
-      const string& mpdt_direction = *args[4]->get<string>();
+      const auto& mpdt_direction = *args[4]->get<std::string>();
       if (mpdt_direction != "left_mpdt" && mpdt_direction != "right_mpdt") {
         std::cout << "MPdtCompose: Expected"
                   << " 'left_mpdt' or 'right_mpdt' for argument 5" << std::endl;
@@ -112,11 +112,11 @@ class MPdtCompose : public Function<Arc> {
     }
     bool delete_left = false, delete_right = false;
     if (args.size() == 6) {
-      if (!args[5]->is<string>()) {
+      if (!args[5]->is<std::string>()) {
         std::cout << "MPdtCompose: Expected string for argument 6" << std::endl;
         return nullptr;
       }
-      const string& sort_mode = *args[5]->get<string>();
+      const auto& sort_mode = *args[5]->get<std::string>();
       if (sort_mode != "left" && sort_mode != "right" && sort_mode != "both") {
         std::cout << "MPdtCompose: Expected 'left', 'right', or 'both'"
                   << " for argument 6" << std::endl;
@@ -124,17 +124,18 @@ class MPdtCompose : public Function<Arc> {
       }
 
       if (sort_mode != "right") {
+        static const fst::OLabelCompare<Arc> ocomp;
         left = new fst::ArcSortFst<Arc, fst::OLabelCompare<Arc> >(
             *left, ocomp);
         delete_left = true;
       }
       if (sort_mode != "left") {
+        static const fst::ILabelCompare<Arc> icomp;
         right = new fst::ArcSortFst<Arc, fst::ILabelCompare<Arc> >(
             *right, icomp);
         delete_right = true;
       }
     }
-
     MutableTransducer* output = new MutableTransducer();
     fst::MPdtComposeOptions opts = fst::MPdtComposeOptions();
     opts.connect = false;
@@ -143,18 +144,14 @@ class MPdtCompose : public Function<Arc> {
     } else {
       fst::Compose(*left, *right, parens, assignments, output, opts);
     }
-    if (delete_left)
-      delete left;
-    if (delete_right)
-      delete right;
+    if (delete_left) delete left;
+    if (delete_right) delete right;
     return new DataType(output);
   }
 
  private:
-  fst::ILabelCompare<Arc> icomp;
-  fst::OLabelCompare<Arc> ocomp;
-
-  DISALLOW_COPY_AND_ASSIGN(MPdtCompose<Arc>);
+  MPdtCompose<Arc>(const MPdtCompose<Arc>&) = delete;
+  MPdtCompose<Arc>& operator=(const MPdtCompose<Arc>&) = delete;
 };
 
 }  // namespace function

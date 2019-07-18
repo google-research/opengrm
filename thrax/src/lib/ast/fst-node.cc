@@ -62,9 +62,7 @@ Node* FstNode::GetArgument(int index) const {
 bool FstNode::HasWeight() const {
   return weight_;
 }
-const string& FstNode::GetWeight() const {
-  return weight_->Get();
-}
+const std::string& FstNode::GetWeight() const { return weight_->Get(); }
 
 const bool FstNode::ShouldOptimize() const {
   return optimize_;

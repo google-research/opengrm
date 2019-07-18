@@ -44,7 +44,8 @@ class Function {
   virtual DataType* Execute(const std::vector<DataType*>& args) = 0;
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(Function<Arc>);
+  Function<Arc>(const Function<Arc>&) = delete;
+  Function<Arc>& operator=(const Function<Arc>&) = delete;
 };
 
 
@@ -102,7 +103,8 @@ class UnaryFstFunction : public Function<Arc> {
                                       const std::vector<DataType*>& args) = 0;
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(UnaryFstFunction);
+  UnaryFstFunction(const UnaryFstFunction&) = delete;
+  UnaryFstFunction& operator=(const UnaryFstFunction&) = delete;
 };
 
 
@@ -140,7 +142,8 @@ class BinaryFstFunction : public Function<Arc> {
                                        const std::vector<DataType*>& args) = 0;
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(BinaryFstFunction);
+  BinaryFstFunction(const BinaryFstFunction&) = delete;
+  BinaryFstFunction& operator=(const BinaryFstFunction&) = delete;
 };
 
 }  // namespace function

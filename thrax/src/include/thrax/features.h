@@ -108,9 +108,10 @@ static const char kFeatureEquals[] = "=";
 
 // Splits out the prefix in a string of the form "x=y", and returns true on
 // success or false on failure.
-inline bool SplitFeatureValue(const string& featval, string* feature) {
+inline bool SplitFeatureValue(const std::string& featval,
+                              std::string* feature) {
   int eq = featval.find(kFeatureEquals);
-  if (eq == string::npos || eq == 0) return false;
+  if (eq == std::string::npos || eq == 0) return false;
   *feature = featval.substr(0, eq);
   return true;
 }
@@ -129,21 +130,21 @@ class Feature : public Function<Arc> {
     enum fst::StringTokenType mode = fst::StringTokenType::BYTE;
     const fst::SymbolTable* symtab = nullptr;
     // First argument is the name of the feature
-    if (!args[0]->is<string>()) {
+    if (!args[0]->is<std::string>()) {
       std::cout << "Feature: First argument must be string" << std::endl;
       return nullptr;
     }
-    const string& feature_name = *args[0]->get<string>();
-    std::vector<string> feature_values;
+    const auto& feature_name = *args[0]->get<std::string>();
+    std::vector<std::string> feature_values;
     // Subsequent arguments are the names of the values, but the last argument
     // could be ... see below
     for (int i = 1; i < args.size() - 1; ++i) {
-      if (!args[i]->is<string>()) {
+      if (!args[i]->is<std::string>()) {
         std::cout << "Feature: All arguments except last must be strings (arg "
                   << i + 1 << ")" << std::endl;
         return nullptr;
       }
-      feature_values.push_back(*args[i]->get<string>());
+      feature_values.push_back(*args[i]->get<std::string>());
     }
     // Last argument can either be a feature specification, or 'byte', 'utf8',
     // or a symbol table. If any of the latter, then also check that
@@ -161,8 +162,8 @@ class Feature : public Function<Arc> {
       CHECK_GE(args.size(), 3);
       symtab = args[i]->get<fst::SymbolTable>();
       mode = fst::StringTokenType::SYMBOL;
-    } else if (args[i]->is<string>()) {
-      const string& arg = *args[i]->get<string>();
+    } else if (args[i]->is<std::string>()) {
+      const auto& arg = *args[i]->get<std::string>();
       if (arg == "utf8") {
         mode = fst::StringTokenType::UTF8;
         if (FLAGS_save_symbols) symtab = GetUtf8SymbolTable();
@@ -184,7 +185,7 @@ class Feature : public Function<Arc> {
     typename Arc::StateId s1 = fst->AddState();
     fst->SetFinal(s1, Arc::Weight::One());
     for (int i = 0; i < feature_values.size(); ++i) {
-      string feature_value_pair =
+      std::string feature_value_pair =
           feature_name + kFeatureEquals + feature_values[i];
       // Adds feature value pair of the form "x=y" to the generated labels
       // (stringfst.h)
@@ -232,7 +233,7 @@ class Feature : public Function<Arc> {
   // feature.
   static bool ValidateFeatureSequenceFst(
       MutableTransducer* fst,
-      std::vector<std::pair<typename Arc::StateId, string> >* features) {
+      std::vector<std::pair<typename Arc::StateId, std::string>>* features) {
     if (!fst->Properties(fst::kAcceptor | fst::kAcyclic, true)) {
       std::cout
           << "Feature/value sequence automaton must be an acyclic acceptor"
@@ -256,7 +257,7 @@ class Feature : public Function<Arc> {
         return false;
       }
       fst::ArcIterator<MutableTransducer> aiter(*fst, s);
-      string feature = "";
+      std::string feature = "";
       typename Arc::StateId nextstate = fst::kNoStateId;
       while (!aiter.Done()) {
         const Arc& arc = aiter.Value();
@@ -269,8 +270,8 @@ class Feature : public Function<Arc> {
           delete generated_symbols;
           return false;
         }
-        string featval = generated_symbols->Find(arc.ilabel);
-        string this_feature;
+        std::string featval = generated_symbols->Find(arc.ilabel);
+        std::string this_feature;
         if (!SplitFeatureValue(featval, &this_feature)) {
           std::cout << "Feature/value automaton's arcs must all "
                     << "be of the form x=y (" << featval << ")" << std::endl;
@@ -291,7 +292,7 @@ class Feature : public Function<Arc> {
         }
         aiter.Next();
       }
-      features->push_back(std::pair<typename Arc::StateId, string>(s, feature));
+      features->emplace_back(s, feature);
       s = nextstate;
     }
     delete generated_symbols;
@@ -309,13 +310,13 @@ class Feature : public Function<Arc> {
   // In addition to the above, the fst must have exactly two states.
   // This puts into the string 'feature', the value of the feature that is
   // shared across the arcs.
-  static bool ValidateFeatureFst(MutableTransducer* fst, string* feature) {
+  static bool ValidateFeatureFst(MutableTransducer* fst, std::string* feature) {
     if (fst->NumStates() != 2) {
       std::cout << "Feature/value automaton must have exactly two states"
                 << std::endl;
       return false;
     }
-    std::vector<std::pair<typename Arc::StateId, string> > features;
+    std::vector<std::pair<typename Arc::StateId, std::string>> features;
     if (ValidateFeatureSequenceFst(fst, &features)) {
       *feature = features[0].second;
       return true;
@@ -324,11 +325,11 @@ class Feature : public Function<Arc> {
   }
 
  private:
-  inline void AddLabelForFeatureValuePair(const string& feature_value_pair) {
+  inline void AddLabelForFeatureValuePair(
+      const std::string& feature_value_pair) {
     // Sole purpose is to add the bracketed_feature_value_pair to the generated
     // label set (stringfst.h)
-    string bracketed_feature_value_pair =
-        "[" + feature_value_pair + "]";
+    std::string bracketed_feature_value_pair = "[" + feature_value_pair + "]";
     StringFst<Arc> func;
     std::vector<DataType*>* args = new std::vector<DataType*>();
     args->push_back(new DataType(static_cast<int>(StringFstNode::BYTE)));
@@ -337,7 +338,8 @@ class Feature : public Function<Arc> {
     delete result;
   }
 
-  DISALLOW_COPY_AND_ASSIGN(Feature<Arc>);
+  Feature<Arc>(const Feature<Arc>&) = delete;
+  Feature<Arc>& operator=(const Feature<Arc>&) = delete;
 };
 
 // A category is a (sorted) sequence of feature/value pairs
@@ -354,7 +356,7 @@ class Category : public Function<Arc> {
  protected:
   DataType* Execute(const std::vector<DataType*>& args) final {
     CHECK_GE(args.size(), 1);
-    std::vector<std::pair<string, Transducer*> > features;
+    std::vector<std::pair<std::string, Transducer*>> features;
     for (int i = 0; i < args.size(); ++i) {
       if (!args[i]->is<Transducer*>()) {
         std::cout << "Category: All arguments must be Feature fsts (arg "
@@ -363,10 +365,9 @@ class Category : public Function<Arc> {
       }
       MutableTransducer* feature_fst =
           new MutableTransducer(**args[i]->get<Transducer*>());
-      string feature_name;
+      std::string feature_name;
       CHECK(Feature<Arc>::ValidateFeatureFst(feature_fst, &feature_name));
-      features.push_back(
-          std::pair<string, Transducer*>(feature_name, feature_fst));
+      features.emplace_back(feature_name, feature_fst);
     }
     // Features in a category are kept sorted by the byte sort order of the
     // feature name.
@@ -393,12 +394,13 @@ class Category : public Function<Arc> {
   // See comments for ValidateFeatureSequenceFst under Feature
   static bool ValidateFeatureSequenceFst(
       MutableTransducer* fst,
-      std::vector<std::pair<typename Arc::StateId, string> >* features) {
+      std::vector<std::pair<typename Arc::StateId, std::string>>* features) {
     return Feature<Arc>::ValidateFeatureSequenceFst(fst, features);
   }
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(Category<Arc>);
+  Category<Arc>(const Category<Arc>&) = delete;
+  Category<Arc>& operator=(const Category<Arc>&) = delete;
 };
 
 // A FeatureVector is a particular instantiation for a Category, that allows the
@@ -425,7 +427,7 @@ class FeatureVector : public Function<Arc> {
     }
     MutableTransducer* category_fst =
         static_cast<MutableTransducer*>(*args[0]->get<Transducer*>());
-    std::vector<std::pair<typename Arc::StateId, string> > features;
+    std::vector<std::pair<typename Arc::StateId, std::string>> features;
     if (!Category<Arc>::ValidateFeatureSequenceFst(category_fst,
                                                    &features)) {
       std::cout << "FeatureVector: First argument must be a Category fst"
@@ -442,16 +444,16 @@ class FeatureVector : public Function<Arc> {
     }
     const fst::SymbolTable* generated_symbols =
         StringFst<Arc>::GetLabelSymbolTable(false);
-    std::map <string, int64> feature_label_pairs;
+    std::map<std::string, int64> feature_label_pairs;
     for (int i = 1; i < args.size(); ++i) {
-      if (!args[i]->is<string>()) {
+      if (!args[i]->is<std::string>()) {
         std::cout << "Feature/value pairs must strings be of the form x=y"
                   << std::endl;
         delete generated_symbols;
         return nullptr;
       }
-      string featval = *args[i]->get<string>();
-      string feature;
+      auto featval = *args[i]->get<std::string>();
+      std::string feature;
       if (!SplitFeatureValue(featval, &feature)) {
         std::cout << "Feature/value pairs must strings be of the form x=y: "
                   << featval << std::endl;
@@ -465,7 +467,8 @@ class FeatureVector : public Function<Arc> {
         delete generated_symbols;
         return nullptr;
       }
-      std::map<string, int64>::iterator ix = feature_label_pairs.find(feature);
+      std::map<std::string, int64>::iterator ix =
+          feature_label_pairs.find(feature);
       if (ix == feature_label_pairs.end()) {
         feature_label_pairs[feature] = label;
       } else {
@@ -477,7 +480,7 @@ class FeatureVector : public Function<Arc> {
     delete generated_symbols;
     MutableTransducer* fst = new MutableTransducer;
     typename Arc::StateId s = fst->AddState();
-    // We now craft the fst by looking at each feature-value pair, and making a
+    // We now craft the FST by looking at each feature-value pair, and making a
     // single arc in the sequence for that, but if a feature has no
     // specification in this FeatureVector, then we put in all arcs
     // corresponding to all possible specifications of the feature.
@@ -485,8 +488,9 @@ class FeatureVector : public Function<Arc> {
     for (int i = 0; i < features.size(); ++i) {
       // State in original category fst corresponding to this feature
       typename Arc::StateId feat_s = features[i].first;
-      string feature = features[i].second;
-      std::map<string, int64>::iterator ix = feature_label_pairs.find(feature);
+      std::string feature = features[i].second;
+      std::map<std::string, int64>::iterator ix =
+          feature_label_pairs.find(feature);
       typename Arc::StateId next = fst->AddState();
       if (ix == feature_label_pairs.end()) {
         fst::ArcIterator<MutableTransducer> aiter(*category_fst, feat_s);
@@ -510,7 +514,8 @@ class FeatureVector : public Function<Arc> {
   }
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(FeatureVector<Arc>);
+  FeatureVector<Arc>(const FeatureVector<Arc>&) = delete;
+  FeatureVector<Arc>& operator=(const FeatureVector<Arc>&) = delete;
 };
 
 }  // namespace function

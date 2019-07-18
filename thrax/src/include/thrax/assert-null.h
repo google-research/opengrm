@@ -9,7 +9,6 @@
 #define THRAX_ASSERT_NULL_H_
 
 #include <iostream>
-#include <string>
 #include <vector>
 
 #include <fst/compat.h>
@@ -63,7 +62,8 @@ class AssertNull : public UnaryFstFunction<Arc> {
   }
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(AssertNull<Arc>);
+  AssertNull<Arc>(const AssertNull<Arc>&) = delete;
+  AssertNull<Arc>& operator=(const AssertNull<Arc>&) = delete;
 };
 
 

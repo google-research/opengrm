@@ -23,10 +23,8 @@
 
 namespace thrax {
 
-static bool ComponentIsValid(const string& s) {
-  if (s.empty())
-    return false;
-
+static bool ComponentIsValid(const std::string& s) {
+  if (s.empty()) return false;
   bool found_underscore = false;
   bool found_number = false;
   bool found_alpha = false;
@@ -41,13 +39,13 @@ static bool ComponentIsValid(const string& s) {
     else
       return false;
   }
-
   return !isdigit(s[0]) && (found_alpha || (found_underscore && found_number));
 }
 
-IdentifierNode::IdentifierNode(const string& name) : IdentifierNode(name, -1) {}
+IdentifierNode::IdentifierNode(const std::string& name)
+    : IdentifierNode(name, -1) {}
 
-IdentifierNode::IdentifierNode(const string& name, int begin_pos)
+IdentifierNode::IdentifierNode(const std::string& name, int begin_pos)
     : Node(), full_name_(name), begin_pos_(begin_pos) {
   namespaces_ = thrax::StringSplit(full_name_, '.');
   identifier_ = namespaces_.back();
@@ -69,13 +67,9 @@ bool IdentifierNode::HasNamespaces() const {
   return !namespaces_.empty();
 }
 
-const string& IdentifierNode::GetIdentifier() const {
-  return identifier_;
-}
+const std::string& IdentifierNode::GetIdentifier() const { return identifier_; }
 
-const string& IdentifierNode::Get() const {
-  return full_name_;
-}
+const std::string& IdentifierNode::Get() const { return full_name_; }
 
 int IdentifierNode::GetBeginPos() const { return begin_pos_; }
 

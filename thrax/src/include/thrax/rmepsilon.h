@@ -39,7 +39,8 @@ class RmEpsilon : public UnaryFstFunction<Arc> {
   }
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(RmEpsilon<Arc>);
+  RmEpsilon<Arc>(const RmEpsilon<Arc>&) = delete;
+  RmEpsilon<Arc>& operator=(const RmEpsilon<Arc>&) = delete;
 };
 
 }  // namespace function

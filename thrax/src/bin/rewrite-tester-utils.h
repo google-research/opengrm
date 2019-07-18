@@ -18,20 +18,24 @@ class RewriteTesterUtils {
 
  public:
   RewriteTesterUtils();
+
   ~RewriteTesterUtils();
 
   void Initialize();
+
   void Run();
+
   // Runs the input through the FSTs. Prepends "Output string:" to each line if
   // prepend_output is true
-  const string ProcessInput(const string& input, bool prepend_output = true);
+  const std::string ProcessInput(const std::string& input,
+                                 bool prepend_output = true);
 
  private:
   // Reader for the input in interactive version.
-  bool ReadInput(string* s);
+  bool ReadInput(std::string* s);
 
   thrax::GrmManagerSpec<fst::StdArc> grm_;
-  std::vector<string> rules_;
+  std::vector<std::string> rules_;
   Compiler* compiler_;
   fst::SymbolTable* byte_symtab_;
   fst::SymbolTable* utf8_symtab_;
@@ -40,8 +44,8 @@ class RewriteTesterUtils {
   TokenType type_;
   fst::SymbolTable* output_symtab_;
 
-  DISALLOW_COPY_AND_ASSIGN(RewriteTesterUtils);
-};  // class RewriteTesterUtils
-
+  RewriteTesterUtils(const RewriteTesterUtils&) = delete;
+  RewriteTesterUtils& operator=(const RewriteTesterUtils&) = delete;
+};
 
 #endif  // NLP_GRM_LANGUAGE_UTIL_REWRITE_TESTER_UTILS_H_

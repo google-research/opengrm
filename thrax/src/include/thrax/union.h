@@ -55,7 +55,8 @@ class Union : public BinaryFstFunction<Arc> {
   }
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(Union<Arc>);
+  Union<Arc>(const Union<Arc>&) = delete;
+  Union<Arc>& operator=(const Union<Arc>&) = delete;
 };
 
 template <typename Arc>
@@ -92,7 +93,8 @@ class UnionDelayed : public BinaryFstFunction<Arc> {
   }
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(UnionDelayed<Arc>);
+  UnionDelayed<Arc>(const UnionDelayed<Arc>&) = delete;
+  UnionDelayed<Arc>& operator=(const UnionDelayed<Arc>&) = delete;
 };
 
 }  // namespace function

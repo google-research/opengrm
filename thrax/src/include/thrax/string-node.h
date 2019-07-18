@@ -30,17 +30,19 @@ class AstWalker;
 
 class StringNode : public Node {
  public:
-  explicit StringNode(const string& str);
+  explicit StringNode(const std::string& str);
+
   virtual ~StringNode();
 
-  const string& Get() const;
+  const std::string& Get() const;
 
   virtual void Accept(AstWalker* walker);
 
  private:
-  string str_;
+  std::string str_;
 
-  DISALLOW_COPY_AND_ASSIGN(StringNode);
+  StringNode(const StringNode&) = delete;
+  StringNode& operator=(const StringNode&) = delete;
 };
 
 }  // namespace thrax

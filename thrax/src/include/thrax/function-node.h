@@ -20,8 +20,6 @@
 #ifndef THRAX_FUNCTION_NODE_H_
 #define THRAX_FUNCTION_NODE_H_
 
-#include <string>
-
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
 #include <thrax/node.h>
@@ -37,10 +35,13 @@ class FunctionNode : public Node {
   FunctionNode(IdentifierNode* name,
                CollectionNode* arguments,
                CollectionNode* body);
+
   virtual ~FunctionNode();
 
   IdentifierNode* GetName() const;
+
   CollectionNode* GetArguments() const;
+
   CollectionNode* GetBody() const;
 
   virtual void Accept(AstWalker* walker);
@@ -50,7 +51,8 @@ class FunctionNode : public Node {
   CollectionNode* arguments_;
   CollectionNode* body_;
 
-  DISALLOW_COPY_AND_ASSIGN(FunctionNode);
+  FunctionNode(const FunctionNode&) = delete;
+  FunctionNode& operator=(const FunctionNode&) = delete;
 };
 
 }  // namespace thrax

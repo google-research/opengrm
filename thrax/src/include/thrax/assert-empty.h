@@ -9,7 +9,6 @@
 #define THRAX_ASSERT_EMPTY_H_
 
 #include <iostream>
-#include <string>
 #include <vector>
 
 #include <fst/compat.h>

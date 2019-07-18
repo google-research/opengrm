@@ -19,8 +19,6 @@
 #ifndef THRAX_RETURN_NODE_H_
 #define THRAX_RETURN_NODE_H_
 
-#include <string>
-
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
 #include <thrax/node.h>
@@ -33,6 +31,7 @@ class IdentifierNode;
 class ReturnNode : public Node {
  public:
   explicit ReturnNode(Node* node);
+
   virtual ~ReturnNode();
 
   Node* Get() const;
@@ -42,7 +41,8 @@ class ReturnNode : public Node {
  private:
   Node* node_;
 
-  DISALLOW_COPY_AND_ASSIGN(ReturnNode);
+  ReturnNode(const ReturnNode&) = delete;
+  ReturnNode& operator=(const ReturnNode&) = delete;
 };
 
 }  // namespace thrax

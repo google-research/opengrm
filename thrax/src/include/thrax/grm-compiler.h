@@ -52,7 +52,7 @@ class GrmCompilerParserInterface {
   virtual ~GrmCompilerParserInterface() {}
   virtual void SetAst(Node* root) = 0;
   virtual Lexer* GetLexer() = 0;
-  virtual void Error(const string& message) = 0;
+  virtual void Error(const std::string& message) = 0;
 };
 
 
@@ -70,8 +70,8 @@ class GrmCompilerSpec : public GrmCompilerParserInterface {
 
   // Parses the provided grammar data via the filename or the file contents.
   // Defined in parser.y.  Returns true on success and false on failure.
-  bool ParseFile(const string& filename);
-  bool ParseContents(const string& contents);
+  bool ParseFile(const std::string& filename);
+  bool ParseContents(const std::string& contents);
 
   // Print the AST to stdout. Returns true if the AST is valid, false otherwise.
   // Prints the line numbers of the nodes if line_numbers is true.
@@ -112,7 +112,7 @@ class GrmCompilerSpec : public GrmCompilerParserInterface {
   // Sets the parsing to failure.  If provided with a non-empty message, then
   // we'll print that out for the user.  If the message is empty, print out
   // nothing (and just silently fail the parse/compile).
-  void Error(const string& message);
+  void Error(const std::string& message) override;
 
  private:
   Lexer lexer_;
@@ -124,9 +124,10 @@ class GrmCompilerSpec : public GrmCompilerParserInterface {
 
   bool success_;
 
-  string file_;  // File currently being processed
+  std::string file_;  // File currently being processed
 
-  DISALLOW_COPY_AND_ASSIGN(GrmCompilerSpec);
+  GrmCompilerSpec(const GrmCompilerSpec&) = delete;
+  GrmCompilerSpec& operator=(const GrmCompilerSpec&) = delete;
 };
 
 template <typename Arc>
@@ -207,7 +208,7 @@ bool GrmCompilerSpec<Arc>::EvaluateAstWithEnvironment(Namespace* env,
 }
 
 template <typename Arc>
-void GrmCompilerSpec<Arc>::Error(const string& message) {
+void GrmCompilerSpec<Arc>::Error(const std::string& message) {
   success_ = false;
   if (!message.empty()) {
     std::cout << "****************************************\n" << file_ << ":"
@@ -217,13 +218,12 @@ void GrmCompilerSpec<Arc>::Error(const string& message) {
 }
 
 template <typename Arc>
-bool GrmCompilerSpec<Arc>::ParseFile(const string &filename) {
-  string local_grammar = JoinPath(FLAGS_indir, filename);
-  VLOG(1) << "Parsing file: " << local_grammar;
+bool GrmCompilerSpec<Arc>::ParseFile(const std::string& filename) {
+  VLOG(1) << "Parsing file: " << filename;
 
   file_ = filename;
-  string contents;
-  ReadFileToStringOrDie(local_grammar, &contents);
+  std::string contents;
+  ReadFileToStringOrDie(filename, &contents);
   // Adds a newline in case one was left off. It doesn't hurt to have an extra
   // one (so not worth checking to see if one is already there), but the bison
   // parser fails for cryptic reasons if one is missing.
@@ -236,7 +236,7 @@ bool GrmCompilerSpec<Arc>::ParseFile(const string &filename) {
 int CallParser(GrmCompilerParserInterface* compiler);
 
 template <typename Arc>
-bool GrmCompilerSpec<Arc>::ParseContents(const string& contents) {
+bool GrmCompilerSpec<Arc>::ParseContents(const std::string& contents) {
   success_ = true;
   lexer_.ScanString(contents);
   CallParser(this);

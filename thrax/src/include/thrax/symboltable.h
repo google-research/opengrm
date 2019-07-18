@@ -32,13 +32,13 @@ class SymbolTable : public Function<Arc> {
                 << std::endl;
       return nullptr;
     }
-    if (!args[0]->is<string>()) {
+    if (!args[0]->is<std::string>()) {
       std::cout << "SymbolTable: Expected string (path) for argument 1"
                 << std::endl;
       return nullptr;
     }
-    const string& file =
-        JoinPath(FLAGS_indir, *args[0]->get<string>());
+    const auto& file =
+        JoinPath(FLAGS_indir, *args[0]->get<std::string>());
     VLOG(2) << "Loading symbol table: " << file;
     fst::SymbolTable* symtab(fst::SymbolTable::ReadText(file));
     if (!symtab) {
@@ -52,7 +52,8 @@ class SymbolTable : public Function<Arc> {
   }
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(SymbolTable<Arc>);
+  SymbolTable<Arc>(const SymbolTable<Arc>&) = delete;
+  SymbolTable<Arc>& operator=(const SymbolTable<Arc>&) = delete;
 };
 
 }  // namespace function

@@ -19,8 +19,6 @@
 #ifndef THRAX_RULE_NODE_H_
 #define THRAX_RULE_NODE_H_
 
-#include <string>
-
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
 #include <thrax/node.h>
@@ -38,10 +36,13 @@ class RuleNode : public Node {
   };
 
   RuleNode(IdentifierNode* name, Node* rhs, ExportStatus exp);
+
   virtual ~RuleNode();
 
   IdentifierNode* GetName() const;
+
   Node* Get() const;
+
   bool ShouldExport() const;
 
   virtual void Accept(AstWalker* walker);
@@ -51,7 +52,8 @@ class RuleNode : public Node {
   Node* rhs_;
   ExportStatus export_;
 
-  DISALLOW_COPY_AND_ASSIGN(RuleNode);
+  RuleNode(const RuleNode&) = delete;
+  RuleNode& operator=(const RuleNode&) = delete;
 };
 
 }  // namespace thrax

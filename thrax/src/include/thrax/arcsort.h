@@ -34,11 +34,11 @@ class ArcSort : public UnaryFstFunction<Arc> {
                 << std::endl;
       return nullptr;
     }
-    if (!args[1]->is<string>()) {
+    if (!args[1]->is<std::string>()) {
       std::cout << "ArcSort: Expected string for argument 2" << std::endl;
       return nullptr;
     }
-    const string& sort = *args[1]->get<string>();
+    const auto& sort = *args[1]->get<std::string>();
     if (sort == "input") {
       return new fst::ArcSortFst<Arc, fst::ILabelCompare<Arc> >(
           fst, fst::ILabelCompare<Arc>());
@@ -53,7 +53,8 @@ class ArcSort : public UnaryFstFunction<Arc> {
   }
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(ArcSort<Arc>);
+  ArcSort<Arc>(const ArcSort<Arc>&) = delete;
+  ArcSort<Arc>& operator=(const ArcSort<Arc>&) = delete;
 };
 
 }  // namespace function

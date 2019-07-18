@@ -20,7 +20,6 @@
 #define THRAX_COLLECTION_NODE_H_
 
 #include <deque>
-#include <string>
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
@@ -35,6 +34,7 @@ class CollectionNode : public Node {
   typedef std::deque<Node*> Collection;
 
   CollectionNode();
+
   virtual ~CollectionNode();
 
   // Add a collection to the list.
@@ -43,6 +43,7 @@ class CollectionNode : public Node {
   int Size() const;
 
   Node* Get(int index) const;
+
   Node* operator[](int index) const;
 
   virtual void Accept(AstWalker* walker);
@@ -50,7 +51,8 @@ class CollectionNode : public Node {
  private:
   Collection* collection_;
 
-  DISALLOW_COPY_AND_ASSIGN(CollectionNode);
+  CollectionNode(const CollectionNode&) = delete;
+  CollectionNode& operator=(const CollectionNode&) = delete;
 };
 
 }  // namespace thrax

@@ -152,8 +152,8 @@ void AstPrinter::Visit(StringNode* node) {
   out << Spaces(node) << "StringNode: " << node->Get() << std::endl;
 }
 
-string AstPrinter::Spaces(Node *node) const {
-  string output;
+std::string AstPrinter::Spaces(Node* node) const {
+  std::string output;
   for (int i = 0; i < num_spaces_; ++i) {
     if (i != num_spaces_ - 1) {
       output += "|   ";

@@ -79,7 +79,8 @@ class Difference : public BinaryFstFunction<Arc> {
   }
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(Difference<Arc>);
+  Difference<Arc>(const Difference<Arc>&) = delete;
+  Difference<Arc>& operator=(const Difference<Arc>&) = delete;
 };
 
 }  // namespace function

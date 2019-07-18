@@ -44,7 +44,8 @@ class Namespace {
   // Create (and return) a new sub-namespace using the provided filename and
   // alias, adding it to the namespace tree.  The returned namespace is still
   // owned by this class and must not be freed by the caller.
-  Namespace* AddSubNamespace(const string& filename, const string& alias);
+  Namespace* AddSubNamespace(const std::string& filename,
+                             const std::string& alias);
 
   // These functions will create a new local environment space (or destroy the
   // newest one).
@@ -60,24 +61,26 @@ class Namespace {
   // second version inserts the object without taking over ownership of the
   // pointer.
   template <typename T>
-  bool Insert(const string& identifier_name, T* resource) {
-    const string& name = ConstructMapName(identifier_name);
+  bool Insert(const std::string& identifier_name, T* resource) {
+    const std::string& name = ConstructMapName(identifier_name);
     return resources_->Insert(name, resource);
   }
   template <typename T>
-  bool InsertWithoutDelete(const string& identifier_name, T* resource) {
-    const string& name = ConstructMapName(identifier_name);
+  bool InsertWithoutDelete(const std::string& identifier_name, T* resource) {
+    const std::string& name = ConstructMapName(identifier_name);
     return resources_->InsertWithDeleter(name, resource, nullptr);
   }
 
   // The same as the above, but this time, we insert into the local namespace
   // instead of the globally shared one.
   template <typename T>
-  bool InsertLocal(const string& identifier_name, T* resource) {
+  bool InsertLocal(const std::string& identifier_name, T* resource) {
     return local_env_.back()->Insert(identifier_name, resource);
   }
+
   template <typename T>
-  bool InsertLocalWithoutDelete(const string& identifier_name, T* resource) {
+  bool InsertLocalWithoutDelete(const std::string& identifier_name,
+                                T* resource) {
     return local_env_.back()->InsertWithDeleter(identifier_name, resource,
                                                 nullptr);
   }
@@ -91,10 +94,9 @@ class Namespace {
     // If the identifier doesn't have a namespace, then we should check the
     // local variables first if possible.
     if (!identifier.HasNamespaces() && !local_env_.empty()) {
-      const string& name = identifier.GetIdentifier();
+      const std::string& name = identifier.GetIdentifier();
       if (local_env_.back()->ContainsType<T>(name)) {
-        if (where)
-          *where = this;
+        if (where) *where = this;
         return local_env_.back()->Get<T>(name);
       }
     }
@@ -104,11 +106,10 @@ class Namespace {
     // global map.
     Namespace* final_namespace = ResolveNamespace(identifier);
     if (final_namespace) {
-      const string& name =
+      const std::string& name =
           final_namespace->ConstructMapName(identifier.GetIdentifier());
       if (resources_->ContainsType<T>(name)) {
-        if (where)
-          *where = final_namespace;
+        if (where) *where = final_namespace;
         return resources_->Get<T>(name);
       }
     }
@@ -121,13 +122,13 @@ class Namespace {
   }
 
   // Removes the provided identifier from the top-most local environment.
-  bool EraseLocal(const string& identifier);
+  bool EraseLocal(const std::string& identifier);
 
   // Returns namespace in the identifier, according to the current iterator
   // position.
   Namespace* ResolveNamespace(const IdentifierNode& identifier);
 
-  string GetFilename() const;
+  std::string GetFilename() const;
 
   void SetTopLevel();
   bool IsTopLevel() const;
@@ -135,11 +136,11 @@ class Namespace {
  private:
   // This constructor creates a sub-namespace that shares resources with the
   // parent.  As such, it should be invoked only through AddSubNamespace().
-  Namespace(const string& filename, ResourceMap* resource_map);
+  Namespace(const std::string& filename, ResourceMap* resource_map);
 
   // Creates the semi-unique joined name for a given identifier, currently the
   // filename followed by a slash followed by the identifier name.
-  string ConstructMapName(const string& identifier_name) const;
+  std::string ConstructMapName(const std::string& identifier_name) const;
 
   // Internal version of ResolveNamespace() which also takes an iterator to the
   // current identifier's namespace position.
@@ -153,12 +154,12 @@ class Namespace {
   bool toplevel_;
 
   // The filename associated with this particular namespace alias.
-  string filename_;
+  std::string filename_;
 
   // Provides a mapping from a single-component alias to the next Namespace
   // object.  This map is expected to be reasonably small, so we'll use a normal
   // map instead of a hash_map.
-  std::map<string, Namespace*> alias_namespace_map_;
+  std::map<std::string, Namespace*> alias_namespace_map_;
 
   // The actual map of string to global resources.  This resource map will
   // likely be shared across this namespace and all sub-namespaces.  Keys are
@@ -172,7 +173,8 @@ class Namespace {
   // the newest scope.
   std::vector<ResourceMap*> local_env_;
 
-  DISALLOW_COPY_AND_ASSIGN(Namespace);
+  Namespace(const Namespace&) = delete;
+  Namespace& operator=(const Namespace&) = delete;
 };
 
 }  // namespace thrax

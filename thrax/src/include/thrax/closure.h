@@ -10,6 +10,7 @@
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
 #include <fst/fstlib.h>
+#include <thrax/algo/concatrange.h>
 #include <thrax/fst-node.h>
 #include <thrax/datatype.h>
 #include <thrax/function.h>
@@ -42,7 +43,7 @@ class Closure : public UnaryFstFunction<Arc> {
     RepetitionFstNode::RepetitionFstNodeType type =
         static_cast<RepetitionFstNode::RepetitionFstNodeType>(
             *args[1]->get<int>());
-    MutableTransducer* output = nullptr;
+    MutableTransducer* output = new MutableTransducer(fst);
     switch (type) {
       case RepetitionFstNode::STAR: {
         if (args.size() != 2) {
@@ -50,7 +51,6 @@ class Closure : public UnaryFstFunction<Arc> {
                     << std::endl;
           return nullptr;
         }
-        output = new MutableTransducer(fst);
         fst::Closure(output, fst::CLOSURE_STAR);
         break;
       }
@@ -60,7 +60,6 @@ class Closure : public UnaryFstFunction<Arc> {
                     << std::endl;
           return nullptr;
         }
-        output = new MutableTransducer(fst);
         fst::Closure(output, fst::CLOSURE_PLUS);
         break;
       }
@@ -70,7 +69,7 @@ class Closure : public UnaryFstFunction<Arc> {
                     << std::endl;
           return nullptr;
         }
-        output = ConcatRange(fst, 0, 1);
+        fst::ConcatRange(output, 0, 1);
         break;
       }
       case RepetitionFstNode::RANGE: {
@@ -87,9 +86,9 @@ class Closure : public UnaryFstFunction<Arc> {
             return nullptr;
           }
         }
-        int min = *args[2]->get<int>();
-        int max = *args[3]->get<int>();
-        output = ConcatRange(fst, min, max);
+        const auto min = *args[2]->get<int>();
+        const auto max = *args[3]->get<int>();
+        fst::ConcatRange(output, min, max);
         break;
       }
       default: {
@@ -102,31 +101,8 @@ class Closure : public UnaryFstFunction<Arc> {
   }
 
  private:
-  // Returns a new FST that is the concatenation of min to max repetitions of
-  // the provided input FST fst.
-  MutableTransducer* ConcatRange(const Transducer& fst, int min, int max) {
-    fst::VectorFst<Arc> empty_acceptor;
-    int p = empty_acceptor.AddState();
-    empty_acceptor.SetStart(p);
-    empty_acceptor.SetFinal(p, Arc::Weight::One());
-    // If we are saving symbols then we have to add the symbol tables of our
-    // input fst to this new single state FST
-    if (FLAGS_save_symbols) {
-      empty_acceptor.SetInputSymbols(fst.InputSymbols());
-      empty_acceptor.SetOutputSymbols(fst.OutputSymbols());
-    }
-    fst::VectorFst<Arc>* current = empty_acceptor.Copy();
-    for (int i = max; i > 0; --i) {
-      fst::Concat(fst, current);
-      if (i > min) {
-        fst::Concat(empty_acceptor, current);
-        current->SetFinal(current->Start(), Arc::Weight::One());
-      }
-    }
-    return current;
-  }
-
-  DISALLOW_COPY_AND_ASSIGN(Closure<Arc>);
+  Closure<Arc>(const Closure<Arc>&) = delete;
+  Closure<Arc>& operator=(const Closure<Arc>&) = delete;
 };
 
 }  // namespace function

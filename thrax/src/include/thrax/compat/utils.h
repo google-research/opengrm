@@ -32,54 +32,47 @@
 
 #include <fst/compat.h>
 
-using std::string;
-
 namespace thrax {
 
 // Operations on strings.
 
 class StringOrInt {
  public:
-  StringOrInt(const string &s) : str_(s) {}  // NOLINT
+  StringOrInt(const std::string &s) : str_(s) {}  // NOLINT
 
-  StringOrInt(const char *s) : str_(string(s)) {}  // NOLINT
+  StringOrInt(const char *s) : str_(std::string(s)) {}  // NOLINT
 
   StringOrInt(int i) {  // NOLINT
     char buf[1024];
     sprintf(buf, "%d", i);
-    str_ = string(buf);
+    str_ = std::string(buf);
   }
 
-  const string &Get() const { return str_; }
+  const std::string &Get() const { return str_; }
 
  private:
-  string str_;
+  std::string str_;
 };
 
 // TODO(kbg): Make this work with variadic template, maybe.
 
-inline string StringCat(const StringOrInt &s1, const StringOrInt &s2) {
+inline std::string StringCat(const StringOrInt &s1, const StringOrInt &s2) {
   return s1.Get() + s2.Get();
 }
 
-inline string StringCat(const StringOrInt &s1,
-                        const StringOrInt &s2,
-                        const StringOrInt &s3) {
+inline std::string StringCat(const StringOrInt &s1, const StringOrInt &s2,
+                             const StringOrInt &s3) {
   return s1.Get() + StringCat(s2, s3);
 }
 
-inline string StringCat(const StringOrInt &s1,
-                        const StringOrInt &s2,
-                        const StringOrInt &s3,
-                        const StringOrInt &s4) {
+inline std::string StringCat(const StringOrInt &s1, const StringOrInt &s2,
+                             const StringOrInt &s3, const StringOrInt &s4) {
   return s1.Get() + StringCat(s2, s3, s4);
 }
 
-inline string StringCat(const StringOrInt &s1,
-                        const StringOrInt &s2,
-                        const StringOrInt &s3,
-                        const StringOrInt &s4,
-                        const StringOrInt &s5) {
+inline std::string StringCat(const StringOrInt &s1, const StringOrInt &s2,
+                             const StringOrInt &s3, const StringOrInt &s4,
+                             const StringOrInt &s5) {
   return s1.Get() + StringCat(s2, s3, s4, s5);
 }
 
@@ -87,16 +80,16 @@ namespace internal {
 
 // Destructive variants.
 
-inline void StringReplace(string *full, const string &before,
-                          const string &after) {
+inline void StringReplace(std::string *full, const std::string &before,
+                          const std::string &after) {
   size_t pos = 0;
-  while ((pos = full->find(before, pos)) != string::npos) {
+  while ((pos = full->find(before, pos)) != std::string::npos) {
     full->replace(pos, before.size(), after);
     pos += after.size();
   }
 }
 
-inline void StripTrailingAsciiWhitespace(string *full) {
+inline void StripTrailingAsciiWhitespace(std::string *full) {
   const auto lambda = [](char ch) { return !std::isspace(ch); };
   const auto pos = std::find_if(full->rbegin(), full->rend(), lambda).base();
   full->erase(pos, full->end());
@@ -104,54 +97,58 @@ inline void StripTrailingAsciiWhitespace(string *full) {
 
 }  // namespace internal
 
-inline string StringReplace(const string &full, const string &before,
-                            const string &after, bool /* ignored */) {
-  string copy(full);
+inline std::string StringReplace(const std::string &full,
+                                 const std::string &before,
+                                 const std::string &after, bool /* ignored */) {
+  std::string copy(full);
   internal::StringReplace(&copy, before, after);
   return copy;
 }
 
-inline string StripTrailingAsciiWhitespace(const string &full) {
-  string copy(full);
+inline std::string StripTrailingAsciiWhitespace(const std::string &full) {
+  std::string copy(full);
   internal::StripTrailingAsciiWhitespace(&copy);
   return copy;
 }
 
-string StringJoin(const std::vector<string> &elements, const string &delim);
+std::string StringJoin(const std::vector<std::string> &elements,
+                       const std::string &delim);
 
-std::vector<string> StringSplit(const string &full, const char *delim);
+std::vector<std::string> StringSplit(const std::string &full,
+                                     const char *delim);
 
-inline std::vector<string> StringSplit(const string &full, char delim) {
-  return StringSplit(full, string(1, delim).c_str());
+inline std::vector<std::string> StringSplit(const std::string &full,
+                                            char delim) {
+  return StringSplit(full, std::string(1, delim).c_str());
 }
 
-inline std::vector<string> StringSplit(const string &full,
-                                       const string &delim) {
+inline std::vector<std::string> StringSplit(const std::string &full,
+                                            const std::string &delim) {
   return StringSplit(full, delim.c_str());
 }
 
-string StringPrintf(const char *format, ...);
+std::string StringPrintf(const char *format, ...);
 
-void SplitStringAllowEmpty(const string &full, const char *delim,
-                           std::vector<string> *result);
+void SplitStringAllowEmpty(const std::string &full, const char *delim,
+                           std::vector<std::string> *result);
 
 // Operations on filenames.
 
-string JoinPath(const string &dirname, const string &basename);
+std::string JoinPath(const std::string &dirname, const std::string &basename);
 
 const char *Suffix(const char *filename);
 
-const string Suffix(const string &filename);
+const std::string Suffix(const std::string &filename);
 
-string StripBasename(const char *filename);
+std::string StripBasename(const char *filename);
 
-string StripBasename(const string &filename);
+std::string StripBasename(const std::string &filename);
 
-bool Readable(const string &filename);
+bool Readable(const std::string &filename);
 
-void ReadFileToStringOrDie(const string &filename, string *store);
+void ReadFileToStringOrDie(const std::string &filename, std::string *store);
 
-bool RecursivelyCreateDir(const string &path);
+bool RecursivelyCreateDir(const std::string &path);
 
 class File {
  public:
@@ -159,14 +156,18 @@ class File {
 
   explicit File(std::fstream *stream) : stream_(stream) {}
 
+  explicit File(std::unique_ptr<std::fstream> &&stream)
+      : stream_(std::move(stream)) {}
+
   void SetStream(std::fstream *stream) { stream_.reset(stream); }
+
+  void SetStream(std::unique_ptr<std::fstream> &&stream) {
+    stream_ = std::move(stream);
+  }
 
   std::fstream *Stream() { return stream_.get(); }
 
-  void Close() {
-    stream_->close();
-    stream_.reset();
-  }
+  void Close() { stream_.reset(); }
 
  private:
   std::unique_ptr<std::fstream> stream_;
@@ -180,7 +181,7 @@ class InputBuffer {
 
   explicit InputBuffer(File *fp) : fp_(fp) {}
 
-  bool ReadLine(string *line) {
+  bool ReadLine(std::string *line) {
     line->clear();
     fp_->Stream()->getline(buf_, kMaxLine);
     if (!fp_->Stream()->gcount()) {
@@ -196,9 +197,9 @@ class InputBuffer {
   char buf_[kMaxLine];
 };
 
-File *Open(const string &filename, const string &mode);
+File *Open(const std::string &filename, const std::string &mode);
 
-File *OpenOrDie(const string &filename, const string &mode);
+File *OpenOrDie(const std::string &filename, const std::string &mode);
 
 }  // namespace thrax
 

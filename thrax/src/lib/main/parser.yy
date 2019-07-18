@@ -213,7 +213,7 @@ rule_body:
 
 descriptor:
   tDESCR
-    { const string& name = parm->GetLexer()->YYString();
+    { const std::string& name = parm->GetLexer()->YYString();
       int begin_pos = parm->GetLexer()->YYBeginPos();
       IdentifierNode* node = new IdentifierNode(name, begin_pos);
       node->SetLine(parm->GetLexer()->line_number());
@@ -523,7 +523,7 @@ int yylex(void *, GrmCompilerParserInterface *parm) {
     case Lexer::ANGLE_STRING:
       return tANGLE_STRING;
     case Lexer::CONNECTOR: {
-      string connector = parm->GetLexer()->YYString();
+      std::string connector = parm->GetLexer()->YYString();
       if (connector.length() != 1) {
         parm->Error(StringPrintf("Parse error - unknown connector: %s", connector.c_str()));
         return 0;
@@ -554,7 +554,7 @@ int yylex(void *, GrmCompilerParserInterface *parm) {
       }
     }
     case Lexer::KEYWORD: {
-      string keyword = parm->GetLexer()->YYString();
+      std::string keyword = parm->GetLexer()->YYString();
       if (keyword == "export") {
         return tKEYWORD_EXPORT;
       } else if (keyword == "as") {

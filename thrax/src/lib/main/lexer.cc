@@ -22,8 +22,8 @@
 
 namespace thrax {
 
-static std::set<string> InitStaticKeywords() {
-  std::set<string> keywords;
+static std::set<std::string> InitStaticKeywords() {
+  std::set<std::string> keywords;
   keywords.insert("as");
   keywords.insert("export");
   keywords.insert("func");
@@ -33,7 +33,8 @@ static std::set<string> InitStaticKeywords() {
   keywords.insert("utf8");
   return keywords;
 }
-const std::set<string> Lexer::kKeywords = InitStaticKeywords();
+
+const std::set<std::string> Lexer::kKeywords = InitStaticKeywords();
 
 Lexer::TokenClass Lexer::YYLex() {
   int begin_pos = GetPos();
@@ -135,7 +136,7 @@ Lexer::TokenClass Lexer::YYLex() {
       }
       found_token = true;
     } else {
-      string filename = current_grammar_path() + ":";
+      std::string filename = current_grammar_path() + ":";
       if (filename == ":") {
         filename = "line ";
       }
@@ -150,9 +151,7 @@ Lexer::TokenClass Lexer::YYLex() {
   return curr_token_.token_class;
 }
 
-const string &Lexer::YYString() const {
-  return curr_token_.token_string;
-}
+const std::string &Lexer::YYString() const { return curr_token_.token_string; }
 
 int Lexer::YYBeginPos() const { return curr_token_.begin_pos; }
 

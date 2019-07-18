@@ -17,8 +17,6 @@
 #ifdef HAVE_READLINE
 using thrax::File;
 using thrax::Open;
-#include <readline/history.h>
-#include <readline/readline.h>
 #endif  // HAVE_READLINE
 
 using fst::StdVectorFst;
@@ -64,7 +62,7 @@ inline void InitializeHistoryFile() {
   kHistoryFileInitialized = true;
 }
 
-bool RewriteTesterUtils::ReadInput(string* s) {
+bool RewriteTesterUtils::ReadInput(std::string* s) {
   if (!kHistoryFileInitialized) InitializeHistoryFile();
   char* input = readline("Input string: ");
   if (!input) return false;
@@ -77,7 +75,7 @@ bool RewriteTesterUtils::ReadInput(string* s) {
   return true;
 }
 #else   // HAVE_READLINE
-bool RewriteTesterUtils::ReadInput(string* s) {
+bool RewriteTesterUtils::ReadInput(std::string* s) {
   std::cout << "Input string: ";
   return static_cast<bool>(getline(std::cin, *s));
 }
@@ -167,13 +165,13 @@ void RewriteTesterUtils::Initialize() {
   }
 }
 
-const string RewriteTesterUtils::ProcessInput(const string& input,
-                                              bool prepend_output) {
+const std::string RewriteTesterUtils::ProcessInput(const std::string& input,
+                                                   bool prepend_output) {
   StdVectorFst input_fst, output_fst;
   if (!compiler_->operator()(input, &input_fst)) {
     return "Unable to parse input string.";
   }
-  string return_val = "";
+  std::string return_val = "";
   // Set symbols for the input, if appropriate
   if (byte_symtab_ && type_ == BYTE) {
     input_fst.SetInputSymbols(byte_symtab_);
@@ -192,7 +190,7 @@ const string RewriteTesterUtils::ProcessInput(const string& input,
     if (grm_.Rewrite(triple.main_rule, input_fst, &output_fst,
                      triple.pdt_parens_rule, triple.mpdt_assignments_rule)) {
       if (FLAGS_show_details && rules_.size() > 1) {
-        std::vector<std::pair<string, float>> tmp;
+        std::vector<std::pair<std::string, float>> tmp;
         FstToStrings(output_fst, &tmp, generated_symtab_, type_,
                      output_symtab_, FLAGS_noutput);
         for (const auto& one_result : tmp) {
@@ -211,14 +209,14 @@ const string RewriteTesterUtils::ProcessInput(const string& input,
     }
   }
 
-  std::vector<std::pair<string, float> > strings;
-  std::set<string> seen;
+  std::vector<std::pair<std::string, float>> strings;
+  std::set<std::string> seen;
   if (succeeded && FstToStrings(output_fst, &strings,
                                 generated_symtab_, type_,
                                 output_symtab_, FLAGS_noutput)) {
-    std::vector<std::pair<string, float> >::iterator itr = strings.begin();
+    std::vector<std::pair<std::string, float>>::iterator itr = strings.begin();
     for (; itr != strings.end(); ++itr) {
-      std::set<string>::iterator sx = seen.find(itr->first);
+      std::set<std::string>::iterator sx = seen.find(itr->first);
       if (sx != seen.end()) continue;
       if (prepend_output) {
         return_val += "Output string: " + itr->first;
@@ -239,8 +237,6 @@ const string RewriteTesterUtils::ProcessInput(const string& input,
 
 // Run() for interactive mode.
 void RewriteTesterUtils::Run() {
-  string input;
-  while (ReadInput(&input)) {
-    std::cout << ProcessInput(input) << std::endl;
-  }
+  std::string input;
+  while (ReadInput(&input)) std::cout << ProcessInput(input) << std::endl;
 }

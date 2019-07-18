@@ -35,7 +35,6 @@
 #ifndef THRAX_PARADIGM_H_
 #define THRAX_PARADIGM_H_
 
-#include <string>
 #include <vector>
 
 #include <fst/fstlib.h>
@@ -131,7 +130,8 @@ class Analyzer : public Function<Arc> {
   }
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(Analyzer<Arc>);
+  Analyzer<Arc>(const Analyzer<Arc>&) = delete;
+  Analyzer<Arc>& operator=(const Analyzer<Arc>&) = delete;
 };
 
 // Tagger[paradigm, stems, stemmer, deleter, boundary_deleter]
@@ -188,7 +188,8 @@ class Tagger : public Function<Arc> {
   }
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(Tagger<Arc>);
+  Tagger<Arc>(const Tagger<Arc>&) = delete;
+  Tagger<Arc>& operator=(const Tagger<Arc>&) = delete;
 };
 
 // ParadigmReplace[paradigm, old_forms, new_forms]
@@ -243,7 +244,8 @@ class ParadigmReplace : public Function<Arc> {
   }
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(ParadigmReplace<Arc>);
+  ParadigmReplace<Arc>(const ParadigmReplace<Arc>&) = delete;
+  ParadigmReplace<Arc>& operator=(const ParadigmReplace<Arc>&) = delete;
 };
 
 }  // namespace function

@@ -66,7 +66,7 @@ class AstPrinter : public AstWalker {
  private:
   // Returns the spacing prefix for the current nested level.
   // Plus the line number if line_numbers is true.
-  string Spaces(Node *node) const;
+  std::string Spaces(Node* node) const;
 
   // A scoped counter that increments and decrements the spacing as necessary.
   class ScopedSpaceCounter {
@@ -85,7 +85,8 @@ class AstPrinter : public AstWalker {
   // This is the actual stream to which we write out, which we do not own.
   std::ostream& out;
 
-  DISALLOW_COPY_AND_ASSIGN(AstPrinter);
+  AstPrinter(const AstPrinter&) = delete;
+  AstPrinter& operator=(const AstPrinter&) = delete;
 };
 
 }  // namespace thrax

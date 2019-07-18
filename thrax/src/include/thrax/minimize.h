@@ -38,7 +38,8 @@ class Minimize : public UnaryFstFunction<Arc> {
   }
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(Minimize<Arc>);
+  Minimize<Arc>(const Minimize<Arc>&) = delete;
+  Minimize<Arc>& operator=(const Minimize<Arc>&) = delete;
 };
 
 }  // namespace function

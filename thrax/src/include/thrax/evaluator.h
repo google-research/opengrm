@@ -17,7 +17,7 @@
 #ifndef THRAX_EVALUATOR_H_
 #define THRAX_EVALUATOR_H_
 
-#include <string.h>
+#include <cstring>
 #include <fstream>
 #include <iostream> // NOLINT
 #include <map>
@@ -75,11 +75,13 @@ static const char kStringFstSymtabFst[] = "*StringFstSymbolTable";
 // Retrieves a C++ function for the proper arc type.
 // See evaluator-specializations.cc for implementations.
 template <typename Arc>
-function::Function<Arc>* GetFunction(const string& func_name);
+function::Function<Arc>* GetFunction(const std::string& func_name);
+
 template <>
-function::Function<fst::StdArc>* GetFunction(const string& func_name);
+function::Function<fst::StdArc>* GetFunction(const std::string& func_name);
+
 template <>
-function::Function<fst::LogArc>* GetFunction(const string& func_name);
+function::Function<fst::LogArc>* GetFunction(const std::string& func_name);
 
 template <typename Arc> class GrmCompilerSpec;
 
@@ -139,10 +141,12 @@ class AstEvaluator : public AstWalker {
   void ClearSuccess() {  // Call this before a new compilation to reset the
     success_ = true;     // state of the success_ variable.
   }
+
   bool Success() {
     return success_;
   }
-  void Error(const Node& node, const string& message) {
+
+  void Error(const Node& node, const std::string& message) {
     std::cout << file_ << ":" << node.getline() << ": " << message << std::endl;
     success_ = false;
   }
@@ -158,8 +162,7 @@ class AstEvaluator : public AstWalker {
   virtual void Visit(FunctionNode* node) {
     VLOG(2) << "Visiting Function";
     if (!Success()) return;
-
-    const string& name = node->GetName()->Get();
+    const std::string& name = node->GetName()->Get();
     IdentifierNode function_inode(name);
     if (!env_->Get<FunctionNode>(function_inode)) {  // Add only if new.
       // The functions are held with the GrmCompilerSpec (more specifically the
@@ -184,12 +187,10 @@ class AstEvaluator : public AstWalker {
     if (!Success()) return;
 
     CollectionNode* imports = node->GetImports();
-    for (int i = 0; i < imports->Size(); ++i)
-      (*imports)[i]->Accept(this);
+    for (int i = 0; i < imports->Size(); ++i) (*imports)[i]->Accept(this);
 
     CollectionNode* functions = node->GetFunctions();
-    for (int i = 0; i < functions->Size(); ++i)
-      (*functions)[i]->Accept(this);
+    for (int i = 0; i < functions->Size(); ++i) (*functions)[i]->Accept(this);
 
     if (run_all_) {
       CollectionNode* statements = node->GetStatements();
@@ -212,7 +213,7 @@ class AstEvaluator : public AstWalker {
     if (!Success()) return;
 
     // Get (and check) the path of the actual source and far.
-    const string& path = JoinPath(FLAGS_indir, node->GetPath()->Get());
+    const auto& path = JoinPath(FLAGS_indir, node->GetPath()->Get());
     if (Suffix(path) != "grm") {
       Error(*node, thrax::StringCat("Extension for included files should be .grm: ",
                                 path));
@@ -220,8 +221,8 @@ class AstEvaluator : public AstWalker {
     }
 
     // Get (and check) the alias name.
-    const string& alias = node->GetAlias()->Get();
-    if (alias.find('.') != string::npos) {
+    const std::string& alias = node->GetAlias()->Get();
+    if (alias.find('.') != std::string::npos) {
       Error(*node, thrax::StringCat("Invalid import alias identifier: ", alias));
       return;
     }
@@ -248,7 +249,7 @@ class AstEvaluator : public AstWalker {
     loaded_grammars_.push_back(grammar);
 
     // Then, load up the exported FSTs - beginning by opening the FST archive.
-    string far_path = path.substr(0, path.length() - 3) + "far";
+    std::string far_path = path.substr(0, path.length() - 3) + "far";
     VLOG(2) << "Opening (and loading FSTs from) companion far: " << far_path;
     fst::FarReader<Arc>* far_reader =
         fst::STTableFarReader<Arc>::Open(far_path);
@@ -277,7 +278,7 @@ class AstEvaluator : public AstWalker {
     // quit if we ever have an error.
     for (/* far_reader starts at the beginning */;
          Success() && !far_reader->Done(); far_reader->Next()) {
-      const string& key = far_reader->GetKey();
+      const auto& key = far_reader->GetKey();
       if (key == kStringFstSymtabFst) {
         continue;
       } else {
@@ -340,7 +341,7 @@ class AstEvaluator : public AstWalker {
       return;
     }
 
-    const string& name = identifier->GetIdentifier();
+    const std::string& name = identifier->GetIdentifier();
     node->Get()->Accept(this);
     DataType* thing = GetReturnValue();
 
@@ -393,7 +394,7 @@ class AstEvaluator : public AstWalker {
   // grammar). This information gets passed down ultimately to StringFst's
   // GetLabelSymbolTable to determine (assuming --save_symbols is set), whether
   // or not to add generated labels to the byte and utf8 symbol tables.
-  void GetFsts(std::map<string, const Transducer*>* fsts, bool top_level) {
+  void GetFsts(std::map<std::string, const Transducer*>* fsts, bool top_level) {
     // Check if we ever used generated labels.  If so, get the symbol table and
     // add it to a unique FST called kStringFstSymtabFst.
     fst::SymbolTable* generated_labels =
@@ -408,7 +409,7 @@ class AstEvaluator : public AstWalker {
     // Get the exported FSTs and add them to the map.
     for (std::set<IdentifierNode*>::const_iterator fst_i =
          exported_fsts_.begin(); fst_i != exported_fsts_.end(); ++fst_i) {
-      const string& name = (*fst_i)->Get();
+      const std::string& name = (*fst_i)->Get();
       // If always_export is set, an imported function, which in turn contains
       // a named fst variable, will have that variable exported when the
       // function is expanded in the top-level grammar, but that fst is not
@@ -445,9 +446,7 @@ class AstEvaluator : public AstWalker {
     }
   }
 
-  void set_file(const string& file) {
-    file_ = file;
-  }
+  void set_file(const std::string& file) { file_ = file; }
 
  private:
   // Extract and interpret the proper arguments from an FstNode and bind them to
@@ -512,7 +511,7 @@ class AstEvaluator : public AstWalker {
                                            fa_identifier->Get()));
         break;
       }
-      const string& arg_name = fa_identifier->GetIdentifier();
+      const std::string& arg_name = fa_identifier->GetIdentifier();
       DataType* arg = (*arguments)[i]->Copy();
       env_->InsertLocal(arg_name, arg);
     }
@@ -544,7 +543,7 @@ class AstEvaluator : public AstWalker {
   // arguments (via the C++ functions).  This returns the new object saved into
   // the output argument.  This function returns true if the function was found
   // and false otherwise.
-  bool MakeFstFromCFunction(const string& function_name,
+  bool MakeFstFromCFunction(const std::string& function_name,
                             const Node& debug_location_node,
                             std::vector<DataType*>* arguments,
                             DataType** output) {
@@ -644,7 +643,7 @@ class AstEvaluator : public AstWalker {
       }
       case FstNode::STRING_FSTNODE: {
         StringFstNode* snode = static_cast<StringFstNode*>(node);
-        const string& text =
+        const std::string& text =
             static_cast<StringNode*>(node->GetArgument(0))->Get();
         VLOG(2) << "String Fst: " << text;
 
@@ -667,7 +666,7 @@ class AstEvaluator : public AstWalker {
       case FstNode::FUNCTION_FSTNODE: {
         IdentifierNode* func_identifier_node =
             static_cast<IdentifierNode*>(node->GetArgument(0));
-        const string& name = func_identifier_node->Get();
+        const std::string& name = func_identifier_node->Get();
         VLOG(2) << "Function Call Fst: " << name;
         if (name == "Optimize") optimize_embedding_ = 0;
 
@@ -759,7 +758,7 @@ class AstEvaluator : public AstWalker {
   // Given an FST, we'll create a new one with the weight tacked on as a final
   // state.
   static Transducer* AttachWeight(const Transducer& input_fst,
-                                  const string& weight_str) {
+                                  const std::string& weight_str) {
     // Generate the appropriate weight.
     typename Arc::Weight weight(0);
     std::istringstream iss(weight_str);
@@ -861,7 +860,7 @@ class AstEvaluator : public AstWalker {
   bool success_;
 
   // Name of file that we're currently evaluating.
-  string file_;
+  std::string file_;
 
   // Level of embedding under Optimize[] of a composition. If it is more than 1,
   // then optimize the composition. (If it is 1, then it's at the top level
@@ -870,9 +869,10 @@ class AstEvaluator : public AstWalker {
 
   // Used in the evaluator to keep track of whether the same function name has
   // been defined in the current file more than once.
-  std::set<string> observed_function_names_;
+  std::set<std::string> observed_function_names_;
 
-  DISALLOW_COPY_AND_ASSIGN(AstEvaluator<Arc>);
+  AstEvaluator<Arc>(const AstEvaluator<Arc>&) = delete;
+  AstEvaluator<Arc>& operator=(const AstEvaluator<Arc>&) = delete;
 };
 
 template <typename Arc>

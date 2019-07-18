@@ -31,12 +31,12 @@ class Project : public UnaryFstFunction<Arc> {
                 << std::endl;
       return nullptr;
     }
-    if (!args[1]->is<string>()) {
+    if (!args[1]->is<std::string>()) {
       std::cout << "Project: Expected string for argument 2" << std::endl;
       return nullptr;
     }
 
-    const string& project = *args[1]->get<string>();
+    const auto& project = *args[1]->get<std::string>();
     if (project == "input") {
       return new fst::ProjectFst<Arc>(fst, fst::PROJECT_INPUT);
     } else if (project == "output") {
@@ -49,7 +49,8 @@ class Project : public UnaryFstFunction<Arc> {
   }
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(Project<Arc>);
+  Project<Arc>(const Project<Arc>&) = delete;
+  Project<Arc>& operator=(const Project<Arc>&) = delete;
 };
 
 }  // namespace function

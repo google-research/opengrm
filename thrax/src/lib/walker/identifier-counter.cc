@@ -51,7 +51,7 @@ void AstIdentifierCounter::Visit(IdentifierNode* node) {
   if (node->HasNamespaces())  // We only care about local variables.
     return;
 
-  const string& name = node->Get();
+  const std::string& name = node->Get();
   if (next_identifier_exported_) {
     references_[name] = -1;    // -1 = infinite
   } else {
@@ -82,12 +82,12 @@ void AstIdentifierCounter::Visit(StringFstNode* node) {
   Visit(static_cast<FstNode*>(node));
 }
 
-int AstIdentifierCounter::GetCount(const string& identifier) {
+int AstIdentifierCounter::GetCount(const std::string& identifier) {
   return FindOrDie(references_, identifier);
 }
 
-bool AstIdentifierCounter::Decrement(const string& identifier) {
-  std::unordered_map<string, int>::iterator where =
+bool AstIdentifierCounter::Decrement(const std::string& identifier) {
+  std::unordered_map<std::string, int>::iterator where =
       references_.find(identifier);
   if (where == references_.end())
     LOG(FATAL) << "Identifier " << identifier << " not found";

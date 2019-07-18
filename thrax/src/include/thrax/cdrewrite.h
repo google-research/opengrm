@@ -22,10 +22,9 @@
 #include <thrax/algo/cdrewrite.h>
 #include <thrax/datatype.h>
 #include <thrax/function.h>
+#include <thrax/stringfst.h>
 
 DECLARE_bool(save_symbols);  // From util/flags.cc.
-DECLARE_int64(initial_boundary_marker);
-DECLARE_int64(final_boundary_marker);
 
 namespace thrax {
 namespace function {
@@ -127,13 +126,13 @@ class CDRewrite : public Function<Arc> {
     fst::CDRewriteMode mode = fst::OBLIGATORY;
     if (args.size() == 6) {
       for (int i = 4; i < 6; ++i) {
-        if (!args[i]->is<string>()) {
+        if (!args[i]->is<std::string>()) {
           std::cout << "CDRewrite: Expected string for argument " << i + 1
                     << std::endl;
           return nullptr;
         }
       }
-      const string& direction_str = *args[4]->get<string>();
+      const auto& direction_str = *args[4]->get<std::string>();
       if (direction_str == "ltr") {
         dir = fst::LEFT_TO_RIGHT;
       } else if (direction_str == "rtl") {
@@ -145,7 +144,7 @@ class CDRewrite : public Function<Arc> {
                   << std::endl;
         return nullptr;
       }
-      const string& mode_str = *args[5]->get<string>();
+      const auto& mode_str = *args[5]->get<std::string>();
       if (mode_str == "obl") {
         mode = fst::OBLIGATORY;
       } else if (mode_str == "opt") {
@@ -157,8 +156,7 @@ class CDRewrite : public Function<Arc> {
     }
     MutableTransducer* output = new MutableTransducer();
     fst::CDRewriteCompile(tau, lambda, rho, sigma, output, dir, mode,
-                              FLAGS_initial_boundary_marker,
-                              FLAGS_final_boundary_marker);
+                              kInitialBoundaryLabel, kFinalBoundaryLabel);
     if (FLAGS_save_symbols) {
       output->SetInputSymbols(symbols);
       output->SetOutputSymbols(symbols);
@@ -167,7 +165,8 @@ class CDRewrite : public Function<Arc> {
   }
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(CDRewrite<Arc>);
+  CDRewrite<Arc>(const CDRewrite<Arc>&) = delete;
+  CDRewrite<Arc>& operator=(const CDRewrite<Arc>&) = delete;
 };
 
 }  // namespace function

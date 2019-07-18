@@ -92,8 +92,8 @@ int main(int argc, char** argv) {
   // cleaning this up.
   fst::StdVectorFst cleaned(*fst);
   fst::RmEpsilon(&cleaned);
-  std::vector<std::pair<string, float> > istrings;
-  std::vector<std::pair<string, float> > ostrings;
+  std::vector<std::pair<std::string, float>> istrings;
+  std::vector<std::pair<std::string, float>> ostrings;
   fst::UniformArcSelector<StdArc> uniform_selector;
   fst::RandGenOptions< fst::UniformArcSelector<StdArc> >
       opts(uniform_selector, INT_MAX, 1, true, false);
@@ -117,8 +117,9 @@ int main(int argc, char** argv) {
               << std::endl;
     // TODO(rws): Currently there is an issue that RandGen() removes weights, so
     // we'll never actually see these costs.
-    if (istrings[i].second != 0)
+    if (istrings[i].second != 0) {
       std::cout << " <cost=" << istrings[i].second << ">" << std::endl;
+    }
   }
   delete output_symtab;
   return 0;

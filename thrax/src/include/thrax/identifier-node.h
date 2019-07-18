@@ -33,16 +33,18 @@ class AstWalker;
 
 class IdentifierNode : public Node {
  public:
-  explicit IdentifierNode(const string& name);
-  IdentifierNode(const string& name, int begin_pos);
+  explicit IdentifierNode(const std::string& name);
+
+  IdentifierNode(const std::string& name, int begin_pos);
+
   virtual ~IdentifierNode();
 
   // Return the entire identifier as originally used in the source.
-  const string& Get() const;
+  const std::string& Get() const;
 
   // Returns the actual identifier - the last component.  For example, if the
   // identifier is foo.bar.baz, this will return baz.
-  const string& GetIdentifier() const;
+  const std::string& GetIdentifier() const;
 
   // Returns the beginning byte position of the identifier in the source.
   int GetBeginPos() const;
@@ -51,8 +53,10 @@ class IdentifierNode : public Node {
   bool HasNamespaces() const;
 
   // STL-style iterator-based accessors of the namespace list.
-  typedef std::vector<string>::const_iterator const_iterator;
+  typedef std::vector<std::string>::const_iterator const_iterator;
+
   const_iterator begin() const;
+
   const_iterator end() const;
 
   // Returns true if the identifier provided is valid.  We check for:
@@ -67,13 +71,15 @@ class IdentifierNode : public Node {
  private:
   bool CalculateValidity();
 
-  string full_name_;
-  string identifier_;
-  std::vector<string> namespaces_;  // The full_name_ broken up by namespaces.
+  std::string full_name_;
+  std::string identifier_;
+  std::vector<std::string>
+      namespaces_;  // The full_name_ broken up by namespaces.
   int begin_pos_;
   bool valid_;
 
-  DISALLOW_COPY_AND_ASSIGN(IdentifierNode);
+  IdentifierNode(const IdentifierNode&) = delete;
+  IdentifierNode& operator=(const IdentifierNode&) = delete;
 };
 
 }  // namespace thrax
