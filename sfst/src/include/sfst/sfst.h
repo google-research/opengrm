@@ -21,6 +21,7 @@
 
 #include <stddef.h>
 #include <sys/types.h>
+
 #include <vector>
 
 #include <fst/float-weight.h>
@@ -62,18 +63,25 @@ inline bool Less(fst::SignedLog64Weight weight1,
   }
 }
 
-inline bool ApproxZero(fst::Log64Weight weight) {
-  constexpr double kTestApproxZero = 99.0;
-  return weight.Value() >= kTestApproxZero;
+template <class Weight>
+bool LessOrEqual(Weight w1, Weight w2) {
+  return Less(w1, w2) || w1 == w2;
 }
 
-inline bool ApproxZero(fst::SignedLog64Weight weight) {
-  constexpr double kTestPosApproxZero = 99.0;
-  constexpr double kTestNegApproxZero = 10.0;
+inline bool ApproxZero(
+    fst::Log64Weight weight,
+    fst::Log64Weight approx_zero = kApproxZeroWeight) {
+  return LessOrEqual(weight, approx_zero);
+}
+
+inline bool ApproxZero(
+    fst::SignedLog64Weight weight,
+    fst::Log64Weight pos_approx_zero = kApproxZeroWeight,
+    fst::Log64Weight neg_approx_zero = 10.0) {
   if (weight.Value1().Value() > 0.0) {
-    return weight.Value2().Value() >= kTestPosApproxZero;
+    return LessOrEqual(weight.Value2(), pos_approx_zero);
   } else {
-    return weight.Value2().Value() >= kTestNegApproxZero;
+    return LessOrEqual(weight.Value2(), neg_approx_zero);
   }
 }
 

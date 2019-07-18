@@ -20,11 +20,13 @@
 #define SFST_COUNT_H_
 
 #include <sys/types.h>
+
 #include <vector>
 
 #include <fst/log.h>
 #include <fst/arcsort.h>
 #include <fst/compose.h>
+#include <fst/expanded-fst.h>
 #include <fst/fst.h>
 #include <fst/matcher.h>
 #include <sfst/canonical.h>
@@ -36,8 +38,10 @@
 
 namespace sfst {
 
-// Counter class for counting from a stochastic FSA w.r.t a
-// specified FSA topology.
+// Counter class for counting from a stochastic FSA w.r.t a specified FSA
+// topology. Computes the counts C(x,q) with x \in L[q] as described in
+// Suresh, Roark, Riley, Schogol, "Approximating probabilistic models
+// as weighted automata" (experimental/fst/papers/approx/approx.pdf)
 template <class Arc>
 class Counter {
  public:
@@ -77,25 +81,34 @@ class Counter {
   void InitFst();
 
   // Adds super-final state and arcs to an FST.
-  StateId AddSuperFinal(fst::MutableFst<Arc> *fst, bool *have_phi,
-                        bool *is_norm = nullptr);
+  StateId AddSuperFinal(fst::MutableFst<Arc> *fst, bool *have_phi);
 
   // Composes input with topology FST.
   void BuildComp(const fst::Fst<Arc> &ifst,
                  fst::MutableFst<SLArc> *ofst) const;
 
-  // Sufficient (but not necessary) conditions for composition of ifst
-  // with topology FST to be normalized.
-  bool CheckNorm(const fst::Fst<Arc> &ifst, bool inorm) const {
+
+  // Checks if signed-log input is normalized (no failure transitions).
+  bool CheckNorm(const fst::Fst<SLArc> &fst) const {
     namespace f = fst;
-    uint64 iprops = ifst.Properties(f::kNoEpsilons, true);
-    return inorm && (phi_label_ == f::kNoLabel || phi_label_ == 0 ||
-                     (iprops & f::kNoEpsilons));
+    using StateItr = f::StateIterator<f::Fst<SLArc>>;
+    using ArcItr = f::ArcIterator<f::Fst<SLArc>>;
+    for (StateItr siter(fst); !siter.Done(); siter.Next()) {
+      StateId s = siter.Value();
+      f::Adder<SLWeight> adder(fst.Final(s));
+      for (ArcItr aiter(fst, s); !aiter.Done(); aiter.Next()) {
+        const SLArc &arc = aiter.Value();
+        adder.Add(arc.weight);
+      }
+      if (!ApproxEqual(adder.Sum(), SLWeight::One()))
+        return false;
+    }
+    return true;
   }
 
   // Computes the distances from the initial and to the final
   // state in cfst. If cfst is normalized, 'norm' is true.
-  void ComputeDistances(bool norm, fst::MutableFst<SLArc> *cfst,
+  bool ComputeDistances(bool norm, fst::MutableFst<SLArc> *cfst,
                         std::vector<SLWeight> *distance,
                         std::vector<SLWeight> *rdistance) const;
 
@@ -128,10 +141,7 @@ class Counter {
 template <class Arc>
 Counter<Arc>::Counter(Label phi_label, float delta,
                       fst::MutableFst<Arc> *ofst)
-    : phi_label_(phi_label),
-      delta_(delta),
-      ofst_(ofst),
-      sf_label_(-2) {
+    : phi_label_(phi_label), delta_(delta), ofst_(ofst), sf_label_(-2) {
   namespace f = fst;
 
   if (ofst_->Start() == f::kNoStateId) {
@@ -180,9 +190,8 @@ void Counter<Arc>::InitFst() {
 }
 
 template <class Arc>
-typename Arc::StateId Counter<Arc>::AddSuperFinal(fst::MutableFst<Arc> *fst,
-                                                  bool *have_phi,
-                                                  bool *is_norm) {
+typename Arc::StateId Counter<Arc>::AddSuperFinal(
+    fst::MutableFst<Arc> *fst,  bool *have_phi) {
   namespace f = fst;
   *have_phi = false;
 
@@ -209,15 +218,6 @@ typename Arc::StateId Counter<Arc>::AddSuperFinal(fst::MutableFst<Arc> *fst,
     }
   }
   f::ArcSort(fst, f::ILabelCompare<Arc>());
-  if (is_norm) {
-    *is_norm = true;
-    for (StateId s = 0; s < fst->NumStates() - 1; ++s) {
-      if (!IsNormalizedState(*fst, s, phi_label_, f::kDelta)) {
-        *is_norm = false;
-        return sf_state;
-      }
-    }
-  }
   return sf_state;
 }
 
@@ -236,11 +236,10 @@ void Counter<Arc>::Count(const fst::Fst<Arc> &ifst) {
   }
 
   f::VectorFst<SLArc> cfst;
-  bool inorm;
   {
     // Adds super-final transitions and state to the input FST.
     f::VectorFst<Arc> sffst(ifst);
-    AddSuperFinal(&sffst, &have_iphi_, &inorm);
+    AddSuperFinal(&sffst, &have_iphi_);
 
     // Builds the composition of ifst and ofst and converts
     // to signed log.
@@ -248,10 +247,14 @@ void Counter<Arc>::Count(const fst::Fst<Arc> &ifst) {
   }
 
   // Checks if composition is normalized.
-  bool cnorm = CheckNorm(ifst, inorm);
+  bool cnorm = CheckNorm(cfst);
 
   std::vector<SLWeight> distance, rdistance;
-  ComputeDistances(cnorm, &cfst, &distance, &rdistance);
+  if (!ComputeDistances(cnorm, &cfst, &distance, &rdistance)) {
+    FSTERROR() << "Counter: shortest-distance computation failed.";
+    ofst_->SetProperties(f::kError, f::kError);
+    return;
+  }
 
   // Extracts counts from the composition using the shortest distance
   CountArcs(cfst, distance, rdistance);
@@ -282,7 +285,7 @@ void Counter<Arc>::BuildComp(const fst::Fst<Arc> &ifst,
 }
 
 template <class Arc>
-void Counter<Arc>::ComputeDistances(bool norm, fst::MutableFst<SLArc> *cfst,
+bool Counter<Arc>::ComputeDistances(bool norm, fst::MutableFst<SLArc> *cfst,
                                     std::vector<SLWeight> *distance,
                                     std::vector<SLWeight> *rdistance) const {
   namespace f = fst;
@@ -290,13 +293,16 @@ void Counter<Arc>::ComputeDistances(bool norm, fst::MutableFst<SLArc> *cfst,
   if (norm) {
     // Normalized: we only need the s.d. from the initial states
     SLShortestDistance sdist(cfst, phi_label_, delta_);
-    sdist.ComputeDistance(distance, false);
+    if (!sdist.ComputeDistance(distance, false)) {
+      return false;
+    }
     rdistance->resize(distance->size(), SLWeight::One());
+    return true;
   } else {
     // Not normalized: we need the s.d. in both directions
     SLShortestDistance sdist(cfst, phi_label_, delta_);
-    sdist.ComputeDistance(distance, false);
-    sdist.ComputeDistance(rdistance, true);
+    return sdist.ComputeDistance(distance, false) &&
+           sdist.ComputeDistance(rdistance, true);
   }
 }
 
@@ -407,6 +413,50 @@ void Counter<Arc>::FinalizeFst() {
   ofst_->DeleteStates(dstates);
   f::ArcSort(ofst_, f::ILabelCompare<Arc>());
 }
+
+
+// Tests that the total weight entering each state
+// equals the total weight leaving that state. This should
+// be true, for example, of the result of Counter().
+template <class Arc>
+bool IsConservative(const fst::Fst<Arc> &fst,
+                    float delta = fst::kDelta) {
+  namespace f = fst;
+  using StateId = typename Arc::StateId;
+  using Weight = typename Arc::Weight;
+  using ArcItr = f::ArcIterator<f::Fst<Arc>>;
+  using Log64Weight = f::Log64Weight;
+
+  StateId nstates = CountStates(fst);
+
+  f::WeightConvert<Weight, Log64Weight> to_log64;
+  std::vector<Log64Weight> in_weight(nstates, Log64Weight::Zero());
+  std::vector<Log64Weight> out_weight(nstates, Log64Weight::Zero());
+
+  for (StateId s = 0; s < nstates; ++s) {
+    for (ArcItr aiter(fst, s); !aiter.Done(); aiter.Next()) {
+      const Arc &arc = aiter.Value();
+      const Log64Weight weight = to_log64(arc.weight);
+      in_weight[arc.nextstate] = Plus(in_weight[arc.nextstate], weight);
+      out_weight[s] = Plus(out_weight[s], weight);
+    }
+    if (fst.Final(s) != Weight::Zero()) {
+      const Log64Weight weight = to_log64(fst.Final(s));
+      out_weight[s] = Plus(out_weight[s], weight);
+      in_weight[fst.Start()] = Plus(in_weight[fst.Start()], weight);
+    }
+  }
+  for (StateId s = 0; s < nstates; ++s) {
+    if (!ApproxEqual(in_weight[s], out_weight[s], delta)) {
+      VLOG(1) << "state: " << s
+              << " in_weight: " << in_weight[s]
+              << " out_weight: " << out_weight[s];
+      return false;
+    }
+  }
+  return true;
+}
+
 
 }  // namespace sfst
 

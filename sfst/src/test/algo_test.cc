@@ -19,6 +19,7 @@
 
 #include <stdlib.h>
 #include <sys/types.h>
+
 #include <iostream>
 #include <memory>
 #include <numeric>
@@ -146,7 +147,7 @@ class AlgoTester {
       return;
     StdVectorFst nfst(ifst), ofst;
     CHECK(GlobalNormalize(&nfst, kPhiLabel, kAlgoDelta));
-    CHECK(NGramApprox(nfst, &ofst, order, kPhiLabel, kAlgoDelta));
+    CHECK(NGramApprox(nfst, &ofst, order, kPhiLabel, kAlgoDelta, NORM_SUMMED));
     CHECK(Verify(ofst));
     CHECK(IsCanonical(ofst, kPhiLabel));
     CHECK(IsNormalized(ofst, kPhiLabel, kNormDelta));
@@ -172,7 +173,7 @@ class AlgoTester {
     StdVectorFst nfst(ifst), afst;
     CHECK(Trim(&nfst, kPhiLabel));
     CHECK(GlobalNormalize(&nfst, kPhiLabel, kAlgoDelta));
-    CHECK(NGramApprox(nfst, &afst, 2, kPhiLabel, kAlgoDelta));
+    CHECK(NGramApprox(nfst, &afst, 2, kPhiLabel, kAlgoDelta, NORM_SUMMED));
     StdVectorFst ofst(afst);
 
     // Requires sanity of input.
@@ -184,11 +185,10 @@ class AlgoTester {
 
     // Tests marginally-constrained approximation onto same
     // topology is an identity.
-    if (!Approx(afst, &ofst, kPhiLabel, kAlgoDelta,
-                NORM_MARGINALLY_CONSTRAINED)) {
+    if (!Approx(afst, &ofst, kPhiLabel, kAlgoDelta, NORM_KL_MIN)) {
       return;
     }
-    CHECK(Isomorphic(afst, ofst, kPhiLabel, kNormDelta));
+    CHECK(RmPhiIsomorphic(afst, ofst));
   }
 
  private:
@@ -238,6 +238,14 @@ class AlgoTester {
     copts.matcher2 = new PM(univ_fst_, f::MATCH_NONE, f::kNoLabel);
     *ofst = StdComposeFst(ifst, univ_fst_, copts);
     f::Connect(ofst);
+  }
+
+  // Tests isomorphic after phi-removal
+  bool RmPhiIsomorphic(const StdFst &fst1, const StdFst &fst2) const {
+    StdVectorFst rfst1, rfst2;
+    PhiRemove(fst1, &rfst1);
+    PhiRemove(fst1, &rfst2);
+    return Isomorphic(rfst1, rfst2, kPhiLabel, kNormDelta);
   }
 
   // Ensures trim and sane arc weights.
@@ -367,7 +375,7 @@ void AlgoTester::TestStationaryDistribStateSum(const StdFst &ifst,
   // Uses n-gram FST as input
   StdVectorFst nfst(ifst), afst;
   CHECK(GlobalNormalize(&nfst, kPhiLabel, kAlgoDelta));
-  CHECK(NGramApprox(nfst, &afst, order, kPhiLabel, kAlgoDelta));
+  CHECK(NGramApprox(nfst, &afst, order, kPhiLabel, kAlgoDelta, NORM_SUMMED));
 
   std::vector<Weight> weights1;
   if (!PhiStationaryDistrib(afst, &weights1, 1.0e-6, kPhiLabel, 1.0e-6))
@@ -385,7 +393,7 @@ void AlgoTester::TestStationaryDistribStateSum(const StdFst &ifst,
   SumStates(ofst, kPhiLabel, &weights2);
   NormWeights(&weights2);
   // 'Summed' stationary distrib (of closure) equals state sums of 'summed'
-  // backoff model.
+  // backoff-complete model.
   CHECK(ApproxEqualWeights(weights1, weights2, kNormDelta, kApproxZero));
 }
 
@@ -463,7 +471,7 @@ void AlgoTester::TestNGramApproxMerge(const StdFst &ifst, int order) const {
   if (ifst.Start() == f::kNoStateId)  // no states
     return;
 
-  // Uses trim and normalzied input.
+  // Uses trim and normalized input.
   StdVectorFst nfst1(ifst);
   CHECK(Trim(&nfst1, kPhiLabel));
   CHECK(GlobalNormalize(&nfst1, kPhiLabel, kAlgoDelta));
@@ -473,15 +481,15 @@ void AlgoTester::TestNGramApproxMerge(const StdFst &ifst, int order) const {
   Merge(nfst1, nfst1, &nfst2);
 
   StdVectorFst ofst1, ofst2;
-  CHECK(NGramApprox(nfst1, &ofst1, order, kPhiLabel, kAlgoDelta));
-  CHECK(NGramApprox(nfst2, &ofst2, order, kPhiLabel, kAlgoDelta));
+  CHECK(NGramApprox(nfst1, &ofst1, order, kPhiLabel, kAlgoDelta, NORM_SUMMED));
+  CHECK(NGramApprox(nfst2, &ofst2, order, kPhiLabel, kAlgoDelta, NORM_SUMMED));
   CHECK(Verify(ofst1));
   CHECK(Verify(ofst2));
   CHECK(IsCanonical(ofst1, kPhiLabel));
   CHECK(IsNormalized(ofst1, kPhiLabel, kNormDelta));
   CHECK(IsCanonical(ofst2, kPhiLabel));
   CHECK(IsNormalized(ofst2, kPhiLabel, kNormDelta));
-  CHECK(Isomorphic(ofst1, ofst2, kPhiLabel, kNormDelta));
+  CHECK(RmPhiIsomorphic(ofst1, ofst2));
 }
 
 void AlgoTester::TestNGramApproxRmPhi(const StdFst &ifst, int order) const {
@@ -499,7 +507,7 @@ void AlgoTester::TestNGramApproxRmPhi(const StdFst &ifst, int order) const {
   StdVectorFst nfst(rfst), ofst;
 
   CHECK(GlobalNormalize(&nfst, kPhiLabel, kAlgoDelta));
-  CHECK(NGramApprox(nfst, &ofst, order, kPhiLabel, kAlgoDelta));
+  CHECK(NGramApprox(nfst, &ofst, order, kPhiLabel, kAlgoDelta, NORM_SUMMED));
   CHECK(Verify(ofst));
   CHECK(IsCanonical(ofst, kPhiLabel));
   CHECK(IsNormalized(ofst, kPhiLabel, kNormDelta));
@@ -507,11 +515,11 @@ void AlgoTester::TestNGramApproxRmPhi(const StdFst &ifst, int order) const {
   StdVectorFst prfst, profst(ofst);
   PhiRemove(rfst, &prfst);
   CHECK(GlobalNormalize(&prfst, kPhiLabel, kAlgoDelta));
-  CHECK(Approx(prfst, &profst, kPhiLabel, kAlgoDelta));
+  CHECK(Approx(prfst, &profst, kPhiLabel, kAlgoDelta, NORM_SUMMED));
   CHECK(Verify(profst));
   CHECK(IsCanonical(profst, kPhiLabel));
   CHECK(IsNormalized(profst, kPhiLabel, kNormDelta));
-  CHECK(Isomorphic(ofst, profst, kPhiLabel, kNormDelta));
+  CHECK(RmPhiIsomorphic(ofst, profst));
 }
 
 void AlgoTester::MakeRandFsa(StdMutableFst *fst,

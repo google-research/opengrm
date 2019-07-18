@@ -20,6 +20,7 @@
 #define SFST_PERPLEXITY_H_
 
 #include <stddef.h>
+
 #include <cmath>
 
 #include <fst/log.h>
@@ -27,7 +28,6 @@
 #include <fst/shortest-distance.h>
 #include <sfst/normalize.h>
 #include <sfst/rmphi.h>
-#include <unordered_set>
 
 namespace sfst {
 
@@ -156,7 +156,7 @@ class Perplexity {
   Perplexity &operator=(const Perplexity &) = delete;
 };
 
-// Sets up perplexity computation for stocastic fst SFST.
+// Sets up perplexity computation for a stochastic FST.
 template <class Arc>
 Perplexity<Arc>::Perplexity(const fst::Fst<Arc> &sfst, Label phi_label,
                             Label unknown_label, size_t unknown_class_size,

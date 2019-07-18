@@ -30,7 +30,6 @@
 #include <fst/vector-fst.h>
 #include <fst/weight.h>
 #include <sfst/sfst.h>
-#include <unordered_map>
 
 namespace sfst {
 

@@ -21,6 +21,7 @@
 
 #include <stddef.h>
 #include <sys/types.h>
+
 #include <utility>
 #include <vector>
 
@@ -28,8 +29,6 @@
 #include <fst/arcsort.h>
 #include <fst/fst.h>
 #include <fst/mutable-fst.h>
-#include <unordered_map>
-#include <unordered_set>
 
 namespace sfst {
 

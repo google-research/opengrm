@@ -12,11 +12,11 @@
 // limitations under the License.
 //
 // Copyright 2018 Google, Inc.
-// sfstapprox.cc
+// sfstcount.cc
 
-// Algorithm to approximate a stochastic FST as a backoff-complete FST.
-// The backoff-complete FST topology is provided. The result is the
-// backoff-complete FST weighted and normalized to approximate the input.
+// Algorithm to count from a stochastic FST w.r.t. a backoff-complete FST whose
+// topology is provided.  Result is FST with backoff-complete topology weighted
+// by expected counts derived from the input stochastic FST.
 
 #include <string.h>
 
@@ -33,13 +33,10 @@
 DEFINE_int64(phi_label, fst::kNoLabel,
              "Specifies failure label (default: none)");
 DEFINE_double(delta, sfst::kApproxDelta, "Convergence delta");
-DEFINE_string(norm_type, "kl_min",
-              "Normalization type, one of: "
-              "\"summed\", \"kl_min\", \"kl_min_approximated");
 
 int main(int argc, char **argv) {
   namespace f = fst;
-  std::string usage = "Algorithm to approximate a stochastic FST as a";
+  std::string usage = "Algorithm to count from stochastic FST w.r.t. a";
   usage += " backoff-complete FST whose topology is provided.\n\n  Usage: ";
   usage += argv[0];
   usage += " sfst.fst top.fst [out.fst]\n";
@@ -61,33 +58,23 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  sfst::CountNormType norm_type;
-  if (FLAGS_norm_type == "summed") {
-    norm_type = sfst::NORM_SUMMED;
-  } else if (FLAGS_norm_type == "kl_min" ||
-             FLAGS_norm_type == "marginally_constrained" /* deprecated */) {
-    norm_type = sfst::NORM_KL_MIN;
-  } else if (FLAGS_norm_type == "kl_min_approximated" ||
-             FLAGS_norm_type == "marginally_approximated") {
-    norm_type = sfst::NORM_KL_MIN_APPROXIMATED;
-  } else {
-    LOG(ERROR) << argv[0] << ": Bad norm type: " << FLAGS_norm_type;
-    return 1;
-  }
-
   f::StdFst *ifst = f::StdFst::Read(in1_name);
   if (!ifst) return 1;
 
   f::StdMutableFst *ofst = f::StdMutableFst::Read(in2_name, true);
   if (!ofst) return 1;
 
-  if (ifst->Properties(fst::kCyclic, true) &&
+  if (ifst->Properties(f::kCyclic, true) &&
       !sfst::IsNormalized(*ifst, FLAGS_phi_label)) {
     LOG(ERROR) << argv[0] << ": First input is not a normalized stochastic FST";
     return 1;
   }
 
-  if (!sfst::Approx(*ifst, ofst, FLAGS_phi_label, FLAGS_delta, norm_type))
+  sfst::Counter<f::StdArc> counter(FLAGS_phi_label, FLAGS_delta, ofst);
+  counter.Count(*ifst);
+  counter.Finalize();
+
+  if (ofst->Properties(f::kError, false))
     return 1;
 
   if (!ofst->Write(out_name))

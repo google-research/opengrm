@@ -18,6 +18,7 @@
 // Output is a canonical and normalized OpenGrm ngram model.
 
 #include <string.h>
+
 #include <string>
 
 #include <fst/flags.h>
@@ -32,14 +33,13 @@
 DEFINE_int64(order, 3, "Set maximal order of ngram model");
 DEFINE_int64(phi_label, 0, "Specifies failure label (default: 0)");
 DEFINE_double(delta, sfst::kApproxDelta, "Convergence delta");
-DEFINE_string(norm_type, "summed",
+DEFINE_string(norm_type, "kl_min",
               "Normalization type, one of: "
-              "\"summed\", \"marginally_constrained\", "
-              "\"marginally_approximated");
+              "\"summed\", \"kl_min\", \"kl_min_approximated");
 
 int main(int argc, char **argv) {
   namespace f = fst;
-  string usage = "Algorithm to approximate a stochastic FST";
+  std::string usage = "Algorithm to approximate a stochastic FST";
   usage += " as an n-gram model.\n\n  Usage: ";
   usage += argv[0];
   usage += " [in.fst [out.fst]]\n";
@@ -54,22 +54,26 @@ int main(int argc, char **argv) {
   sfst::CountNormType norm_type;
   if (FLAGS_norm_type == "summed") {
     norm_type = sfst::NORM_SUMMED;
-  } else if (FLAGS_norm_type == "marginally_constrained") {
-    norm_type = sfst::NORM_MARGINALLY_CONSTRAINED;
-  } else if (FLAGS_norm_type == "marginally_approximated") {
-    norm_type = sfst::NORM_MARGINALLY_APPROXIMATED;
+  } else if (FLAGS_norm_type == "kl_min" ||
+             FLAGS_norm_type == "marginally_constrained" /* deprecated */) {
+    norm_type = sfst::NORM_KL_MIN;
+  } else if (FLAGS_norm_type == "kl_min_approximated" ||
+             FLAGS_norm_type == "marginally_approximated") {
+    norm_type = sfst::NORM_KL_MIN_APPROXIMATED;
   } else {
     LOG(ERROR) << argv[0] << ": Bad norm type: " << FLAGS_norm_type;
     return 1;
   }
 
-  string in_name = (argc > 1 && (strcmp(argv[1], "-") != 0)) ? argv[1] : "";
-  string out_name = argc > 2 ? argv[2] : "";
+  std::string in_name =
+      (argc > 1 && (strcmp(argv[1], "-") != 0)) ? argv[1] : "";
+  std::string out_name = argc > 2 ? argv[2] : "";
 
   f::StdFst *ifst = f::StdFst::Read(in_name);
   if (!ifst) return 1;
 
-  if (!sfst::IsNormalized(*ifst, FLAGS_phi_label)) {
+  if (ifst->Properties(fst::kCyclic, true) &&
+      !sfst::IsNormalized(*ifst, FLAGS_phi_label)) {
     LOG(ERROR) << argv[0] << ": Input is not a normalized stochastic FST";
     return 1;
   }

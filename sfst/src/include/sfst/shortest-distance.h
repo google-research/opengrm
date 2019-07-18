@@ -20,6 +20,7 @@
 #define SFST_SHORTEST_DISTANCE_H_
 
 #include <stddef.h>
+
 #include <algorithm>
 #include <vector>
 

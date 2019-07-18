@@ -18,6 +18,7 @@
 // (where possible).
 
 #include <string.h>
+
 #include <string>
 
 #include <fst/flags.h>
@@ -26,17 +27,26 @@
 #include <fst/mutable-fst.h>
 #include <sfst/normalize.h>
 
-DEFINE_double(delta, fst::kDelta, "Convergence delta");
-DEFINE_double(condition, 0.0, "Pre-normalization conditioning delta");
+constexpr double kNormDelta = 1.0e-5;
+constexpr double kEffectiveZero = 35.0;
+constexpr size_t kMaxNormIters = 1000;
+
+DEFINE_double(delta, kNormDelta, "Convergence delta");
+DEFINE_double(effective_zero, kEffectiveZero, "Effective zero (-log)");
 DEFINE_int64(phi_label, fst::kNoLabel,
              "Specifies failure label (default: none)");
+DEFINE_int64(max_iterations, kMaxNormIters,
+             "Specifies maximum number of iterations for convergence");
 DEFINE_string(method, "global",
               "Specifies normalization method, one of: "
-              "\"global\", \"local\", or \"phi\"");
+              "\"global\", \"local\", \"kl_min (counts)\","
+              "\"kl_min_approximated (counts)\", "
+              "\"phi\", or \"summed (counts)\"");
 
 int main(int argc, char **argv) {
   namespace f = fst;
-  string usage = "Gives an FST the weight distribution of a stochastic FST";
+  std::string usage =
+      "Gives an FST the weight distribution of a stochastic FST";
   usage += " where possible\n\n  Usage: ";
   usage += argv[0];
   usage += " [in.fst [out.fst]]\n";
@@ -48,18 +58,12 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  string in_name = (argc > 1 && (strcmp(argv[1], "-") != 0)) ? argv[1] : "";
-  string out_name = argc > 2 ? argv[2] : "";
+  std::string in_name =
+      (argc > 1 && (strcmp(argv[1], "-") != 0)) ? argv[1] : "";
+  std::string out_name = argc > 2 ? argv[2] : "";
 
   f::StdMutableFst *fst = f::StdMutableFst::Read(in_name, true);
   if (!fst) return 1;
-
-  if (FLAGS_condition != 0.0) {
-    if (!sfst::Condition(fst, FLAGS_phi_label, FLAGS_condition)) {
-      LOG(ERROR) << argv[0] << ": pre-conditioning failed";
-      return 1;
-    }
-  }
 
   bool ret;
   if (FLAGS_method == "global") {
@@ -71,8 +75,22 @@ int main(int argc, char **argv) {
       return 1;
     }
     ret = sfst::LocalNormalize(fst);
+  } else if (FLAGS_method == "kl_min" ||
+             FLAGS_method == "marginally_constrained" /* deprecated */) {
+    ret = sfst::CountNormalize(fst, FLAGS_phi_label, sfst::NORM_KL_MIN,
+                               false, FLAGS_delta, FLAGS_effective_zero,
+                               FLAGS_max_iterations);
+  } else if (FLAGS_method == "kl_min_approximated" ||
+             FLAGS_method == "marginally_approximated" /* deprecated */) {
+    ret = sfst::CountNormalize(fst, FLAGS_phi_label, sfst::NORM_KL_MIN,
+                               false, FLAGS_delta, FLAGS_effective_zero,
+                               FLAGS_max_iterations);
   } else if (FLAGS_method == "phi") {
     ret = sfst::PhiNormalize(fst, FLAGS_phi_label);
+  } else if (FLAGS_method == "summed") {
+    ret = sfst::CountNormalize(fst, FLAGS_phi_label, sfst::NORM_SUMMED,
+                               false, FLAGS_delta, FLAGS_effective_zero,
+                               FLAGS_max_iterations);
   } else {
     LOG(ERROR) << argv[0] << ": unknown normalization method: "
                << FLAGS_method;

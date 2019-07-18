@@ -3,6 +3,7 @@ nobase_include_HEADERS = sfst/approx.h \
                          sfst/canonical.h \
                          sfst/count.h \
                          sfst/equal.h \
+                         sfst/intersect.h \
                          sfst/ngramapprox.h \
                          sfst/normalize.h \
                          sfst/perplexity.h \

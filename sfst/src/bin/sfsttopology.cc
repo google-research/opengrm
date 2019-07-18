@@ -12,36 +12,31 @@
 // limitations under the License.
 //
 // Copyright 2018 Google, Inc.
-// sfstrandgen.cc
-//
-// \file
-// Generates random paths through a stochastic FST.
-// The FST must be a normalized.
+// sfstnormalize.cc
 
-#include <limits.h>
+// Algorithms for constructing specific FST topologies.
+
 #include <string.h>
-#include <time.h>
 
 #include <string>
 
+#include <fst/flags.h>
 #include <fst/log.h>
-#include <fst/randgen.h>
-#include <sfst/normalize.h>
-#include <sfst/randgen.h>
+#include <fst/vector-fst.h>
+#include <sfst/topology.h>
 
 DEFINE_int64(phi_label, fst::kNoLabel,
              "Specifies failure label (default: none)");
-DEFINE_int32(max_length, INT_MAX, "Maximum path length");
-DEFINE_int64(npath, 1, "Number of paths to generate");
-DEFINE_int32(seed, time(0), "Random seed");
-DEFINE_bool(weighted, false,
-            "Output tree weighted by path count vs. unweighted paths");
-DEFINE_bool(remove_total_weight, false,
-            "Remove total weight when output weighted");
+DEFINE_string(method, "ngram",
+              "Specifies topology method, one of: "
+              "\"ngram\"");
+DEFINE_int64(order, 3, "Set maximal order of ngram model");
 
 int main(int argc, char **argv) {
   namespace f = fst;
-  std::string usage = "Generates random paths through an LM.\n\n  Usage: ";
+  std::string usage =
+      "Algorithms for constructing specific FST topologies.\n\n";
+  usage += "  Usage: ";
   usage += argv[0];
   usage += " [in.fst [out.fst]]\n";
 
@@ -52,8 +47,6 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  VLOG(1) << argv[0] << ": Seed = " << FLAGS_seed;
-
   std::string in_name =
       (argc > 1 && (strcmp(argv[1], "-") != 0)) ? argv[1] : "";
   std::string out_name = argc > 2 ? argv[2] : "";
@@ -61,18 +54,17 @@ int main(int argc, char **argv) {
   f::StdFst *ifst = f::StdFst::Read(in_name);
   if (!ifst) return 1;
 
-  if (!sfst::IsNormalized(*ifst, FLAGS_phi_label)) {
-    LOG(ERROR) << argv[0] << ": Input is not a normalized stochastic FST";
+  f::StdVectorFst ofst;
+
+  if (FLAGS_method == "ngram") {
+    sfst::NGramTopology<f::StdArc> ngram(FLAGS_order, FLAGS_phi_label, &ofst);
+    ngram.FindNGrams(*ifst);
+  } else {
+    LOG(ERROR) << argv[0] << ": unknown topology method: "
+               << FLAGS_method;
     return 1;
   }
 
-  f::StdVectorFst ofst;
-
-  sfst::SFstArcSelector<f::StdArc> selector(FLAGS_seed, FLAGS_phi_label);
-  f::RandGenOptions<sfst::SFstArcSelector<f::StdArc>>
-      opts(selector, FLAGS_max_length, FLAGS_npath, FLAGS_weighted,
-           FLAGS_remove_total_weight);
-  f::RandGen(*ifst, &ofst, opts);
   if (!ofst.Write(out_name))
     return 1;
 

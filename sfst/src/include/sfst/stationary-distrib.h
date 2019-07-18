@@ -20,6 +20,7 @@
 #define SFST_STATIONARY_DISTRIB_H_
 
 #include <stddef.h>
+
 #include <vector>
 
 #include <fst/fst.h>

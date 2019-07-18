@@ -21,6 +21,7 @@
 #define SFST_TRIM_H_
 
 #include <sys/types.h>
+
 #include <map>
 #include <unordered_map>
 #include <utility>
@@ -35,7 +36,7 @@
 #include <fst/queue.h>
 #include <sfst/canonical.h>
 #include <sfst/sfst.h>
-#include <unordered_set>
+#include <sfst/backoff.h>
 
 namespace sfst {
 
@@ -468,12 +469,17 @@ class Trimmer {
         chk_coaccess_(false) { }
 
   // Removes inaccessible transitions due to failure labels
-  // If both PhiTrim() and WeightTrim() are called, call PhiTrim() first.
+  // If both PhiTrim() and (Sum)WeightTrim() are called, call PhiTrim() first.
   void PhiTrim();
 
   // Removes ApproxZero() weight transitions where possible
   // (optionally including phi_labeled ones) and connects.
-  void WeightTrim(bool include_phi);
+  void WeightTrim(bool include_phi, Weight approx_zero = ApproxZeroWeight());
+
+  // Equivalent to SumBackoff() + WeightTrim() followed by restoring original
+  // weights on untrimmed transitions. Useful since it preserves
+  // backoff-completeness.
+  void SumWeightTrim(bool include_phi, Weight approx_zero = ApproxZeroWeight());
 
   // Removes inaccessible and non-coassessible states treating
   // failure labels as regular labels.
@@ -532,7 +538,7 @@ class Trimmer {
   }
 
   // Returns weight near Zero()
-  Weight ApproxZeroWeight() {
+  static Weight ApproxZeroWeight() {
     namespace f = fst;
     f::WeightConvert<f::Log64Weight, Weight> from_log;
     return from_log(kApproxZeroWeight);
@@ -591,7 +597,7 @@ void Trimmer<Arc>::PhiTrim() {
   chk_coaccess_ = true;
   if (!del_states_.empty()) {
     if (dead_if_not_needed_state_ != f::kNoStateId) {
-      FSTERROR() << "Trimmer::PhiTrim() called after WeightTrim()";
+      FSTERROR() << "Trimmer::PhiTrim() called after (Sum)WeightTrim()";
       fst_->SetProperties(f::kError, f::kError);
     }
     fst_->DeleteStates(del_states_);
@@ -602,9 +608,11 @@ void Trimmer<Arc>::PhiTrim() {
 }
 
 template <class Arc>
-void Trimmer<Arc>::WeightTrim(bool include_phi) {
+    void Trimmer<Arc>::WeightTrim(bool include_phi, Weight approx_zero) {
   namespace f = fst;
-  for (StateId s = 0; s < fst_->NumStates(); ++s) {
+  const f::Log64Weight log_approx_zero = to_log_(approx_zero);
+  const StateId nstates = fst_->NumStates();  // excludes any added states
+  for (StateId s = 0; s < nstates; ++s) {
     for (f::MutableArcIterator<f::MutableFst<Arc>> aiter(fst_, s);
          !aiter.Done();
          aiter.Next()) {
@@ -612,17 +620,47 @@ void Trimmer<Arc>::WeightTrim(bool include_phi) {
       if ((include_phi || arc.ilabel != phi_label_) &&
           arc.nextstate != dead_state_) {
         f::Log64Weight arc_weight = to_log_(arc.weight);
-        if (ApproxZero(arc_weight)) {
+        if (ApproxZero(arc_weight, log_approx_zero)) {
           // redirects to dead-if-not-needed state
           arc.nextstate = DeadIfNotNeededState();
+          aiter.SetValue(arc);
         }
       }
-      aiter.SetValue(arc);
     }
   }
   chk_access_ = true;
   chk_coaccess_ = true;
 }
+
+template <class Arc>
+    void Trimmer<Arc>::SumWeightTrim(bool include_phi, Weight approx_zero) {
+  namespace f = fst;
+  const f::Log64Weight log_approx_zero = to_log_(approx_zero);
+  f::VectorFst<Arc> sum_fst(*fst_);
+  SumBackoff(&sum_fst, phi_label_);
+  const StateId nstates = fst_->NumStates();  // excludes any added states
+  for (StateId s = 0; s < nstates; ++s) {
+    f::ArcIterator<f::Fst<Arc>> sum_aiter(sum_fst, s);
+    for (f::MutableArcIterator<f::MutableFst<Arc>> aiter(fst_, s);
+         !aiter.Done();
+         aiter.Next(), sum_aiter.Next()) {
+      Arc arc = aiter.Value();
+      if ((include_phi || arc.ilabel != phi_label_) &&
+          arc.nextstate != dead_state_) {
+        const Arc &sum_arc = sum_aiter.Value();
+        f::Log64Weight sum_arc_weight = to_log_(sum_arc.weight);
+        if (ApproxZero(sum_arc_weight, log_approx_zero)) {
+          // redirects to dead-if-not-needed state
+          arc.nextstate = DeadIfNotNeededState();
+          aiter.SetValue(arc);
+        }
+      }
+    }
+  }
+  chk_access_ = true;
+  chk_coaccess_ = true;
+}
+
 
 template <class Arc>
 void Trimmer<Arc>::Finalize() {

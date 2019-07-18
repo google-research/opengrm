@@ -1,2 +1,7 @@
+OpenGrm SFst - Release 1.1
+  * Changed Approx and NGramApprox to compute the KL minimum solution (via improved 
+    CountNormalize); now the default
+  * Added Intersect()
+  * Added sfstcount, sfstintersect, sfstshortestdistance, sfsttopology
 OpenGrm SFst - Release 1.0
   * Initial public release

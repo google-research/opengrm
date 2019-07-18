@@ -18,6 +18,7 @@
 
 #include <stddef.h>
 #include <string.h>
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -26,7 +27,9 @@
 #include <fst/log.h>
 #include <fst/fst-decl.h>
 #include <fst/fst.h>
+#include <sfst/backoff.h>
 #include <sfst/canonical.h>
+#include <sfst/count.h>
 #include <sfst/normalize.h>
 #include <sfst/trim.h>
 
@@ -53,8 +56,10 @@ void SfstInfo(const fst::Fst<Arc> &fst) {
 
   Label phi_label = FLAGS_phi_label;
   bool canonical = IsCanonical(fst, phi_label);
-  bool norm = IsNormalized(fst, phi_label, FLAGS_delta);
   bool trim = IsTrim(fst, phi_label);
+  bool backoff = IsBackoffComplete(fst, phi_label);
+  bool conservative = IsConservative(fst, FLAGS_delta);
+  bool norm = IsNormalized(fst, phi_label, FLAGS_delta);
   std::vector<int> state_order;
   int max_order = 1;
   if (canonical)
@@ -101,7 +106,13 @@ void SfstInfo(const fst::Fst<Arc> &fst) {
   std::cout << "canonical" << (canonical ? 'y' : 'n')
             << std::endl;
   std::cout.width(50);
+  std::cout << "backoff-complete" << (backoff ? 'y' : 'n')
+            << std::endl;
+  std::cout.width(50);
   std::cout << "trim" << (trim ? 'y' : 'n')
+            << std::endl;
+  std::cout.width(50);
+  std::cout << "conservative" << (conservative ? 'y' : 'n')
             << std::endl;
   std::cout.width(50);
   std::cout << "normalized" << (norm ? 'y' : 'n')
@@ -117,7 +128,7 @@ void SfstInfo(const fst::Fst<Arc> &fst) {
 int main(int argc, char **argv) {
   using fst::StdFst;
 
-  string usage =
+  std::string usage =
       "Prints out information about a stochastic FST.\n\n  Usage: ";
   usage += argv[0];
   usage += " [in.fst]\n";
@@ -129,7 +140,8 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  string in_name = (argc > 1 && (strcmp(argv[1], "-") != 0)) ? argv[1] : "";
+  std::string in_name =
+      (argc > 1 && (strcmp(argv[1], "-") != 0)) ? argv[1] : "";
 
   StdFst *ifst = StdFst::Read(in_name);
   if (!ifst) return 1;

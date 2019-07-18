@@ -20,6 +20,7 @@
 
 #include <stddef.h>
 #include <string.h>
+
 #include <iostream>
 #include <memory>
 #include <string>
@@ -49,7 +50,7 @@ int main(int argc, char **argv) {
   using fst::StdFst;
   using sfst::Perplexity;
 
-  string usage = "Computes perplexity for an SFST.\n\n  Usage: ";
+  std::string usage = "Computes perplexity for an SFST.\n\n  Usage: ";
   usage += argv[0];
   usage += " in.fst [in.far]\n";
 
@@ -60,7 +61,8 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  string far_name = (argc > 2 && (strcmp(argv[2], "-") != 0)) ? argv[2] : "";
+  std::string far_name =
+      (argc > 2 && (strcmp(argv[2], "-") != 0)) ? argv[2] : "";
 
   StdFst *sfst = StdFst::Read(argv[1]);
   if (!sfst) return 1;

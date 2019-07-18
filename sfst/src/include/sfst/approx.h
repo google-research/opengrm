@@ -28,8 +28,8 @@
 #include <fst/fst.h>
 #include <sfst/backoff.h>
 #include <sfst/count.h>
-#include <sfst/sfst.h>
 #include <sfst/normalize.h>
+#include <sfst/sfst.h>
 #include <sfst/trim.h>
 
 namespace sfst {
@@ -49,14 +49,13 @@ constexpr float kApproxDelta = 1e-9;
 // algorithm convergence.  The result is the backoff FSA weighted and
 // normalized to approximate the input.  The algorithm computes
 // (smoothed) counts and then normalizes those counts. See
-// sfst::CountNormType for the normalization variants. Returns true on
-// success.
+// sfst::CountNormType for the normalization variants. Returns true on success.
 template <class Arc>
 bool Approx(const fst::Fst<Arc> &ifst,
             fst::MutableFst<Arc> *ofst,
             typename Arc::Label phi_label = fst::kNoLabel,
             float delta = kApproxDelta,
-            CountNormType norm_type = NORM_SUMMED) {
+            CountNormType norm_type = NORM_KL_MIN) {
   namespace f = fst;
   using Label = typename Arc::Label;
 
@@ -64,11 +63,10 @@ bool Approx(const fst::Fst<Arc> &ifst,
     Counter<Arc> counter(phi_label, delta, ofst);
     counter.Count(ifst);
     counter.Finalize();
+    if (ofst->Properties(f::kError, false)) return false;
   }
-  if (ofst->Properties(f::kError, false))
-      return false;
 
-  return CountNormalize(ofst, phi_label,  f::kDelta, norm_type);
+  return CountNormalize(ofst, phi_label, norm_type, true);
 }
 
 }  // namespace sfst

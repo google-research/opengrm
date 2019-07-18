@@ -19,6 +19,8 @@
 #include <sfst/stationary-distrib.h>
 
 #include <math.h>
+
+#include <cmath>
 #include <memory>
 #include <vector>
 
@@ -88,11 +90,12 @@ bool SLStationaryDistrib(
   }
 
   size_t nstates = top_order.size();
-  LWeight ldelta(-log(delta));
+  LWeight ldelta(-std::log(delta));
 
   std::vector<SLWeight> prev_weight, tmp_weight;
   // Initializes to the uniform distribution
-  prev_weight.resize(nstates, SLWeight(1.0, log(static_cast<float>(nstates))));
+  prev_weight.resize(nstates,
+                     SLWeight(1.0, std::log(static_cast<float>(nstates))));
 
   size_t changed;
   size_t niter = 0;

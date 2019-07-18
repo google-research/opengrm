@@ -19,8 +19,9 @@
 #ifndef SFST_STATE_WEIGHTS_H_
 #define SFST_STATE_WEIGHTS_H_
 
+#include <fstream>
 #include <iostream>
-#include <vector>
+#include <ostream>
 
 #include <fst/fst.h>
 #include <fst/matcher.h>
@@ -48,7 +49,7 @@ class ApproxEqualPred {
         approx_zero_(approx_zero.Member() ? to_log_(approx_zero) :
                      kApproxZeroWeight) {}
 
-  bool operator()(const Weight &w1, const Weight &w2) {
+  bool operator()(const Weight &w1, const Weight &w2) const {
     return fst::ApproxEqual(w1, w2, delta_) ||
         (Less(to_log_(w1), approx_zero_) &&
          Less(to_log_(w2), approx_zero_));
@@ -71,7 +72,7 @@ class ApproxEqualPred<fst::SignedLogWeightTpl<T>> {
         approx_zero_(approx_zero.Member() ? approx_zero :
                      Weight(1.0, kApproxZeroWeight.Value())) {}
 
-  bool operator()(const Weight &w1, const Weight &w2) {
+  bool operator()(const Weight &w1, const Weight &w2) const {
     return fst::ApproxEqual(w1, w2, delta_) ||
         (Less(w1.Value2(), approx_zero_.Value2()) &&
          Less(w2.Value2(), approx_zero_.Value2()));
@@ -112,12 +113,35 @@ bool ApproxEqualWeights(const std::vector<Weight> &weights1,
                     weights2.begin(), aepred);
 }
 
-// Useful in debugging.
+// Writes weights to stream.
 template <class Weight>
-void PrintWeights(const std::vector<Weight> &weights,
-                  const string &msg) {
-  for (size_t i = 0; i < weights.size(); ++i)
-    std::cerr << msg << ": i: " << i << " w[i]: " << weights[i] << std::endl;
+void WriteWeights(std::ostream &strm,
+                  const std::vector<Weight> &weights) {
+  strm.precision(9);
+  for (size_t s = 0; s < weights.size(); ++s)
+    strm << s << "\t" << weights[s] << "\n";
+}
+
+// Writes weights to a file. Returns true on success.
+template <class Weight>
+    bool WriteWeights(const std::string &filename,
+                      const std::vector<Weight> &weights) {
+  std::ofstream ostrm;
+  if (!filename.empty()) {
+    ostrm.open(filename);
+    if (!ostrm.good()) {
+      LOG(ERROR) << "WriteWeights: Can't open file: " << filename;
+      return false;
+    }
+  }
+  std::ostream &strm = ostrm.is_open() ? ostrm : std::cout;
+  WriteWeights(strm, weights);
+  if (strm.fail()) {
+    LOG(ERROR) << "WritePotentials: Write failed: "
+               << (filename.empty() ? "standard output" : filename);
+    return false;
+  }
+  return true;
 }
 
 //

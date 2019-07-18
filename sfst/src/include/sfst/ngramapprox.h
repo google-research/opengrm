@@ -32,36 +32,32 @@
 
 namespace sfst {
 
-// Approximates a stochastic FSA as an n-gram model of order 'order'.
-// The input FST should be a canonical stochastic FSA (see
-// canonical.h).  If it is cyclic, it should be normalized (see
-// normalize.h - not checked).  Assumes input has no (non-phi)
-// epsilons (or treats such epsilons w.r.t. the failure semantics
-// as if they were regular, uniquely-labeled symbols).  The 'phi_label'
-// is the failure label (defaults to OpenGrm NGram backoff label of
-// 0). The 'delta' parameter controls the degree of algorithm
-// convergence. The result is a canonical and normalized OpenGrm ngram
-// model FST.  The algorithm computes (smoothed) counts and then
-// normalizes those counts. See sfst::CountNormType for the
-// normalization variants.  Returns true on success.
+// Approximates a stochastic FSA as an n-gram model of order 'order'.  The input
+// FST should be a canonical stochastic FSA (see canonical.h).  If it is cyclic,
+// it should be normalized (see normalize.h - not checked).  Assumes input has
+// no (non-phi) epsilons (or treats such epsilons w.r.t. the failure semantics
+// as if they were regular, uniquely-labeled symbols).  The 'phi_label' is the
+// failure label (defaults to OpenGrm NGram backoff label of 0). The 'delta'
+// parameter controls the degree of algorithm convergence. The result is a
+// canonical and normalized OpenGrm ngram model FST.  The algorithm computes
+// (smoothed) counts and then normalizes those counts. See sfst::CountNormType
+// for the normalization variants. Returns true on success.
 template <class Arc>
 bool NGramApprox(const fst::Fst<Arc> &ifst,
                  fst::MutableFst<Arc> *ofst, int order,
                  typename Arc::Label phi_label = 0,
                  float delta = sfst::kApproxDelta,
-                 CountNormType norm_type = NORM_SUMMED) {
+                 CountNormType norm_type = NORM_KL_MIN) {
   namespace f = fst;
   using Label = typename Arc::Label;
 
   {  // Finds the n-gram topology.
     NGramTopology<Arc> ngram(order, phi_label, ofst);
     ngram.FindNGrams(ifst);
+    if (ofst->Properties(f::kError, false)) return false;
   }
 
-  if (!Approx(ifst, ofst, phi_label, delta, norm_type))
-    return false;
-
-  return !ofst->Properties(f::kError, false);
+  return Approx(ifst, ofst, phi_label, delta, norm_type);
 }
 
 }  // namespace sfst

@@ -21,6 +21,7 @@
 
 #include <stddef.h>
 #include <sys/types.h>
+
 #include <utility>
 #include <vector>
 
@@ -29,11 +30,10 @@
 #include <fst/matcher.h>
 #include <sfst/canonical.h>
 #include <sfst/sfst.h>
-#include <unordered_map>
 
 namespace sfst {
 
-// A backoff transducer is a canonical SFST (see canonical.h) that
+// A backoff-complete transducer is a canonical SFST (see canonical.h) that
 // additionally has the properties:
 //
 // (1) it is (input) deterministic and (non-phi) epsilon-free
@@ -54,7 +54,10 @@ class Backoff {
   using Weight = typename Arc::Weight;
   using Matr = fst::SortedMatcher<fst::Fst<Arc>>;
 
-  Backoff(const fst::Fst<Arc> &fst, Label phi_label);
+  // Input is required to be a canonical SFST. It must also be a
+  // backoff-complete SFST unless require_backoff_complete is false.
+  Backoff(const fst::Fst<Arc> &fst, Label phi_label,
+          bool require_backoff_complete = true);
 
   // Returns the number of states in the input.
   int NumStates() const { return states_.size(); }
@@ -84,6 +87,9 @@ class Backoff {
     auto iter = arc_map_.find(std::make_pair(s, pos));
     return iter != arc_map_.end() ? iter->second : -1;
   }
+
+  // Returns true if the input is a backoff-complete FST.
+  bool IsBackoffComplete() const { return is_backoff_; }
 
   // Returns true if in a bad state.
   bool Error() const { return error_; }
@@ -119,13 +125,15 @@ class Backoff {
 
   using PairArcMap = std::unordered_map<Pair, ssize_t, PairHash>;
 
-  const fst::Fst<Arc> &fst_;      // backoff FST
+  const fst::Fst<Arc> &fst_;      // input FST
   Label phi_label_;                   // failure label
   int order_;                         // maximal phi-order
   std::vector<StateId> top_order_;    //
   std::vector<BackoffState> states_;  // maps from state ID to backoff info
   PairArcMap arc_map_;                // maps from state id and position to
                                       // ... backed-off arc position
+  bool require_backoff_complete_;
+  mutable bool is_backoff_;
   mutable bool error_;
 
   Backoff(const Backoff &) = delete;
@@ -133,13 +141,22 @@ class Backoff {
 };
 
 template <class Arc>
-Backoff<Arc>::Backoff(const fst::Fst<Arc> &fst, Label phi_label)
-    : fst_(fst), phi_label_(phi_label), order_(1), error_(false) {
+Backoff<Arc>::Backoff(const fst::Fst<Arc> &fst, Label phi_label,
+                      bool require_backoff_complete)
+    : fst_(fst),
+      phi_label_(phi_label),
+      order_(1),
+      require_backoff_complete_(require_backoff_complete),
+      is_backoff_(true),
+      error_(false) {
   namespace f = fst;
 
   if (fst_.Start() == f::kNoStateId) {
-    FSTERROR() << "Backoff: FST has no states";
-    SetError();
+    is_backoff_ = false;
+    if (require_backoff_complete_) {
+      FSTERROR() << "Backoff: FST has no states";
+      SetError();
+    }
     return;
   }
 
@@ -196,24 +213,39 @@ void Backoff<Arc>::FindBackedOffArcs(StateId s) {
     const Arc &arc = aiter.Value();
     if (arc.ilabel == phi_label_) continue;
     if (arc.ilabel == 0) {
-      FSTERROR() << "Backoff: non-failure epsilons disallowed";
-      SetError();
-      return;
+      is_backoff_ = false;
+      if (require_backoff_complete_) {
+        FSTERROR() << "Backoff: non-failure epsilons disallowed";
+        SetError();
+        return;
+      }
+      continue;
     }
     if (matcher.Find(arc.ilabel)) {
       Pair p(s, aiter.Position());
       arc_map_[p] = matcher.Position();
     } else {
-      FSTERROR() << "Backoff: no backed-off arc with label " << arc.ilabel
-                 << " from state " << s;
-      SetError();
-      return;
+      is_backoff_ = false;
+      if (require_backoff_complete_) {
+        FSTERROR() << "Backoff: no backed-off arc with label " << arc.ilabel
+                   << " from state " << s;
+        SetError();
+        return;
+      }
     }
   }
 }
 
-// 'Phi-sums' a backoff SFST: adds the higher-order arc weights
-// of a backoff automaton onto lower-order backed-off transitions
+// Tests that the input is a backoff SFST (see above).
+template <class Arc>
+bool IsBackoffComplete(const fst::Fst<Arc> &fst,
+                       typename Arc::Label phi_label) {
+  Backoff<Arc> backoff(fst, phi_label, false);
+  return backoff.IsBackoffComplete();
+}
+
+// 'Phi-sums' a backoff-complete SFST: adds the higher-order arc weights
+// of a backoff-complete automaton onto lower-order backed-off transitions
 // Returns true on success.
 template <class Arc, class CompWeight = fst::Log64Weight>
 bool SumBackoff(fst::MutableFst<Arc> *fst, typename Arc::Label phi_label) {
@@ -256,11 +288,11 @@ bool SumBackoff(fst::MutableFst<Arc> *fst, typename Arc::Label phi_label) {
   return !backoff.Error();
 }
 
-// Undoes the 'phi-summation' of a backoff SFST: subtracts the
-// higher-order arc weights a backoff automaton from lower-order
+// Undoes the 'phi-summation' of a backoff-complete SFST: subtracts the
+// higher-order arc weights a backoff-complete automaton from lower-order
 // backed-off transitions The bo_zero weight is used for effectively
 // zero backoffed-off weights.  This should be non-Zero() if a
-// returned backoff topology is to be ensured (cf. super-final
+// returned backoff-complete topology is to be ensured (cf. super-final
 // weights). Returns true on success.
 template <class Arc>
 bool DiffBackoff(fst::MutableFst<Arc> *fst, typename Arc::Label phi_label,

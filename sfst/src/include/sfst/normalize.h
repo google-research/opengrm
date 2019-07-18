@@ -22,6 +22,8 @@
 
 #include <stddef.h>
 #include <sys/types.h>
+
+#include <algorithm>
 #include <vector>
 
 #include <fst/log.h>
@@ -197,6 +199,47 @@ bool GlobalNormalize(fst::MutableFst<Arc> *fst,
   return true;
 }
 
+// Locally normalizes a state of a weighted FST, when possible, as a stochastic
+// FST.  This rescales out-going arc weights (including super-final
+// weight) from each state by a state-dependent constant. Any phi or
+// epsilon labels are considered as regular symbols.  Normalization is
+// always possible when the sum of the weight of the out-going arcs of
+// each state is non-Zero(). Returns true if the operation is
+// successful.
+template <class Arc>
+bool LocalNormalizeState(typename Arc::StateId s,
+                         fst::MutableFst<Arc> *fst) {
+  namespace f = fst;
+  typedef typename Arc::Weight Weight;
+
+  f::WeightConvert<Weight, f::Log64Weight> to_log64;
+  f::WeightConvert<f::Log64Weight, Weight> from_log64;
+  if (s < 0 || s >= fst->NumStates()) {
+    return false;
+  } else {
+    Weight final = fst->Final(s);
+
+    f::Adder<f::Log64Weight> adder(to_log64(final));
+    for (f::ArcIterator<f::MutableFst<Arc>> aiter(*fst, s); !aiter.Done();
+         aiter.Next()) {
+      const Arc &arc = aiter.Value();
+      f::Log64Weight weight = to_log64(arc.weight);
+      adder.Add(weight);
+    }
+    if (ApproxZero(adder.Sum())) return false;
+
+    Weight sum = from_log64(adder.Sum());
+    if (final != Weight::Zero()) fst->SetFinal(s, Divide(final, sum));
+    for (f::MutableArcIterator<f::MutableFst<Arc>> aiter(fst, s); !aiter.Done();
+         aiter.Next()) {
+      Arc arc = aiter.Value();
+      arc.weight = Divide(arc.weight, sum);
+      aiter.SetValue(arc);
+    }
+    return true;
+  }
+}
+
 // Locally normalizes a weighted FST, when possible, as a stochastic
 // FST.  This rescales out-going arc weights (including super-final
 // weight) from each state by a state-dependent constant. Any phi or
@@ -208,74 +251,41 @@ template <class Arc>
 bool LocalNormalize(fst::MutableFst<Arc> *fst) {
   namespace f = fst;
   typedef typename Arc::StateId StateId;
-  typedef typename Arc::Weight Weight;
 
   if (!IsCanonical(*fst, f::kNoLabel)) {
     LOG(ERROR) << "LocalNormalize: input is not a canonical stochastic FST";
     return false;
   }
 
-  f::WeightConvert<Weight, f::Log64Weight> to_log64;
-  f::WeightConvert<f::Log64Weight, Weight> from_log64;
-
   for (StateId s = 0; s < fst->NumStates(); ++s) {
-    Weight final = fst->Final(s);
-
-    f::Adder<f::Log64Weight> adder(to_log64(final));
-    for (f::ArcIterator<f::MutableFst<Arc>> aiter(*fst, s);
-         !aiter.Done();
-         aiter.Next()) {
-      const Arc &arc = aiter.Value();
-      f::Log64Weight weight = to_log64(arc.weight);
-      adder.Add(weight);
-    }
-    if (ApproxZero(adder.Sum())) return false;
-
-    Weight sum = from_log64(adder.Sum());
-    if (final != Weight::Zero())
-      fst->SetFinal(s, Divide(final, sum));
-    for (f::MutableArcIterator<f::MutableFst<Arc>> aiter(fst, s);
-         !aiter.Done();
-         aiter.Next()) {
-      Arc arc = aiter.Value();
-      arc.weight = Divide(arc.weight, sum);
-      aiter.SetValue(arc);
-    }
+    if (!LocalNormalizeState(s, fst)) return false;
   }
   return true;
 }
 
-
-// Normalizes a weighted FST, when possible, as a stochastic FST by
+// Normalizes a state of a weighted FST, when possible, as a stochastic FST by
 // computing the appropriate failure transition weights.  The
 // non-failure transition weights are assumed correct where possible,
 // otherwise they are locally normalized. Returns true if the
 // operation is successful.
 template <class Arc>
-bool PhiNormalize(fst::MutableFst<Arc> *fst,
-                  typename Arc::Label phi_label = fst::kNoLabel) {
+bool PhiNormalizeState(typename Arc::StateId s, fst::MutableFst<Arc> *fst,
+                       typename Arc::Label phi_label = fst::kNoLabel) {
   namespace f = fst;
   typedef typename Arc::StateId StateId;
   typedef typename Arc::Weight Weight;
   typedef f::MutableArcIterator<f::MutableFst<Arc>> MArcItr;
   constexpr float kNormDelta = 1.0e-15;
-
-  std::vector<StateId> top_order;
-  if (phi_label == f::kNoLabel) return true;
-  if (!IsCanonical(*fst, phi_label, &top_order)) {
-    LOG(ERROR) << "PhiNormalize: input is not a canonical stochastic FST";
-    return false;
-  }
-
   f::WeightConvert<f::Log64Weight, Weight> from_log64;
   f::WeightConvert<Weight, f::Log64Weight> to_log64;
-  for (StateId i = top_order.size() - 1; i >= 0; --i) {
-    StateId s = top_order[i];   // ith state in reverse phi-top order
+  if (s < 0 || s >= fst->NumStates()) {
+    return false;
+  } else {
     MArcItr aiter(fst, s);
     f::Log64Weight high_sum, low_sum, phi_weight;
     ssize_t phi_position;
-    StateSums(*fst, s, phi_label, &high_sum, &low_sum,
-              &phi_weight, &phi_position);
+    StateSums(*fst, s, phi_label, &high_sum, &low_sum, &phi_weight,
+              &phi_position);
 
     // Only case where high_sum can be zero is if
     // there is a state with only a phi transition.
@@ -283,7 +293,8 @@ bool PhiNormalize(fst::MutableFst<Arc> *fst,
       return false;
     }
 
-    bool low_sum_ge_one = Less(f::Log64Weight::One(), low_sum) ||
+    bool low_sum_ge_one =
+        Less(f::Log64Weight::One(), low_sum) ||
         ApproxEqual(low_sum, f::Log64Weight::One(), kNormDelta);
     bool high_sum_eq_one =
         ApproxEqual(high_sum, f::Log64Weight::One(), kNormDelta);
@@ -325,26 +336,49 @@ bool PhiNormalize(fst::MutableFst<Arc> *fst,
   return true;
 }
 
+// Normalizes a weighted FST, when possible, as a stochastic FST by
+// computing the appropriate failure transition weights.  The
+// non-failure transition weights are assumed correct where possible,
+// otherwise they are locally normalized. Returns true if the
+// operation is successful.
+template <class Arc>
+bool PhiNormalize(fst::MutableFst<Arc> *fst,
+                  typename Arc::Label phi_label = fst::kNoLabel) {
+  namespace f = fst;
+  typedef typename Arc::StateId StateId;
+  typedef typename Arc::Weight Weight;
+
+  std::vector<StateId> top_order;
+  if (phi_label == f::kNoLabel) return true;
+  if (!IsCanonical(*fst, phi_label, &top_order)) {
+    LOG(ERROR) << "PhiNormalize: input is not a canonical stochastic FST";
+    return false;
+  }
+
+  for (StateId i = top_order.size() - 1; i >= 0; --i) {
+    StateId s = top_order[i];   // ith state in reverse phi-top order
+    if (!PhiNormalizeState(s, fst, phi_label)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 // See CountNormalize() below for an explantion of these values.
 enum CountNormType {
   NORM_SUMMED = 0,
-  NORM_MARGINALLY_CONSTRAINED = 1,
-  NORM_MARGINALLY_APPROXIMATED = 2,
+  NORM_KL_MIN = 1,
+  NORM_MARGINALLY_CONSTRAINED = 1,   // deprecated
+  NORM_KL_MIN_APPROXIMATED = 2,
+  NORM_MARGINALLY_APPROXIMATED = 2,  // deprecated
 };
+
 
 namespace internal {
 
-constexpr size_t kMaxCNIters = 100;
-
 // Internal class to normalize a count SFST. See the public interface
 // below for algorithm and argument description and for a reference.
-//
-// The algorithm for the marginally-constrained/approximated
-// case follows the reference with these differences: (1) the input
-// is from the (smoothed) non-phi-summed counts rather a normalized,
-// phi-summed model, which more easily generalizes to an SFST. (2)
-// the state probabilities are computed directly from state count sums
-// rather than explicitly computing the stationary distribution.
+// The formula used in comments are w.r.t the reference.
 template <class Arc>
 class CountNormalizer {
  public:
@@ -354,74 +388,126 @@ class CountNormalizer {
   using SLWeight = fst::SignedLog64Weight;
   using ArcItr = fst::ArcIterator<fst::Fst<Arc>>;
   using MArcItr = fst::MutableArcIterator<fst::MutableFst<Arc>>;
+  using Matr = fst::ExplicitMatcher<fst::Matcher<fst::Fst<Arc>>>;
 
-  CountNormalizer(Label phi_label, float delta,
-                  size_t maxiters = kMaxCNIters)
+  explicit CountNormalizer(Label phi_label, bool trim = false,
+                           float delta = kNormDelta,
+                           double effective_zero = kEffectiveZero,
+                           size_t maxiters = kMaxNormIters)
       : phi_label_(phi_label),
+        trim_(trim),
         delta_(delta),
+        effective_zero_(1.0, effective_zero),
         maxiters_(maxiters) { }
 
   // Performs the normalization.
   bool Normalize(CountNormType norm_type, fst::MutableFst<Arc> *fst);
+
+  // Comparison delta for state normalization.
+  static const float kNormDelta;
+  // Within epsilon of zero.
+  static const double kEffectiveZero;
+  // Maximum iterations for convergence of normalization.
+  static const size_t kMaxNormIters;
 
  private:
   // Internal state associated with the constrained marginalization of an
   // SFST state.
   struct NormState {
     NormState()
-        : weight(SLWeight::Zero()),
-          weight_ho(SLWeight::Zero()),
-          numer(SLWeight::Zero()),
+        : count(SLWeight::Zero()),
+          fail_count(SLWeight::Zero()),
           denom(SLWeight::Zero()) { }
-
-    SLWeight weight;     // state weight excluding higher orders
-    SLWeight weight_ho;  // state weight including higher orders w/ backoff
-    SLWeight numer;      // numerator of failure arc weight from this state
-    SLWeight denom;      // denominator of failure arc weight from this state
+    SLWeight count;       // sum of outgoing transitions weights from counts:
+                          //   C(q)
+    SLWeight fail_count;  // failure transition weight from counts:
+                          //   C(\varphi, q)
+    SLWeight denom;       // denominator of failure arc weight from this state:
+                          //   d(q, q') where q \in B_1(q')
     std::vector<StateId> hi_states;  // states with a failure arc to this state
   };
 
-  // Initializes states in the constrainted marginalization.
+  // Initializes states in the KL minimization.
   void InitStates(const fst::ExpandedFst<Arc> &fst);
 
-  // Iteratively calculates the arc weights at a state.
-  bool CalcArcWeights(StateId s, CountNormType norm_type,
-                      fst::MutableFst<Arc> *fst);
+  // Iteratively calculates the arc weights at a state in the KL minimization.
+  // This uses a DC (difference of convex functions) optimization.
+  bool KLMinimizeState(StateId s, CountNormType norm_type,
+                       fst::MutableFst<Arc> *fst);
 
-  // Calculates the state weights w/ backoff.
-  void CalcStateWeights(const fst::ExpandedFst<Arc> &fst, StateId s);
+  // Calculates the per arc normalization factor f(x,s,y^n)
+  // used to minimize the KL divergence (see NormArcWeights).
+  // Returns true on success.
+  bool ComputeNormFactor(const fst::ExpandedFst<Arc> &fst,
+                         StateId s, std::vector<SLWeight> *norm_factor) const;
 
-  // Calculates the arc weights given backoff weights.
-  void ArcFromBackoffWeights(const fst::ExpandedFst<Arc> &fst, StateId s,
-                                    std::vector<SLWeight> *arc_weights);
+  // Normalizes the arc count using the arc normalization factor
+  // and the lambda Lagrange multiplier to compute
+  // y^{n+1} = C(x, s)/(lambda - f(x, s, y^n))
+  // in the minimization of the KL divergence (see LambdaSearch).
+  // Returns the sum of these new weights at the state.
+  SLWeight NormArcWeights(const fst::ExpandedFst<Arc> &fst,
+                          StateId s, CountNormType norm_type,
+                          const std::vector<SLWeight> &norm_factor,
+                          SLWeight lambda,
+                          std::vector<SLWeight> *arc_weights) const;
 
-  // Calculates the numerator of the backoff weights given the arc weights.
-  void NumerFromArcWeights(StateId s, const std::vector<SLWeight> &arc_weights);
+  // Search for the normalization that makes the arc weights a
+  // prob distribution. Does so by a binary search on the lambda argument
+  // to NormArcWeights(). Returns true on success.
+  bool LambdaSearch(const fst::ExpandedFst<Arc> &fst,
+                    StateId s, CountNormType norm_type,
+                    const std::vector<SLWeight> &norm_factor,
+                    std::vector<SLWeight> *arc_weights) const;
+
+  // Initializes arc weights from counts. Returns true if computed arc weights
+  // are solely an initialization; returns false if they are the final answer.
+  bool InitArcWeights(const fst::ExpandedFst<Arc> &fst,
+                      StateId s, std::vector<SLWeight> *arc_weights) const;
 
   // Calculates the denominator of the backoff weights given the arc weights.
-  void DenomFromArcWeights(const fst::ExpandedFst<Arc> &fst, StateId s,
-                           const std::vector<SLWeight> &arc_weights);
+  // Returns true on success.
+  bool ComputeDenom(const fst::ExpandedFst<Arc> &fst, StateId s,
+                    const std::vector<SLWeight> &arc_weights);
 
-  // Ensures arc weights from a prob distribution.
-  void NormArcs(StateId s, std::vector<SLWeight> *arc_weights) const;
+  // Returns number of arcs at a state including any super-final but
+  // excluding any failure arcs.
+  size_t NumNonPhiArcs(const fst::Fst<Arc> &fst, StateId s) const {
+    size_t narcs = fst.NumArcs(s);
+    if (fst.Final(s) != Weight::Zero()) ++narcs;
+    if (backoff_->GetBackoffPosition(s) != -1) --narcs;
+    return narcs;
+  }
 
-  Label phi_label_;
-  float delta_;
-  size_t maxiters_;
+  // Tests within epsilon of zero; ensures approximation is on a closed set.
+  bool IsEffectiveZero(SLWeight w) const {
+    return ApproxZero(w, effective_zero_.Value2());
+  }
+
+  const Label phi_label_;
+  bool trim_;
+  const float delta_;
+  const SLWeight effective_zero_;
+  const size_t maxiters_;
+
   std::unique_ptr<Backoff<Arc>> backoff_;
   std::vector<NormState> norm_states_;
   fst::WeightConvert<SLWeight, Weight> from_log_;
   fst::WeightConvert<Weight, SLWeight> to_log_;
-
-  static const SLWeight kEffectiveZero;
 
   CountNormalizer(const CountNormalizer &) = delete;
   CountNormalizer &operator=(const CountNormalizer &) = delete;
 };
 
 template <class Arc>
-const fst::SignedLog64Weight
-CountNormalizer<Arc>::kEffectiveZero(1.0, 50.0);
+const float CountNormalizer<Arc>::kNormDelta = 1.0e-5;
+
+template <class Arc>
+const double CountNormalizer<Arc>::kEffectiveZero = 35.0;
+
+template <class Arc>
+const size_t CountNormalizer<Arc>::kMaxNormIters = 1000;
+
 
 template <class Arc>
 bool CountNormalizer<Arc>::Normalize(CountNormType norm_type,
@@ -431,16 +517,26 @@ bool CountNormalizer<Arc>::Normalize(CountNormType norm_type,
   if (norm_type == NORM_SUMMED) {
     // Sums to lower orders.
     if (!SumBackoff(fst, phi_label_)) {
-      LOG(ERROR) << "Approx: backoff summation failed";
+      LOG(ERROR) << "CountNormalize: backoff summation failed";
       return false;
     }
-
-    // Trims the backoff model w.r.t. non-phi weights.  Safe since it
-    // is a summed model and thus will keep the backoff topology.
-    Trimmer<Arc> trim(fst, phi_label_, TRIM_NEEDED_TRIM);
-    trim.WeightTrim(false);
-    trim.Finalize();
   }
+
+
+  if (trim_) {
+    // Trims negligible (non-phi) weight transitions while
+    // preserving a backoff-complete input.
+    const Weight trim_weight = from_log_(effective_zero_);
+    Trimmer<Arc> trim(fst, phi_label_, TRIM_NEEDED_TRIM);
+    if (norm_type == NORM_SUMMED) {
+      trim.WeightTrim(false, trim_weight);
+    } else {
+      trim.SumWeightTrim(false, trim_weight);
+    }
+    trim.Finalize();
+    if (fst->Properties(f::kError, false)) return false;
+  }
+
 
   if (phi_label_ == f::kNoLabel || norm_type == NORM_SUMMED) {
     if (!LocalNormalize(fst)) {
@@ -452,8 +548,7 @@ bool CountNormalizer<Arc>::Normalize(CountNormType norm_type,
 
     for (StateId i = 0; i < fst->NumStates(); ++i) {
       StateId s = backoff_->GetPhiTopOrder(i);  // ith state in phi-top order
-      if (!CalcArcWeights(s, norm_type, fst)) return false;
-      CalcStateWeights(*fst, s);
+      if (!KLMinimizeState(s, norm_type, fst)) return false;
     }
   }
 
@@ -472,95 +567,78 @@ void CountNormalizer<Arc>::InitStates(
 
   norm_states_.clear();
   norm_states_.resize(fst.NumStates());
-  // The state probabilty that excludes higher orders is the sum of
-  // the arc counts at the state minus the incoming fail counts.
   for (StateId i = fst.NumStates() - 1; i >= 0; --i) {
-    // ith state in reverse phi-top order
-    StateId s = backoff_->GetPhiTopOrder(i);
+    const StateId s = backoff_->GetPhiTopOrder(i);
     NormState &state = norm_states_[s];
-    state.weight = to_log_(fst.Final(s));
-    SLWeight fail_weight = SLWeight::Zero();
+    f::Adder<SLWeight> adder(to_log_(fst.Final(s)));
     for (ArcItr aiter(fst, s); !aiter.Done(); aiter.Next()) {
       const Arc &arc = aiter.Value();
-      state.weight = Plus(state.weight, to_log_(arc.weight));
-      if (arc.ilabel == phi_label_) fail_weight = to_log_(arc.weight);
+      if (arc.ilabel == phi_label_)
+        state.fail_count = to_log_(arc.weight);
+      adder.Add(to_log_(arc.weight));
     }
-    // Initial numerator estimate based on the count FST.
-    state.numer = Divide(fail_weight, state.weight);
-    StateId bos = backoff_->GetBackoffState(s);
+    state.count = adder.Sum();
+    const StateId bos = backoff_->GetBackoffState(s);
     if (bos != f::kNoStateId) {
       NormState &bo_state = norm_states_[bos];
       // Records the immediately higher-order state sets.
       bo_state.hi_states.push_back(s);
-      ArcItr aiter(fst, s);
-      aiter.Seek(backoff_->GetBackoffPosition(s));
-      const Arc &arc = aiter.Value();
-      bo_state.weight = Minus(bo_state.weight, to_log_(arc.weight));
     }
-  }
-
-  // Bounds weights.
-  for (StateId s = 0; s < fst.NumStates(); ++s) {
-    if (Less(norm_states_[s].weight, kEffectiveZero))
-      norm_states_[s].weight = kEffectiveZero;
   }
 }
 
-// The computations are done in the signed log rather than the log
-// semiring. When norm_type == NORM_MARGINALLY_CONSTRAINED the arc
-// probabilities are not forced onto the simplex at each
-// iteration. Thus, the solution will be exact if it converges
-// (within maxiters_). If not, or if a solution is not on the simplex,
-// false is returned. If norm_type == NORM_MARGINALLY_APPROXIMATED, the
-// arc probabilities are forced onto the simplex through
-// re-normalization at each iteration.
+// The computations are done in the signed log rather than the log semiring
+// for numerical stability.
 template <class Arc>
-bool CountNormalizer<Arc>::CalcArcWeights(
+bool CountNormalizer<Arc>::KLMinimizeState(
     StateId s, CountNormType norm_type, fst::MutableFst<Arc> *fst) {
   namespace f = fst;
-  // Finds new arc weights; last position is the super-final weight.
+  // Stores new arc weights; last position is the super-final weight.
   std::vector<SLWeight> arc_weights(fst->NumArcs(s) + 1, SLWeight::Zero());
   std::vector<SLWeight> prev_arc_weights;
+  std::vector<SLWeight> norm_factor(fst->NumArcs(s) + 1, SLWeight::Zero());
   size_t iters = 0;
-  do {
-    prev_arc_weights = arc_weights;
-    ArcFromBackoffWeights(*fst, s, &arc_weights);
-    if (norm_type == NORM_MARGINALLY_APPROXIMATED)
-      NormArcs(s, &arc_weights);
-    DenomFromArcWeights(*fst, s, arc_weights);
-    if (++iters > maxiters_) {
-      if (norm_type == NORM_MARGINALLY_APPROXIMATED) {
-        break;
-      } else {
-        LOG(WARNING) << "CountNormalizer: max iterations exceeded";
+  if (InitArcWeights(*fst, s, &arc_weights)) {
+    if (!ComputeDenom(*fst, s, arc_weights))
+      return false;
+
+    do {
+      prev_arc_weights = arc_weights;
+      if (!ComputeNormFactor(*fst, s, &norm_factor))
+        return false;
+
+      if (!LambdaSearch(*fst, s, norm_type, norm_factor, &arc_weights)) {
+        LOG(ERROR) << "CountNormalizer: lambda iterations failed";
         return false;
       }
-    }
-  } while (!ApproxEqualWeights(arc_weights, prev_arc_weights, delta_));
-  NumerFromArcWeights(s, arc_weights);
+      if (!ComputeDenom(*fst, s, arc_weights))
+        return false;
+      if (++iters > maxiters_) {
+        LOG(WARNING) << "CountNormalizer: max DC iterations exceeded:"
+                     << " state: " << s;
+        break;  // Allows sub-optimal solution (with warning).
+      }
+    } while (!ApproxEqualWeights(arc_weights, prev_arc_weights));
+  }
+
+  NormWeights(&arc_weights);  // explicitly renormalizes sum to One()
+
   // Copies arc weights to FST and validates their values.
   ssize_t pos = 0;
   f::Adder<SLWeight> adder;
-  bool has_phi = false;
   for (MArcItr aiter(fst, s); !aiter.Done(); aiter.Next(), ++pos) {
     Arc arc = aiter.Value();
-    if (arc.ilabel != phi_label_) {
-      if (Less(arc_weights[pos], SLWeight::Zero())) {
-        LOG(ERROR) << "CountNormalizer: bad arc weight: "
-                   << arc_weights[pos];
-        return false;
-      }
-      arc.weight = from_log_(arc_weights[pos]);
-      aiter.SetValue(arc);
-      adder.Add(arc_weights[pos]);
-    } else {
-      has_phi = true;
+    if (Less(arc_weights[pos], SLWeight::Zero())) {
+      LOG(ERROR) << "CountNormalizer: bad arc weight: " << arc_weights[pos];
+      return false;
     }
+    arc.weight = from_log_(arc_weights[pos]);
+    aiter.SetValue(arc);
+    adder.Add(arc_weights[pos]);
   }
   // ...including the super-final arc.
   if (Less(arc_weights[pos], SLWeight::Zero())) {
-    LOG(ERROR) << "CountNormalizer: bad final weight: "
-               << arc_weights[pos];
+    LOG(ERROR) << "CountNormalizer: bad final weight: " << arc_weights[pos];
     return false;
   }
   fst->SetFinal(s, from_log_(arc_weights[pos]));
@@ -569,155 +647,270 @@ bool CountNormalizer<Arc>::CalcArcWeights(
   // Validates total mass.
   if (Less(SLWeight::One(), adder.Sum()) &&
       !ApproxEqual(SLWeight::One(), adder.Sum())) {
-    LOG(ERROR) << "CountNormalizer: bad state sum: "
-               << adder.Sum();
+    LOG(ERROR) << "CountNormalizer: bad state sum: " << adder.Sum();
     return false;
   }
   return true;
 }
 
 template <class Arc>
-void CountNormalizer<Arc>::CalcStateWeights(
-    const fst::ExpandedFst<Arc> &fst, StateId s) {
-  namespace f = fst;
-  NormState &state = norm_states_[s];
-  // The state probability that includes higher orders w/ backoff
-  // is computed recursively.
-  state.weight_ho = state.weight;
-  for (auto his : state.hi_states) {
-    NormState &hi_state = norm_states_[his];
-    SLWeight fail_weight = Divide(hi_state.numer, hi_state.denom);
-    state.weight_ho = Plus(state.weight_ho,
-                           Times(hi_state.weight_ho, fail_weight));
-  }
-}
-
-template <class Arc>
-void CountNormalizer<Arc>::ArcFromBackoffWeights(
+bool CountNormalizer<Arc>::ComputeNormFactor(
     const fst::ExpandedFst<Arc> &fst, StateId s,
-    std::vector<SLWeight> *arc_weights) {
+    std::vector<SLWeight> *norm_factor) const {
   // We assume any immediately higher NormStates are completed except
   // for the denom members which should have at least tentative values.
   namespace f = fst;
 
-  CalcStateWeights(fst, s);
-  NormState &state = norm_states_[s];
-
-  // Per-arc normalization divisor initialized with state weight that
-  // includes higher orders w/ backoff.
-  std::vector<SLWeight> norm_arc(arc_weights->size(), state.weight_ho);
-
-  // Subtracts excess high-order backed-off arc weights from norm divisor.
+  const NormState &state = norm_states_[s];
+  // Per-arc normalization factor.
+  fill(norm_factor->begin(), norm_factor->end(), SLWeight::Zero());
+  // The higher-order state probabilities w/ backoff.
   for (auto his : state.hi_states) {
-    NormState &hi_state = norm_states_[his];
-    SLWeight fail_weight = Divide(hi_state.numer, hi_state.denom);
-    SLWeight excess = Times(hi_state.weight_ho, fail_weight);
+    // If all arcs are backed-off, skip.
+    if (NumNonPhiArcs(fst, s) == NumNonPhiArcs(fst, his))
+      continue;
+    const NormState &hi_state = norm_states_[his];
+    // C(\varphi, his) / d(his, s)
+    const SLWeight hi_weight = Divide(hi_state.fail_count, hi_state.denom);
     for (size_t hipos = 0; hipos < fst.NumArcs(his); ++hipos) {
-      ssize_t pos = backoff_->GetBackedOffArc(his, hipos);
-      if (pos != -1) norm_arc[pos] = Minus(norm_arc[pos], excess);
+      const ssize_t pos = backoff_->GetBackedOffArc(his, hipos);
+      // 1_{x \in L[s] \cap \Sigma}
+      if (pos != -1) {
+        (*norm_factor)[pos] = Plus((*norm_factor)[pos], hi_weight);
+      }
     }
+    // 1_{$ \in L[s] \cap \Sigma}
     if (fst.Final(his) != Weight::Zero()) {
-      ssize_t pos = fst.NumArcs(s);
-      norm_arc[pos] = Minus(norm_arc[pos], excess);
+      const ssize_t pos = fst.NumArcs(s);
+      (*norm_factor)[pos] = Plus((*norm_factor)[pos], hi_weight);
     }
   }
+  return true;
+}
 
-  // Normalizes using above factors.
+template <class Arc>
+fst::SignedLog64Weight CountNormalizer<Arc>::NormArcWeights(
+    const fst::ExpandedFst<Arc> &fst, StateId s,
+    CountNormType norm_type, const std::vector<SLWeight> &norm_factor,
+    SLWeight lambda, std::vector<SLWeight> *arc_weights) const {
+  namespace f = fst;
+
+  // Normalizes using arc normalization factors.
   size_t pos = 0;
+  f::Adder<SLWeight> adder;
   for (ArcItr aiter(fst, s); !aiter.Done(); aiter.Next(), ++pos) {
     const Arc &arc = aiter.Value();
-    (*arc_weights)[pos] =  arc.ilabel == phi_label_ ?
-        SLWeight::Zero() : Divide(to_log_(arc.weight), norm_arc[pos]);
-    if (ApproxZero((*arc_weights)[pos]))
-        (*arc_weights)[pos] = kEffectiveZero;
+    // If norm type is NORM_KL_MIN_APPROXIMATED, then the failure
+    // transition weight is not modified from its initial estimate.
+    // C(x, s)
+    if (arc.ilabel != phi_label_ || norm_type != NORM_KL_MIN_APPROXIMATED) {
+      // \lambda - f(x, q, y^n)
+      const SLWeight arc_weight = to_log_(arc.weight);
+      if (IsEffectiveZero(arc_weight)) {
+        // y^{n+1} = max(y^{n+1}, eps)
+        (*arc_weights)[pos] = effective_zero_;
+      } else {
+        const SLWeight norm = Minus(lambda, norm_factor[pos]);
+        // y^{n+1} = C(x, s)/(\lambda - f(x, q, y^n))
+        (*arc_weights)[pos] = Divide(arc_weight, norm);
+        if (IsEffectiveZero((*arc_weights)[pos])) {
+          // y^{n+1} = max(y^{n+1}, eps)
+          (*arc_weights)[pos] = effective_zero_;
+        }
+      }
+    }
+    adder.Add((*arc_weights)[pos]);
   }
-  // ...including the super-final arc.
+  // ...including the super-final arc
   if (fst.Final(s) != Weight::Zero()) {
-    (*arc_weights)[pos] =  Divide(to_log_(fst.Final(s)), norm_arc[pos]);
-    if (ApproxZero((*arc_weights)[pos]))
-      (*arc_weights)[pos] = kEffectiveZero;
+    // C(x, s)
+    const SLWeight final_weight = to_log_(fst.Final(s));
+      // \lambda - f(x, q, y^n)
+    const SLWeight norm = Minus(lambda, norm_factor[pos]);
+    if (IsEffectiveZero(final_weight)) {
+      // y^{n+1} = max(y^{n+1}, eps)
+      (*arc_weights)[pos] = effective_zero_;
+    } else {
+      // y^{n+1} = C(x, s)/(\lambda - f(x, q, y^n))
+      (*arc_weights)[pos] =  Divide(final_weight, norm);
+      // y^{n+1} = max(y^{n+1}, eps)
+      if (IsEffectiveZero((*arc_weights)[pos]))
+        (*arc_weights)[pos] = effective_zero_;
+    }
+    adder.Add((*arc_weights)[pos]);
+  }
+  return adder.Sum();
+}
+
+template <class Arc>
+bool CountNormalizer<Arc>::LambdaSearch(
+    const fst::ExpandedFst<Arc> &fst,  StateId s,
+    CountNormType norm_type, const std::vector<SLWeight> &norm_factor,
+    std::vector<SLWeight> *arc_weights) const {
+  namespace f = fst;
+  // Chooses lambda lower bound as max_x (f(x, s, y^n) + C(x,s))
+  // Chooses lambda higher bound as C(s) + max_x f(x, s, y^n)
+  ssize_t pos = 0;
+  SLWeight maxfx = SLWeight::Zero();
+  SLWeight lambda_low = SLWeight::Zero();
+  SLWeight lambda_hi = SLWeight::Zero();
+  for (ArcItr aiter(fst, s); !aiter.Done(); aiter.Next(), ++pos) {
+    SLWeight cx = to_log_(aiter.Value().weight);
+    SLWeight fx = norm_factor[pos];
+    SLWeight cfx = Plus(cx, fx);
+    if (Less(maxfx, fx)) maxfx = fx;
+    if (Less(lambda_low, cfx)) lambda_low = cfx;
+    lambda_hi  = Plus(lambda_hi, cx);
+  }
+  const SLWeight final_cx = to_log_(fst.Final(s));
+  const SLWeight final_fx = norm_factor[pos];
+  const SLWeight final_cfx = Plus(final_fx, final_cx);
+  if (Less(maxfx, final_fx)) maxfx = final_fx;
+  if (Less(lambda_low, final_cfx)) lambda_low = final_cfx;
+  lambda_hi = Plus(Plus(lambda_hi, final_cx), maxfx);
+
+  if (Less(lambda_hi, lambda_low)) {
+    if (ApproxEqual(lambda_low, lambda_hi, kNormDelta)) {
+      lambda_low = lambda_hi;
+    } else {
+      LOG(ERROR) << "CountNormalizer: bad lambda parameter limits:"
+                 << " state: " << s
+                 << " lambda_low: " << lambda_low
+                 << " lambda_hi: " << lambda_hi;
+      return false;
+    }
+  }
+
+  const SLWeight two = Plus(SLWeight::One(), SLWeight::One());
+  size_t iters = 0;
+  while (true) {
+    const SLWeight lambda = Divide(Plus(lambda_hi, lambda_low), two);
+    const SLWeight arc_sum =
+        NormArcWeights(fst, s, norm_type, norm_factor, lambda, arc_weights);
+    if (ApproxEqual(arc_sum, SLWeight::One(), delta_)) {
+      return true;
+    } else if (Less(arc_sum, SLWeight::One())) {
+      lambda_hi = lambda;
+    } else {
+      lambda_low = lambda;
+    }
+    if (++iters > maxiters_) {
+      LOG(ERROR) << "CountNormalizer: max (lambda) iterations exceeded:"
+                 << " state: " << s
+                 << " lambda_low: " << lambda_low
+                 << " lambda_hi: " << lambda_hi
+                 << " arc_sum: " << arc_sum;
+      return false;
+    }
   }
 }
 
 template <class Arc>
-void CountNormalizer<Arc>::NumerFromArcWeights(
-    StateId s, const std::vector<SLWeight> &arc_weights) {
+bool CountNormalizer<Arc>::InitArcWeights(
+    const fst::ExpandedFst<Arc> &fst,
+    StateId s, std::vector<SLWeight> *arc_weights) const {
   namespace f = fst;
-  NormState &state = norm_states_[s];
-  f::Adder<SLWeight> adder;
-  for (const auto &w : arc_weights) adder.Add(w);
-  state.numer = Minus(SLWeight::One(), adder.Sum());
-  if (ApproxZero(state.numer))
-    state.numer = kEffectiveZero;
-  // Initializes denominator to the numerator.  This makes the failure
-  // weight One() in the initial iteration unlike the opengrm ngram
-  // implementation which takes it from the normalized input.
-  state.denom = state.numer;
+  const NormState &state = norm_states_[s];
+
+  // Initializes the initialization.
+  fill(arc_weights->begin(), arc_weights->end(), SLWeight::Zero());
+
+  // Finds the number of arcs (including super-final arc)
+  ssize_t num_arcs = fst.NumArcs(s);
+  if (fst.Final(s) != Weight::Zero())
+    ++num_arcs;
+  const SLWeight num_arcs_weight =
+      to_log_(-std::log(static_cast<double>(num_arcs)));
+
+  if (IsEffectiveZero(state.count)) {
+    // Trivial case: (no count mass at the state)
+    // y^0 = 1/|L(s)| and return false
+    for (size_t pos = 0; pos < num_arcs; ++pos)
+      (*arc_weights)[pos] = Divide(SLWeight::One(), num_arcs_weight);
+    return false;
+  } else {
+    // General case:
+    //  y^0 = C(x,s)/C(s) (1 - |L(s)| eps) + eps and return true
+    const SLWeight arc_mult = Minus(SLWeight::One(),
+                                    Times(num_arcs_weight, effective_zero_));
+    size_t pos = 0;
+    for (ArcItr aiter(fst, s);
+       !aiter.Done();
+       aiter.Next(), ++pos) {
+      const Arc &arc = aiter.Value();
+      const SLWeight arc_weight = Divide(to_log_(arc.weight), state.count);
+      (*arc_weights)[pos] = Plus(Times(arc_weight, arc_mult), effective_zero_);
+    }
+    if (fst.Final(s) != Weight::Zero()) {
+      const SLWeight final_weight = Divide(to_log_(fst.Final(s)), state.count);
+      (*arc_weights)[pos] =
+          Plus(Times(final_weight, arc_mult), effective_zero_);
+    }
+    return true;
+  }
 }
 
 template <class Arc>
-void CountNormalizer<Arc>::DenomFromArcWeights(
+bool CountNormalizer<Arc>::ComputeDenom(
     const fst::ExpandedFst<Arc> &fst, StateId s,
     const std::vector<SLWeight> &arc_weights) {
   namespace f = fst;
   NormState &state = norm_states_[s];
   for (auto his : state.hi_states) {
+    NormState &hi_state = norm_states_[his];
     f::Adder<SLWeight> adder;
+    // Computes d(his,s) = 1 - \sum{x \in L[his]\cap\Sigma} y_x.
     for (size_t hipos = 0; hipos < fst.NumArcs(his); ++hipos) {
-      ssize_t pos = backoff_->GetBackedOffArc(his, hipos);
-      if (pos != -1) {
+      const ssize_t pos = backoff_->GetBackedOffArc(his, hipos);
+      if (pos != -1)
         adder.Add(arc_weights[pos]);
-      }
     }
     if (fst.Final(his) != Weight::Zero()) {
-      ssize_t pos = fst.NumArcs(s);
+      const ssize_t pos = fst.NumArcs(s);
       adder.Add(arc_weights[pos]);
     }
-    NormState &hi_state = norm_states_[his];
     hi_state.denom = Minus(SLWeight::One(), adder.Sum());
-    if (ApproxZero(hi_state.denom))
-      hi_state.denom = kEffectiveZero;
-  }
-}
 
-template <class Arc>
-void CountNormalizer<Arc>::NormArcs(StateId s,
-                                    std::vector<SLWeight> *arc_weights)
-    const {
-  namespace f = fst;
-  ssize_t failpos = backoff_->GetBackoffPosition(s);
-
-  // Finds current normalization (less backoff weight).
-  // and ensures sane arc weights.
-  f::Adder<SLWeight> arc_sum;
-  for (size_t pos = 0; pos < arc_weights->size(); ++pos) {
-    if (pos != failpos) {
-      if (!Less(kEffectiveZero, (*arc_weights)[pos])) {
-        if (pos != arc_weights->size() - 1 ||
-            (*arc_weights)[pos] != SLWeight::Zero()) {
-          (*arc_weights)[pos] = kEffectiveZero;
-        }
+    if (Less(hi_state.denom, effective_zero_)) {
+      // Computes d(his,s) = \sum{x \notin L[his]\cap\Sigma} y_x.  Equal
+      // mathematically to above but possibly different numerically. This
+      // ensures the low probability is not due to that on the few states that
+      // get here.
+      adder.Reset();
+      Matr matcher(fst, f::MATCH_INPUT);
+      matcher.SetState(his);
+      ssize_t pos = 0;
+      for (ArcItr aiter(fst, s); !aiter.Done(); aiter.Next(), ++pos) {
+        const Arc &arc = aiter.Value();
+        if (arc.ilabel == phi_label_ || !matcher.Find(arc.ilabel))
+          adder.Add(arc_weights[pos]);
       }
-      arc_sum.Add((*arc_weights)[pos]);
+      if (fst.Final(his) == Weight::Zero())
+        adder.Add(arc_weights[pos]);
+      hi_state.denom = adder.Sum();
     }
-  }
 
-  // Renormalizes using 1.0 - numerator estimate.
-  SLWeight norm = Minus(SLWeight::One(), norm_states_[s].numer);
-  for (size_t pos = 0; pos < arc_weights->size(); ++pos) {
-    if (pos != failpos) {
-      (*arc_weights)[pos] = Times(Divide((*arc_weights)[pos], arc_sum.Sum()),
-                                  norm);
+    if (IsEffectiveZero(hi_state.denom)) {
+      // Probability mass at the lower order for arcs at this state is nearly
+      // one, so that the denominator in backoff calculation is effectively
+      // zero.  This can happen for states with a large number of arcs and
+      // nearly the same arcs at each state.
+      hi_state.denom = effective_zero_;
+    } else if (Less(hi_state.denom, SLWeight::Zero())) {
+      LOG(ERROR) << "CountNormalizer: bad backoff denominator: "
+                 << hi_state.denom
+                 << " state: " << s << " high state: " << his;
+      return false;
     }
   }
+  return true;
 }
-
 
 }  // namespace internal
 
 // Public interface to algorithm to normalize a count SFST. The input
 // should be (smoothed) count SFST e.g., as returned by
-// sfst::Count. It should be a 'backoff' SFST (see backoff.h). It
+// sfst::Count. It should be a 'backoff-complete' SFST (see backoff.h). It
 // should not be 'phi-summed' before input (see below).  It is
 // transformed into a normalized SFST. Returns true on success.
 //
@@ -727,32 +920,30 @@ void CountNormalizer<Arc>::NormArcs(StateId s,
 // is marginalized over the higher orders from that state. This default
 // choice results in simple reliable count normalization.
 //
-// If norm_type == NORM_MARGINALLY_CONSTRAINED, the
-// marginally-constrained output is computed: i.e., were
-// order-marginals taken of the output, they should match the
-// ordered_sum=true output. The algorithm in this case is more complex
-// being a generization of B. Roark, C. Allauzen and M. Riley,
-// "Smoothed marginal distribution constraints for language modeling",
-// Proc. ACL 2013. This choice results in a closer approximation to
-// the counted distribution (e.g., the input to sfst::Count) but is
-// more numerically-sensitive computation that will return false if no
-// solution is found.
+// If norm_type == NORM_KL_MIN, the Kullback–Leibler divergence minimum
+// distribution w.r.t. the counts is computed as described in
+// Suresh, Roark, Riley, Schogol, "Approximating probabilistic models
+// as weighted automata" (experimental/fst/papers/approx/approx.pdf)
 //
-// If norm_type == NORM_MARGINALLY_APPROXIMATED, is similar
-// to the NORM_MARGINALLY_CONSTRAINED, but will ensure termination
-// by renormalizations at each iteration if necessary. The result
-// approximates the NORM_MARGINALLY_CONSTRAINED, but is more reliable.
+// If norm_type == NORM_KL_MIN_APPROXIMATED, is similar to the
+// NORM_KL_MIN, but may be more numerically stable and can empirically
+// give better results. It does so by fixing the failure weight to its
+// initial estimate in the above optimization.
 //
-// The 'delta' (convergence threshold) and 'maxiters' (iteration count
-// threshold) parameters control the iterative computation used in the
-// last two cases.
+// The 'delta' (convergence threshold), (-log) 'effective_zero' (underflow)
+// and 'maxiters' (iteration count threshold) parameters control
+// the iterative computation used in the last two cases.
 template <class Arc>
-bool CountNormalize(fst::MutableFst<Arc> *fst,
-                    typename Arc::Label phi_label,
-                    float delta = fst::kDelta,
-                    CountNormType norm_type = NORM_SUMMED,
-                    size_t maxiters = internal::kMaxCNIters) {
-  internal::CountNormalizer<Arc> normalizer(phi_label, delta, maxiters);
+bool CountNormalize(
+    fst::MutableFst<Arc> *fst,
+    typename Arc::Label phi_label,
+    CountNormType norm_type = NORM_SUMMED,
+    bool trim = false,
+    float delta = internal::CountNormalizer<Arc>::kNormDelta,
+    double effective_zero = internal::CountNormalizer<Arc>::kEffectiveZero,
+    size_t maxiters = internal::CountNormalizer<Arc>::kMaxNormIters) {
+  internal::CountNormalizer<Arc> normalizer(phi_label, trim, delta,
+                                            effective_zero, maxiters);
   return normalizer.Normalize(norm_type, fst);
 }
 
