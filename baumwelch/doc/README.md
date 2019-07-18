@@ -1,9 +1,5 @@
 # Baum-Welch training
 
-
-
-
-
 ## Training
 
 The `BaumWelch` template class is the primary driver for training. It is

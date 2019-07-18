@@ -1,6 +1,7 @@
 v 0.2 (beta)
 ============
 
+* Splits binaries (0.2.9)
 * More documentation (0.2.8)
 * Decode functions no longer reset their FARs (0.2.8)
 * Uses rvalue references in expectation tables (0.2.7)

@@ -15,15 +15,6 @@
 #ifndef BAUMWELCH_SUMMATION_H_
 #define BAUMWELCH_SUMMATION_H_
 
-// This static template class provides the function TruePlus, which takes two
-// weights of the same time as arguments and returns their sum *as if* the
-// weight was idempotent.
-//
-// * If the weight type is not idempotent, we just delegate to Plus.
-// * If the weight is idempotent, we attempt to convert to the appropriate
-//   precision variant of LogWeightTpl. This conversion will fail if such a
-//   converter isn't defined.
-
 #include <type_traits>
 
 #include <fst/float-weight.h>

@@ -16,7 +16,6 @@
 #define BAUMWELCH_DATA_H_
 
 #include <string>
-using std::string;
 
 #include <fst/extensions/far/far.h>
 #include <fst/fstlib.h>
@@ -38,7 +37,7 @@ namespace internal {
 //   const Fst<Arc> &GetOutput() const;
 //
 //   // Returns some sensible key.
-//   const string &GetKey() const
+//   const std::string &GetKey() const
 //
 //   void Reset();
 //
@@ -61,7 +60,7 @@ class PairedData {
   const Fst<Arc> &GetOutput() const { return *ciphertext_->GetFst(); }
 
   // This is recomputed on every call.
-  const string &GetKey() const {
+  const std::string &GetKey() const {
     key_ = plaintext_->GetKey() + "_" + ciphertext_->GetKey();
     return key_;
   }
@@ -81,7 +80,7 @@ class PairedData {
  private:
   FarReader<Arc> *plaintext_;
   FarReader<Arc> *ciphertext_;
-  mutable string key_;
+  mutable std::string key_;
 };
 
 // Data object with an input FST (usually a language model) and an output
@@ -97,7 +96,7 @@ class DeciphermentData {
 
   const Fst<Arc> &GetOutput() const { return *ciphertext_->GetFst(); }
 
-  const string &GetKey() const { return ciphertext_->GetKey(); }
+  const std::string &GetKey() const { return ciphertext_->GetKey(); }
 
   bool Done() const { return ciphertext_->Done(); }
 

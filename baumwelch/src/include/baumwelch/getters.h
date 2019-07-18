@@ -16,14 +16,14 @@
 #define BAUMWELCH_GETTERS_H_
 
 #include <string>
-using std::string;
 
 #include <baumwelch/baumwelch.h>
 
 namespace fst {
 namespace script {
 
-bool GetExpectationTableType(const string &str, ExpectationTableType *etype);
+bool GetExpectationTableType(const std::string &str,
+                             ExpectationTableType *etype);
 
 }  // namespace script
 }  // namespace fst

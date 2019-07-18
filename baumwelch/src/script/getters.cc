@@ -17,7 +17,8 @@
 namespace fst {
 namespace script {
 
-bool GetExpectationTableType(const string &str, ExpectationTableType *etype) {
+bool GetExpectationTableType(const std::string &str,
+                             ExpectationTableType *etype) {
   if (str == "global") {
     *etype = GLOBAL;
   } else if (str == "state") {

@@ -16,17 +16,8 @@
 
 #include <unistd.h>
 
-#include <cstdlib>
-#include <cstring>
-#include <ctime>
-
-#include <memory>
-#include <string>
-using std::string;
-
 #include <fst/flags.h>
-
-#include <baumwelch/trainscript.h>
+#include <baumwelch/baumwelch.h>
 
 DEFINE_bool(decipherment, false,
             "Use decipherment construction; i.e., input is a WFSA rather "
@@ -43,80 +34,7 @@ DEFINE_bool(remove_zero_arcs, true, "Should zero arcs be removed?");
 DEFINE_double(delta, fst::kDelta, "Comparison/quantization delta");
 DEFINE_int32(seed, time(nullptr) + getpid(), "Random seed");
 
-int main(int argc, char **argv) {
-  namespace s = fst::script;
-  using fst::BaumWelchTrainOptions;
-  using fst::ExpectationTableType;
-  using fst::script::FarReaderClass;
-  using fst::script::FstClass;
-  using fst::script::MutableFstClass;
+int baumwelchtrain_main(int argc, char **argv);
 
-  string usage = "Trains a WFST channel model\n\n  Usage: ";
-  usage += argv[0];
-  usage += " input.f(ar|st) output.far channel.fst [out.fst]\n";
-
-  std::set_new_handler(FailedNewHandler);
-  SET_FLAGS(usage.c_str(), &argc, &argv, true);
-  if (argc < 4 || argc > 5) {
-    ShowUsage();
-    return 1;
-  }
-
-  const string input_name = strcmp(argv[1], "-") != 0 ? argv[1] : "";
-  const string output_name = strcmp(argv[2], "-") != 0 ? argv[2] : "";
-  const string channel_name = strcmp(argv[3], "-") != 0 ? argv[3] : "";
-  const string out_name = argc > 4 ? argv[4] : "";
-
-  if (input_name.empty() && (output_name.empty() || channel_name.empty())) {
-    LOG(ERROR) << argv[0] << ": Can't take more than one input from standard "
-               << "input";
-    return 1;
-  }
-  if (output_name.empty() && channel_name.empty()) {
-    LOG(ERROR) << argv[0] << ": Can't take more than one input from standard "
-               << "input";
-    return 1;
-  }
-
-  const std::unique_ptr<FarReaderClass> output(
-      FarReaderClass::Open(output_name));
-  if (!output) return 1;
-
-  const std::unique_ptr<MutableFstClass> channel(
-      MutableFstClass::Read(channel_name));
-  if (!channel) return 1;
-
-  ExpectationTableType etype;
-  if (!s::GetExpectationTableType(FLAGS_expectation_table, &etype)) {
-    LOG(ERROR) << argv[0] << ": Unknown or unsupported expectation table type: "
-               << FLAGS_expectation_table;
-    return 1;
-  }
-
-  const BaumWelchTrainOptions opts(FLAGS_max_iters, FLAGS_flat_start,
-                                   FLAGS_random_starts, FLAGS_remove_zero_arcs,
-                                   FLAGS_delta);
-
-  srand(FLAGS_seed);
-
-  if (FLAGS_decipherment) {
-    const std::unique_ptr<const FstClass> input(FstClass::Read(input_name));
-    if (!input) return 1;
-
-    if (!TrainBaumWelch(*input, output.get(), channel.get(), etype, opts)) {
-      LOG(WARNING) << argv[0] << ": Training did not converge";
-    }
-  } else {
-    const std::unique_ptr<FarReaderClass> input(
-        FarReaderClass::Open(input_name));
-    if (!input) return 1;
-
-    if (!TrainBaumWelch(input.get(), output.get(), channel.get(), etype,
-                        opts)) {
-      LOG(WARNING) << argv[0] << ": Training did not converge";
-    }
-  }
-
-  return !channel->Write(out_name);
-}
+int main(int argc, char **argv) { return baumwelchtrain_main(argc, argv); }
 

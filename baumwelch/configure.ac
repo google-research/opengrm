@@ -1,4 +1,4 @@
-AC_INIT([BaumWelch], [0.2.8], [kbg@google.com])
+AC_INIT([BaumWelch], [0.2.9], [kbg@google.com])
 AM_INIT_AUTOMAKE([foreign nostdinc -Wall -Werror])
 AM_PROG_AR
 
@@ -17,6 +17,7 @@ AC_PROG_LIBTOOL
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([
   Makefile
+  doc/Makefile
   src/Makefile
   src/bin/Makefile
   src/include/Makefile
