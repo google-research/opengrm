@@ -15,8 +15,8 @@
 #ifndef NGRAM_UTIL_H_
 #define NGRAM_UTIL_H_
 
-#include <fst/log.h>
 #include <fst/flags.h>
+#include <fst/log.h>
 
 // UTILITY FOR ERROR HANDLING
 

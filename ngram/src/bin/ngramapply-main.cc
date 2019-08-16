@@ -12,7 +12,7 @@
 // limitations under the License.
 //
 // Copyright 2005-2016 Brian Roark and Google, Inc.
-// To intersect ngram fst with input fst archive.
+// Intersects n-gram FST with input FST archive.
 
 #include <memory>
 #include <string>
@@ -23,13 +23,12 @@
 #include <ngram/lexicographic-map.h>
 #include <ngram/ngram-output.h>
 
-DEFINE_string(bo_arc_type, "phi",
-              "One of: \"phi\" (default), \"epsilon\", \"lexicographic\"");
+DECLARE_string(bo_arc_type);
 
 enum BACKOFF_TYPE { PHI, EPS, LEX_EPS };
 
-int main(int argc, char** argv) {
-  string usage = "Intersect n-gram model with fst archive.\n\n  Usage: ";
+int ngramapply_main(int argc, char** argv) {
+  std::string usage = "Intersects n-gram model with FST archive.\n\n  Usage: ";
   usage += argv[0];
   usage += " [--options] ngram.fst [in.far [out.far]]\n";
   std::set_new_handler(FailedNewHandler);
@@ -58,7 +57,7 @@ int main(int argc, char** argv) {
   FLAGS_fst_compat_symbols = false;
   fst::FstReadOptions opts;
 
-  string in1_name = strcmp(argv[1], "-") != 0 ? argv[1] : "";
+  std::string in1_name = strcmp(argv[1], "-") != 0 ? argv[1] : "";
   std::unique_ptr<fst::StdVectorFst> lmfst(
       fst::StdVectorFst::Read(in1_name));
   if (!lmfst) return 1;
@@ -76,7 +75,7 @@ int main(int argc, char** argv) {
     ngram.MakePhiMatcherLM(ngram::kSpecialLabel);
   }
 
-  string in2_name = (argc > 2 && strcmp(argv[2], "-") != 0) ? argv[2] : "";
+  std::string in2_name = (argc > 2 && strcmp(argv[2], "-") != 0) ? argv[2] : "";
   if (in2_name.empty()) {
     if (in1_name.empty()) {
       NGRAMERROR() << argv[0] << ": Can't use standard i/o for both inputs.";
@@ -91,7 +90,7 @@ int main(int argc, char** argv) {
     return 1;
   }
   fst::FarType far_type = fst::FAR_STLIST;
-  string out_name = (argc > 3 && strcmp(argv[3], "-") != 0) ? argv[3] : "";
+  std::string out_name = (argc > 3 && strcmp(argv[3], "-") != 0) ? argv[3] : "";
   std::unique_ptr<fst::FarWriter<fst::StdArc>> far_writer(
       fst::FarWriter<fst::StdArc>::Create(out_name, far_type));
   if (!far_writer) {

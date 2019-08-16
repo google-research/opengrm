@@ -18,7 +18,6 @@
 #define NGRAM_NGRAM_MUTABLE_MODEL_H_
 
 #include <algorithm>
-#include <deque>
 #include <vector>
 
 #include <fst/arcsort.h>
@@ -33,8 +32,6 @@ namespace ngram {
 using fst::MutableFst;
 using fst::ExpandedFst;
 using fst::MutableArcIterator;
-
-using std::deque;
 
 using fst::VectorFst;
 using fst::ILabelCompare;
@@ -228,7 +225,7 @@ class NGramMutableModel : public NGramModel<Arc> {
   void AdjustCompleteStates(StateId st, double *alpha) {
     int unigram_state = UnigramState();
     if (unigram_state < 0) unigram_state = GetFst().Start();
-    if (NumNGrams(unigram_state) == NumNGrams(st)) (*alpha) = kInfBackoff;
+    if (NumNGrams(unigram_state) == NumNGrams(st)) *alpha = kInfBackoff;
   }
 
   // Scan arcs and remove lower order from arc weight

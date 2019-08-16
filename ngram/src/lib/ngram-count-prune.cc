@@ -14,23 +14,26 @@
 // Copyright 2005-2016 Brian Roark and Google, Inc.
 // Count pruning style model shrinking derived class.
 
-#include <sstream>
 #include <ngram/ngram-count-prune.h>
+
+#include <sstream>
+
 #include <ngram/util.h>
 
 namespace ngram {
 
 // Reads from string while token is a numerical value
 template <class T>
-char NGramCountPrune::GetNextCharVal(string::const_iterator *strit, T *toget,
-                                     const string &count_pattern) {
+char NGramCountPrune::GetNextCharVal(std::string::const_iterator *strit,
+                                     T *toget,
+                                     const std::string &count_pattern) {
   char c = GetNextChar(strit);
-  string tok;
+  std::string tok;
   while (IsInNumber(c)) {
     tok += c;
     c = GetNextChar(strit);
   }
-  if (tok == "") {
+  if (tok.empty()) {
     NGRAMERROR() << "NGramCountPrune: Count pruning parameter format error: "
                  << count_pattern;
     NGramModel<StdArc>::SetError();
@@ -47,8 +50,8 @@ char NGramCountPrune::GetNextCharVal(string::const_iterator *strit, T *toget,
 // ':' delimits prior to count minimum; ';' delimits fields
 // example: "2:2;3+:3" signifies:
 //   prune bigrams with count < 2; trigrams and above with count < 3
-void NGramCountPrune::ParseCountMinimums(const string &count_pattern) {
-  string::const_iterator strit = count_pattern.begin();
+void NGramCountPrune::ParseCountMinimums(const std::string &count_pattern) {
+  std::string::const_iterator strit = count_pattern.begin();
   while (strit < count_pattern.end()) {
     int order;
     double count;

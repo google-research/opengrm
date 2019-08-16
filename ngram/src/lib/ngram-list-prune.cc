@@ -13,12 +13,13 @@
 //
 // Copyright 2005-2016 Brian Roark and Google, Inc.
 #include <ngram/ngram-list-prune.h>
+
 #include <ngram/ngram-input.h>
 
 namespace ngram {
 
 void GetNGramListToPrune(
-    const std::vector<string> &ngrams_to_prune,
+    const std::vector<std::string> &ngrams_to_prune,
     const fst::SymbolTable *syms,
     std::set<std::vector<fst::StdArc::Label>> *ngram_list) {
   if (syms == nullptr) {
@@ -30,7 +31,7 @@ void GetNGramListToPrune(
   }
   for (auto ngram_string : ngrams_to_prune) {
     if (!ngram_string.empty()) {
-      std::vector<string> ngram_words;
+      std::vector<std::string> ngram_words;
       ReadTokenString(ngram_string, &ngram_words);
       if (!ngram_words.empty()) {
         std::vector<fst::StdArc::Label> ngram_labels(ngram_words.size());

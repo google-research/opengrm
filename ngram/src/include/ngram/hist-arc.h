@@ -17,6 +17,7 @@
 #ifndef NGRAM_HIST_ARC_H_
 #define NGRAM_HIST_ARC_H_
 
+#include <string>
 #include <utility>
 
 #include <fst/arc.h>
@@ -52,8 +53,12 @@ struct HistogramArc : public PowerArc<StdArc, ngram::kHistogramBins> {
   HistogramArc(Label ilabel, Label olabel, W &&weight, StateId nextstate)
       : Base(ilabel, olabel, std::forward<W>(weight), nextstate) {}
 
-  static const string &Type() {
-    static const auto *const type = new string("hist");
+  // Arc with weight One.
+  HistogramArc(Label ilabel, Label olabel, StateId nextstate)
+      : HistogramArc(ilabel, olabel, Weight::One(), nextstate) {}
+
+  static const std::string &Type() {
+    static const auto *const type = new std::string("hist");
     return *type;
   }
 };

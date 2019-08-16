@@ -18,17 +18,14 @@
 #define NGRAM_NGRAM_OUTPUT_H_
 
 #include <ostream>
-#include <sstream>
 #include <string>
-#include <fst/compose.h>
 
+#include <fst/compose.h>
 #include <ngram/ngram-context.h>
 #include <ngram/ngram-mutable-model.h>
 #include <ngram/util.h>
 
 namespace ngram {
-
-using std::ostringstream;
 
 using fst::StdFst;
 using fst::ComposeFst;
@@ -50,7 +47,7 @@ class NGramOutput : public NGramMutableModel<StdArc> {
   // information about the states under the assumption that the fst is a model
   explicit NGramOutput(StdMutableFst *infst, std::ostream &ostrm = std::cout,
                        Label backoff_label = 0, bool check_consistency = false,
-                       const string &context_pattern = "",
+                       const std::string &context_pattern = "",
                        bool include_all_suffixes = false)
       : NGramMutableModel<StdArc>(infst, backoff_label, kNormEps,
                                   !context_pattern.empty()),
@@ -76,7 +73,7 @@ class NGramOutput : public NGramMutableModel<StdArc> {
   // Use n-gram model to calculate perplexity of input strings.
   bool PerplexityNGramModel(
       const std::vector<std::unique_ptr<fst::StdVectorFst>> &infsts,
-      int32 v, bool phimatch, string *OOV_symbol, double OOV_class_size,
+      int32 v, bool phimatch, std::string *OOV_symbol, double OOV_class_size,
       double OOV_probability);
 
   // Extract random samples from model and output
@@ -140,14 +137,15 @@ class NGramOutput : public NGramMutableModel<StdArc> {
   void ShowARPAHeader() const;
 
   // Print n-grams leaving a particular state for the ARPA model format
-  void ShowARPANGrams(StdArc::StateId st, const string &str, int order) const;
+  void ShowARPANGrams(StdArc::StateId st, const std::string &str,
+                      int order) const;
 
   // Print the N-gram model in ARPA format
   void ShowARPAModel() const;
 
   // Print n-grams leaving a particular state, standard output format
-  void ShowNGrams(StdArc::StateId st, const string &str, ShowBackoff showeps,
-                  bool neglogs, bool intcnts) const;
+  void ShowNGrams(StdArc::StateId st, const std::string &str,
+                  ShowBackoff showeps, bool neglogs, bool intcnts) const;
 
   void ShowStringFst(const Fst<StdArc> &infst) const;
 
@@ -163,19 +161,22 @@ class NGramOutput : public NGramMutableModel<StdArc> {
 
   void FindNextStateInModel(StateId *mst, Label label, double OOV_cost,
                             Label OOV_label, double *neglogprob, int *word_cnt,
-                            int *oov_cnt, int *words_skipped, string *history,
-                            bool verbose, std::vector<Label> *ngram) const;
+                            int *oov_cnt, int *words_skipped,
+                            std::string *history, bool verbose,
+                            std::vector<Label> *ngram) const;
 
   // add symbol to n-gram history string
-  void AppendWordToNGramHistory(string *str, const string &symbol) const {
-    if (str->size() > 0) (*str) += ' ';
-    (*str) += symbol;
+  void AppendWordToNGramHistory(std::string *str,
+                                const std::string &symbol) const {
+    if (!str->empty()) *str += ' ';
+    *str += symbol;
   }
 
   // Calculate and show (if verbose) </s> n-gram, and accumulate stats
-  void ApplyFinalCost(StateId mst, string history, int word_cnt, int oov_cnt,
-                      int skipped, double neglogprob, double *logprob,
-                      int *words, int *oovs, int *words_skipped, bool verbose,
+  void ApplyFinalCost(StateId mst, std::string history, int word_cnt,
+                      int oov_cnt, int skipped, double neglogprob,
+                      double *logprob, int *words, int *oovs,
+                      int *words_skipped, bool verbose,
                       const std::vector<Label> &ngram) const;
 
   // Header for verbose n-gram entries
@@ -187,8 +188,8 @@ class NGramOutput : public NGramMutableModel<StdArc> {
   }
 
   // Show the verbose n-gram entries with history order and neglogprob
-  void ShowNGramProb(string symbol, string history, bool oov, int order,
-                     double ngram_cost) const;
+  void ShowNGramProb(std::string symbol, std::string history, bool oov,
+                     int order, double ngram_cost) const;
 
   // Show summary perplexity numbers, similar to summary given by SRILM
   void ShowPerplexity(size_t sentences, int word_cnt, int oov_cnt,
@@ -221,7 +222,7 @@ class NGramOutput : public NGramMutableModel<StdArc> {
   void RandNGramModel(int64 samples, bool show_backoff) const;
 
   // Checks parameterization of perplexity calculation and sets OOV_label
-  bool GetOOVLabel(double *OOV_probability, string *OOV_symbol,
+  bool GetOOVLabel(double *OOV_probability, std::string *OOV_symbol,
                    StdArc::Label *OOV_label);
 
  private:

@@ -21,24 +21,19 @@
 
 #include <ngram/ngram-output.h>
 
-DEFINE_bool(ARPA, false, "Print in ARPA format");
-DEFINE_bool(backoff, false, "Show epsilon backoff transitions when printing");
-DEFINE_bool(backoff_inline, false,
-            "Show epsilon backoffs transitions inline with context as a third "
-            "field if --backoff are being printed");
-DEFINE_bool(negativelogs, false,
-            "Show negative log probs/counts when printing");
-DEFINE_bool(integers, false, "Show just integer counts when printing");
-DEFINE_int64(backoff_label, 0, "Backoff label");
-DEFINE_bool(check_consistency, false, "Check model consistency");
-DEFINE_string(context_pattern, "", "Pattern of contexts to print");
-DEFINE_bool(include_all_suffixes, false, "Include suffixes of contexts");
-DEFINE_string(symbols, "",
-              "Symbol table file. If not empty, causes it to be loaded from the"
-              " specified file instead of using the one inside the input FST.");
+DECLARE_bool(ARPA);
+DECLARE_bool(backoff);
+DECLARE_bool(backoff_inline);
+DECLARE_bool(negativelogs);
+DECLARE_bool(integers);
+DECLARE_int64(backoff_label);
+DECLARE_bool(check_consistency);
+DECLARE_string(context_pattern);
+DECLARE_bool(include_all_suffixes);
+DECLARE_string(symbols);
 
-int main(int argc, char **argv) {
-  string usage = "Print ngram counts and models.\n\n  Usage: ";
+int ngramprint_main(int argc, char **argv) {
+  std::string usage = "Print n-gram counts and models.\n\n  Usage: ";
   usage += argv[0];
   usage += " [--options] [in.fst [out.txt]]\n";
   std::set_new_handler(FailedNewHandler);
@@ -49,8 +44,9 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  string in_name = (argc > 1 && (strcmp(argv[1], "-") != 0)) ? argv[1] : "";
-  string out_name =
+  std::string in_name =
+      (argc > 1 && (strcmp(argv[1], "-") != 0)) ? argv[1] : "";
+  std::string out_name =
       (argc > 2 && (strcmp(argv[2], "-") != 0)) ? argv[2] : "stdout";
 
   std::unique_ptr<fst::StdMutableFst> fst(

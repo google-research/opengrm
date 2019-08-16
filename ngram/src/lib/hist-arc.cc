@@ -14,11 +14,12 @@
 // Copyright 2005-2016 Brian Roark and Google, Inc.
 // Source for histogram arc shared object.
 
-#include <fst/fst.h>
+#include <ngram/hist-arc.h>
+
 #include <fst/const-fst.h>
+#include <fst/fst.h>
 #include <fst/script/fstscript.h>
 #include <fst/script/register.h>
-#include <ngram/hist-arc.h>
 
 namespace fst {
 namespace script {

@@ -19,12 +19,12 @@
 
 #include <ngram/ngram-mutable-model.h>
 
-DEFINE_bool(check_consistency, false, "Check model consistency");
-DEFINE_int64(backoff_label, 0, "Backoff label");
-DEFINE_double(norm_eps, ngram::kNormEps, "Normalization check epsilon");
+DECLARE_bool(check_consistency);
+DECLARE_int64(backoff_label);
+DECLARE_double(norm_eps);
 
-int main(int argc, char **argv) {
-  string usage =
+int ngramsort_main(int argc, char **argv) {
+  std::string usage =
       "Sorts an ngram LM in lexicographic state context order.\n\n  Usage: ";
   usage += argv[0];
   usage += " [--options] [in.fst [out.fst]]\n";
@@ -36,8 +36,9 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  string in_name = (argc > 1 && (strcmp(argv[1], "-") != 0)) ? argv[1] : "";
-  string out_name = argc > 2 ? argv[2] : "";
+  std::string in_name =
+      (argc > 1 && (strcmp(argv[1], "-") != 0)) ? argv[1] : "";
+  std::string out_name = argc > 2 ? argv[2] : "";
 
   std::unique_ptr<fst::StdMutableFst> fst(
       fst::StdMutableFst::Read(in_name, true));

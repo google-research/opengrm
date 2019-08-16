@@ -12,8 +12,9 @@
 // limitations under the License.
 //
 // Copyright 2005-2016 Brian Roark and Google, Inc.
-#include <fst/flags.h>
 #include <ngram/util.h>
+
+#include <fst/flags.h>
 
 DEFINE_bool(ngram_error_fatal, true,
             "NGram errors are fatal if true; otherwise returns objects flagged "

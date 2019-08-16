@@ -22,12 +22,11 @@
 #include <ngram/ngram-context.h>
 #include <ngram/ngram-model.h>
 
-DEFINE_int64(contexts, 1, "Number of desired contexts");
-DEFINE_double(bigram_threshold, 1.1,
-              "Bin overfill to force a bigram context split");
+DECLARE_int64(contexts);
+DECLARE_double(bigram_threshold);
 
-int main(int argc, char **argv) {
-  string usage = "Generates a context set from an input LM.\n\n  Usage: ";
+int ngramcontext_main(int argc, char **argv) {
+  std::string usage = "Generates a context set from an input LM.\n\n  Usage: ";
   usage += argv[0];
   usage += " [--options] [in.fst] [out.fst]\n";
   std::set_new_handler(FailedNewHandler);
@@ -38,14 +37,14 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  string in_name = argv[1];
-  string out_name = argc > 2 ? argv[2] : "";
+  std::string in_name = argv[1];
+  std::string out_name = argc > 2 ? argv[2] : "";
 
   std::unique_ptr<fst::StdFst> in_fst(fst::StdFst::Read(in_name));
   if (!in_fst) return 1;
 
   ngram::NGramModel<fst::StdArc> ngram(*in_fst, 0, ngram::kNormEps, true);
-  std::vector<string> contexts;
+  std::vector<std::string> contexts;
   ngram::NGramContext::FindContexts(ngram, FLAGS_contexts, &contexts,
                                     FLAGS_bigram_threshold);
   bool ret = ngram::NGramWriteContexts(out_name, contexts);

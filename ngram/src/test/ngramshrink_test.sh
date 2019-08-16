@@ -1,57 +1,58 @@
 #!/bin/bash
-# Description:
 # Tests the command line binary ngramsymbols.
 
-bin=../bin
-testdata=$srcdir/testdata
-tmpdata=${TMPDIR:-/tmp}
-tmpsuffix="$(mktemp -u XXXXXXXX 2>/dev/null)"
-tmpprefix="${tmpdata}/ngramshrink-earnest-$tmpsuffix-$RANDOM-$$"
+set -eou pipefail
 
-trap "rm -f ${tmpprefix}*" 0 2 13 15
+readonly BIN="../bin"
+readonly TESTDATA="${srcdir}/testdata"
+readonly TEST_TMPDIR="${TEST_TMPDIR:-$(mktemp -d)}"
 
-set -e
 compile_test_fst() {
-  if [ ! -e "${tmpprefix}-${1}.ref" ]
-  then
-    fstcompile \
-      -isymbols="${testdata}/${1}.sym" -osymbols="${testdata}/${1}.sym" \
-      -keep_isymbols -keep_osymbols -keep_state_numbering \
-      "${testdata}/${1}.txt" "${tmpprefix}-${1}.ref"
-  fi
+  fstcompile \
+    --isymbols="${TESTDATA}/${1}.sym" \
+    --osymbols="${TESTDATA}/${1}.sym" \
+    --keep_isymbols \
+    --keep_osymbols \
+    --keep_state_numbering \
+    "${TESTDATA}/${1}.txt" \
+    "${TEST_TMPDIR}/${1}.ref"
 }
 
 compile_test_fst earnest-witten_bell.mod
-for method in count_prune relative_entropy seymore
-do
-  case "${method}" in
-    count_prune) param="--count_pattern=3+:2" ;;
-    relative_entropy) param="--theta=.00015" ;;
-    seymore) param="--theta=4" ;;
+for METHOD in count_prune relative_entropy seymore; do
+  case "${METHOD}" in
+    count_prune) PARAM="--count_pattern=3+:2" ;;
+    relative_entropy) PARAM="--theta=.00015" ;;
+    seymore) PARAM="--theta=4" ;;
   esac
 
-  compile_test_fst "earnest-${method}.pru"
-  "${bin}/ngramshrink" --method="${method}" --check_consistency "${param}" \
-    "${tmpprefix}-earnest-witten_bell.mod.ref" "${tmpprefix}-${method}.pru"
+  compile_test_fst "earnest-${METHOD}.pru"
+  "${BIN}/ngramshrink" \
+    --method="${METHOD}" \
+    --check_consistency \
+    "${PARAM}" \
+    "${TEST_TMPDIR}/earnest-witten_bell.mod.ref" \
+    "${TEST_TMPDIR}/${METHOD}.pru"
 
   fstequal \
-    "${tmpprefix}-earnest-${method}.pru.ref" "${tmpprefix}-${method}.pru"
+    "${TEST_TMPDIR}/earnest-${METHOD}.pru.ref" \
+    "${TEST_TMPDIR}/${METHOD}.pru"
 done
 
-for method in relative_entropy seymore
-do
-  case "${method}" in
-    relative_entropy) target=5897 ;;
-    seymore) target=5276 ;;
+for METHOD in relative_entropy seymore; do
+  case "${METHOD}" in
+    relative_entropy) TARGET=5897 ;;
+    seymore) TARGET=5276 ;;
   esac
 
-  "${bin}/ngramshrink" --method="${method}" --check_consistency \
-    --target_number_of_ngrams="${target}" \
-    "${tmpprefix}-earnest-witten_bell.mod.ref" \
-    "${tmpprefix}-${method}.target.pru"
+  "${BIN}/ngramshrink" \
+    --method="${METHOD}" \
+    --check_consistency \
+    --target_number_of_ngrams="${TARGET}" \
+    "${TEST_TMPDIR}/earnest-witten_bell.mod.ref" \
+    "${TEST_TMPDIR}/${METHOD}.target.pru"
 
   fstequal \
-    "${tmpprefix}-earnest-${method}.pru.ref" "${tmpprefix}-${method}.target.pru"
+    "${TEST_TMPDIR}/earnest-${METHOD}.pru.ref" \
+    "${TEST_TMPDIR}/${METHOD}.target.pru"
 done
-
-echo PASS

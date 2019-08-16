@@ -14,19 +14,16 @@
 // Copyright 2005-2016 Brian Roark and Google, Inc.
 // Absolute Discounting derived class for smoothing.
 
+#include <ngram/ngram-absolute.h>
+
 #include <vector>
 
+#include <fst/flags.h>
 #include <fst/arcsort.h>
 #include <fst/vector-fst.h>
 
-#include <fst/flags.h>
-#include <ngram/ngram-absolute.h>
-
 namespace ngram {
 
-using std::vector;
-
-using fst::VectorFst;
 using fst::StdILabelCompare;
 
 // Normalize n-gram counts and smooth to create an n-gram model

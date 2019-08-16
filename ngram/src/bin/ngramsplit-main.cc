@@ -22,17 +22,18 @@
 #include <ngram/ngram-complete.h>
 #include <ngram/ngram-split.h>
 
-DEFINE_int64(backoff_label, 0, "Backoff label");
-DEFINE_string(contexts, "", "Context patterns file");
-DEFINE_string(method, "count_split",
-              "One of: \"count_split\", "
-              "\"histogram_split\"");
-DEFINE_double(norm_eps, ngram::kNormEps, "Normalization check epsilon");
-DEFINE_bool(complete, false, "Complete partial models");
+DECLARE_int64(backoff_label);
+DECLARE_string(contexts);
+DECLARE_string(method);
+DECLARE_double(norm_eps);
+DECLARE_bool(complete);
+
+namespace {
 
 template <class Arc>
-bool Split(fst::VectorFst<Arc> *fst, std::vector<string> context_patterns,
-           string out_name_prefix) {
+bool Split(fst::VectorFst<Arc> *fst,
+           std::vector<std::string> context_patterns,
+           std::string out_name_prefix) {
   ngram::NGramSplit<Arc> split(*fst, context_patterns, FLAGS_backoff_label,
                                FLAGS_norm_eps);
 
@@ -43,14 +44,17 @@ bool Split(fst::VectorFst<Arc> *fst, std::vector<string> context_patterns,
     suffix.width(5);
     suffix.fill('0');
     suffix << i;
-    string out_name = out_name_prefix + suffix.str();
+    std::string out_name = out_name_prefix + suffix.str();
     if (!ofst.Write(out_name)) return true;
   }
   return false;
 }
 
-int main(int argc, char **argv) {
-  string usage = "ngramsplit.\n\n  Usage: ";
+}  // namespace
+
+int ngramsplit_main(int argc, char **argv) {
+  std::string usage =
+      "Split an n-gram model using context patterns.\n\n  Usage: ";
   usage += argv[0];
   usage += " [--options] in_fst [out_fsts_prefix]\n";
   std::set_new_handler(FailedNewHandler);
@@ -61,10 +65,10 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  string in_name = strcmp(argv[1], "-") != 0 ? argv[1] : "";
-  string out_name_prefix = argc > 2 ? argv[2] : in_name;
+  std::string in_name = strcmp(argv[1], "-") != 0 ? argv[1] : "";
+  std::string out_name_prefix = argc > 2 ? argv[2] : in_name;
 
-  std::vector<string> context_patterns;
+  std::vector<std::string> context_patterns;
 
   if (FLAGS_contexts.empty()) {
     LOG(ERROR) << "Context patterns file need to be specified using "

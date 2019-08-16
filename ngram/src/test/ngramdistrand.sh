@@ -1,70 +1,74 @@
 #!/bin/bash
-# Description:
 # Random test of distributed training functions.
 
-bin=../bin
-tmpdata=${TMPDIR:-/tmp}
-tmpsuffix="$(mktemp -u XXXXXXXX 2>/dev/null)"
-tmpprefix="${tmpdata}/ngramdistrand-$tmpsuffix-$RANDOM-$$"
+set -eou pipefail
 
-PATH="$bin":"$PATH"
-export PATH
+readonly TEST_TMPDIR="${TEST_TMPDIR:-$(mktemp -d)}"
 
-rm -rf "{tmpprefix}"
-mkdir -p "${tmpprefix}"
+readonly BIN="../bin"
 
-trap "rm -rf "${tmpprefix}" 0 2 13 15
+readonly RANDF="$1"  # Input file prefix.
+readonly ORDER="$2"  # Order of ngrams.
+readonly VERBOSE="$3"
 
-set -e
-
-RANDF="$1"  # input file prefix
-ORDER="$2"  # order of ngrams
-VERBOSE="$3"
-
-# Tests FST equality after assuring same ordering
+# Tests FST equality after assuring same ordering.
 ngramequal() {
-  "$bin"/ngramsort "$1" >"$tmpprefix"/"$RANDF".eq1
-  "$bin"/ngramsort "$2" >"$tmpprefix"/"$RANDF".eq2
-  fstequal -v=1 --delta=0.01 \
-    "$tmpprefix"/"$RANDF".eq1 "$tmpprefix"/"$RANDF".eq2
+  "${BIN}/ngramsort" "$1" "${TEST_TMPDIR}/${RANDF}.eq1"
+  "${BIN}/ngramsort" "$2" "${TEST_TMPDIR}/${RANDF}.eq2"
+  fstequal \
+     -v=1 \
+     --delta=0.01 \
+    "${TEST_TMPDIR}/${RANDF}.eq1" \
+    "${TEST_TMPDIR}/${RANDF}.eq2"
 }
 
 distributed_test() {
-  # Non-distributed version
-  "$srcdir/../bin/ngram.sh" \
-    --order="$ORDER" $VERBOSE \
+  # Non-distributed version.
+  "$bin/ngramdisttrain" \
+    --order="$ORDER" \
+    "${VERBOSE}" \
     --round_to_int \
     --itype=fst_sents \
-    --ifile="$tmpprefix/$RANDF.tocount.far" \
-    --ofile="$tmpprefix"/"$RANDF".nodist  \
-    --symbols="$tmpprefix"/"$RANDF".syms "$@"
+    --ifile="${TEST_TMPDIR}/${RANDF}.tocount.far" \
+    --ofile="${TEST_TMPDIR}/${RANDF}.nodist" \
+    --symbols="${TEST_TMPDIR}/${RANDF}.syms" \
+    "$@"
 
-  # Distributed version
-  "$srcdir/../bin/ngram.sh" \
-    --contexts="$tmpprefix"/"$RANDF".cntxs --merge_contexts \
-    --order="$ORDER" $VERBOSE \
+  # Distributed version.
+  "$bin/ngramdisttrain" \
+    --contexts="${TEST_TMPDIR}/${RANDF}.cntxs" \
+    --merge_contexts \
+    --order="${ORDER}" \
+    "${VERBOSE}" \
     --round_to_int \
     --itype=fst_sents \
-    --ifile="$tmpprefix/$RANDF.tocount.far.*" \
-    --ofile="$tmpprefix"/"$RANDF".dist \
-    --symbols="$tmpprefix"/"$RANDF".syms "$@"
+    --ifile="${TEST_TMPDIR}/${RANDF}.tocount.far."* \
+    --ofile="${TEST_TMPDIR}/${RANDF}.dist" \
+    --symbols="${TEST_TMPDIR}/${RANDF}.syms" \
+    "$@"
 
-  # Verifies non-distributed and distributed versions give the same result
-  ngramequal "$tmpprefix"/"$RANDF".nodist "$tmpprefix"/"$RANDF".dist
+  # Verifies non-distributed and distributed versions give the same result.
+  ngramequal "${TEST_TMPDIR}/${RANDF}.nodist" "${TEST_TMPDIR}/${RANDF}.dist"
 }
 
-# checks distributed counting
 distributed_test --otype=counts
 
-# checks distributed estimation
 distributed_test --otype=lm --smooth_method=katz
 distributed_test --otype=lm --smooth_method=absolute
 distributed_test --otype=lm --smooth_method=witten_bell
 
-# checks distributed pruning
-distributed_test --otype=pruned_lm --smooth_method=katz \
-  --shrink_method=relative_entropy --theta=.00015
-distributed_test --otype=pruned_lm --smooth_method=katz \
-  --shrink_method=seymore --theta=4
-distributed_test --otype=pruned_lm --smooth_method=witten_bell \
-  --shrink_method=relative_entropy --theta=.00015
+distributed_test \
+  --otype=pruned_lm \
+  --smooth_method=katz \
+  --shrink_method=relative_entropy \
+  --theta=.00015
+distributed_test \
+  --otype=pruned_lm \
+  --smooth_method=katz \
+  --shrink_method=seymore \
+  --theta=4
+distributed_test \
+  --otype=pruned_lm \
+  --smooth_method=witten_bell \
+  --shrink_method=relative_entropy \
+  --theta=.00015

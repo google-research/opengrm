@@ -1,68 +1,73 @@
-#!/bin/sh
+#!/bin/bash
 
-bin=../bin
-testdata=$srcdir/testdata
-tmpdata=${TMPDIR:-/tmp}
-tmpsuffix="$(mktemp -u XXXXXXXX 2>/dev/null)"
-tmpprefix="${tmpdata}/ngramdist-$distname-$tmpsuffix-$RANDOM-$$"
+set -eou pipefail
 
-trap "rm -f ${tmpprefix}*" 0 2 13 15
+readonly BIN="../bin"
+readonly TESTDATA="${srcdir}/testdata"
+readonly TEST_TMPDIR="${TEST_TMPDIR:-$(mktemp -d)}"
 
-PATH="${bin}":"$PATH"
-export PATH
-
-if [ -z "${FRAC_DIST}" ]; then
-  DIST_BIN="${srcdir}/../bin/ngram.sh"
-  NODIST_BIN="${srcdir}/../bin/ngram.sh"
-  NODIST_DISCOUNT_BINS="-1"
+readonly FRAC_DIST="${FRAC_DIST:-false}"
+if [[ ${FRAC_DIST} = true ]]; then
+  echo "FRAC"
+  readonly DIST_BIN="${srcdir}/../bin/ngramfractrain.sh"
+  readonly NODIST_DISCOUNT_BINS=4
 else
-  # with fractional count dist, slightly different scripts and settings.
-  DIST_BIN="${srcdir}/../bin/ngramfrac.sh"
-  NODIST_BIN="${srcdir}/../bin/ngram.sh"
-  NODIST_DISCOUNT_BINS="4"
+  echo "NOFRAC"
+  readonly DIST_BIN="${srcdir}/../bin/ngramdisttrain.sh"
+  readonly NODIST_DISCOUNT_BINS=-1
 fi
+readonly NODIST_BIN="${srcdir}/../bin/ngramdisttrain.sh"
 
-set -e
+# Sentence to split data on.
+readonly SPLIT_DATA=850
 
-# sentence to split data on
-SPLIT_DATA=850
+# Word ID to split context on.
+readonly SPLIT_CNTX1=250
+readonly SPLIT_CNTX2=500
+readonly SPLIT_CNTX3=1000
 
-# word ID to split context on
-SPLIT_CNTX1=250
-SPLIT_CNTX2=500
-SPLIT_CNTX3=1000
+# Sets up distributed data.
+awk "NR<$SPLIT_DATA" "${TESTDATA}/earnest.txt" > "${TEST_TMPDIR}/earnest.txt1"
+awk "NR>=$SPLIT_DATA" "${TESTDATA}/earnest.txt" > "${TEST_TMPDIR}/earnest.txt2"
 
-# Sets up distributed data
-awk "NR<$SPLIT_DATA" "${testdata}"/earnest.txt >"${tmpprefix}"-earnest.txt1
-awk "NR>=$SPLIT_DATA" "${testdata}"/earnest.txt >"${tmpprefix}"-earnest.txt2
-
-# Sets up distributed contexts
-cat <<EOF >"${tmpprefix}"-earnest.cntxs
+# Sets up distributed contexts.
+cat <<EOF > "${TEST_TMPDIR}/earnest.cntxs"
 0 : $SPLIT_CNTX1
 $SPLIT_CNTX1 : $SPLIT_CNTX2
 $SPLIT_CNTX2 : $SPLIT_CNTX3
 $SPLIT_CNTX3 : 2306
 EOF
 
-# Tests FST equality after assuring same ordering
+# Tests FST equality after assuring same ordering.
 ngramequal() {
-  "${bin}"/ngramsort "$1" >"${tmpprefix}"-earnest.eq1
-  "${bin}"/ngramsort "$2" >"${tmpprefix}"-earnest.eq2
-  fstequal -v=1 \
-    "${tmpprefix}"-earnest.eq1 "${tmpprefix}"-earnest.eq2
+  "${BIN}/ngramsort" "$1" "${TEST_TMPDIR}/earnest.eq1"
+  "${BIN}/ngramsort" "$2" "${TEST_TMPDIR}/earnest.eq2"
+  fstequal \
+    -v=1 \
+    "${TEST_TMPDIR}/earnest.eq1" \
+    "${TEST_TMPDIR}/earnest.eq2"
 }
 
 distributed_test() {
-  # Non-distributed version
-  "${NODIST_BIN}" --itype=text_sents --symbols="${testdata}"/earnest.syms "$@" \
-    --bins="${NODIST_DISCOUNT_BINS}" --ifile="${testdata}/earnest.txt" \
-    --ofile="${tmpprefix}"-earnest.nodist
+  # Non-distributed version.
+  "${NODIST_BIN}" \
+    --itype=text_sents \
+    --symbols="${TESTDATA}/earnest.syms" \
+    "$@" \
+    --bins="${NODIST_DISCOUNT_BINS}" \
+    --ifile="${TESTDATA}/earnest.txt" \
+    --ofile="${TEST_TMPDIR}/earnest.nodist"
 
-  # Distributed version
-  "${DIST_BIN}" --itype=text_sents --symbols="${testdata}"/earnest.syms "$@" \
-    --contexts="${tmpprefix}"-earnest.cntxs --merge_contexts \
-    --ifile="${tmpprefix}-earnest.txt[12]" --ofile="${tmpprefix}"-earnest.dist
+  # Distributed version.
+  "${DIST_BIN}" \
+    --itype=text_sents \
+    --symbols="${TESTDATA}/earnest.syms" \
+    "$@" \
+    --contexts="${TEST_TMPDIR}/earnest.cntxs" \
+    --merge_contexts \
+    --ifile="${TEST_TMPDIR}/earnest.txt[12]" \
+    --ofile="${TEST_TMPDIR}/earnest.dist"
 
-  # Verifies non-distributed and distributed versions give the same result
-  ngramequal "${tmpprefix}"-earnest.nodist "${tmpprefix}"-earnest.dist
+  # Verifies non-distributed and distributed versions give the same result.
+  ngramequal "${TEST_TMPDIR}/earnest.nodist" "${TEST_TMPDIR}/earnest.dist"
 }

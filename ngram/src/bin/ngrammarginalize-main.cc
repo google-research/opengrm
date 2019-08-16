@@ -22,13 +22,14 @@
 #include <ngram/ngram-marginalize.h>
 #include <ngram/util.h>
 
-DEFINE_int64(backoff_label, 0, "Backoff label");
-DEFINE_int32(max_bo_updates, 10, "Max iterations of backoff re-calculation");
-DEFINE_double(norm_eps, ngram::kNormEps, "Normalization check epsilon");
-DEFINE_bool(check_consistency, false, "Check model consistency");
+DECLARE_int64(backoff_label);
+DECLARE_int32(max_bo_updates);
+DECLARE_double(norm_eps);
+DECLARE_bool(check_consistency);
 
-int main(int argc, char **argv) {
-  string usage = "Marginalize ngram model from input model file.\n\n  Usage: ";
+int ngrammarginalize_main(int argc, char **argv) {
+  std::string usage =
+      "Marginalize n-gram model from input model file.\n\n  Usage: ";
   usage += argv[0];
   usage += " [--options] [in.fst [out.fst]]\n";
   std::set_new_handler(FailedNewHandler);
@@ -39,8 +40,9 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  string in_name = (argc > 1 && (strcmp(argv[1], "-") != 0)) ? argv[1] : "";
-  string out_name = argc > 2 ? argv[2] : "";
+  std::string in_name =
+      (argc > 1 && (strcmp(argv[1], "-") != 0)) ? argv[1] : "";
+  std::string out_name = argc > 2 ? argv[2] : "";
 
   std::unique_ptr<fst::StdVectorFst> fst(
       fst::StdVectorFst::Read(in_name));

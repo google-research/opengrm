@@ -205,7 +205,7 @@ class NGramListPrune : public NGramShrink<StdArc> {
 
 // Given a vector of ngram strings, adds vector of ngram labels to set.
 void GetNGramListToPrune(
-    const std::vector<string> &ngrams_to_prune,
+    const std::vector<std::string> &ngrams_to_prune,
     const fst::SymbolTable *syms,
     std::set<std::vector<fst::StdArc::Label>> *ngram_list);
 

@@ -18,12 +18,10 @@
 #ifndef NGRAM_NGRAM_COMPLETE_H_
 #define NGRAM_NGRAM_COMPLETE_H_
 
-#include <fst/mutable-fst.h>
-
 #include <fst/arcsort.h>
 #include <fst/fst.h>
 #include <fst/matcher.h>
-
+#include <fst/mutable-fst.h>
 #include <ngram/ngram-model.h>
 
 namespace ngram {
@@ -37,14 +35,13 @@ using fst::ILabelCompare;
 using fst::MutableFst;
 using fst::Fst;
 
-using std::set;
-
 // Ascends the NGram WFST from lower order states and collects state info.
 template <class Arc>
 bool AscendAndCollectStateInfo(
     const Fst<Arc> &fst, int order, typename Arc::Label backoff_label,
-    vector<vector<typename Arc::StateId>> *order_states,
-    vector<int> *state_orders, vector<typename Arc::StateId> *backoff_states) {
+    std::vector<std::vector<typename Arc::StateId>> *order_states,
+    std::vector<int> *state_orders,
+    std::vector<typename Arc::StateId> *backoff_states) {
   if (order >= order_states->size()) return false;
   for (int i = 0; i < (*order_states)[order].size(); ++i) {
     auto s = (*order_states)[order][i];
@@ -85,16 +82,16 @@ bool NGramComplete(fst::MutableFst<Arc> *fst,
     return false;
   }
   StateId unigram_state = arc.nextstate;
-  vector<int> state_orders(fst->NumStates());
-  vector<StateId> backoff_states(fst->NumStates(), kNoStateId);
-  vector<vector<StateId>> order_states(3);
+  std::vector<int> state_orders(fst->NumStates());
+  std::vector<StateId> backoff_states(fst->NumStates(), kNoStateId);
+  std::vector<std::vector<StateId>> order_states(3);
   order_states[1].push_back(unigram_state);
   state_orders[unigram_state] = 1;
   order_states[2].push_back(fst->Start());
   state_orders[fst->Start()] = 2;
   backoff_states[fst->Start()] = unigram_state;
   int st_order = 1;
-  while (st_order < order_states.size() && order_states[st_order].size() > 0) {
+  while (st_order < order_states.size() && !order_states[st_order].empty()) {
     if (!AscendAndCollectStateInfo(*fst, st_order++, backoff_label,
                                    &order_states, &state_orders,
                                    &backoff_states)) {
@@ -113,8 +110,8 @@ bool NGramComplete(fst::MutableFst<Arc> *fst,
     }
   }
 
-  vector<set<Label>> label_sets(fst->NumStates());
-  set<StateId> new_final_states;
+  std::vector<std::set<Label>> label_sets(fst->NumStates());
+  std::set<StateId> new_final_states;
 
   std::unique_ptr<Matcher<Fst<Arc>>> matcher(
       new Matcher<Fst<Arc>>(*fst, MATCH_INPUT));
@@ -163,7 +160,7 @@ bool NGramComplete(fst::MutableFst<Arc> *fst,
         updated_matcher->SetState(bs);
       }
 
-      vector<Arc> arcs;
+      std::vector<Arc> arcs;
       arcs.reserve(fst->NumArcs(s) + label_sets[s].size());
 
       for (auto iter = label_sets[s].begin(); iter != label_sets[s].end();

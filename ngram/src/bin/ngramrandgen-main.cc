@@ -18,7 +18,6 @@
 #include <unistd.h>
 
 #include <cstdlib>
-
 #include <memory>
 #include <string>
 #include <vector>
@@ -31,24 +30,24 @@
 #include <fst/vector-fst.h>
 #include <ngram/ngram-randgen.h>
 
-DEFINE_int32(max_length, INT_MAX, "Maximum sentence length");
-DEFINE_int64(max_sents, 1, "Maximum number of sentences to produce");
-DEFINE_int32(seed, time(nullptr) + getpid(), "Random seed");
-DEFINE_bool(remove_epsilon, false, "Remove epsilons from generated strings");
-DEFINE_bool(weighted, false,
-            "Output tree weighted by sentence count vs. unweighted sentences");
-DEFINE_bool(remove_total_weight, false,
-            "Remove total weight when output weighted");
+DECLARE_int32(max_length);
+DECLARE_int64(max_sents);
+DECLARE_int32(seed);
+DECLARE_bool(remove_epsilon);
+DECLARE_bool(weighted);
+DECLARE_bool(remove_total_weight);
+
+namespace {
 
 // create FST label for far, with sufficient padding for the number
-int CalcExtLen(int value, string *key, int far_len) {
+int CalcExtLen(int value, std::string *key, int far_len) {
   std::stringstream ss;
   ss << value;
-  string extension;
+  std::string extension;
   ss >> extension;
   if (key) {
-    for (int i = extension.length(); i < far_len; i++) (*key) += "0";
-    (*key) += extension;
+    for (int i = extension.length(); i < far_len; i++) *key += "0";
+    *key += extension;
   }
   return extension.length();
 }
@@ -56,8 +55,8 @@ int CalcExtLen(int value, string *key, int far_len) {
 // Write given fst into open far_writer
 void FarWriteFst(fst::FarWriter<fst::StdArc> *far_writer,
                  fst::StdFst *fst, int *far_incr, int far_len) {
-  string key = "FST";
-  CalcExtLen((*far_incr)++, &key, far_len);
+  std::string key = "FST";
+  CalcExtLen(++(*far_incr), &key, far_len);
   far_writer->Add(key, *fst);
 }
 
@@ -101,8 +100,10 @@ int WritePathsToFar(fst::StdFst *fst, fst::StdArc::StateId st,
   return far_cnt;
 }
 
-int main(int argc, char **argv) {
-  string usage = "Generates random sentences from an LM.\n\n  Usage: ";
+}  // namespace
+
+int ngramrandgen_main(int argc, char **argv) {
+  std::string usage = "Generates random sentences from an LM.\n\n  Usage: ";
   usage += argv[0];
   usage += " [--options] [in.fst [out.far]]\n";
   std::set_new_handler(FailedNewHandler);
@@ -115,8 +116,8 @@ int main(int argc, char **argv) {
 
   VLOG(1) << argv[0] << ": Seed = " << FLAGS_seed;
 
-  string ifile = (argc > 1 && (strcmp(argv[1], "-") != 0)) ? argv[1] : "";
-  string ofile = (argc > 2 && (strcmp(argv[2], "-") != 0)) ? argv[2] : "";
+  std::string ifile = (argc > 1 && (strcmp(argv[1], "-") != 0)) ? argv[1] : "";
+  std::string ofile = (argc > 2 && (strcmp(argv[2], "-") != 0)) ? argv[2] : "";
 
   std::unique_ptr<fst::StdFst> ifst(fst::StdFst::Read(ifile));
   if (!ifst) return 1;

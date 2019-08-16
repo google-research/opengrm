@@ -31,13 +31,13 @@ namespace ngram {
 // Context-restricting pruning
 class NGramContextPrune : public NGramShrink<StdArc> {
  public:
-  // Constructs an NGramShrink object, including an NGramModel and
-  // parameters.  This version is passed a context pattern string;  see
-  // 'ngram-context.h' for meaning of the context specification.  The
-  // specified contexts will NOT be pruned from the model; all others
-  // will be (where possible to maintain a well-formed LM).
+  // Constructs an NGramShrink object, including an NGramModel and parameters.
+  // This version is passed a context pattern string; see ngram-context.h for
+  // meaning of the context specification. The specified contexts will NOT be
+  // pruned from the model; all others will be (where possible to maintain a
+  // well-formed LM).
   explicit NGramContextPrune(StdMutableFst *infst,
-                             const string &context_pattern = "",
+                             const std::string &context_pattern = "",
                              int shrink_opt = 0, double tot_uni = -1.0,
                              Label backoff_label = 0,
                              double norm_eps = kNormEps,
@@ -83,12 +83,11 @@ class NGramContextPrune : public NGramShrink<StdArc> {
   NGramContext context_;  // context specification
 };
 
-// Joint context-restricting and count pruning
+// Joint context-restricting and count pruning.
 class NGramContextCountPrune : public NGramCountPrune {
  public:
-  NGramContextCountPrune(StdMutableFst *infst,
-                         const string &count_pattern,
-                         string context_pattern, int shrink_opt = 0,
+  NGramContextCountPrune(StdMutableFst *infst, const std::string &count_pattern,
+                         const std::string &context_pattern, int shrink_opt = 0,
                          double tot_uni = -1.0, Label backoff_label = 0,
                          double norm_eps = kNormEps,
                          bool check_consistency = false)
@@ -137,7 +136,7 @@ class NGramContextCountPrune : public NGramCountPrune {
 class NGramContextRelEntropy : public NGramRelEntropy {
  public:
   NGramContextRelEntropy(StdMutableFst *infst, double theta,
-                         const string &context_pattern, int shrink_opt = 0,
+                         const std::string &context_pattern, int shrink_opt = 0,
                          double tot_uni = -1.0, Label backoff_label = 0,
                          double norm_eps = kNormEps,
                          bool check_consistency = false)
@@ -186,9 +185,9 @@ class NGramContextRelEntropy : public NGramRelEntropy {
 class NGramContextSeymoreShrink : public NGramSeymoreShrink {
  public:
   NGramContextSeymoreShrink(StdMutableFst *infst, double theta,
-                            const string &context_pattern, int shrink_opt = 0,
-                            double tot_uni = -1.0, Label backoff_label = 0,
-                            double norm_eps = kNormEps,
+                            const std::string &context_pattern,
+                            int shrink_opt = 0, double tot_uni = -1.0,
+                            Label backoff_label = 0, double norm_eps = kNormEps,
                             bool check_consistency = false)
       // shrink_opt must be less than 2 for context pruning
       : NGramSeymoreShrink(infst, theta, shrink_opt < 2 ? shrink_opt : 0,

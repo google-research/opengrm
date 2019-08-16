@@ -17,6 +17,7 @@
 #ifndef NGRAM_NGRAM_MAKE_H_
 #define NGRAM_NGRAM_MAKE_H_
 
+#include <string>
 #include <vector>
 
 #include <fst/script/fst-class.h>
@@ -250,7 +251,7 @@ class NGramMake : public NGramMutableModel<Arc> {
 };
 
 // Makes models from NGram count FSTs with StdArc counts.
-bool NGramMakeModel(fst::StdMutableFst *fst, const string &method,
+bool NGramMakeModel(fst::StdMutableFst *fst, const std::string &method,
                     const fst::StdFst *ccfst = nullptr,
                     bool backoff = false, bool interpolate = false,
                     int64 bins = -1, double witten_bell_k = 1,
@@ -258,7 +259,8 @@ bool NGramMakeModel(fst::StdMutableFst *fst, const string &method,
                     double norm_eps = kNormEps, bool check_consistency = false);
 
 // The same, but uses scripting FSTs.
-bool NGramMakeModel(fst::script::MutableFstClass *fst, const string &method,
+bool NGramMakeModel(fst::script::MutableFstClass *fst,
+                    const std::string &method,
                     const fst::script::FstClass *ccfst = nullptr,
                     bool backoff = false, bool interpolate = false,
                     int64 bins = -1, double witten_bell_k = 1,
@@ -267,7 +269,7 @@ bool NGramMakeModel(fst::script::MutableFstClass *fst, const string &method,
 
 // Makes models from NGram count FSTs with HistogramArc counts.
 bool NGramMakeHistModel(fst::MutableFst<ngram::HistogramArc> *hist_fst,
-                        fst::StdMutableFst *fst, const string &method,
+                        fst::StdMutableFst *fst, const std::string &method,
                         const fst::StdFst *ccfst = nullptr,
                         bool interpolate = false, int64 bins = -1,
                         int64 backoff_label = 0, double norm_eps = kNormEps,

@@ -30,7 +30,6 @@
 namespace ngram {
 
 using fst::StdArc;
-using std::ostringstream;
 
 // Represents a context interval.
 class NGramContext {
@@ -69,7 +68,7 @@ class NGramContext {
   // Example: "1 1 1 1 : 1 1 1 5" signifies a begin context vector of
   //   {1,1,1,1} and and end context vector of {1,1,1,5}. See next constructor
   //   for the behavior with these vectors.
-  NGramContext(const string &context_pattern, int hi_order)
+  NGramContext(const std::string &context_pattern, int hi_order)
       : hi_order_(hi_order) {
     ParseContextInterval(context_pattern, &context_begin_, &context_end_);
     Init();
@@ -89,19 +88,21 @@ class NGramContext {
 
   // Derives begin and end context vectors from input context pattern
   // string.
-  static void ParseContextInterval(const string &context_pattern,
+  static void ParseContextInterval(const std::string &context_pattern,
                                    std::vector<Label> *context_begin,
                                    std::vector<Label> *context_end);
 
   // Generates context string from begin and end context vectors
-  static string GetContextString(const std::vector<Label> &context_begin,
-                                 const std::vector<Label> &context_end) {
-    ostringstream context_pattern_strm;
-    for (int i = 0; i < context_begin.size(); ++i)
+  static std::string GetContextString(const std::vector<Label> &context_begin,
+                                      const std::vector<Label> &context_end) {
+    std::ostringstream context_pattern_strm;
+    for (int i = 0; i < context_begin.size(); ++i) {
       context_pattern_strm << context_begin[i] << " ";
+    }
     context_pattern_strm << ":";
-    for (int i = 0; i < context_end.size(); ++i)
+    for (int i = 0; i < context_end.size(); ++i) {
       context_pattern_strm << " " << context_end[i];
+    }
     return context_pattern_strm.str();
   }
 
@@ -111,7 +112,7 @@ class NGramContext {
   // must have state n-grams enabled.
   template <class Arc>
   static void FindContexts(const NGramModel<Arc> &model, int ncontexts,
-                           std::vector<string> *contexts,
+                           std::vector<std::string> *contexts,
                            float bigram_thresh = 1.1) {
     std::vector<std::vector<typename Arc::Label>> begin_contexts;
     std::vector<std::vector<typename Arc::Label>> end_contexts;
@@ -122,15 +123,15 @@ class NGramContext {
       contexts->push_back(GetContextString(begin_contexts[i], end_contexts[i]));
   }
 
-  // Given a n-gram model, returns 'ncontext' contexts balanced for
-  // size.  Arg 'bigram_thresh' determines how overfull a context
-  // bin has to be to force a split at a bigram context.  The model
-  // must have state n-grams enabled.
+  // Given a n-gram model, returns 'ncontext' contexts balanced for size. Arg
+  // 'bigram_thresh' determines how overfull a context bin has to be to force a
+  // split at a bigram context. The model must have state n-grams enabled.
   template <class Arc>
-  static void FindContexts(const NGramModel<Arc> &model, int ncontexts,
-                           vector<vector<typename Arc::Label>> *begin_contexts,
-                           vector<vector<typename Arc::Label>> *end_contexts,
-                           float bigram_thresh = 1.1);
+  static void FindContexts(
+      const NGramModel<Arc> &model, int ncontexts,
+      std::vector<std::vector<typename Arc::Label>> *begin_contexts,
+      std::vector<std::vector<typename Arc::Label>> *end_contexts,
+      float bigram_thresh = 1.1);
 
   // Begin context as could be passed to class constructor
   std::vector<Label> GetContextBegin() const {
@@ -197,11 +198,11 @@ class NGramExtendedContext {
   }
 
   // Constructs a context specification from an extended context
-  // pattern string.  An extended context pattern is a comma-separated
+  // pattern string. An extended context pattern is a comma-separated
   // set of NGramContext context patterns that must be disjoint.
   // If 'merge_contexts' is true, adjacent contexts will be merged.
-  NGramExtendedContext(const string &extended_context_pattern, int hi_order,
-                       bool merge_contexts = true) {
+  NGramExtendedContext(const std::string &extended_context_pattern,
+                       int hi_order, bool merge_contexts = true) {
     ParseContextIntervals(extended_context_pattern, hi_order, &contexts_);
     Init(merge_contexts);
   }
@@ -235,14 +236,14 @@ class NGramExtendedContext {
                                  bool include_all_suffixes = true) const;
 
   // Derives NGramContext vector from input extended context pattern string.
-  static void ParseContextIntervals(const string &extended_context_pattern,
+  static void ParseContextIntervals(const std::string &extended_context_pattern,
                                     int hi_order,
                                     std::vector<NGramContext> *contexts);
 
   // Generates an extended context string from a vector of NGramContexts
-  static string GetExtendedContextString(
+  static std::string GetExtendedContextString(
       const std::vector<NGramContext> &contexts) {
-    ostringstream extended_context_pattern_strm;
+    std::ostringstream extended_context_pattern_strm;
     for (size_t i = 0; i < contexts.size(); ++i) {
       if (i > 0) extended_context_pattern_strm << ",";
       const std::vector<Label> &context_begin = contexts[i].GetContextBegin();
@@ -282,10 +283,12 @@ class NGramExtendedContext {
 };
 
 // Reads (possibly extended) context specifications form a file into a vector.
-bool NGramReadContexts(const string &file, std::vector<string> *contexts);
+bool NGramReadContexts(const std::string &file,
+                       std::vector<std::string> *contexts);
+
 // Writes (possibly extended) context specifications from a vector to a file.
-bool NGramWriteContexts(const string &file,
-                        const std::vector<string> &contexts);
+bool NGramWriteContexts(const std::string &file,
+                        const std::vector<std::string> &contexts);
 
 template <class Arc>
 void NGramContext::FindContexts(
@@ -312,7 +315,7 @@ void NGramContext::FindContexts(
     }
     const auto &ngram = model.StateNGram(s);
     typename Arc::Label l1 =
-        ngram.size() > 0 ? ngram[ngram.size() - 1] : kNoLabel;
+        !ngram.empty() ? ngram[ngram.size() - 1] : kNoLabel;
     typename Arc::Label l2 =
         ngram.size() > 1 ? ngram[ngram.size() - 2] : kNoLabel;
     if (l1 == kNoLabel) continue;

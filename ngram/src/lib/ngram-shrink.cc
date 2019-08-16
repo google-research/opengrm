@@ -12,12 +12,13 @@
 // limitations under the License.
 //
 // Copyright 2005-2016 Brian Roark and Google, Inc.
+#include <ngram/ngram-shrink.h>
+
 #include <ngram/ngram-context-prune.h>
 #include <ngram/ngram-count-prune.h>
 #include <ngram/ngram-list-prune.h>
 #include <ngram/ngram-relentropy.h>
 #include <ngram/ngram-seymore-shrink.h>
-#include <ngram/ngram-shrink.h>
 
 namespace ngram {
 
@@ -25,7 +26,7 @@ namespace impl {
 namespace {
 
 // Checks several of the parameters to make sure they are consistent.
-void CheckShrinkOptions(const string &method, int64 target_num,
+void CheckShrinkOptions(const std::string &method, int64 target_num,
                         bool full_context, int min_order) {
   if (target_num >= 0) {
     if (method == "context_prune" || method == "count_prune") {
@@ -43,12 +44,12 @@ void CheckShrinkOptions(const string &method, int64 target_num,
 }  // namespace
 }  // namespace impl
 
-bool NGramShrinkModel(
-    fst::StdMutableFst *fst, const string &method,
-    double tot_uni, double theta, int64 target_num, int32 min_order,
-    const string &count_pattern, const string &context_pattern, int shrink_opt,
-    fst::StdArc::Label backoff_label, double norm_eps,
-    bool check_consistency) {
+bool NGramShrinkModel(fst::StdMutableFst *fst, const std::string &method,
+                      double tot_uni, double theta, int64 target_num,
+                      int32 min_order, const std::string &count_pattern,
+                      const std::string &context_pattern, int shrink_opt,
+                      fst::StdArc::Label backoff_label, double norm_eps,
+                      bool check_consistency) {
   return NGramShrinkModel(
       fst, method, std::set<std::vector<fst::StdArc::Label>>(), tot_uni,
       theta, target_num, min_order, count_pattern, context_pattern, shrink_opt,
@@ -57,11 +58,11 @@ bool NGramShrinkModel(
 
 // Makes model from NGram model FST with StdArc counts.
 bool NGramShrinkModel(
-    fst::StdMutableFst *fst, const string &method,
+    fst::StdMutableFst *fst, const std::string &method,
     const std::set<std::vector<fst::StdArc::Label>> &ngram_list,
     double tot_uni, double theta, int64 target_num, int32 min_order,
-    const string &count_pattern, const string &context_pattern, int shrink_opt,
-    fst::StdArc::Label backoff_label, double norm_eps,
+    const std::string &count_pattern, const std::string &context_pattern,
+    int shrink_opt, fst::StdArc::Label backoff_label, double norm_eps,
     bool check_consistency) {
   bool full_context = context_pattern.empty();
   impl::CheckShrinkOptions(method, target_num, full_context, min_order);

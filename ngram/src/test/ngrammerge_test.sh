@@ -1,58 +1,71 @@
 #!/bin/bash
-# Description:
 # Tests the command line binary ngrammerge.
 
-bin=../bin
-testdata=$srcdir/testdata
-tmpdata=${TMPDIR:-/tmp}
-tmpsuffix="$(mktemp -u XXXXXXXX 2>/dev/null)"
-tmpprefix="${tmpdata}/ngrammerge-earnest-$tmpsuffix-$RANDOM-$$"
+set -eou pipefail
 
-trap "rm -f ${tmpprefix}*" 0 2 13 15
+readonly BIN="../bin"
+readonly TESTDATA="${srcdir}/testdata"
+readonly TEST_TMPDIR="${TEST_TMPDIR:-$(mktemp -d)}"
 
-set -e
 compile_test_fst() {
-  if [ ! -e "${tmpprefix}-${1}.ref" ]
-  then
-    fstcompile \
-      -isymbols="${testdata}/${1}.sym" -osymbols="${testdata}/${1}.sym" \
-      -keep_isymbols -keep_osymbols -keep_state_numbering \
-      "${testdata}/${1}.txt" "${tmpprefix}-${1}.ref"
-  fi
+  fstcompile \
+    --isymbols="${TESTDATA}/${1}.sym" \
+    --osymbols="${TESTDATA}/${1}.sym" \
+    --keep_isymbols \
+    --keep_osymbols \
+    --keep_state_numbering \
+    "${TESTDATA}/${1}.txt" \
+    "${TEST_TMPDIR}/${1}.ref"
 }
 
 compile_test_fst earnest-absolute.mod
 compile_test_fst earnest-seymore.pru
 compile_test_fst earnest.mrg
-"${bin}/ngrammerge" --check_consistency --method=count_merge \
-  "${tmpprefix}"-earnest-absolute.mod.ref \
-  "${tmpprefix}"-earnest-seymore.pru.ref "${tmpprefix}".mrg
+"${BIN}/ngrammerge" \
+  --check_consistency \
+  --method=count_merge \
+  "${TEST_TMPDIR}/earnest-absolute.mod.ref" \
+  "${TEST_TMPDIR}/earnest-seymore.pru.ref" \
+  "${TEST_TMPDIR}/earnest.mrg"
 
 fstequal \
-  "${tmpprefix}"-earnest.mrg.ref "${tmpprefix}".mrg
+  "${TEST_TMPDIR}/earnest.mrg.ref" \
+  "${TEST_TMPDIR}/earnest.mrg"
 
 compile_test_fst earnest.mrg.norm
-"${bin}/ngrammerge" --check_consistency --method=count_merge --normalize \
-  "${tmpprefix}"-earnest-absolute.mod.ref \
-  "${tmpprefix}"-earnest-seymore.pru.ref "${tmpprefix}".mrg.norm
+"${BIN}/ngrammerge" \
+  --check_consistency \
+  --method=count_merge \
+  --normalize \
+  "${TEST_TMPDIR}/earnest-absolute.mod.ref" \
+  "${TEST_TMPDIR}/earnest-seymore.pru.ref" \
+  "${TEST_TMPDIR}/earnest.mrg.norm"
 
 fstequal \
-  "${tmpprefix}"-earnest.mrg.norm.ref "${tmpprefix}".mrg.norm
+  "${TEST_TMPDIR}/earnest.mrg.norm.ref" \
+  "${TEST_TMPDIR}/earnest.mrg.norm"
 
 compile_test_fst earnest.mrg.smooth
-"${bin}/ngrammerge" --check_consistency --method=model_merge \
-  "${tmpprefix}"-earnest-absolute.mod.ref \
-  "${tmpprefix}"-earnest-seymore.pru.ref "${tmpprefix}".mrg.smooth
+"${BIN}/ngrammerge" \
+  --check_consistency \
+  --method=model_merge \
+  "${TEST_TMPDIR}/earnest-absolute.mod.ref" \
+  "${TEST_TMPDIR}/earnest-seymore.pru.ref" \
+  "${TEST_TMPDIR}/earnest.mrg.smooth"
 
 fstequal \
-  "${tmpprefix}"-earnest.mrg.smooth.ref "${tmpprefix}".mrg.smooth
+  "${TEST_TMPDIR}/earnest.mrg.smooth.ref" \
+  "${TEST_TMPDIR}/earnest.mrg.smooth"
 
 compile_test_fst earnest.mrg.smooth.norm
-"${bin}/ngrammerge" --check_consistency --method=model_merge --normalize \
-  "${tmpprefix}"-earnest-absolute.mod.ref \
-  "${tmpprefix}"-earnest-seymore.pru.ref "${tmpprefix}".mrg.smooth.norm
+"${BIN}/ngrammerge" \
+  --check_consistency \
+  --method=model_merge \
+  --normalize \
+  "${TEST_TMPDIR}/earnest-absolute.mod.ref" \
+  "${TEST_TMPDIR}/earnest-seymore.pru.ref" \
+  "${TEST_TMPDIR}/earnest.mrg.smooth.norm"
 
 fstequal \
-  "${tmpprefix}"-earnest.mrg.smooth.norm.ref "${tmpprefix}".mrg.smooth.norm
-
-echo PASS
+  "${TEST_TMPDIR}/earnest.mrg.smooth.norm.ref" \
+  "${TEST_TMPDIR}/earnest.mrg.smooth.norm"

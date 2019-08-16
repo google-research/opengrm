@@ -18,6 +18,8 @@
 #ifndef NGRAM_NGRAM_COUNT_OF_COUNTS_H_
 #define NGRAM_NGRAM_COUNT_OF_COUNTS_H_
 
+#include <cmath>
+#include <string>
 #include <vector>
 
 #include <fst/mutable-fst.h>
@@ -29,7 +31,6 @@ namespace ngram {
 
 using fst::StdMutableFst;
 using fst::StdFst;
-using std::ostringstream;
 using fst::SymbolTable;
 
 template <class Arc>
@@ -47,7 +48,7 @@ class NGramCountOfCounts {
       NGRAMERROR() << "NGramCountOfCounts: Number of bins too large: " << bins;
   }
 
-  NGramCountOfCounts(string context_pattern, int order, int bins = -1)
+  NGramCountOfCounts(std::string context_pattern, int order, int bins = -1)
       : bins_(bins <= 0 || bins > kMaxBins ? kMaxBins : bins),
         context_(context_pattern, order) {
     if (bins > kMaxBins)
@@ -108,7 +109,7 @@ class NGramCountOfCounts {
 
   // Display input histogram
   void ShowCounts(const std::vector<std::vector<double>> &hist,
-                  const string &label) const {
+                  const std::string &label) const {
     int hi_order = hist.size();
     std::cerr << "Count bin   ";
     std::cerr << label;
@@ -132,7 +133,9 @@ class NGramCountOfCounts {
   }
 
   // Display internal histogram
-  void ShowCounts(const string &label) const { ShowCounts(histogram_, label); }
+  void ShowCounts(const std::string &label) const {
+    ShowCounts(histogram_, label);
+  }
 
   // Get an Fst representation of the ngram count-of-counts
   void GetFst(StdMutableFst *fst) const {
@@ -148,7 +151,7 @@ class NGramCountOfCounts {
       for (int bin = 0; bin <= bins_; ++bin) {
         // label encodes order and bin
         Label label = order * (kMaxBins + 1) + bin + 1;
-        ostringstream strm;
+        std::ostringstream strm;
         strm << "order=" << order << ",bin=" << bin;
         symbols->AddSymbol(strm.str(), label);
         StdArc::Weight weight = -log(histogram_[order][bin]);
@@ -175,7 +178,7 @@ class NGramCountOfCounts {
       while (order >= histogram_.size())
         histogram_.push_back(std::vector<double>(bins_ + 1, 0.0));
       if (bin <= bins_)
-        histogram_[order][bin] = round(exp(-arc.weight.Value()));
+        histogram_[order][bin] = std::round(std::exp(-arc.weight.Value()));
     }
   }
 
@@ -210,7 +213,7 @@ inline void NGramCountOfCounts<HistogramArc>::IncrementBinCount(
   int cutoff = value.Length() - 1;
   int length = (cutoff > n_bins) ? n_bins : cutoff;
   for (int k = 0; k < length; k++) {
-    histogram_[order][k] += exp(-value.Value(k + 1).Value());
+    histogram_[order][k] += std::exp(-value.Value(k + 1).Value());
   }
 }
 

@@ -14,8 +14,11 @@
 // Copyright 2005-2016 Brian Roark and Google, Inc.
 // Get counts from input strings.
 
-#include <ngram/hist-mapper.h>
 #include <ngram/ngram-count.h>
+
+#include <cmath>
+
+#include <ngram/hist-mapper.h>
 #include <ngram/ngram-hist-merge.h>
 
 namespace ngram {
@@ -28,13 +31,13 @@ void RoundCountsToInt(fst::StdMutableFst *fst) {
     for (fst::MutableArcIterator<fst::StdMutableFst> aiter(fst, s);
          !aiter.Done(); aiter.Next()) {
       fst::StdArc arc = aiter.Value();
-      int weight = round(exp(-arc.weight.Value()));
-      arc.weight = -log(weight);
+      auto weight = std::round(std::exp(-arc.weight.Value()));
+      arc.weight = -std::log(weight);
       aiter.SetValue(arc);
     }
     if (fst->Final(s) != fst::StdArc::Weight::Zero()) {
-      int weight = round(exp(-fst->Final(s).Value()));
-      fst->SetFinal(s, -log(weight));
+      auto weight = std::round(std::exp(-fst->Final(s).Value()));
+      fst->SetFinal(s, -std::log(weight));
     }
   }
 }
@@ -42,11 +45,12 @@ void RoundCountsToInt(fst::StdMutableFst *fst) {
 // Returns an n-gram string and double count from a (history, ngram) pair.
 double GetNGramAndCount(
     const std::pair<std::vector<int>, std::pair<int, double>> &ngram_count,
-    string *ngram, const fst::SymbolTable &syms) {
+    std::string *ngram, const fst::SymbolTable &syms) {
   std::vector<int> ngram_history = ngram_count.first;
   *ngram = "";
   for (size_t i = 0; i < ngram_history.size(); ++i) {
-    string symbol = ngram_history[i] > 0 ? syms.Find(ngram_history[i]) : "<s>";
+    std::string symbol =
+        ngram_history[i] > 0 ? syms.Find(ngram_history[i]) : "<s>";
     *ngram += symbol + " ";
   }
   if (ngram_count.second.first > 0) {
@@ -58,7 +62,7 @@ double GetNGramAndCount(
 }
 
 // Gets ngram counts for the next fst in far_reader.
-bool GetCounts(const string &countname,
+bool GetCounts(const std::string &countname,
                NGramCounter<fst::Log64Weight> *ngram_counter,
                fst::FarReader<fst::StdArc> *far_reader, int fstnumber,
                fst::SymbolTable *syms) {
@@ -143,7 +147,8 @@ bool GetNGramHistograms(fst::FarReader<fst::StdArc> *far_reader,
 // Derives n-gram counts (and symbols) from input FAR reader.
 bool GetNGramsAndSyms(fst::FarReader<fst::StdArc> *far_reader,
                       NGramCounter<fst::Log64Weight> *ngram_counter,
-                      fst::SymbolTable *syms, bool require_symbols) {
+                      fst::SymbolTable *syms, bool require_symbols,
+                      double add_to_symbol_unigram_count) {
   int fstnumber = 1;
   while (!far_reader->Done()) {
     if (!GetCounts("ngramcount", ngram_counter, far_reader, fstnumber, syms))
@@ -155,17 +160,24 @@ bool GetNGramsAndSyms(fst::FarReader<fst::StdArc> *far_reader,
     LOG(ERROR) << "None of the input FSTs had a symbol table";
     return false;
   }
+  if (add_to_symbol_unigram_count > 0.0 && require_symbols) {
+    ngram_counter->AddCountToSymbolUnigrams(
+        *syms, /*neg_log_count=*/-log(add_to_symbol_unigram_count));
+  }
   return true;
 }
 
 // Computes ngram counts and returns ngram format FST.
 bool GetNGramCounts(fst::FarReader<fst::StdArc> *far_reader,
                     StdMutableFst *fst, int order, bool require_symbols,
-                    bool epsilon_as_backoff, bool round_to_int) {
+                    bool epsilon_as_backoff, bool round_to_int,
+                    double add_to_symbol_unigram_count) {
   NGramCounter<fst::Log64Weight> ngram_counter(order, epsilon_as_backoff);
   fst::SymbolTable syms;
-  if (!GetNGramsAndSyms(far_reader, &ngram_counter, &syms, require_symbols))
+  if (!GetNGramsAndSyms(far_reader, &ngram_counter, &syms, require_symbols,
+                        add_to_symbol_unigram_count)) {
     return false;
+  }
   ngram_counter.GetFst(fst);
   fst::ArcSort(fst, fst::StdILabelCompare());
   if (syms.NumSymbols() > 0) {
@@ -178,19 +190,21 @@ bool GetNGramCounts(fst::FarReader<fst::StdArc> *far_reader,
 
 // Computes ngram counts and returns vector of strings.
 bool GetNGramCounts(fst::FarReader<fst::StdArc> *far_reader,
-                    std::vector<string> *ngrams, int order,
-                    bool epsilon_as_backoff) {
+                    std::vector<std::string> *ngrams, int order,
+                    bool epsilon_as_backoff,
+                    double add_to_symbol_unigram_count) {
   NGramCounter<fst::Log64Weight> ngram_counter(order, epsilon_as_backoff);
   fst::SymbolTable syms;
   if (!GetNGramsAndSyms(far_reader, &ngram_counter, &syms,
-                        /* require_symbols = */ true)) {
+                        /* require_symbols = */ true,
+                        add_to_symbol_unigram_count)) {
     // Requires symbols from input far to output as vector of strings.
     return false;
   }
   std::vector<std::pair<std::vector<int>, std::pair<int, double>>> ngram_counts;
   ngram_counter.GetReverseContextNGrams<fst::StdArc>(&ngram_counts);
   for (size_t i = 0; i < ngram_counts.size(); ++i) {
-    string ngram;
+    std::string ngram;
     double count = GetNGramAndCount(ngram_counts[i], &ngram, syms);
     ngrams->push_back(ngram + '\t' + std::to_string(count));
   }

@@ -25,8 +25,6 @@
 
 namespace ngram {
 
-using std::stringstream;
-
 template <class Arc>
 class NGramShrink : public NGramMutableModel<Arc> {
  public:
@@ -173,7 +171,7 @@ class NGramShrink : public NGramMutableModel<Arc> {
   void FillStateProbs();
 
   struct LabelData {
-    LabelData(Label l)
+    explicit LabelData(Label l)
         : label(l),
           max_shrink_score(std::numeric_limits<double>::lowest()),
           backed_off_to(0) {}
@@ -312,16 +310,6 @@ class NGramShrink : public NGramMutableModel<Arc> {
   void AddToBackoffNumDenom(double num_upd_val, double denom_upd_val) {
     nlog_backoff_num_ = NegLogSum(nlog_backoff_num_, num_upd_val);
     nlog_backoff_denom_ = NegLogSum(nlog_backoff_denom_, denom_upd_val);
-  }
-
-  // Subtracts probabilities from backoff numerator and denominator.
-  void UpdateBackoffNumDenom(double num_upd_val, double denom_upd_val,
-                             double *neg_log_correct_num,
-                             double *neg_log_correct_denom) {
-    nlog_backoff_num_ =
-        NegLogSum(nlog_backoff_num_, num_upd_val, neg_log_correct_num);
-    nlog_backoff_denom_ =
-        NegLogSum(nlog_backoff_denom_, denom_upd_val, neg_log_correct_denom);
   }
 
   // Updates maximum score for a given label leaving a given state, and returns
@@ -554,7 +542,7 @@ void NGramShrink<Arc>::FillShrinkStateInfo() {
 // Fills ngram label vector in correct order via recursive function.
 template <class Arc>
 void NGramShrink<Arc>::AddStateNGramLabels(StateId st,
-                                           vector<Label> *ngram_labels) {
+                                           std::vector<Label> *ngram_labels) {
   if (shrink_state_[st].prefix_state != kNoStateId) {
     AddStateNGramLabels(shrink_state_[st].prefix_state, ngram_labels);
     ngram_labels->push_back(shrink_state_[st].incoming_label);
@@ -578,18 +566,19 @@ double NGramShrink<Arc>::FindOrDieShrinkScore(StateId st, Label label) {
 
 // Provides ngram label vectors and/or vector of their shrink scores.
 template <class Arc>
-void NGramShrink<Arc>::GetNGramsAndOrScores(vector<vector<Label>> *ngrams,
-                                            std::vector<double> *scores,
-                                            bool collect_unigrams) {
+void NGramShrink<Arc>::GetNGramsAndOrScores(
+    std::vector<std::vector<Label>> *ngrams, std::vector<double> *scores,
+    bool collect_unigrams) {
   // Assigns min_order based on collect_unigrams, to preserve behavior.
   GetNGramsAndOrScoresMinOrder(ngrams, scores,
-                               /* min_order = */ collect_unigrams ? 1 : 2);
+                               /*min_order=*/collect_unigrams ? 1 : 2);
 }
 
 // Provides ngram label vectors and/or vector of their shrink scores.
 template <class Arc>
 void NGramShrink<Arc>::GetNGramsAndOrScoresMinOrder(
-    vector<vector<Label>> *ngrams, std::vector<double> *scores, int min_order) {
+    std::vector<std::vector<Label>> *ngrams, std::vector<double> *scores,
+    int min_order) {
   if (ngrams == nullptr && scores == nullptr) return;
   for (StateId st = 0; st < ns_; ++st) {
     std::vector<Label> state_ngram;
@@ -672,7 +661,7 @@ double NGramShrink<Arc>::GetShrinkScore(const ShrinkArcStats &arc, StateId st,
 
 // Calculate and store statistics for scoring arc in pruning
 template <class Arc>
-int NGramShrink<Arc>::AddArcStat(vector<ShrinkArcStats> *shrink_arcs,
+int NGramShrink<Arc>::AddArcStat(std::vector<ShrinkArcStats> *shrink_arcs,
                                  StateId st, const Arc *arc, const Arc *barc,
                                  bool calc_score) {
   bool needed = false;
@@ -710,8 +699,8 @@ int NGramShrink<Arc>::AddArcStat(vector<ShrinkArcStats> *shrink_arcs,
 
 // Fill in relevant statistics for arc pruning for a particular state
 template <class Arc>
-size_t NGramShrink<Arc>::FillShrinkArcInfo(vector<ShrinkArcStats> *shrink_arcs,
-                                           StateId st, bool calc_score) {
+size_t NGramShrink<Arc>::FillShrinkArcInfo(
+    std::vector<ShrinkArcStats> *shrink_arcs, StateId st, bool calc_score) {
   size_t candidates = 0;
   if (normalized_) {
     double hi_neglog_sum, low_neglog_sum;
@@ -760,7 +749,7 @@ double NGramShrink<Arc>::ThetaForMaxNGrams(int target_number_of_ngrams,
     NGRAMERROR() << "ThetaForMaxNGrams: Error in getting ngram scores";
     return 0.0;
   }
-  if (scores.size() == 0 || UnigramState() < 0)  // No ngrams to prune.
+  if (scores.empty() || UnigramState() < 0)  // No ngrams to prune.
     return 0.0;
   std::sort(scores.begin(), scores.end());
 
@@ -787,7 +776,7 @@ double NGramShrink<Arc>::ThetaForMaxNGrams(int target_number_of_ngrams,
 
 // Non-greedy comparison to threshold
 template <class Arc>
-size_t NGramShrink<Arc>::ArcsToPrune(vector<ShrinkArcStats> *shrink_arcs,
+size_t NGramShrink<Arc>::ArcsToPrune(std::vector<ShrinkArcStats> *shrink_arcs,
                                      StateId st) const {
   size_t pruned_cnt = 0;
   double theta = GetTheta(st);
@@ -802,10 +791,10 @@ size_t NGramShrink<Arc>::ArcsToPrune(vector<ShrinkArcStats> *shrink_arcs,
   return pruned_cnt;
 }
 
-// Evaluate arcs and select arcs to prune in greedy fashion
+// Evaluate arcs and select arcs to prune in greedy fashion.
 template <class Arc>
-size_t NGramShrink<Arc>::GreedyArcsToPrune(vector<ShrinkArcStats> *shrink_arcs,
-                                           StateId st) {
+size_t NGramShrink<Arc>::GreedyArcsToPrune(
+    std::vector<ShrinkArcStats> *shrink_arcs, StateId st) {
   ssize_t pruned_cnt = 0, last_prune_cnt = -1;
   while (last_prune_cnt < pruned_cnt) {  // while arcs continue to be pruned
     last_prune_cnt = pruned_cnt;
@@ -833,8 +822,9 @@ size_t NGramShrink<Arc>::GreedyArcsToPrune(vector<ShrinkArcStats> *shrink_arcs,
 // For transitions selected to be pruned, points them to an unconnected state
 template <class Arc>
 size_t NGramShrink<Arc>::PointPrunedArcs(
-    const vector<ShrinkArcStats> &shrink_arcs, StateId st) {
-  size_t acnt = 0, pruned_cnt = 0;
+    const std::vector<ShrinkArcStats> &shrink_arcs, StateId st) {
+  size_t acnt = 0;
+  size_t pruned_cnt = 0;
   for (MutableArcIterator<MutableFst<Arc>> aiter(GetMutableFst(), st);
        !aiter.Done(); aiter.Next()) {
     Arc arc = aiter.Value();
@@ -926,20 +916,21 @@ void NGramShrink<Arc>::PointDeadBackoffArcs() {
 // below, has an ngram_list argument, which allows specification of a list of
 // n-grams to be removed from the model, via the 'list_prune' method.
 bool NGramShrinkModel(
-    fst::StdMutableFst *fst, const string &method,
+    fst::StdMutableFst *fst, const std::string &method,
     const std::set<std::vector<fst::StdArc::Label>> &ngram_list,
     double tot_uni = -1.0, double theta = 0.0, int64 target_num = -1,
-    int32 min_order = 2, const string &count_pattern = "",
-    const string &context_pattern = "", int shrink_opt = 0,
+    int32 min_order = 2, const std::string &count_pattern = "",
+    const std::string &context_pattern = "", int shrink_opt = 0,
     fst::StdArc::Label backoff_label = 0, double norm_eps = kNormEps,
     bool check_consistency = false);
 
 // Makes model from NGram model FST with StdArc counts.
-bool NGramShrinkModel(fst::StdMutableFst *fst, const string &method,
+bool NGramShrinkModel(fst::StdMutableFst *fst, const std::string &method,
                       double tot_uni = -1.0, double theta = 0.0,
                       int64 target_num = -1, int32 min_order = 2,
-                      const string &count_pattern = "",
-                      const string &context_pattern = "", int shrink_opt = 0,
+                      const std::string &count_pattern = "",
+                      const std::string &context_pattern = "",
+                      int shrink_opt = 0,
                       fst::StdArc::Label backoff_label = 0,
                       double norm_eps = kNormEps,
                       bool check_consistency = false);

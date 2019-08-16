@@ -14,13 +14,14 @@
 // Copyright 2005-2016 Brian Roark and Google, Inc.
 // NGram model class for outputting a model or outputting perplexity of text.
 
+#include <ngram/ngram-output.h>
+
+#include <cmath>
 #include <ctime>
 #include <deque>
 
 #include <fst/arcsort.h>
 #include <fst/vector-fst.h>
-
-#include <ngram/ngram-output.h>
 #include <ngram/util.h>
 
 DEFINE_string(start_symbol, "<s>", "Class label for sentence start");
@@ -28,9 +29,6 @@ DEFINE_string(end_symbol, "</s>", "Class label for sentence end");
 
 namespace ngram {
 
-using std::deque;
-
-using fst::VectorFst;
 using fst::StdExpandedFst;
 using fst::StdILabelCompare;
 
@@ -57,7 +55,7 @@ void NGramOutput::ShowNGramModel(NGramOutput::ShowBackoff showeps, bool neglogs,
   if (ARPA) {
     ShowARPAModel();
   } else {
-    string str = "";  // init n-grams from unigram state
+    std::string str = "";  // init n-grams from unigram state
     double start_wt;  // weight of <s> (count or prob) same as unigram </s>
     if (UnigramState() >= 0) {  // show n-grams from unigram state
       ShowNGrams(UnigramState(), str, showeps, neglogs, intcnts);
@@ -85,7 +83,7 @@ void NGramOutput::ShowNGramModel(NGramOutput::ShowBackoff showeps, bool neglogs,
 // Returns true on success and false on failure.
 bool NGramOutput::PerplexityNGramModel(
     const std::vector<std::unique_ptr<fst::StdVectorFst>> &infsts, int32 v,
-    bool phimatch, string *OOV_symbol, double OOV_class_size,
+    bool phimatch, std::string *OOV_symbol, double OOV_class_size,
     double OOV_probability) {
   if (Error()) return false;
   bool verbose = v > 0;
@@ -130,7 +128,7 @@ void NGramOutput::ShowARPAHeader() const {
 }
 
 // Print n-grams leaving a particular state for the ARPA model format
-void NGramOutput::ShowARPANGrams(StdArc::StateId st, const string &str,
+void NGramOutput::ShowARPANGrams(StdArc::StateId st, const std::string &str,
                                  int order) const {
   if (st < 0 || StateOrder(st) > order) return;  // ignore for st < 0
   bool show = InContext(st);
@@ -138,7 +136,7 @@ void NGramOutput::ShowARPANGrams(StdArc::StateId st, const string &str,
       GetFst().Final(st) != StdArc::Weight::Zero()) {  // </s> n-gram to show
     // log_10(p)
     ostrm_ << ShowLogNewBase(GetFst().Final(st).Value(), 10) << "\t";
-    if (str.size() > 0) ostrm_ << str << " ";
+    if (!str.empty()) ostrm_ << str << " ";
     ostrm_ << FLAGS_end_symbol << '\n';
   }
   for (ArcIterator<StdExpandedFst> aiter(GetExpandedFst(), st); !aiter.Done();
@@ -147,8 +145,8 @@ void NGramOutput::ShowARPANGrams(StdArc::StateId st, const string &str,
     if (arc.ilabel == BackoffLabel())  // ignore backoff arc
       continue;
     // Find symbol str.
-    string symbol = GetFst().InputSymbols()->Find(arc.ilabel);
-    string newstr = str;                        // history string
+    std::string symbol = GetFst().InputSymbols()->Find(arc.ilabel);
+    std::string newstr = str;                   // history string
     AppendWordToNGramHistory(&newstr, symbol);  // Full n-gram
     if (show && order == StateOrder(st)) {      // only show target order
       ostrm_ << ShowLogNewBase(arc.weight.Value(), 10);  // log_10 n-gram prob
@@ -194,7 +192,7 @@ void NGramOutput::ShowARPAModel() const {
 }
 
 // Print n-grams leaving a particular state, standard output format
-void NGramOutput::ShowNGrams(StdArc::StateId st, const string &str,
+void NGramOutput::ShowNGrams(StdArc::StateId st, const std::string &str,
                              NGramOutput::ShowBackoff showeps, bool neglogs,
                              bool intcnts) const {
   if (st < 0) return;  // ignore for st < 0
@@ -206,8 +204,8 @@ void NGramOutput::ShowNGrams(StdArc::StateId st, const string &str,
         showeps != ShowBackoff::EPSILON)  // skip backoff unless showing EPSILON
       continue;
     // Find symbol str.
-    string symbol = GetFst().InputSymbols()->Find(arc.ilabel);
-    string newstr = str;                        // history string
+    std::string symbol = GetFst().InputSymbols()->Find(arc.ilabel);
+    std::string newstr = str;                   // history string
     AppendWordToNGramHistory(&newstr, symbol);  // Full n-gram string
     if (show) {
       ostrm_ << newstr << "\t";  // output n-gram and its weight
@@ -224,7 +222,7 @@ void NGramOutput::ShowNGrams(StdArc::StateId st, const string &str,
   }
   if (show &&
       GetFst().Final(st) != StdArc::Weight::Zero()) {  // show </s> counts
-    if (str.size() > 0)  // if history string, print it
+    if (!str.empty())  // if history string, print it
       ostrm_ << str << " ";
     ostrm_ << FLAGS_end_symbol << '\t'
            << WeightRep(GetFst().Final(st).Value(), neglogs, intcnts);
@@ -238,7 +236,7 @@ void NGramOutput::ShowStringFst(const Fst<StdArc> &infst) const {
   while (infst.NumArcs(st) != 0) {
     ArcIterator<Fst<StdArc>> aiter(infst, st);
     StdArc arc = aiter.Value();
-    string symbol = GetFst().InputSymbols()->Find(arc.ilabel);
+    std::string symbol = GetFst().InputSymbols()->Find(arc.ilabel);
     if (st != infst.Start()) ostrm_ << " ";
     ostrm_ << symbol;
     st = arc.nextstate;
@@ -252,7 +250,7 @@ void NGramOutput::RelabelAndSetSymbols(StdMutableFst *infst,
     for (MutableArcIterator<StdMutableFst> aiter(infst, st); !aiter.Done();
          aiter.Next()) {
       StdArc arc = aiter.Value();
-      string symbol = symbolfst.InputSymbols()->Find(arc.ilabel);
+      std::string symbol = symbolfst.InputSymbols()->Find(arc.ilabel);
       int64 key = GetFst().InputSymbols()->Find(symbol);
       if (key < 0) {
         key = GetMutableFst()->MutableInputSymbols()->AddSymbol(symbol);
@@ -301,11 +299,11 @@ void NGramOutput::ShowPhiPerplexity(const ComposeFst<StdArc> &cfst,
   StateId st = cfst.Start();
   int word_cnt = 0, oov_cnt = 0, skipped = 0;
   double neglogprob = 0, ngram_cost;
-  string history = FLAGS_start_symbol + " ";
+  std::string history = FLAGS_start_symbol + " ";
   while (cfst.NumArcs(st) != 0) {
     ArcIterator<Fst<StdArc>> aiter(cfst, st);
     StdArc arc = aiter.Value();
-    string symbol = GetFst().InputSymbols()->Find(arc.ilabel);
+    std::string symbol = GetFst().InputSymbols()->Find(arc.ilabel);
     ngram_cost = ShowLogNewBase(arc.weight.Value(), 10);
     ++word_cnt;
     if (arc.olabel == special_label) {
@@ -330,10 +328,10 @@ void NGramOutput::ShowPhiPerplexity(const ComposeFst<StdArc> &cfst,
   if (verbose) ShowNGramProb(FLAGS_end_symbol, history, 0, -1, -ngram_cost);
   if (InContext(st)) neglogprob += ngram_cost;
   if (verbose) ShowPerplexity(1, word_cnt, oov_cnt, skipped, neglogprob);
-  (*logprob) += neglogprob;
-  (*oovs) += oov_cnt;
-  (*words) += word_cnt;
-  (*words_skipped) += skipped;
+  *logprob += neglogprob;
+  *oovs += oov_cnt;
+  *words += word_cnt;
+  *words_skipped += skipped;
 }
 
 void NGramOutput::ShowNonPhiPerplexity(const Fst<StdArc> &infst, bool verbose,
@@ -343,7 +341,7 @@ void NGramOutput::ShowNonPhiPerplexity(const Fst<StdArc> &infst, bool verbose,
   StateId st = infst.Start(), mst = GetFst().Start();
   int word_cnt = 0, oov_cnt = 0, skipped = 0;
   double neglogprob = 0;
-  string history = FLAGS_start_symbol + " ";
+  std::string history = FLAGS_start_symbol + " ";
   std::vector<Label> ngram(HiOrder(), 0);
   while (infst.NumArcs(st) != 0) {  // assumes linear fst (string)
     ArcIterator<Fst<StdArc>> aiter(infst, st);
@@ -361,12 +359,12 @@ void NGramOutput::FindNextStateInModel(StateId *mst, Label label,
                                        double OOV_cost, Label OOV_label,
                                        double *neglogprob, int *word_cnt,
                                        int *oov_cnt, int *skipped,
-                                       string *history, bool verbose,
+                                       std::string *history, bool verbose,
                                        std::vector<Label> *ngram) const {
   bool in_context = InContext(*ngram);
   int order;
   double ngram_cost;
-  string symbol = GetFst().InputSymbols()->Find(label);
+  std::string symbol = GetFst().InputSymbols()->Find(label);
   ++(*word_cnt);
   if (!FindNGramInModel(mst, &order, label, &ngram_cost)) {  // OOV
     ++(*oov_cnt);
@@ -374,27 +372,27 @@ void NGramOutput::FindNextStateInModel(StateId *mst, Label label,
     ngram_cost += OOV_cost;
     ngram_cost = ShowLogNewBase(-ngram_cost, 10);
     if (OOV_cost != StdArc::Weight::Zero().Value()) {
-      if (in_context) (*neglogprob) += ngram_cost;
+      if (in_context) *neglogprob += ngram_cost;
     } else {
-      (*skipped)++;
+      ++(*skipped);
     }
-    (*mst) = (UnigramState() >= 0) ? UnigramState() : GetFst().Start();
-    if (verbose) ShowNGramProb(symbol, (*history), 1, -1, ngram_cost);
-    (*history) = "";
+    *mst = (UnigramState() >= 0) ? UnigramState() : GetFst().Start();
+    if (verbose) ShowNGramProb(symbol, *history, true, -1, ngram_cost);
+    *history = "";
     *ngram = std::vector<Label>(HiOrder(), 0);
   } else {
     if (label == OOV_label) ++(*oov_cnt);
     ngram_cost = ShowLogNewBase(-ngram_cost, 10);
-    if (in_context) (*neglogprob) += ngram_cost;
-    if (verbose) ShowNGramProb(symbol, (*history), 0, order, ngram_cost);
-    (*history) = symbol + " ...";
+    if (in_context) *neglogprob += ngram_cost;
+    if (verbose) ShowNGramProb(symbol, *history, false, order, ngram_cost);
+    *history = symbol + " ...";
     ngram->erase(ngram->begin());
     ngram->push_back(label);
   }
 }
 
 //  Calculate and show (if verbose) </s> n-gram, and accumulate stats
-void NGramOutput::ApplyFinalCost(StateId mst, string history, int word_cnt,
+void NGramOutput::ApplyFinalCost(StateId mst, std::string history, int word_cnt,
                                  int oov_cnt, int skipped, double neglogprob,
                                  double *logprob, int *words, int *oovs,
                                  int *words_skipped, bool verbose,
@@ -407,17 +405,17 @@ void NGramOutput::ApplyFinalCost(StateId mst, string history, int word_cnt,
     ShowNGramProb(FLAGS_end_symbol, history, (order < 0), order, ngram_cost);
     ShowPerplexity(1, word_cnt, oov_cnt, skipped, -neglogprob);
   }
-  (*logprob) -= neglogprob;
-  (*words) += word_cnt;
-  (*oovs) += oov_cnt;
-  (*words_skipped) += skipped;
+  *logprob -= neglogprob;
+  *words += word_cnt;
+  *oovs += oov_cnt;
+  *words_skipped += skipped;
 }
 
 // Show the verbose n-gram entries with history order and neglogprob
-void NGramOutput::ShowNGramProb(string symbol, string history, bool oov,
-                                int order, double ngram_cost) const {
+void NGramOutput::ShowNGramProb(std::string symbol, std::string history,
+                                bool oov, int order, double ngram_cost) const {
   ostrm_ << "        p( " << symbol;
-  if (history.size() == 0)
+  if (history.empty())
     ostrm_ << " )  ";
   else
     ostrm_ << " | " << history << ")";
@@ -437,12 +435,12 @@ double NGramOutput::SetInitRandProb(StateId hi_state, StateId st,
   double p = 0.0, hi_neglog_sum, low_neglog_sum;
   if (hi_state >= 0) {
     CalcBONegLogSums(hi_state, &hi_neglog_sum, &low_neglog_sum);
-    (*r) *= 1 - exp(-low_neglog_sum);
+    *r *= 1 - exp(-low_neglog_sum);
     if (GetFst().Final(hi_state).Value() == StdArc::Weight::Zero().Value() &&
         GetFst().Final(st).Value() != StdArc::Weight::Zero().Value())
-      p += exp(-GetFst().Final(st).Value());
+      p += std::exp(-GetFst().Final(st).Value());
   } else if (GetFst().Final(st).Value() != StdArc::Weight::Zero().Value()) {
-    p += exp(-GetFst().Final(st).Value());
+    p += std::exp(-GetFst().Final(st).Value());
   }
   return p;
 }
@@ -455,9 +453,9 @@ NGramOutput::StateId NGramOutput::ShowRandSymbol(Label lbl, bool *first_printed,
   if (lbl >= 0) {
     // only print epsilons if flag is set
     if (show_backoff || lbl != BackoffLabel()) {
-      string symbol = GetFst().InputSymbols()->Find(lbl);
+      std::string symbol = GetFst().InputSymbols()->Find(lbl);
       if (*first_printed) {  // no space delimiter required
-        (*first_printed) = false;
+        *first_printed = false;
       } else {
         ostrm_ << " ";
       }
@@ -477,18 +475,18 @@ NGramOutput::StateId NGramOutput::GetAndShowSymbol(StateId st, double p,
   if (p > r) return nextstate;
   Label lbl = -1;
   Matcher<StdFst> matcher(GetFst(), MATCH_INPUT);  // for querying hi_state
-  if ((*hi_state) >= 0) matcher.SetState(*hi_state);
+  if (*hi_state >= 0) matcher.SetState(*hi_state);
   for (ArcIterator<StdExpandedFst> aiter(GetExpandedFst(), st);
        !aiter.Done() && p <= r; aiter.Next()) {
     StdArc arc = aiter.Value();
     if (arc.ilabel != BackoffLabel() && (*hi_state) >= 0 &&
         matcher.Find(arc.ilabel))
       continue;  // ignore if label emitted from higher order state
-    p += exp(-arc.weight.Value());
+    p += std::exp(-arc.weight.Value());
     lbl = arc.ilabel;
     nextstate = arc.nextstate;
   }
-  (*hi_state) = ShowRandSymbol(lbl, first_printed, show_backoff, st);
+  *hi_state = ShowRandSymbol(lbl, first_printed, show_backoff, st);
   return nextstate;
 }
 
@@ -513,40 +511,40 @@ void NGramOutput::RandNGramModel(int64 samples, bool show_backoff) const {
 }
 
 // Checks parameterization of perplexity calculation and sets OOV_label
-bool NGramOutput::GetOOVLabel(double *OOV_probability, string *OOV_symbol,
+bool NGramOutput::GetOOVLabel(double *OOV_probability, std::string *OOV_symbol,
                               StdArc::Label *OOV_label) {
-  if ((*OOV_probability) < 0.0) {
+  if (*OOV_probability < 0.0) {
     NGRAMERROR() << "OOV_probability must be greater than or equal to 0: "
-                 << (*OOV_probability);
+                 << *OOV_probability;
     return false;
   }
-  if ((*OOV_probability) >= 1.0) {
-    NGRAMERROR() << "OOV_probability must be less than 1: "
-                 << (*OOV_probability);
+  if (*OOV_probability >= 1.0) {
+    NGRAMERROR() << "OOV_probability must be less than 1: " << *OOV_probability;
     return false;
   }
-  (*OOV_label) = kSpecialLabel;  // default for OOV symbol
+  *OOV_label = kSpecialLabel;  // default for OOV symbol
   if (!OOV_symbol->empty()) {  // if OOV symbol provided, find symbol
-    (*OOV_label) = GetFst().InputSymbols()->Find(*OOV_symbol);
-    if ((*OOV_label) < 0) {  // OOV symbol not found.
-      (*OOV_label) = kSpecialLabel;
+    *OOV_label = GetFst().InputSymbols()->Find(*OOV_symbol);
+    if (*OOV_label < 0) {  // OOV symbol not found.
+      *OOV_label = kSpecialLabel;
       LOG(ERROR) << "Provided OOV symbol (" << (*OOV_symbol)
                  << ") not in model symbol table; default used";
-    } else if ((*OOV_probability) != 0.0) {
+    } else if (*OOV_probability != 0.0) {
       NGRAMERROR()
-          << "Cannot provide unigram probability for existing OOV label";
+          << "Cannot provide unigram probability for existing OOV label (OOV "
+          << "symbol: \"" << *OOV_symbol << "\")";
       return false;
     } else {  // look for unigram probability of found OOV symbol
       double oov_cost = GetSymbolUnigramCost(*OOV_label);
       if (oov_cost == StdArc::Weight::Zero().Value()) {
-        LOG(ERROR) << "Provided OOV symbol (" << (*OOV_symbol)
+        LOG(ERROR) << "Provided OOV symbol (" << *OOV_symbol
                    << ") has no unigram probability; default symbol used";
-        (*OOV_label) = kSpecialLabel;
+        *OOV_label = kSpecialLabel;
       } else {
-        (*OOV_probability) = exp(-oov_cost);
+        *OOV_probability = exp(-oov_cost);
       }
     }
-  } else if ((*OOV_probability) == 0) {
+  } else if (*OOV_probability == 0) {
     LOG(WARNING) << "OOV probability = 0; "
                  << "OOVs will be ignored in perplexity calculation";
   }

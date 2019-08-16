@@ -17,6 +17,8 @@
 #ifndef NGRAM_NGRAM_CONTEXT_MERGE_H_
 #define NGRAM_NGRAM_CONTEXT_MERGE_H_
 
+#include <string>
+
 #include <ngram/ngram-context.h>
 #include <ngram/ngram-merge.h>
 #include <ngram/util.h>
@@ -41,8 +43,8 @@ class NGramContextMerge : public NGramMerge<StdArc> {
   // the second FST and added to the first FST, replacing any existing
   // shared arcs.  See 'ngram-context.h' for meaning of the context
   // specification.
-  void MergeNGramModels(const StdFst &infst2, const string &context_pattern,
-                        bool norm = false) {
+  void MergeNGramModels(const StdFst &infst2,
+                        const std::string &context_pattern, bool norm = false) {
     context_.reset(new NGramExtendedContext(context_pattern, HiOrder()));
     if (!NGramMerge<StdArc>::MergeNGramModels(infst2, norm)) {
       NGRAMERROR() << "Context merge failed";

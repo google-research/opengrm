@@ -12,7 +12,7 @@
 // limitations under the License.
 //
 // Copyright 2005-2016 Brian Roark and Google, Inc.
-// Calculates perplexity of an input fst archive using the given model.
+// Calculates perplexity of an input FST archive using the given model.
 
 #include <fstream>
 #include <memory>
@@ -24,16 +24,14 @@
 #include <fst/extensions/far/far.h>
 #include <ngram/ngram-output.h>
 
-DEFINE_bool(use_phimatcher, false, "Use phi matcher and composition");
-DEFINE_string(OOV_symbol, "", "Existing symbol for OOV class");
-DEFINE_double(OOV_class_size, 10000, "Number of members of OOV class");
-DEFINE_double(OOV_probability, 0, "Unigram probability for OOVs");
-DEFINE_string(context_pattern, "",
-              "Restrict perplexity computation to contexts defined by"
-              " pattern (default: no restriction)");
+DECLARE_bool(use_phimatcher);
+DECLARE_string(OOV_symbol);
+DECLARE_double(OOV_class_size);
+DECLARE_double(OOV_probability);
+DECLARE_string(context_pattern);
 
-int main(int argc, char **argv) {
-  string usage = "Apply n-gram model to input fst archive.\n\n  Usage: ";
+int ngramperplexity_main(int argc, char **argv) {
+  std::string usage = "Apply n-gram model to input FST archive.\n\n  Usage: ";
   usage += argv[0];
   usage += " [--options] ngram.fst [in.far [out.txt]]\n";
   std::set_new_handler(FailedNewHandler);
@@ -45,9 +43,11 @@ int main(int argc, char **argv) {
   }
 
   fst::FstReadOptions opts;
-  string in1_name = strcmp(argv[1], "-") != 0 ? argv[1] : "";
-  string in2_name = (argc > 2 && (strcmp(argv[2], "-") != 0)) ? argv[2] : "";
-  string out_name = (argc > 3 && (strcmp(argv[3], "-") != 0)) ? argv[3] : "";
+  std::string in1_name = strcmp(argv[1], "-") != 0 ? argv[1] : "";
+  std::string in2_name =
+      (argc > 2 && (strcmp(argv[2], "-") != 0)) ? argv[2] : "";
+  std::string out_name =
+      (argc > 3 && (strcmp(argv[3], "-") != 0)) ? argv[3] : "";
 
   std::unique_ptr<fst::StdMutableFst> fst(
       fst::StdMutableFst::Read(in1_name, true));
@@ -81,7 +81,7 @@ int main(int argc, char **argv) {
   std::vector<std::unique_ptr<fst::StdVectorFst>> infsts;
   while (!far_reader->Done()) {
     infsts.push_back(std::unique_ptr<fst::StdVectorFst>(
-        new fst::StdVectorFst(*(far_reader->GetFst()))));
+        new fst::StdVectorFst(*far_reader->GetFst())));
     far_reader->Next();
   }
 

@@ -25,7 +25,7 @@
 #include <ngram/ngram-model.h>
 #include <ngram/util.h>
 
-DEFINE_bool(check_consistency, true, "Check model consistency");
+DECLARE_bool(check_consistency);
 
 namespace ngram {
 
@@ -84,8 +84,9 @@ void PrintNGramInfo(const NGramModel<StdArc> &ngram, std::ostream &ostrm) {
 
 }  // namespace ngram
 
-int main(int argc, char **argv) {
-  string usage = "Prints out various information about an LM.\n\n  Usage: ";
+int ngraminfo_main(int argc, char **argv) {
+  std::string usage =
+      "Prints out various information about an LM.\n\n  Usage: ";
   usage += argv[0];
   usage += " [--options] [in.fst [out.txt]]\n";
 
@@ -96,7 +97,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  string ifile = (argc > 1 && (strcmp(argv[1], "-") != 0)) ? argv[1] : "";
+  std::string ifile = (argc > 1 && (strcmp(argv[1], "-") != 0)) ? argv[1] : "";
 
   std::unique_ptr<fst::StdMutableFst> fst(
       fst::StdMutableFst::Read(ifile, true));

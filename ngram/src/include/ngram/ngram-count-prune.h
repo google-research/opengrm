@@ -17,6 +17,8 @@
 #ifndef NGRAM_NGRAM_COUNT_PRUNE_H_
 #define NGRAM_NGRAM_COUNT_PRUNE_H_
 
+#include <string>
+
 #include <ngram/ngram-shrink.h>
 
 namespace ngram {
@@ -31,7 +33,7 @@ class NGramCountPrune : public NGramShrink<StdArc> {
   //
   // Example: "2:2;3+:3" signifies:
   //   prune bigrams with count < 2; trigrams and above with count < 3
-  NGramCountPrune(StdMutableFst *infst, const string &count_pattern,
+  NGramCountPrune(StdMutableFst *infst, const std::string &count_pattern,
                   int shrink_opt = 0, double tot_uni = -1.0,
                   Label backoff_label = 0, double norm_eps = kNormEps,
                   bool check_consistency = false)
@@ -78,19 +80,19 @@ class NGramCountPrune : public NGramShrink<StdArc> {
   bool IsInNumber(char c) const { return (c >= '0' && c <= '9') || c == '.'; }
 
   // Stores character and moves string iterator to next position
-  char GetNextChar(string::const_iterator *strit) const {
-    char c = (*(*strit));
+  char GetNextChar(std::string::const_iterator *strit) const {
+    char c = **strit;
     ++(*strit);
     return c;
   }
 
   // Reads from string while token is a numerical value
   template <class A>
-  char GetNextCharVal(string::const_iterator *strit, A *toget,
-                      const string &count_pattern);
+  char GetNextCharVal(std::string::const_iterator *strit, A *toget,
+                      const std::string &count_pattern);
 
   // Derives count minimums from input count pruning string.
-  void ParseCountMinimums(const string &count_pattern);
+  void ParseCountMinimums(const std::string &count_pattern);
 
   // Updates count minimums for order, based on parsed parameter string
   void UpdateCountMinimums(int order, double count, bool plus);

@@ -1,36 +1,38 @@
 #!/bin/bash
-# Description:
 # Tests the command line binary ngramperplexity.
 
-bin=../bin
-testdata=$srcdir/testdata
-tmpdata=${TMPDIR:-/tmp}
-tmpsuffix="$(mktemp -u XXXXXXXX 2>/dev/null)"
-tmpprefix="${tmpdata}/ngramperp-earnest-$tmpsuffix-$RANDOM-$$"
+set -eou pipefail
 
-trap "rm -f ${tmpprefix}*" 0 2 13 15
+readonly BIN="../bin"
+readonly TESTDATA="${srcdir}/testdata"
+readonly TEST_TMPDIR="${TEST_TMPDIR:-$(mktemp -d)}"
 
-set -e
 compile_test_fst() {
-  if [ ! -e "${tmpprefix}-${1}.ref" ]
-  then
-    fstcompile \
-      -isymbols="${testdata}/${1}.sym" -osymbols="${testdata}/${1}.sym" \
-      -keep_isymbols -keep_osymbols -keep_state_numbering \
-      "${testdata}/${1}.txt" "${tmpprefix}-${1}.ref"
-  fi
+  fstcompile \
+    --isymbols="${TESTDATA}/${1}.sym" \
+    --osymbols="${TESTDATA}/${1}.sym" \
+    --keep_isymbols \
+    --keep_osymbols \
+    --keep_state_numbering \
+    "${TESTDATA}/${1}.txt" \
+    "${TEST_TMPDIR}/${1}.ref"
 }
 
 # Compile strings.
 farcompilestrings \
-  --symbols="${testdata}"/earnest.syms --keep_symbols=1 \
-  "${testdata}"/earnest.txt >"${tmpprefix}".far
+  --fst_type=compact \
+  --symbols="${TESTDATA}/earnest.syms" \
+  --keep_symbols \
+  "${TESTDATA}/earnest.txt" \
+  "${TEST_TMPDIR}/earnest.far"
 
 compile_test_fst earnest-witten_bell.mod
-"${bin}/ngramperplexity" --OOV_probability=0.01 \
-  "${tmpprefix}"-earnest-witten_bell.mod.ref \
-  "${tmpprefix}".far "${tmpprefix}".perp
+"${BIN}/ngramperplexity" \
+  --OOV_probability=0.01 \
+  "${TEST_TMPDIR}/earnest-witten_bell.mod.ref" \
+  "${TEST_TMPDIR}/earnest.far" \
+  "${TEST_TMPDIR}/earnest.perp"
 
-cmp "${testdata}"/earnest.perp "${tmpprefix}".perp
-
-echo PASS
+file "${TESTDATA}/earnest.perp"
+file "${TEST_TMPDIR}/earnest.perp"
+cmp "${TESTDATA}/earnest.perp" "${TEST_TMPDIR}/earnest.perp"

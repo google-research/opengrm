@@ -3,15 +3,14 @@ AM_LDFLAGS = -L/usr/local/lib/fst -lfstfar -lfst -lm -ldl
 
 bin_PROGRAMS = ngramhisttest ngramrandtest
 
-ngramhisttest_SOURCES = ngramhisttest.cc
+ngramhisttest_SOURCES = ngramhisttest.cc ngramhisttest-main.cc
 ngramhisttest_LDADD = -lfstscript ../lib/libngram.la ../lib/libngramhist.la
 
-ngramrandtest_SOURCES = ngramrandtest.cc
+ngramrandtest_SOURCES = ngramrandtest.cc ngramrandtest-main.cc
 ngramrandtest_LDADD = ../lib/libngram.la
 
 dist_check_SCRIPTS = disttestsetup.sh \
                      ngramapply_test.sh \
-                     ngramcompile_randgen_far.sh \
                      ngramcount_histograms_test.sh \
                      ngramcount_test.sh \
                      ngramdistrand.sh \
@@ -28,7 +27,6 @@ dist_check_SCRIPTS = disttestsetup.sh \
                      ngramperplexity_test.sh \
                      ngramprint_test.sh \
                      ngramrandgen_test.sh \
-                     ngramrandtest_seed.sh \
                      ngramrand_test.sh \
                      ngramshrink_test.sh \
                      ngramsymbols_test.sh

@@ -1,40 +1,26 @@
-#!/bin/bash
-# Description:
 # Random test of ngram functionality.
+#
 # Can set environment variable NGRAMRANDTRIALS, otherwise defaults to 0 trials.
 # When called with an integer argument, will run that many trials, otherwise
 # the default number as explained above.
 
-bin=../bin
-tmpdata=${TMPDIR:-/tmp}
-tmpsuffix="$(mktemp -u XXXXXXXX 2>/dev/null)"
-tmpprefix="${tmpdata}/ngramrand-$tmpsuffix-$RANDOM-$$"
-DEFTRIALS=${NGRAMRANDTRIALS:-0}
-TRIALS=${1:-$DEFTRIALS}
-varfile="$tmpprefix"/ngramrandtest.vars
+set -eou pipefail
 
-mkdir -p "${tmpprefix}"
+readonly BIN="../bin"
+readonly TEST_TMPDIR="${TEST_TMPDIR:-$(mktemp -d)}"
 
-trap "rm -rf ${tmpprefix}" 0 2 13 15
-
-set -e
+readonly DEFTRIALS=${NGRAMRANDTRIALS:-0}
+readonly TRIALS=${1:-$DEFTRIALS}
+readonly VARFILE="${TEST_TMPDIR}/ngramrandtest.vars"
 
 i=0
-
-while [ "$i" -lt "$TRIALS" ]; do
-  : $(( i = $i + 1 ))
-  rm -rf "$tmpprefix"/ngramrandtest.*
-
-  # runs random test, outputs various count and model files and variables
-./ngramrandtest -directory="$tmpprefix" --vars="$varfile"
-
-  # read in variables from rand test (SEED, ORDER ...)
-  . "$varfile"
-
-./ngramdistrand.sh "$SEED" "$ORDER"
-
-  rm -rf "$tmpprefix"/"$SEED".*
-  rm -rf "$tmpprefix"/ngramrandtest.*
+while [[ $i -lt $TRIALS ]]; do
+  : $((i+=1))
+  rm -rf "${TEST_TMPDIR}/."*
+  # Runs random test, outputs various count and model files and variables.
+  "./ngramrandtest" --directory="${TEST_TMPDIR}" --vars="${VARFILE}"
+  # Reads in variables from rand test (SEED, ORDER ...).
+  . "${VARFILE}"
+  "${BIN}/ngramdistrand" "$SEED" "$ORDER"
+  rm -rf "${TEST_TMPDIR}/${SEED}."* "${TEST_TMPDIR}/."*
 done
-
-echo PASS

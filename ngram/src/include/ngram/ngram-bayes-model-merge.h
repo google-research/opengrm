@@ -107,4 +107,4 @@ class NGramBayesModelMerge : public NGramMerge<StdArc> {
 
 }  // namespace ngram
 
-#endif  //  NGRAM_NGRAM_BAYES_MODEL_MERGE_H_
+#endif  // NGRAM_NGRAM_BAYES_MODEL_MERGE_H_

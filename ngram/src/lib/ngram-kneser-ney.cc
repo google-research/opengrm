@@ -14,21 +14,18 @@
 // Copyright 2005-2016 Brian Roark and Google, Inc.
 // Kneser-Ney derived class for smoothing.
 
+#include <ngram/ngram-kneser-ney.h>
+
 #include <vector>
 
 #include <fst/arcsort.h>
 #include <fst/vector-fst.h>
-
-#include <ngram/ngram-kneser-ney.h>
 #include <ngram/util.h>
 
 namespace ngram {
 
-using std::vector;
-
-using fst::VectorFst;
-using fst::StdILabelCompare;
 using fst::StdExpandedFst;
+using fst::StdILabelCompare;
 
 // Normalize n-gram counts and smooth to create an n-gram model
 // Using Kneser-Ney methods.

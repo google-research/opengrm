@@ -1,19 +1,12 @@
 #!/bin/bash
-# Description:
 # Tests the command line binary ngramsymbols.
 
-bin=../bin
-testdata=$srcdir/testdata
-tmpdata=${TMPDIR:-/tmp}
-tmpsuffix="$(mktemp -u XXXXXXXX 2>/dev/null)"
-tmpprefix="${tmpdata}/ngramsymbols-earnest-$tmpsuffix-$RANDOM-$$"
+set -eou pipefail
 
-trap "rm -f ${tmpprefix}*" 0 2 13 15
+readonly BIN="../bin"
+readonly TESTDATA="${srcdir}/testdata"
+readonly TEST_TMPDIR="${TEST_TMPDIR:-$(mktemp -d)}"
 
-set -e
+"${BIN}/ngramsymbols" "${TESTDATA}/earnest.txt" "${TEST_TMPDIR}/earnest.syms"
 
-"${bin}/ngramsymbols" "${testdata}"/earnest.txt "${tmpprefix}".syms
-
-cmp "${testdata}"/earnest.syms "${tmpprefix}".syms
-
-echo PASS
+cmp "${TESTDATA}/earnest.syms" "${TEST_TMPDIR}/earnest.syms"

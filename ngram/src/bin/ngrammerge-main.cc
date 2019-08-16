@@ -14,34 +14,34 @@
 // Copyright 2005-2016 Brian Roark and Google, Inc.
 // Merges two input n-gram models into a single model.
 
+#include <cmath>
 #include <memory>
 #include <string>
 #include <vector>
 
-#include <ngram/ngram-complete.h>
 #include <ngram/ngram-bayes-model-merge.h>
+#include <ngram/ngram-complete.h>
 #include <ngram/ngram-context-merge.h>
 #include <ngram/ngram-count-merge.h>
 #include <ngram/ngram-hist-merge.h>
 #include <ngram/ngram-model-merge.h>
 #include <ngram/ngram-replace-merge.h>
 
-DEFINE_double(alpha, 1.0, "Weight for first FST");
-DEFINE_double(beta, 1.0, "Weight for second (and subsequent) FST(s)");
-DEFINE_string(context_pattern, "", "Context pattern for second FST");
-DEFINE_string(contexts, "", "Context patterns file (all FSTs)");
-DEFINE_bool(normalize, false, "Normalize resulting model");
-DEFINE_string(method, "count_merge",
-              "One of: \"context_merge\", \"count_merge\", \"model_merge\" "
-              "\"bayes_model_merge\", \"histogram_merge\", \"replace_merge\"");
-DEFINE_int32(max_replace_order, -1,
-             "Maximum order to replace in replace_merge, ignored if < 1.");
-DEFINE_string(ofile, "", "Output file");
-DEFINE_int64(backoff_label, 0, "Backoff label");
-DEFINE_double(norm_eps, ngram::kNormEps, "Normalization check epsilon");
-DEFINE_bool(check_consistency, false, "Check model consistency");
-DEFINE_bool(complete, false, "Complete partial models");
-DEFINE_bool(round_to_int, false, "Round all merged counts to integers");
+DECLARE_double(alpha);
+DECLARE_double(beta);
+DECLARE_string(context_pattern);
+DECLARE_string(contexts);
+DECLARE_bool(normalize);
+DECLARE_string(method);
+DECLARE_int32(max_replace_order);
+DECLARE_string(ofile);
+DECLARE_int64(backoff_label);
+DECLARE_double(norm_eps);
+DECLARE_bool(check_consistency);
+DECLARE_bool(complete);
+DECLARE_bool(round_to_int);
+
+namespace {
 
 bool ValidMergeMethod() {
   if (FLAGS_method == "count_merge" || FLAGS_method == "context_merge" ||
@@ -54,14 +54,14 @@ bool ValidMergeMethod() {
 
 template <class Arc>
 bool ReadFst(const char *file, std::unique_ptr<fst::VectorFst<Arc>> *fst) {
-  string in_name = (strcmp(file, "-") != 0) ? file : "";
+  std::string in_name = (strcmp(file, "-") != 0) ? file : "";
   fst->reset(fst::VectorFst<Arc>::Read(file));
-  if (!(*fst) || (FLAGS_complete && !ngram::NGramComplete(fst->get())))
+  if (!*fst || (FLAGS_complete && !ngram::NGramComplete(fst->get())))
     return false;
   return true;
 }
 
-bool GetContexts(int in_count, std::vector<string> *contexts) {
+bool GetContexts(int in_count, std::vector<std::string> *contexts) {
   contexts->clear();
   if (!FLAGS_contexts.empty()) {
     ngram::NGramReadContexts(FLAGS_contexts, contexts);
@@ -87,19 +87,21 @@ void RoundCountsToInt(fst::StdMutableFst *fst) {
     for (fst::MutableArcIterator<fst::StdMutableFst> aiter(fst, s);
          !aiter.Done(); aiter.Next()) {
       fst::StdArc arc = aiter.Value();
-      int weight = round(exp(-arc.weight.Value()));
-      arc.weight = -log(weight);
+      auto weight = std::round(std::exp(-arc.weight.Value()));
+      arc.weight = -std::log(weight);
       aiter.SetValue(arc);
     }
     if (fst->Final(s) != fst::StdArc::Weight::Zero()) {
-      int weight = round(exp(-fst->Final(s).Value()));
-      fst->SetFinal(s, -log(weight));
+      auto weight = std::round(std::exp(-fst->Final(s).Value()));
+      fst->SetFinal(s, -std::log(weight));
     }
   }
 }
 
-int main(int argc, char **argv) {
-  string usage = "Merge ngram models.\n\n  Usage: ";
+}  // namespace
+
+int ngrammerge_main(int argc, char **argv) {
+  std::string usage = "Merge n-gram models.\n\n  Usage: ";
   usage += argv[0];
   usage += " [--options] -ofile=out.fst in1.fst in2.fst [in3.fst ...]\n";
   std::set_new_handler(FailedNewHandler);
@@ -110,7 +112,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  string out_name =
+  std::string out_name =
       FLAGS_ofile.empty() ? (argc > 3 ? argv[3] : "") : FLAGS_ofile;
 
   int in_count = FLAGS_ofile.empty() ? 2 : argc - 1;
@@ -173,7 +175,7 @@ int main(int argc, char **argv) {
     } else if (FLAGS_method == "context_merge") {
       ngram::NGramContextMerge ngramrg(fst1.get(), FLAGS_backoff_label,
                                        FLAGS_norm_eps, FLAGS_check_consistency);
-      std::vector<string> contexts;
+      std::vector<std::string> contexts;
       if (!GetContexts(in_count, &contexts)) return 1;
       for (int i = 2; i <= in_count; ++i) {
         if (!ReadFst<fst::StdArc>(argv[i], &fst2)) return 1;

@@ -14,15 +14,15 @@
 // Copyright 2005-2016 Brian Roark and Google, Inc.
 // NGram model class for marginalizing the model.
 
+#include <ngram/ngram-marginalize.h>
+
 #include <vector>
 
-#include <ngram/ngram-marginalize.h>
 #include <ngram/util.h>
 
 namespace ngram {
 
 using fst::StdExpandedFst;
-using std::vector;
 
 // Calculates state marginal probs, and sums higher order log probs
 // Returns true with success.
@@ -30,7 +30,7 @@ bool NGramMarginal::CalculateStateProbs() {
   // The stationary distribution on the resultant marginally-constrained
   // FST is equal to the difference of the ascending probs on the
   // input 'summed' FST.
-  vector<double> weights;
+  std::vector<double> weights;
   if (!NGramModel::CalculateStateProbs(&weights, false))
     return false;
   DiffProbs(&weights);
@@ -51,7 +51,7 @@ bool NGramMarginal::CalculateStateProbs() {
 }
 
 // Subtracts higher-order probs from lower orders and normalizes.
-void NGramMarginal::DiffProbs(vector<double> *weights) const {
+void NGramMarginal::DiffProbs(std::vector<double> *weights) const {
   // Removes higher-order mass.
   for (int order = 2; order <= HiOrder(); ++order) {
     for (StateId st = 0; st < GetExpandedFst().NumStates(); ++st) {
@@ -204,7 +204,7 @@ double NGramMarginal::SaneArcWeight(StateId st, size_t idx, double prob) {
 }
 
 // Use statistics to determine arc weights
-double NGramMarginal::GetSaneArcWeights(StateId st, vector<double> *wts) {
+double NGramMarginal::GetSaneArcWeights(StateId st, std::vector<double> *wts) {
   size_t idx = 0;
   double original_norm = GetFst().Final(st).Value(), new_norm = original_norm,
          KahanVal1 = 0, KahanVal2 = 0,  // Values for Kahan summation algorithm
@@ -228,7 +228,7 @@ double NGramMarginal::GetSaneArcWeights(StateId st, vector<double> *wts) {
 }
 
 // Set arc weights with gathered weights
-void NGramMarginal::SetSaneArcWeights(StateId st, vector<double> *wts,
+void NGramMarginal::SetSaneArcWeights(StateId st, std::vector<double> *wts,
                                       double norm) {
   int idx = 0;
   (*wts)[idx] -= norm;                         // normalize first
@@ -246,8 +246,8 @@ void NGramMarginal::SetSaneArcWeights(StateId st, vector<double> *wts,
 
 // Use statistics to determine arc weights, second time around (new backoffs)
 // Add in formerly subtracted denominator, subtract updated denominator
-double NGramMarginal::UpdSaneArcWeights(StateId st, vector<double> *wts,
-                                        vector<double> *hold_notfound) {
+double NGramMarginal::UpdSaneArcWeights(StateId st, std::vector<double> *wts,
+                                        std::vector<double> *hold_notfound) {
   size_t idx = 0;
   double orig_norm = (*wts)[0];  // keep track of original normalization
   (*wts)[0] -= (*hold_notfound)[idx] - marginal_stats_[st].arc_notfound[idx];
@@ -289,10 +289,11 @@ bool NGramMarginal::StateHigherOrderBackoffRecalc(StateId st) {
 
 // Recalculate backoff weights of higher order states;
 // if updated, recalculate arcs based on this.
-bool NGramMarginal::HigherOrderBackoffRecalc(StateId st, vector<double> *wts,
+bool NGramMarginal::HigherOrderBackoffRecalc(StateId st,
+                                             std::vector<double> *wts,
                                              double *norm) {
   if (StateHigherOrderBackoffRecalc(st)) {  // recalculate denominators of arcs
-    vector<double> hold_notfound;           // to hold prior not_found values
+    std::vector<double> hold_notfound;      // to hold prior not_found values
     for (size_t i = 0; i < marginal_stats_[st].arc_notfound.size(); ++i) {
       hold_notfound.push_back(marginal_stats_[st].arc_notfound[i]);
       marginal_stats_[st].arc_notfound[i] = marginal_stats_[st].log_prob;
@@ -309,7 +310,7 @@ bool NGramMarginal::HigherOrderBackoffRecalc(StateId st, vector<double> *wts,
 void NGramMarginal::CalculateNewStateWeights(StateId st) {
   HigherOrderStateSum(st);      // collect stats from higher order states
   HigherOrderArcSum(st, true);  // collect stats for all arcs
-  vector<double> wts;           // For storing resulting arc weights
+  std::vector<double> wts;      // For storing resulting arc weights
   double norm = GetSaneArcWeights(st, &wts);
   bool need_upd = true;
   int upd_count = 0;

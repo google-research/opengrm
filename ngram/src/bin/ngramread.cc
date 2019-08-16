@@ -12,11 +12,7 @@
 // limitations under the License.
 //
 // Copyright 2005-2016 Brian Roark and Google, Inc.
-// Reads textual model representations and produces n-gram model FST.
-
-#include <string>
-
-#include <ngram/ngram-input.h>
+#include <fst/flags.h>
 
 DEFINE_bool(ARPA, false, "Read model from ARPA format");
 DEFINE_bool(renormalize_arpa, false,
@@ -29,23 +25,7 @@ DEFINE_string(OOV_symbol, "<unk>", "Class label for OOV symbols");
 DECLARE_string(start_symbol);  // defined in ngram-output.cc
 DECLARE_string(end_symbol);    // defined in ngram-output.cc
 
-int main(int argc, char **argv) {
-  string usage = "Transform text formats to fst.\n\n  Usage: ";
-  usage += argv[0];
-  usage += " [--options] [in.txt [out.fst]]\n";
-  std::set_new_handler(FailedNewHandler);
-  SET_FLAGS(usage.c_str(), &argc, &argv, true);
-
-  if (argc > 3) {
-    ShowUsage();
-    return 1;
-  }
-
-  ngram::NGramInput ingram(
-      (argc > 1 && strcmp(argv[1], "-") != 0) ? argv[1] : string(),
-      (argc > 2 && strcmp(argv[2], "-") != 0) ? argv[2] : string(),
-      FLAGS_symbols, FLAGS_epsilon_symbol, FLAGS_OOV_symbol, FLAGS_start_symbol,
-      FLAGS_end_symbol);
-  return !ingram.ReadInput(FLAGS_ARPA, /* symbols = */ false,
-                           /* output = */ true, FLAGS_renormalize_arpa);
+int ngramread_main(int argc, char** argv);
+int main(int argc, char** argv) {
+  return ngramread_main(argc, argv);
 }

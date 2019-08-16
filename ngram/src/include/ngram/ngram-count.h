@@ -36,11 +36,10 @@ namespace ngram {
 template <class Weight, class Label = int32>
 class NGramCounter {
  public:
-  // Construct an NGramCounter object counting n-grams of order less
-  // or equal to 'order'. When 'epsilon_as_backoff' is 'true', the epsilon
-  // transition in the input Fst are treated as failure backoff transitions
-  // and would trigger the length of the current context to be decreased
-  // by one ("pop front").
+  // Construct an NGramCounter object counting n-grams of order less or equal to
+  // 'order'. When 'epsilon_as_backoff' is 'true', the epsilon transition in the
+  // input Fst are treated as failure backoff transitions and would trigger the
+  // length of the current context to be decreased by one ("pop front").
   explicit NGramCounter(size_t order, bool epsilon_as_backoff = false,
                         float delta = 1e-9F)
       : order_(order),
@@ -196,6 +195,20 @@ class NGramCounter {
     if (state_id < 0 || state_id >= states_.size()) return false;
     states_[state_id].final_count = weight;
     return true;
+  }
+
+  // Adds count to the unigram count of all symbols in the symbol table.
+  void AddCountToSymbolUnigrams(const fst::SymbolTable &syms,
+                                       Weight neg_log_count) {
+    for (fst::SymbolTableIterator siter(syms); !siter.Done();
+         siter.Next()) {
+      if (siter.Value() == 0) {
+        // If label == 0, updates final cost of unigram state.
+        UpdateFinalCount(NGramUnigramState(), neg_log_count);
+      } else {
+        UpdateCount(NGramUnigramState(), siter.Value(), neg_log_count);
+      }
+    }
   }
 
   // Sets the weight for a found n-gram.
@@ -469,11 +482,13 @@ bool NGramCounter<Weight, Label>::CountFromTopSortedFst(const Fst<Arc> &fst) {
 bool GetNGramCounts(fst::FarReader<fst::StdArc> *far_reader,
                     fst::StdMutableFst *fst, int order,
                     bool require_symbols = true,
-                    bool epsilon_as_backoff = false, bool round_to_int = false);
+                    bool epsilon_as_backoff = false, bool round_to_int = false,
+                    double add_to_symbol_unigram_count = 0.0);
 
 bool GetNGramCounts(fst::FarReader<fst::StdArc> *far_reader,
-                    std::vector<string> *ngrams, int order,
-                    bool epsilon_as_backoff = false);
+                    std::vector<std::string> *ngrams, int order,
+                    bool epsilon_as_backoff = false,
+                    double add_to_symbol_unigram_count = 0.0);
 
 // Computes counts using the HistogramArc template.
 bool GetNGramHistograms(fst::FarReader<fst::StdArc> *far_reader,
@@ -486,7 +501,7 @@ bool GetNGramHistograms(fst::FarReader<fst::StdArc> *far_reader,
 // Computes count-of-counts.
 template <class Arc>
 void GetNGramCountOfCounts(const Fst<Arc> &fst, StdMutableFst *ccfst,
-                           int in_order, const string &context_pattern) {
+                           int in_order, const std::string &context_pattern) {
   NGramModel<Arc> ngram(fst, 0, kNormEps, !context_pattern.empty());
   int order = ngram.HiOrder() > in_order ? ngram.HiOrder() : in_order;
   NGramCountOfCounts<Arc> count_of_counts(context_pattern, order);

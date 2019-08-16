@@ -1,47 +1,55 @@
 #!/bin/bash
-# Description:
 # Tests that ngramcount computes correct histogram counts.
 
-bin=../bin
-testdata=$srcdir/testdata
-tmpdata=${TMPDIR:-/tmp}
-tmpsuffix="$(mktemp -u XXXXXXXX 2>/dev/null)"
-tmpprefix="${tmpdata}/cnthist-$tmpsuffix-$RANDOM-$$"
+set -eou pipefail
 
-trap "rm -f ${tmpprefix}*" 0 2 13 15
-
-set -e
+readonly BIN="../bin"
+readonly TESTDATA="${srcdir}/testdata"
+readonly TEST_TMPDIR="${TEST_TMPDIR:-$(mktemp -d)}"
 
 compile_test_fst() {
-  if [ ! -e "${tmpprefix}-${1}".ref ]
-  then
-    fstcompile \
-      -isymbols="${testdata}/${2}".syms -osymbols="${testdata}/${2}".syms \
-      -keep_isymbols -keep_osymbols -keep_state_numbering \
-      "${testdata}/${1}".txt >"${tmpprefix}-${1}".ref
-  fi
+  fstcompile \
+    --isymbols="${TESTDATA}/${2}.syms" \
+    --osymbols="${TESTDATA}/${2}.syms" \
+    --keep_isymbols \
+    --keep_osymbols \
+    --keep_state_numbering \
+    "${TESTDATA}/${1}.txt" \
+    "${TEST_TMPDIR}/${1}.ref"
 }
 
 compile_test_fst single_fst ab
 farcreate \
-  "${tmpprefix}"-single_fst.ref "${tmpprefix}"-single_fst.far
-./ngramhisttest --ifile="${testdata}"/single_fst_ref.txt \
-  --syms="${testdata}"/ab.syms --ofile="${tmpprefix}"-single_fst_ref.ref
-"${bin}/ngramcount" --order=3 --method=histograms \
-  "${tmpprefix}"-single_fst.far "${tmpprefix}"-single_fst.cnts
-./ngramhisttest --ifile="${tmpprefix}"-single_fst.cnts \
-  --cfile="${tmpprefix}"-single_fst_ref.ref
+  "${TEST_TMPDIR}/single_fst.ref" \
+  "${TEST_TMPDIR}/single_fst.far"
+"./ngramhisttest" \
+  --ifile="${TESTDATA}/single_fst_ref.txt" \
+  --syms="${TESTDATA}/ab.syms" \
+  --ofile="${TEST_TMPDIR}/single_fst_ref.ref"
+"${BIN}/ngramcount" \
+  --order=3 \
+  --method=histograms \
+  "${TEST_TMPDIR}/single_fst.far" \
+  "${TEST_TMPDIR}/single_fst.cnts"
+"./ngramhisttest" \
+  --ifile="${TEST_TMPDIR}/single_fst.cnts" \
+  --cfile="${TEST_TMPDIR}/single_fst_ref.ref"
 
-./ngramhisttest --ifile="${testdata}"/hist.ref.txt \
-  --syms="${testdata}"/ab.syms --ofile="${tmpprefix}"-hist.ref.ref
+"./ngramhisttest" \
+  --ifile="${TESTDATA}/hist.ref.txt" \
+  --syms="${TESTDATA}/ab.syms" \
+  --ofile="${TEST_TMPDIR}/hist.ref.ref"
 compile_test_fst fst1.hist ab
 compile_test_fst fst2.hist ab
 farcreate \
-  "${tmpprefix}"-fst1.hist.ref "${tmpprefix}"-fst2.hist.ref \
-  "${tmpprefix}"-test.far
-"${bin}/ngramcount" --order=2 --method=histograms \
-  "${tmpprefix}"-test.far "${tmpprefix}"-test.cnts
-./ngramhisttest --ifile="${tmpprefix}"-test.cnts \
-  --cfile="${tmpprefix}"-hist.ref.ref
-
-echo PASS
+  "${TEST_TMPDIR}/fst1.hist.ref" \
+  "${TEST_TMPDIR}/fst2.hist.ref" \
+  "${TEST_TMPDIR}/test.far"
+"${BIN}/ngramcount" \
+   --order=2 \
+   --method=histograms \
+  "${TEST_TMPDIR}/test.far" \
+  "${TEST_TMPDIR}/test.cnts"
+"./ngramhisttest" \
+  --ifile="${TEST_TMPDIR}/test.cnts" \
+  --cfile="${TEST_TMPDIR}/hist.ref.ref"

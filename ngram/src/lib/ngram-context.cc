@@ -14,22 +14,22 @@
 // Copyright 2005-2016 Brian Roark and Google, Inc.
 // Class to parse and maintain context specifications.
 
+#include <ngram/ngram-context.h>
+
 #include <algorithm>
 #include <cstring>
 #include <fstream>
 #include <istream>
-#include <ostream>
 #include <map>
+#include <ostream>
 #include <string>
 #include <vector>
 
 #include <fst/fst.h>
-#include <ngram/ngram-context.h>
 
 namespace ngram {
 
 using fst::StdArc;
-using std::map;
 
 namespace {
 // Utility wrapper for HasContext that avoids copying the input vector.
@@ -83,14 +83,14 @@ class ReversedPaddedVector {
 };
 }  // namespace
 
-bool NGramContext::HasContext(const vector<Label>& ngram,
+bool NGramContext::HasContext(const std::vector<Label> &ngram,
                               bool include_all_suffixes) const {
   if (NullContext())  // accept all
     return true;
 
   ReversedPaddedVector ngram_for_cmp(ngram, hi_order_ - 1);
 
-  vector<Label>::const_iterator context_begin_end;
+  std::vector<Label>::const_iterator context_begin_end;
   if (include_all_suffixes) {
     // Truncate context_begin to ensure all state n-gram suffixes accepted
     context_begin_end = context_begin_.begin() + ngram.size();
@@ -109,9 +109,9 @@ bool NGramContext::HasContext(const vector<Label>& ngram,
   return !less_begin && less_end;
 }
 
-void NGramContext::ParseContextInterval(const string &context_pattern,
-                                        vector<Label> *context_begin,
-                                        vector<Label> *context_end) {
+void NGramContext::ParseContextInterval(const std::string &context_pattern,
+                                        std::vector<Label> *context_begin,
+                                        std::vector<Label> *context_end) {
   context_begin->clear();
   context_end->clear();
 
@@ -122,8 +122,9 @@ void NGramContext::ParseContextInterval(const string &context_pattern,
     LOG(FATAL) << "NGramContext::ParseContextInterval: "
                << "context pattern too long";
   char line[linelen];
-  vector<char *> contexts;
-  vector<char *> labels1, labels2;
+  std::vector<char *> contexts;
+  std::vector<char *> labels1;
+  std::vector<char *> labels2;
   strncpy(line, context_pattern.c_str(), linelen);
   fst::SplitString(line, ":", &contexts, true);
   if (contexts.size() != 2)
@@ -157,7 +158,7 @@ void NGramContext::Init() {
 void NGramExtendedContext::Init(bool merge_contexts) {
   ContextCompare context_cmp;
   std::sort(contexts_.begin(), contexts_.end(), context_cmp);
-  if (contexts_.size() == 0) return;
+  if (contexts_.empty()) return;
 
   if (contexts_.size() == 1 && contexts_[0].NullContext()) {
     contexts_.pop_back();
@@ -173,8 +174,8 @@ void NGramExtendedContext::Init(bool merge_contexts) {
     size_t j = 1;
     size_t k = 0;
     for (; j < contexts_.size(); ++j) {
-      const vector<Label> &e1 = contexts_[j - 1].GetReverseContextEnd();
-      const vector<Label> &b2 = contexts_[j].GetReverseContextBegin();
+      const std::vector<Label> &e1 = contexts_[j - 1].GetReverseContextEnd();
+      const std::vector<Label> &b2 = contexts_[j].GetReverseContextBegin();
       if (e1 != b2) {
         MergeContexts(i, j - 1, k++);
         i = j;
@@ -200,8 +201,8 @@ bool NGramExtendedContext::CheckContexts() {
     contexts_[i].SetHiOrder(hi_order);
 
   for (size_t i = 1; i < contexts_.size(); ++i) {
-    const vector<Label> &e1 = contexts_[i - 1].GetReverseContextEnd();
-    const vector<Label> &b2 = contexts_[i].GetReverseContextBegin();
+    const std::vector<Label> &e1 = contexts_[i - 1].GetReverseContextEnd();
+    const std::vector<Label> &b2 = contexts_[i].GetReverseContextBegin();
     if (lexicographical_compare(b2.begin(), b2.end(), e1.begin(), e1.end())) {
       LOG(WARNING) << "CheckContexts: over-lapping context intevals";
       return false;
@@ -213,8 +214,8 @@ bool NGramExtendedContext::CheckContexts() {
 
 void NGramExtendedContext::MergeContexts(size_t i, size_t j, size_t k) {
   if (i != j) {  // non-trivial merge?
-    const vector<Label> &b1 = contexts_[i].GetContextBegin();
-    const vector<Label> &e2 = contexts_[j].GetContextEnd();
+    const std::vector<Label> &b1 = contexts_[i].GetContextBegin();
+    const std::vector<Label> &e2 = contexts_[j].GetContextEnd();
     int hi_order = contexts_[0].GetHiOrder();
     NGramContext context(b1, e2, hi_order);
     contexts_[k] = context;
@@ -224,20 +225,20 @@ void NGramExtendedContext::MergeContexts(size_t i, size_t j, size_t k) {
 }
 
 void NGramExtendedContext::ParseContextIntervals(
-    const string &extended_context_pattern, int hi_order,
-    vector<NGramContext> *contexts) {
+    const std::string &extended_context_pattern, int hi_order,
+    std::vector<NGramContext> *contexts) {
   contexts->clear();
   int linelen = extended_context_pattern.size() + 1;
   std::unique_ptr<char[]> line(new char[linelen]);
   strncpy(line.get(), extended_context_pattern.c_str(), linelen);
-  vector<char *> context_patterns;
+  std::vector<char *> context_patterns;
   fst::SplitString(line.get(), ",", &context_patterns, true);
 
   for (size_t i = 0; i < context_patterns.size(); ++i)
     contexts->push_back(NGramContext(context_patterns[i], hi_order));
 }
 
-bool NGramExtendedContext::HasContext(const vector<Label> &ngram,
+bool NGramExtendedContext::HasContext(const std::vector<Label> &ngram,
                                       bool include_all_suffixes) const {
   if (contexts_.empty())
     return true;
@@ -246,10 +247,10 @@ bool NGramExtendedContext::HasContext(const vector<Label> &ngram,
 }
 
 const NGramContext *NGramExtendedContext::GetContext(
-    const vector<Label> &ngram, bool include_all_suffixes) const {
-  vector<Label> ngram_end(ngram);
+    const std::vector<Label> &ngram, bool include_all_suffixes) const {
+  std::vector<Label> ngram_end(ngram);
   if (ngram_end.empty()) ngram_end.push_back(0);
-  vector<Label> ngram_beg(ngram_end);
+  std::vector<Label> ngram_beg(ngram_end);
   ++ngram_end[0];  // ensures non-empty interval below
 
   int hi_order = contexts_[0].GetHiOrder();
@@ -269,7 +270,8 @@ const NGramContext *NGramExtendedContext::GetContext(
   }
 }
 
-bool NGramReadContexts(const string &file, vector<string> *contexts) {
+bool NGramReadContexts(const std::string &file,
+                       std::vector<std::string> *contexts) {
   contexts->clear();
   std::ifstream fstrm;
   fstrm.open(file);
@@ -278,12 +280,13 @@ bool NGramReadContexts(const string &file, vector<string> *contexts) {
     return false;
   }
   std::istream &strm = fstrm.is_open() ? fstrm : std::cin;
-  string line;
-  while (getline(strm, line)) contexts->push_back(line);
+  std::string line;
+  while (std::getline(strm, line)) contexts->push_back(line);
   return true;
 }
 
-bool NGramWriteContexts(const string &file, const vector<string> &contexts) {
+bool NGramWriteContexts(const std::string &file,
+                        const std::vector<std::string> &contexts) {
   std::ofstream ofstrm;
   if (!file.empty()) {
     ofstrm.open(file);

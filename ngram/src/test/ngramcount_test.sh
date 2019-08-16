@@ -1,74 +1,86 @@
 #!/bin/bash
-# Description:
 # Tests the command line binary ngramcount.
 
-bin=../bin
-testdata=$srcdir/testdata
-tmpdata=${TMPDIR:-/tmp}
-tmpsuffix="$(mktemp -u XXXXXXXX 2>/dev/null)"
-tmpprefix="${tmpdata}/ngramcnt-earnest-$tmpsuffix-$RANDOM-$$"
+set -eou pipefail
 
-trap "rm -f ${tmpprefix}*" 0 2 13 15
+readonly BIN="../bin"
+readonly TESTDATA="${srcdir}/testdata"
+readonly TEST_TMPDIR="${TEST_TMPDIR:-$(mktemp -d)}"
 
-set -e
 compile_test_fst() {
-  if [ ! -e "${tmpprefix}-${1}.ref" ]
-  then
-    fstcompile \
-      -isymbols="${testdata}/${1}.sym" -osymbols="${testdata}/${1}.sym" \
-      -keep_isymbols -keep_osymbols -keep_state_numbering \
-      "${testdata}/${1}.txt" "${tmpprefix}-${1}.ref"
-  fi
+  fstcompile \
+    --isymbols="${TESTDATA}/${1}.sym" \
+    --osymbols="${TESTDATA}/${1}.sym" \
+    --keep_isymbols \
+    --keep_osymbols \
+    --keep_state_numbering \
+    "${TESTDATA}/${1}.txt" \
+    "${TEST_TMPDIR}/${1}.ref"
 }
 
 compile_test_far() {
-  if [ ! -e $1.far ]
-  then
-    compile_test_fst "${1}"
-    farcreate \
-      "${tmpprefix}-${1}.ref" "${tmpprefix}-${1}.far"
-  fi
+  compile_test_fst "${1}"
+  farcreate \
+    "${TEST_TMPDIR}/${1}.ref" \
+    "${TEST_TMPDIR}/${1}.far"
 }
 
 farcompilestrings \
-  --symbols="${testdata}"/earnest.syms --keep_symbols=1 \
-  "${testdata}"/earnest.txt >"${tmpprefix}".far
+  --fst_type=compact \
+  --symbols="${TESTDATA}/earnest.syms" \
+  --keep_symbols \
+  "${TESTDATA}/earnest.txt" \
+  "${TEST_TMPDIR}/earnest.far"
 
 compile_test_fst earnest.cnts
-# Counting from set of string Fsts
-"${bin}/ngramcount" --order=5 "${tmpprefix}".far >"${tmpprefix}".cnts
+# Counting from a FAR of string FSTs.
+"${BIN}/ngramcount" \
+  --order=5 \
+  "${TEST_TMPDIR}/earnest.far" \
+  "${TEST_TMPDIR}/earnest.cnts"
 fstequal \
-  "${tmpprefix}"-earnest.cnts.ref "${tmpprefix}".cnts
+  "${TEST_TMPDIR}/earnest.cnts.ref" \
+  "${TEST_TMPDIR}/earnest.cnts"
 
 compile_test_far earnest.fst
 compile_test_fst earnest-fst.cnts
-# Counting from an Fst representing a union of paths
-"${bin}/ngramcount" --order=5 "${tmpprefix}"-earnest.fst.far \
-  >"${tmpprefix}".cnts
+# Counting from an FST representing a union of paths.
+"${BIN}/ngramcount" \
+  --order=5 \
+  "${TEST_TMPDIR}/earnest.fst.far" \
+  "${TEST_TMPDIR}/earnest.cnts"
 fstequal \
-  "${tmpprefix}"-earnest-fst.cnts.ref "${tmpprefix}".cnts
+  "${TEST_TMPDIR}/earnest-fst.cnts.ref" \
+  "${TEST_TMPDIR}/earnest.cnts"
 
 compile_test_far earnest.det
 compile_test_fst earnest-det.cnts
-# Counting from the deterministic "tree" Fst representing the corpus
-"${bin}/ngramcount" --order=5 "${tmpprefix}"-earnest.det.far \
-  >"${tmpprefix}".cnts
+# Counting from the deterministic "tree" FST representing the corpus.
+"${BIN}/ngramcount" \
+  --order=5 \
+  "${TEST_TMPDIR}/earnest.det.far" \
+  "${TEST_TMPDIR}/earnest-det.cnts"
 fstequal \
-  "${tmpprefix}"-earnest-det.cnts.ref "${tmpprefix}".cnts
+  "${TEST_TMPDIR}/earnest-det.cnts.ref" \
+  "${TEST_TMPDIR}/earnest-det.cnts"
 
 compile_test_far earnest.min
 compile_test_fst earnest-min.cnts
-# Counting from the minimal deterministic Fst representing the corpus
-"${bin}/ngramcount" --order=5 "${tmpprefix}"-earnest.min.far \
-  >"${tmpprefix}".cnts
+# Counting from the minimal deterministic FST representing the corpus.
+"${BIN}/ngramcount" \
+  --order=5 \
+  "${TEST_TMPDIR}/earnest.min.far" \
+  "${TEST_TMPDIR}/earnest-min.cnts"
 fstequal \
-  "${tmpprefix}"-earnest-min.cnts.ref "${tmpprefix}".cnts
+  "${TEST_TMPDIR}/earnest-min.cnts.ref" \
+  "${TEST_TMPDIR}/earnest-min.cnts"
 
 compile_test_fst earnest.cnt_of_cnts
-# Counting from counts
-"${bin}/ngramcount" --method=count_of_counts \
-  "${tmpprefix}"-earnest.cnts.ref >"${tmpprefix}".cnt_of_cnts
+# Counting from counts.
+"${BIN}/ngramcount" \
+  --method=count_of_counts \
+  "${TEST_TMPDIR}/earnest.cnts.ref" \
+  "${TEST_TMPDIR}/earnest.cnt_of_cnts"
 fstequal \
-  "${tmpprefix}"-earnest.cnt_of_cnts.ref "${tmpprefix}".cnt_of_cnts
-
-echo PASS
+  "${TEST_TMPDIR}/earnest.cnt_of_cnts.ref" \
+  "${TEST_TMPDIR}/earnest.cnt_of_cnts"

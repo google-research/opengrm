@@ -20,24 +20,19 @@
 #include <ngram/hist-arc.h>
 #include <ngram/ngram-make.h>
 
-DEFINE_double(witten_bell_k, 1, "Witten-Bell hyperparameter K");
-DEFINE_double(discount_D, -1, "Absolute discount value D to use");
-DEFINE_string(method, "katz",
-              "One of: \"absolute\", \"katz\", \"kneser_ney\", "
-              "\"presmoothed\", \"unsmoothed\", \"katz_frac\", "
-              "\"witten_bell\"");
-DEFINE_bool(backoff, false,
-            "Use backoff smoothing (default: method dependent)");
-DEFINE_bool(interpolate, false,
-            "Use interpolated smoothing (default: method dependent)");
-DEFINE_int64(bins, -1, "Number of bins for katz or absolute discounting");
-DEFINE_int64(backoff_label, 0, "Backoff label");
-DEFINE_double(norm_eps, ngram::kNormEps, "Normalization check epsilon");
-DEFINE_bool(check_consistency, false, "Check model consistency");
-DEFINE_string(count_of_counts, "", "Read count-of-counts from file");
+DECLARE_double(witten_bell_k);
+DECLARE_double(discount_D);
+DECLARE_string(method);
+DECLARE_bool(backoff);
+DECLARE_bool(interpolate);
+DECLARE_int64(bins);
+DECLARE_int64(backoff_label);
+DECLARE_double(norm_eps);
+DECLARE_bool(check_consistency);
+DECLARE_string(count_of_counts);
 
-int main(int argc, char **argv) {
-  string usage = "Make ngram model from input count file.\n\n  Usage: ";
+int ngrammake_main(int argc, char **argv) {
+  std::string usage = "Make n-gram model from input count file.\n\n  Usage: ";
   usage += argv[0];
   usage += " [--options] [in.fst [out.fst]]\n";
   std::set_new_handler(FailedNewHandler);
@@ -48,7 +43,8 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  string in_name = (argc > 1 && (strcmp(argv[1], "-") != 0)) ? argv[1] : "";
+  std::string in_name =
+      (argc > 1 && (strcmp(argv[1], "-") != 0)) ? argv[1] : "";
   std::unique_ptr<fst::StdFst> ccfst;
   if (!FLAGS_count_of_counts.empty()) {
     ccfst.reset(fst::StdFst::Read(FLAGS_count_of_counts));
@@ -77,7 +73,8 @@ int main(int argc, char **argv) {
     }
   }
   if (model_made) {
-    string out_name = (argc > 2 && (strcmp(argv[2], "-") != 0)) ? argv[2] : "";
+    std::string out_name =
+        (argc > 2 && (strcmp(argv[2], "-") != 0)) ? argv[2] : "";
     fst->Write(out_name);
   }
   return !model_made;

@@ -22,30 +22,29 @@
 #include <ngram/ngram-complete.h>
 #include <ngram/ngram-transfer.h>
 
-DEFINE_int64(backoff_label, 0, "Backoff label");
-DEFINE_string(context_pattern1, "", "Context pattern for first model");
-DEFINE_string(context_pattern2, "", "Context pattern for second model");
-DEFINE_string(contexts, "", "Context patterns files (all FSTs)");
-DEFINE_string(ofile, "", "Output file (prefix)");
-DEFINE_string(method, "count_transfer",
-              "One of \"count_transfer\", "
-              "\"histogram_transfer\"");
-DEFINE_int32(index, -1, "Specifies one FST as the destination (source)");
-DEFINE_bool(transfer_from, false,
-            "Transfer from (to) other FSTS to indexed FST");
-DEFINE_bool(normalize, false, "Recompute backoff weights after transfer");
-DEFINE_bool(complete, false, "Complete partial models");
+DECLARE_int64(backoff_label);
+DECLARE_string(context_pattern1);
+DECLARE_string(context_pattern2);
+DECLARE_string(contexts);
+DECLARE_string(ofile);
+DECLARE_string(method);
+DECLARE_int32(index);
+DECLARE_bool(transfer_from);
+DECLARE_bool(normalize);
+DECLARE_bool(complete);
+
+namespace {
 
 template <class Arc>
 bool ReadFst(const char *file, std::unique_ptr<fst::VectorFst<Arc>> *fst) {
-  string in_name = (strcmp(file, "-") != 0) ? file : "";
+  std::string in_name = (strcmp(file, "-") != 0) ? file : "";
   fst->reset(fst::VectorFst<Arc>::Read(file));
-  if (!(*fst) || (FLAGS_complete && !ngram::NGramComplete(fst->get())))
+  if (!*fst || (FLAGS_complete && !ngram::NGramComplete(fst->get())))
     return false;
   return true;
 }
 
-bool GetContexts(int in_count, std::vector<string> *contexts) {
+bool GetContexts(int in_count, std::vector<std::string> *contexts) {
   contexts->clear();
   if (!FLAGS_contexts.empty()) {
     ngram::NGramReadContexts(FLAGS_contexts, contexts);
@@ -65,11 +64,11 @@ bool GetContexts(int in_count, std::vector<string> *contexts) {
 }
 
 template <class Arc>
-bool Transfer(string out_name_prefix, int in_count, char **argv) {
+bool Transfer(std::string out_name_prefix, int in_count, char **argv) {
   std::unique_ptr<fst::VectorFst<Arc>> index_fst;
   if (!ReadFst<Arc>(argv[FLAGS_index + 1], &index_fst)) return false;
 
-  std::vector<string> contexts;
+  std::vector<std::string> contexts;
   if (!GetContexts(in_count, &contexts)) return false;
 
   if (FLAGS_transfer_from) {
@@ -106,15 +105,17 @@ bool Transfer(string out_name_prefix, int in_count, char **argv) {
       suffix.width(5);
       suffix.fill('0');
       suffix << dest;
-      string out_name = out_name_prefix + suffix.str();
+      std::string out_name = out_name_prefix + suffix.str();
       fst_dest->Write(out_name);
     }
   }
   return true;
 }
 
-int main(int argc, char **argv) {
-  string usage = "ngramtransfer.\n\n  Usage: ";
+}  // namespace
+
+int ngramtransfer_main(int argc, char **argv) {
+  std::string usage = "Transfer n-grams between models.\n\n  Usage: ";
   usage += argv[0];
   usage += " [--options] --ofile=out.fst in1.fst in2.fst [in3.fst ...]\n";
   std::set_new_handler(FailedNewHandler);
@@ -125,7 +126,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  string out_name_prefix =
+  std::string out_name_prefix =
       FLAGS_ofile.empty() ? (argc > 3 ? argv[3] : "") : FLAGS_ofile;
 
   int in_count = FLAGS_ofile.empty() ? 2 : argc - 1;

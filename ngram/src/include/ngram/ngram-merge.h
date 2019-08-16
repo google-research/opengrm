@@ -19,6 +19,7 @@
 
 #include <map>
 #include <set>
+#include <string>
 
 #include <fst/arcsort.h>
 #include <fst/vector-fst.h>
@@ -26,13 +27,8 @@
 
 namespace ngram {
 
-using fst::VectorFst;
-using std::set;
-
-using std::map;
-using std::multimap;
-
 using fst::ILabelCompare;
+using fst::VectorFst;
 
 template <class Arc>
 class NGramMerge : public NGramMutableModel<Arc> {
@@ -179,7 +175,7 @@ class NGramMerge : public NGramMutableModel<Arc> {
         new NGramMutableModel<Arc>(fst2_.get(), BackoffLabel(), NormEps(),
                                    check_consistency_));
 
-    map<int64, int64> symbol_map;  // mapping symbols in symbol lists
+    std::map<int64, int64> symbol_map;  // mapping symbols in symbol lists
     symbol_map[mutable_ngram2->BackoffLabel()] = BackoffLabel();
     for (StateId st = 0; st < ngram2_ns_; ++st) {
       for (MutableArcIterator<MutableFst<Arc>> aiter(
@@ -203,7 +199,7 @@ class NGramMerge : public NGramMutableModel<Arc> {
   }
 
   // Finds word key if in symbol table, otherwise adds (for merging wordlists)
-  int64 NewWordKey(string symbol, int64 key2) {
+  int64 NewWordKey(std::string symbol, int64 key2) {
     int64 key1 = GetMutableFst()->InputSymbols()->Find(symbol);
     if (key1 < 0) {  // Returns key2 if free, o.w. next available key.
       key1 = GetMutableFst()->InputSymbols()->Find(key2).empty()
@@ -365,7 +361,7 @@ class NGramMerge : public NGramMutableModel<Arc> {
     }
 
     // Merges arcs from shared and unshared states
-    set<Label> shared;  // shared arcs between st and ist
+    std::set<Label> shared;  // shared arcs between st and ist
     int order = max_order < 1 || max_order > HiOrder() ? HiOrder() : max_order;
     if (!MaxOrderOkay(order)) {
       NGRAMERROR() << "max order other than the highest order not supported "
@@ -404,7 +400,7 @@ class NGramMerge : public NGramMutableModel<Arc> {
 
   // For n-gram arcs shared in common, combines weight,
   // sets correct destination
-  void MergeSharedArcs(StateId st, StateId ist, set<Label> *shared) {
+  void MergeSharedArcs(StateId st, StateId ist, std::set<Label> *shared) {
     MutableArcIterator<MutableFst<Arc>> aiter(GetMutableFst(), st);
     if (!aiter.Done()) {
       Arc arc = aiter.Value();
@@ -446,7 +442,8 @@ class NGramMerge : public NGramMutableModel<Arc> {
 
   // Merges n-gram arcs not found in the new model
   // Applies when MergeUnshared(true) is true.
-  void MergeUnsharedArcs1(StateId st, StateId ist, const set<Label> &shared) {
+  void MergeUnsharedArcs1(StateId st, StateId ist,
+                          const std::set<Label> &shared) {
     StateId bst = backoff_map_1to2_[st];
     for (MutableArcIterator<MutableFst<Arc>> aiter(GetMutableFst(), st);
          !aiter.Done(); aiter.Next()) {
@@ -479,7 +476,8 @@ class NGramMerge : public NGramMutableModel<Arc> {
   }
 
   // Merges n-gram arcs not found in the original model
-  void MergeUnsharedArcs2(StateId st, StateId ist, const set<Label> &shared) {
+  void MergeUnsharedArcs2(StateId st, StateId ist,
+                          const std::set<Label> &shared) {
     StateId bst = backoff_map_2to1_[ist];
     StateId ibo = ngram2_->GetBackoff(ist, 0);
     StateId bo = ibo >= 0 ? exact_map_2to1_[ibo] : -1;
@@ -573,21 +571,21 @@ class NGramMerge : public NGramMutableModel<Arc> {
       SetError();
       return st;
     }
-    if (cost != 0) *cost = Arc::Weight::One();
+    if (cost) *cost = Arc::Weight::One();
     Matcher<Fst<Arc>> matcher(ngram->GetFst(), MATCH_INPUT);
     matcher.SetState(st);
     while (!matcher.Find(label)) {  // while no match found
       Weight thiscost;
       st = ngram->GetBackoff(st, &thiscost);
       if (st < 0) {
-        if (cost != 0) (*cost) = Arc::Weight::Zero();
+        if (cost) *cost = Arc::Weight::Zero();
         return ngram->UnigramState() < 0 ? ngram->GetFst().Start()
                                          : ngram->UnigramState();
       }
-      if (cost != 0) (*cost) = Times(*cost, thiscost);
+      if (cost) *cost = Times(*cost, thiscost);
       matcher.SetState(st);
     }
-    if (cost != 0) (*cost) = Times(*cost, matcher.Value().weight);
+    if (cost) *cost = Times(*cost, matcher.Value().weight);
     return matcher.Value().nextstate;
   }
 
@@ -654,26 +652,25 @@ class NGramMerge : public NGramMutableModel<Arc> {
   // NB: ngram1 is *this
   std::unique_ptr<const NGramModel<Arc>> ngram2_;  // model to mix into ngram1
   bool check_consistency_;
-
   // Maps from a state to its exact same context in the other model
   // These include states that have been added to NGram1.
-  vector<StateId> exact_map_1to2_;  // mapping ngram1 states to ngram2 states
-  vector<StateId> exact_map_2to1_;  // mapping ngram2 states to ngram1 states
-
+  std::vector<StateId>
+      exact_map_1to2_;  // mapping ngram1 states to ngram2 states
+  std::vector<StateId>
+      exact_map_2to1_;  // mapping ngram2 states to ngram1 states
   // Maps from a state to its closest backed-off context in the other model
   // These are wrt original model before any states have been added to NGram1
-  vector<StateId> backoff_map_1to2_;  // mapping ngram1 states to ngram2 states
-  vector<StateId> backoff_map_2to1_;  // mapping ngram2 states to ngram1 states
-
-  // Given a state s and a label l on an outgoing arc to destination d
-  // in ngram1, returns the set of states backing off to s, that also
-  // have an arc labeled with l and going to destination d.  Computed
-  // only for non-ascending arcs.
-  multimap<std::pair<StateId, Label>, StateId> backed_off_to_;
-
+  std::vector<StateId>
+      backoff_map_1to2_;  // mapping ngram1 states to ngram2 states
+  std::vector<StateId>
+      backoff_map_2to1_;  // mapping ngram2 states to ngram1 states
+  // Given a state s and a label l on an outgoing arc to destination d in
+  // ngram1, returns the set of states backing off to s, that also have an arc
+  // labeled with l and going to destination d. Computed only for non-ascending
+  // arcs.
+  std::multimap<std::pair<StateId, Label>, StateId> backed_off_to_;
   size_t ngram1_ns_;  // original number of states in ngram1
   size_t ngram2_ns_;  // original number of states in ngram2
-
   std::unique_ptr<VectorFst<Arc>> fst2_;  // copy of FST2 if needed.
 };
 

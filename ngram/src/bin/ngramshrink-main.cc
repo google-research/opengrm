@@ -21,26 +21,21 @@
 #include <ngram/ngram-list-prune.h>
 #include <ngram/ngram-shrink.h>
 
-DEFINE_double(total_unigram_count, -1.0, "Total unigram count");
-DEFINE_double(theta, 0.0, "Pruning threshold theta");
-DEFINE_int64(target_number_of_ngrams, -1,
-             "Maximum number of ngrams to leave in model after pruning. "
-             "Value less than zero means no target number, just use theta.");
-DEFINE_int32(min_order_to_prune, 2, "Minimum n-gram order to prune");
-DEFINE_string(method, "seymore",
-              "One of: \"context_prune\", \"count_prune\", "
-              "\"relative_entropy\", \"seymore\", \"list_prune\"");
-DEFINE_string(list_file, "", "File with list of n-grams to prune");
-DEFINE_string(count_pattern, "", "Pattern of counts to prune");
-DEFINE_string(context_pattern, "", "Pattern of contexts to prune");
-DEFINE_int32(shrink_opt, 0,
-             "Optimization level: Range 0 (fastest) to 2 (most accurate)");
-DEFINE_int64(backoff_label, 0, "Backoff label");
-DEFINE_double(norm_eps, ngram::kNormEps, "Normalization check epsilon");
-DEFINE_bool(check_consistency, false, "Check model consistency");
+DECLARE_double(total_unigram_count);
+DECLARE_double(theta);
+DECLARE_int64(target_number_of_ngrams);
+DECLARE_int32(min_order_to_prune);
+DECLARE_string(method);
+DECLARE_string(list_file);
+DECLARE_string(count_pattern);
+DECLARE_string(context_pattern);
+DECLARE_int32(shrink_opt);
+DECLARE_int64(backoff_label);
+DECLARE_double(norm_eps);
+DECLARE_bool(check_consistency);
 
-int main(int argc, char **argv) {
-  string usage = "Shrink ngram model from input model file.\n\n  Usage: ";
+int ngramshrink_main(int argc, char **argv) {
+  std::string usage = "Shrink n-gram model from input model file.\n\n  Usage: ";
   usage += argv[0];
   usage += " [--options] [in.fst [out.fst]]\n";
   std::set_new_handler(FailedNewHandler);
@@ -51,8 +46,9 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  string in_name = (argc > 1 && (strcmp(argv[1], "-") != 0)) ? argv[1] : "";
-  string out_name = argc > 2 ? argv[2] : "";
+  std::string in_name =
+      (argc > 1 && (strcmp(argv[1], "-") != 0)) ? argv[1] : "";
+  std::string out_name = argc > 2 ? argv[2] : "";
 
   std::unique_ptr<fst::StdMutableFst> fst(
       fst::StdMutableFst::Read(in_name, true));
@@ -70,9 +66,9 @@ int main(int argc, char **argv) {
                    << " for reading";
       return 1;
     }
-    string line;
-    std::vector<string> ngrams_to_prune;
-    while (getline(ifstrm, line)) {
+    std::string line;
+    std::vector<std::string> ngrams_to_prune;
+    while (std::getline(ifstrm, line)) {
       ngrams_to_prune.push_back(line);
     }
     ifstrm.close();

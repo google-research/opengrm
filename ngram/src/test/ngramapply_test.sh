@@ -1,35 +1,60 @@
 #!/bin/bash
-# Description:
 # Tests the command line binary ngramapply.
 
-bin=../bin
-testdata=$srcdir/testdata
-tmpdata=${TMPDIR:-/tmp}
-tmpsuffix="$(mktemp -u XXXXXXXX 2>/dev/null)"
-randgenname="earnest.randgen"
-tmpprefix="${tmpdata}/ngramapp-earnest-$tmpsuffix-$RANDOM-$$"
-tmpprefix2="${tmpdata}/${randgenname}-$tmpsuffix-$RANDOM-$$"
+set -eou pipefail
 
-trap "rm -rf ${tmpprefix}* ${tmpprefix2}*" 0 2 13 15
+readonly BIN="../bin"
+readonly TESTDATA="${srcdir}/testdata"
+readonly TEST_TMPDIR="${TEST_TMPDIR:-$(mktemp -d)}"
 
-set -e
 compile_test_fst() {
-  if [ ! -e "${tmpprefix}-${1}.ref" ]
-  then
-    fstcompile \
-      -isymbols="${testdata}/${1}.sym" -osymbols="${testdata}/${1}.sym" \
-      -keep_isymbols -keep_osymbols -keep_state_numbering \
-      "${testdata}/${1}.txt" "${tmpprefix}-${1}.ref"
-  fi
+  fstcompile \
+    --isymbols="${TESTDATA}/${1}.sym" \
+    --osymbols="${TESTDATA}/${1}.sym" \
+    --keep_isymbols \
+    --keep_osymbols \
+    --keep_state_numbering \
+    "${TESTDATA}/${1}.txt" \
+    "${TEST_TMPDIR}/${1}.ref"
 }
 
-$srcdir/./ngramcompile_randgen_far.sh "${randgenname}" "${tmpprefix2}"
 compile_test_fst earnest-witten_bell.mod
-"${bin}/ngramapply" \
-  "${tmpprefix}"-earnest-witten_bell.mod.ref \
-  "${tmpprefix2}".far "${tmpprefix2}".apply.far
+
+# Create FARs.
+farcompilestrings \
+  --fst_type=compact \
+  --key_prefix="FST" \
+  --generate_keys=4 \
+  --symbols="${TESTDATA}/earnest.randgen.apply.sym" \
+  --keep_symbols \
+  "${TESTDATA}/earnest.randgen.txt" \
+  "${TEST_TMPDIR}/earnest.far"
+tar -xzf \
+  "${TESTDATA}/earnest.randgen.apply.FSTtxt.tgz" \
+  -C \
+  "${TEST_TMPDIR}"
+fstcompile \
+  --isymbols="${TESTDATA}/earnest.randgen.sym" \
+  --osymbols="${TESTDATA}/earnest.randgen.sym" \
+  --keep_state_numbering \
+  "${TEST_TMPDIR}/FST0001.txt" \
+  "${TEST_TMPDIR}/FST0001"
+ls "${TEST_TMPDIR}/FST"????.txt \
+  | grep -v FST0001 \
+  | sed 's/.txt$//g' \
+  | while read I; do
+    fstcompile \
+    "${I}.txt" \
+    "${I}"
+  done
+farcreate \
+    "${TEST_TMPDIR}/FST"???? "${TEST_TMPDIR}/earnest.apply.far.ref"
+
+"${BIN}/ngramapply" \
+  "${TEST_TMPDIR}/earnest-witten_bell.mod.ref" \
+  "${TEST_TMPDIR}/earnest.far" \
+  "${TEST_TMPDIR}/earnest.apply.far"
 
 farequal \
-  "${tmpprefix2}".apply.far.ref "${tmpprefix2}".apply.far
-
-echo PASS
+  "${TEST_TMPDIR}/earnest.apply.far.ref" \
+  "${TEST_TMPDIR}/earnest.apply.far"

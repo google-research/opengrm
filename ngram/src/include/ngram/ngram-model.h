@@ -18,7 +18,6 @@
 #define NGRAM_NGRAM_MODEL_H_
 
 #include <deque>
-#include <set>
 #include <vector>
 
 #include <fst/flags.h>
@@ -31,10 +30,6 @@
 #include <ngram/util.h>
 
 namespace ngram {
-
-using std::set;
-using std::vector;
-using std::deque;
 
 using fst::kAcceptor;
 using fst::kIDeterministic;
@@ -69,7 +64,7 @@ static double NegLogDeltaValue(double a, double b, double *c) {
     delta = -x;
     for (int j = 2; j <= 4; ++j) delta += pow(-x, j) / j;
   }
-  if (c) delta -= (*c);  // Sum correction from Kahan formula (if using)
+  if (c) delta -= *c;  // Sum correction from Kahan formula (if using)
   return delta;
 }
 
@@ -81,7 +76,7 @@ static double NegLogSum(double a, double b, double *c) {
   if (b == StdArc::Weight::Zero().Value()) return a;
   if (a > b) return NegLogSum(b, a, c);
   double delta = NegLogDeltaValue(a, b, c), val = a + delta;
-  if (c) (*c) = (val - a) - delta;  // update sum correction for Kahan formula
+  if (c) *c = (val - a) - delta;  // update sum correction for Kahan formula
   return val;
 }
 
@@ -151,9 +146,32 @@ class NGramModel {
       return -1;
   }
 
+  // Gets the state present in the model corresponding to the longest prefix of
+  // the specified n-gram context.  If the longest prefix is the empty string,
+  // then this method returns the unigram state. '0' signifies super-initial
+  // 'word' in the ngram.
+  StateId NGramState(const std::vector<Label> &ngram) const {
+    StateId state = UnigramState();
+    if (state < 0) state = GetFst().Start();
+    Matcher<Fst<Arc>> matcher(fst_, MATCH_INPUT);
+    for (auto it = ngram.begin(); it != ngram.end(); ++it) {
+      if (*it == 0) {
+        state = fst_.Start();
+        continue;
+      }
+      matcher.SetState(state);
+      if (!matcher.Find(*it))
+        break;
+      const Arc &arc = matcher.Value();
+      state = arc.nextstate;
+    }
+    return state;
+  }
+
   // Returns n-gram that must be read to reach 'state'. '0' signifies
-  // super-initial 'word'. Constructor argument 'state_ngrams' must be true.
-  const vector<Label> &StateNGram(StateId state) const {
+  // super-initial 'word' in the ngram. Constructor argument 'state_ngrams' must
+  // be true.
+  const std::vector<Label> &StateNGram(StateId state) const {
     if (!have_state_ngrams_) {
       NGRAMERROR() << "NGramModel: state ngrams not available";
       return empty_label_vector_;
@@ -242,16 +260,36 @@ class NGramModel {
     if (low_neglog_sum < effective_zero) low_neglog_sum = effective_zero;
     if (low_neglog_sum <= 0 || hi_neglog_sum <= 0) return true;
     if (hi_neglog_sum > effective_nlog_zero) {
-      (*nlog_backoff_num) = 0.0;
+      *nlog_backoff_num = 0.0;
     } else {
-      (*nlog_backoff_num) = NegLogDiff(0.0, hi_neglog_sum);
+      *nlog_backoff_num = NegLogDiff(0.0, hi_neglog_sum);
     }
     if (low_neglog_sum > effective_nlog_zero) {
-      (*nlog_backoff_denom) = 0.0;
+      *nlog_backoff_denom = 0.0;
     } else {
-      (*nlog_backoff_denom) = NegLogDiff(0.0, low_neglog_sum);
+      *nlog_backoff_denom = NegLogDiff(0.0, low_neglog_sum);
     }
     return false;
+  }
+
+  // Calculate marginal state probs.  By default, uses the product of
+  // the order-ascending ngram transition probabilities. If 'stationary'
+  // is true, instead computes the stationary distribution of the Markov
+  // chain. Returns true on success.
+  bool CalculateStateProbs(std::vector<double> *probs, bool stationary = false,
+                           size_t maxiters = 10000) const {
+    bool ret = true;
+    if (stationary) {
+      ret = StationaryStateProbs(probs, .999999, norm_eps_, maxiters);
+    } else {
+      NGramStateProbs(probs);
+    }
+    if (FLAGS_v > 1) {
+      for (size_t st = 0; st < probs->size(); ++st)
+        std::cerr << "st: " << st << " log_prob: " << log((*probs)[st])
+                  << std::endl;
+    }
+    return ret;
   }
 
   // Fst const reference
@@ -321,8 +359,8 @@ class NGramModel {
   // weight is applied; otherwise the computation begins at the unigram
   // state.  If the n-gram ends with '0' (distinct from from an initial
   // '0'), the final weight is applied.
-  Weight GetNGramCost(const vector<Label> &ngram) const {
-    if (ngram.size() == 0) return Weight::One();
+  Weight GetNGramCost(const std::vector<Label> &ngram) const {
+    if (ngram.empty()) return Weight::One();
 
     StateId st = ngram.front() == 0 || unigram_ < 0 ? fst_.Start() : unigram_;
 
@@ -339,6 +377,14 @@ class NGramModel {
         if (n != ngram.size() - 1) {
           NGRAMERROR() << "end-of-string is not the super-final word";
           return Weight::Zero();
+        }
+        while (fst_.Final(st) == Weight::Zero()) {
+          Weight bocost;
+          st = GetBackoff(st, &bocost);
+          if (st < 0) {
+            return Weight::Zero();
+          }
+          cost = Times(cost, bocost);
         }
         cost = Times(cost, fst_.Final(st));
       } else {
@@ -383,37 +429,16 @@ class NGramModel {
         return Arc::Weight::Zero();
       }
     }
-    (*order) = state_orders_[mst];
+    *order = state_orders_[mst];
     // TODO(vitalyk): take care of value call
     cost = Times(cost, fst_.Final(mst));
     return cost;
   }
 
-  // Calculate marginal state probs.  By default, uses the product of
-  // the order-ascending ngram transition probabilities. If 'stationary'
-  // is true, instead computes the stationary distribution of the Markov
-  // chain. Returns true on success.
-  bool CalculateStateProbs(vector<double> *probs,
-                           bool stationary = false,
-                           size_t maxiters = 10000) const {
-    bool ret = true;
-    if (stationary) {
-      ret = StationaryStateProbs(probs, .999999, norm_eps_, maxiters);
-    } else {
-      NGramStateProbs(probs);
-    }
-    if (FLAGS_v > 1) {
-      for (size_t st = 0; st < probs->size(); ++st)
-        std::cerr << "st: " << st << " log_prob: " << log((*probs)[st])
-                  << std::endl;
-    }
-    return ret;
-  }
-
   // Change data for a state that would normally be computed
   // by InitModel; this allows incremental updates
   void UpdateState(StateId st, int order, bool unigram_state,
-                   const vector<Label> *ngram = 0) {
+                   const std::vector<Label> *ngram = 0) {
     if (have_state_ngrams_ && !ngram) {
       NGRAMERROR() << "NGramModel::UpdateState: no ngram provides";
       SetError();
@@ -471,7 +496,7 @@ class NGramModel {
   }
 
   // Fills a vector with the counts of each state, based on prefix count
-  void FillStateCounts(vector<double> *state_counts) {
+  void FillStateCounts(std::vector<double> *state_counts) {
     for (int i = 0; i < nstates_; i++)
       state_counts->push_back(ScalarValue(Arc::Weight::Zero()));
     WalkStatesForCount(state_counts);
@@ -479,7 +504,7 @@ class NGramModel {
 
   // Collect backoff arc weights in a vector
   bool FillBackoffArcWeights(StateId st, StateId bo,
-                             vector<double> *bo_arc_weight) const {
+                             std::vector<double> *bo_arc_weight) const {
     Matcher<Fst<Arc>> matcher(fst_, MATCH_INPUT);  // for querying backoff
     matcher.SetState(bo);
     for (ArcIterator<Fst<Arc>> aiter(fst_, st); !aiter.Done(); aiter.Next()) {
@@ -536,24 +561,24 @@ class NGramModel {
   bool FindNGramInModel(StateId *mst, int *order, Label label,
                         double *cost) const {
     if (label < 0) return false;
-    StateId currstate = (*mst);
-    (*cost) = 0;
-    (*mst) = -1;
-    while ((*mst) < 0) {
+    StateId currstate = *mst;
+    *cost = 0;
+    *mst = -1;
+    while (*mst < 0) {
       Matcher<Fst<Arc>> matcher(fst_, MATCH_INPUT);
       matcher.SetState(currstate);
       if (matcher.Find(label)) {  // arc found out of current state
         Arc arc = matcher.Value();
-        (*order) = state_orders_[currstate];
-        (*mst) = arc.nextstate;  // assign destination as new model state
-        (*cost) += ScalarValue(arc.weight);       // add cost to total
+        *order = state_orders_[currstate];
+        *mst = arc.nextstate;  // assign destination as new model state
+        *cost += ScalarValue(arc.weight);         // add cost to total
       } else if (matcher.Find(backoff_label_)) {  // follow backoff arc
         currstate = -1;
         for (; !matcher.Done(); matcher.Next()) {
           Arc arc = matcher.Value();
           if (arc.ilabel == backoff_label_) {
             currstate = arc.nextstate;  // make current state backoff state
-            (*cost) += ScalarValue(arc.weight);  // add in backoff cost
+            *cost += ScalarValue(arc.weight);  // add in backoff cost
           }
         }
         if (currstate < 0) return false;
@@ -570,12 +595,12 @@ class NGramModel {
                         bool unigram = false) const {
     StateId bo = GetBackoff(st, 0);
     if (bo < 0 && !unigram) return false;   // only calc for states that backoff
-    (*low_neglog_sum) = (*hi_neglog_sum) =  // final costs initialize the sum
+    *low_neglog_sum = *hi_neglog_sum =      // final costs initialize the sum
         ScalarValue(fst_.Final(st));
     // if st is final
-    if (bo >= 0 && (*hi_neglog_sum) != ScalarValue(Arc::Weight::Zero()))
+    if (bo >= 0 && *hi_neglog_sum != ScalarValue(Arc::Weight::Zero()))
       // re-initialize lower sum
-      (*low_neglog_sum) = ScalarValue(fst_.Final(bo));
+      *low_neglog_sum = ScalarValue(fst_.Final(bo));
     CalcArcNegLogSums(st, bo, hi_neglog_sum, low_neglog_sum, infinite_backoff);
     return true;
   }
@@ -627,7 +652,7 @@ class NGramModel {
                          double *low_sum, bool infinite_backoff = 0) const {
     // correction values for Kahan summation
     double KahanVal1 = 0, KahanVal2 = 0;
-    double init_low = (*low_sum);
+    double init_low = *low_sum;
     Matcher<Fst<Arc>> matcher(fst_, MATCH_INPUT);  // for querying backoff
     if (bo >= 0) matcher.SetState(bo);
     for (ArcIterator<Fst<Arc>> aiter(fst_, st); !aiter.Done(); aiter.Next()) {
@@ -636,25 +661,25 @@ class NGramModel {
       if (bo < 0 || matcher.Find(arc.ilabel)) {
         if (bo >= 0) {
           Arc barc = matcher.Value();
-          (*low_sum) =  // sum of lower order probs of the same labels
-              NegLogSum((*low_sum), ScalarValue(barc.weight), &KahanVal2);
+          *low_sum =  // sum of lower order probs of the same labels
+              NegLogSum(*low_sum, ScalarValue(barc.weight), &KahanVal2);
         }
-        (*hi_sum) =  // sum of higher order probs
-            NegLogSum((*hi_sum), ScalarValue(arc.weight), &KahanVal1);
+        *hi_sum =  // sum of higher order probs
+            NegLogSum(*hi_sum, ScalarValue(arc.weight), &KahanVal1);
       } else {
         NGRAMERROR() << "NGramModel: No arc label match in backoff state: "
                      << st;
         return false;
       }
     }
-    if (bo >= 0 && infinite_backoff && (*low_sum) == 0.0)  // ok for unsmoothed
+    if (bo >= 0 && infinite_backoff && *low_sum == 0.0)  // ok for unsmoothed
       return true;
-    if (bo >= 0 && (*low_sum) <= 0.0) {
-      VLOG(2) << "lower order sum less than zero: " << st << " " << (*low_sum);
+    if (bo >= 0 && *low_sum <= 0.0) {
+      VLOG(2) << "lower order sum less than zero: " << st << " " << *low_sum;
       double start_low = ScalarValue(Arc::Weight::Zero());
       if (init_low == start_low) start_low = ScalarValue(fst_.Final(bo));
-      (*low_sum) = CalcBruteLowSum(st, bo, start_low);
-      VLOG(2) << "new lower order sum: " << st << " " << (*low_sum);
+      *low_sum = CalcBruteLowSum(st, bo, start_low);
+      VLOG(2) << "new lower order sum: " << st << " " << *low_sum;
     }
     return true;
   }
@@ -705,7 +730,7 @@ class NGramModel {
     }
 
     hi_order_ = 1;  // calculate highest order in the model
-    deque<StateId> state_queue;
+    std::deque<StateId> state_queue;
     if (unigram_ != kNoStateId) {
       state_orders_[unigram_] = 1;
       state_queue.push_back(unigram_);
@@ -807,7 +832,7 @@ class NGramModel {
 
   // Checks state ngrams for consistency
   bool CheckStateNGrams(StateId st, const Arc &arc) const {
-    vector<Label> state_ngram;
+    std::vector<Label> state_ngram;
     bool boa = arc.ilabel == backoff_label_;
 
     int j = state_orders_[st] - state_orders_[arc.nextstate] + (boa ? 0 : 1);
@@ -874,7 +899,8 @@ class NGramModel {
   }
 
   // Collects prefix counts for arcs out of a specific state
-  void CollectPrefixCounts(vector<double> *state_counts, StateId st) const {
+  void CollectPrefixCounts(std::vector<double> *state_counts,
+                           StateId st) const {
     for (ArcIterator<Fst<Arc>> aiter(fst_, st); !aiter.Done(); aiter.Next()) {
       Arc arc = aiter.Value();
       if (arc.ilabel != backoff_label_ &&  // only counting non-backoff arcs
@@ -886,7 +912,7 @@ class NGramModel {
   }
 
   // Walks model automaton to collect prefix counts for each state
-  void WalkStatesForCount(vector<double> *state_counts) const {
+  void WalkStatesForCount(std::vector<double> *state_counts) const {
     if (unigram_ != -1) {
       (*state_counts)[fst_.Start()] = ScalarValue(fst_.Final(unigram_));
       CollectPrefixCounts(state_counts, unigram_);
@@ -935,7 +961,7 @@ class NGramModel {
 
   // At a given state, calculate the marginal prob p(h) based on
   // the smoothed, order-ascending n-gram transition probabilities.
-  void NGramStateProb(StateId st, vector<double> *probs) const {
+  void NGramStateProb(StateId st, std::vector<double> *probs) const {
     for (ArcIterator<Fst<Arc>> aiter(fst_, st); !aiter.Done(); aiter.Next()) {
       Arc arc = aiter.Value();
       if (arc.ilabel == backoff_label_) continue;
@@ -949,7 +975,7 @@ class NGramModel {
   // Calculate marginal state probs as the product of the smoothed,
   // order-ascending ngram transition probablities: p(abc) =
   // p(a)p(b|a)p(c|ba) (odd w/KN)
-  void NGramStateProbs(vector<double> *probs, bool norm = false) const {
+  void NGramStateProbs(std::vector<double> *probs, bool norm = false) const {
     probs->clear();
     probs->resize(nstates_, 0.0);
     if (unigram_ < 0) {
@@ -975,8 +1001,8 @@ class NGramModel {
   // At a given state, calculate one step of the power method
   // for the stationary distribution of the closure of the
   // LM with re-entry probability 'alpha'.
-  void StationaryStateProb(StateId st, vector<double> *init_probs,
-                           vector<double> *probs, double alpha) const {
+  void StationaryStateProb(StateId st, std::vector<double> *init_probs,
+                           std::vector<double> *probs, double alpha) const {
     Matcher<Fst<Arc>> matcher(fst_, MATCH_INPUT);  // for querying backoff
     Weight bocost;
     StateId bo = GetBackoff(st, &bocost);
@@ -1017,9 +1043,9 @@ class NGramModel {
   // with re-entry probability 'alpha'. The convergence is controlled
   // by 'converge_eps' and the number of iterations by 'maxiters'
   // Returns true on convergence.
-  bool StationaryStateProbs(vector<double> *probs, double alpha,
+  bool StationaryStateProbs(std::vector<double> *probs, double alpha,
                             double converge_eps, size_t maxiters) const {
-    vector<double> init_probs, last_probs;
+    std::vector<double> init_probs, last_probs;
     // Initialize based on ngram transition probabilities
     NGramStateProbs(&init_probs, true);
     last_probs = init_probs;
@@ -1056,11 +1082,12 @@ class NGramModel {
   StateId nstates_;           // number of states in LM
   int hi_order_;              // highest order in the model
   double norm_eps_;           // epsilon diff allowed to ensure normalized
-  vector<int> state_orders_;  // order of each state
+  std::vector<int> state_orders_;  // order of each state
   bool have_state_ngrams_;    // compute and store state n-gram info
   mutable size_t ascending_ngrams_;     // # of n-gram arcs that increase order
-  vector<vector<Label>> state_ngrams_;  // n-gram always read to reach state
-  const vector<Label> empty_label_vector_;
+  std::vector<std::vector<Label>>
+      state_ngrams_;  // n-gram always read to reach state
+  const std::vector<Label> empty_label_vector_;
   mutable bool error_;
 
   NGramModel(const NGramModel &) = delete;
@@ -1085,7 +1112,7 @@ typename Arc::Weight NGramModel<Arc>::UnitCount() {
 
 template <>
 inline typename HistogramArc::Weight NGramModel<HistogramArc>::UnitCount() {
-  vector<StdArc::Weight> weights(kHistogramBins);
+  std::vector<StdArc::Weight> weights(kHistogramBins);
   for (int i = 0; i < kHistogramBins; i++) {
     weights[i] = StdArc::Weight::Zero();
   }

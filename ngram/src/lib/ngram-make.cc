@@ -14,13 +14,14 @@
 // Copyright 2005-2016 Brian Roark and Google, Inc.
 // Make model from raw counts or histograms.
 
+#include <ngram/ngram-make.h>
+
 #include <fst/map.h>
 #include <ngram/hist-arc.h>
 #include <ngram/ngram-absolute.h>
 #include <ngram/ngram-count-of-counts.h>
 #include <ngram/ngram-katz.h>
 #include <ngram/ngram-kneser-ney.h>
-#include <ngram/ngram-make.h>
 #include <ngram/ngram-unsmoothed.h>
 #include <ngram/ngram-witten-bell.h>
 #include <ngram/util.h>
@@ -48,7 +49,7 @@ struct ToStdArcMapper {
 namespace ngram {
 
 // Makes models from NGram count FSTs with StdArc counts.
-bool NGramMakeModel(fst::StdMutableFst *fst, const string &method,
+bool NGramMakeModel(fst::StdMutableFst *fst, const std::string &method,
                     const fst::StdFst *ccfst, bool backoff,
                     bool interpolate, int64 bins, double witten_bell_k,
                     double discount_D, int64 backoff_label, double norm_eps,
@@ -110,7 +111,8 @@ bool NGramMakeModel(fst::StdMutableFst *fst, const string &method,
 }
 
 // The same, but uses scripting FSTs.
-bool NGramMakeModel(fst::script::MutableFstClass *fst, const string &method,
+bool NGramMakeModel(fst::script::MutableFstClass *fst,
+                    const std::string &method,
                     const fst::script::FstClass *ccfst, bool backoff,
                     bool interpolate, int64 bins, double witten_bell_k,
                     double discount_D, int64 backoff_label, double norm_eps,
@@ -124,7 +126,7 @@ bool NGramMakeModel(fst::script::MutableFstClass *fst, const string &method,
 
 // Makes models from NGram count FSTs with HistogramArc counts.
 bool NGramMakeHistModel(fst::MutableFst<ngram::HistogramArc> *hist_fst,
-                        fst::StdMutableFst *fst, const string &method,
+                        fst::StdMutableFst *fst, const std::string &method,
                         const fst::StdFst *ccfst, bool interpolate,
                         int64 bins, int64 backoff_label, double norm_eps,
                         bool check_consistency) {
