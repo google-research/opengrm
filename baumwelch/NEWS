@@ -1,5 +1,11 @@
-v 0.2 (beta)
-============
+v. 0.3
+======
+
+* Fixes CPPFLAG handling (0.3.0)
+* Removes obsolete OILabel functor (0.3.0)
+
+v. 0.2 (beta)
+=============
 
 * Splits binaries (0.2.9)
 * More documentation (0.2.8)

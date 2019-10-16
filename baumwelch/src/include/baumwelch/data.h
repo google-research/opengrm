@@ -18,7 +18,7 @@
 #include <string>
 
 #include <fst/extensions/far/far.h>
-#include <fst/fstlib.h>
+#include <fst/fst-decl.h>
 
 namespace fst {
 namespace internal {
@@ -112,5 +112,5 @@ class DeciphermentData {
 }  // namespace internal
 }  // namespace fst
 
-#endif  //  BAUMWELCH_DATA_H_
+#endif  // BAUMWELCH_DATA_H_
 

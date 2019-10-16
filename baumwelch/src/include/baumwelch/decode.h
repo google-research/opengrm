@@ -49,8 +49,12 @@
 #include <vector>
 
 #include <fst/extensions/far/far.h>
-#include <fst/fstlib.h>
-
+#include <fst/arc-map.h>
+#include <fst/fst-decl.h>
+#include <fst/project.h>
+#include <fst/rmepsilon.h>
+#include <fst/shortest-path.h>
+#include <fst/statesort.h>
 #include <baumwelch/cascade.h>
 #include <baumwelch/data.h>
 #include <baumwelch/util.h>

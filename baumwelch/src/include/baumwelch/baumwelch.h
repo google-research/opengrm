@@ -45,14 +45,15 @@
 
 #include <cmath>
 #include <cstdlib>
-
 #include <utility>
 #include <vector>
 
 #include <fst/types.h>
 #include <fst/log.h>
 #include <fst/extensions/far/far.h>
-#include <fst/fstlib.h>
+#include <fst/arcsort.h>
+#include <fst/compose.h>
+#include <fst/fst.h>
 #include <baumwelch/data.h>
 #include <baumwelch/expectation-table.h>
 #include <baumwelch/forward-backward.h>
@@ -102,24 +103,6 @@ struct BaumWelchTrainOptions {
 
 namespace internal {
 
-// Comparison functor used to arc-sort the channel model for efficient
-// composition. Under certain conditions (including the obvious one where the
-// FST is an acceptor), an FST so sorted will be both input- and
-// output-sorted.
-template <class Arc>
-class OILabelCompare {
- public:
-  bool operator()(const Arc &arc1, const Arc &arc2) const {
-    if (arc1.olabel < arc2.olabel) return true;
-    return (arc1.olabel == arc2.olabel) ? arc1.ilabel < arc2.ilabel : false;
-  }
-
-  uint64 Properties(uint64 props) const {
-    return (props & kArcSortProperties) | kOLabelSorted |
-           (props & kAcceptor ? kILabelSorted : 0);
-  }
-};
-
 // Random weight generator in the (real) interval (0, 1].
 template <class Weight>
 class LogUniformGenerator {
@@ -156,9 +139,8 @@ class BaumWelch {
   explicit BaumWelch(const Fst<Arc> &channel)
       : channel_(channel),
         etable_(channel_) {
-    // O-sorts the channel (and tries to also i-sort it too).
-    ArcSort(&channel_, internal::OILabelCompare<Arc>());
-    ComputeLabelSorted();
+    static const OLabelCompare<Arc> comp;
+    ArcSort(&channel_, comp);
   }
 
   BaumWelch &operator=(const BaumWelch &other) {
@@ -409,11 +391,6 @@ class BaumWelch {
   // Property helpers.
 
   static constexpr auto kLabelSorted = kILabelSorted | kOLabelSorted;
-
-  // Computes label sorting.
-  void ComputeLabelSorted() {
-    channel_.Properties(kLabelSorted, true);
-  }
 
   // Returns known label sorting properties of channel_.
   uint64 ChannelLabelSorted() {

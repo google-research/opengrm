@@ -13,6 +13,7 @@
 // Copyright 2017 and onwards Google, Inc.
 
 #include <baumwelch/decodescript.h>
+
 #include <fst/script/script-impl.h>
 
 namespace fst {
@@ -44,13 +45,8 @@ void DecodeBaumWelch(const FstClass &plaintext, FarReaderClass *ciphertext,
                                          &args);
 }
 
-REGISTER_FST_OPERATION(DecodeBaumWelch, StdArc, DecodeBaumWelchArgs1);
-REGISTER_FST_OPERATION(DecodeBaumWelch, LogArc, DecodeBaumWelchArgs1);
-REGISTER_FST_OPERATION(DecodeBaumWelch, Log64Arc, DecodeBaumWelchArgs1);
-
-REGISTER_FST_OPERATION(DecodeBaumWelch, StdArc, DecodeBaumWelchArgs2);
-REGISTER_FST_OPERATION(DecodeBaumWelch, LogArc, DecodeBaumWelchArgs2);
-REGISTER_FST_OPERATION(DecodeBaumWelch, Log64Arc, DecodeBaumWelchArgs2);
+REGISTER_FST_OPERATION_3ARCS(DecodeBaumWelch, DecodeBaumWelchArgs1);
+REGISTER_FST_OPERATION_3ARCS(DecodeBaumWelch, DecodeBaumWelchArgs2);
 
 }  // namespace script
 }  // namespace fst

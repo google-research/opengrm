@@ -13,6 +13,7 @@
 // Copyright 2017 and onwards Google, Inc.
 
 #include <baumwelch/trainscript.h>
+
 #include <fst/script/script-impl.h>
 #include <baumwelch/getters.h>
 
@@ -50,13 +51,8 @@ bool TrainBaumWelch(const FstClass &input, FarReaderClass *output,
   return args.retval;
 }
 
-REGISTER_FST_OPERATION(TrainBaumWelch, StdArc, TrainBaumWelchArgs1);
-REGISTER_FST_OPERATION(TrainBaumWelch, LogArc, TrainBaumWelchArgs1);
-REGISTER_FST_OPERATION(TrainBaumWelch, Log64Arc, TrainBaumWelchArgs1);
-
-REGISTER_FST_OPERATION(TrainBaumWelch, StdArc, TrainBaumWelchArgs2);
-REGISTER_FST_OPERATION(TrainBaumWelch, LogArc, TrainBaumWelchArgs2);
-REGISTER_FST_OPERATION(TrainBaumWelch, Log64Arc, TrainBaumWelchArgs2);
+REGISTER_FST_OPERATION_3ARCS(TrainBaumWelch, TrainBaumWelchArgs1);
+REGISTER_FST_OPERATION_3ARCS(TrainBaumWelch, TrainBaumWelchArgs2);
 
 }  // namespace script
 }  // namespace fst

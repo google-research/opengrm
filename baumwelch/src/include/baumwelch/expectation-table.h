@@ -20,11 +20,10 @@
 
 #include <cmath>
 #include <cstddef>
-
 #include <utility>
 #include <vector>
 
-#include <fst/fstlib.h>
+#include <fst/arc.h>
 #include <baumwelch/cascade.h>
 #include <baumwelch/summation.h>
 #include <unordered_map>
@@ -60,12 +59,6 @@ bool operator==(const UnweightedArc<Arc> &left,
                 const UnweightedArc<Arc> &right) {
   return left.ilabel == right.ilabel && left.olabel == right.olabel &&
          left.nextstate == right.nextstate;
-}
-
-template <class Arc>
-bool operator!=(const UnweightedArc<Arc> &left,
-                const UnweightedArc<Arc> &right) {
-  return !(left == right);
 }
 
 // Portable hash function for the above.

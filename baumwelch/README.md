@@ -12,8 +12,8 @@ This library depends on:
 
 * A standards-compliant C++ 11 compiler (GCC \>= 4.8 or Clang \>= 700)
 * The most recent version of [OpenFst](http://openfst.org) (at the time of
-  writing, 1.7.3) built with the `far` and `script` extensions (i.e., built
-  with `./configure --enable-grm`) and headers
+  writing, 1.7.4) built with the `far` and `script` extensions (i.e., built
+  with `./configure --enable-grm` or `./configure --enable-far`) and headers
 
 # Installation instructions
 

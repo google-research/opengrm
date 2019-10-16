@@ -23,7 +23,8 @@
 #include <vector>
 
 #include <fst/log.h>
-#include <fst/fstlib.h>
+#include <fst/compose.h>
+#include <fst/shortest-distance.h>
 #include <baumwelch/util.h>
 
 namespace fst {

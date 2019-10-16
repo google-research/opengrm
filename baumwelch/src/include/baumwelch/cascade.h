@@ -15,7 +15,8 @@
 #ifndef BAUMWELCH_CASCADE_H_
 #define BAUMWELCH_CASCADE_H_
 
-#include <fst/fstlib.h>
+#include <fst/compose.h>
+#include <fst/fst-decl.h>
 
 // Cascade objects used during the E-step.
 
