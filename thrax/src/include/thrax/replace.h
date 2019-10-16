@@ -23,11 +23,11 @@ namespace function {
 template <typename Arc>
 class Replace : public Function<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
-  typedef fst::VectorFst<Arc> MutableTransducer;
-  typedef fst::ReplaceFst<Arc> ReplaceTransducer;
-  typedef fst::ReplaceFstOptions<Arc> ReplaceOptions;
-  typedef typename Arc::Label Label;
+  using Transducer = ::fst::Fst<Arc>;
+  using MutableTransducer = ::fst::VectorFst<Arc>;
+  using ReplaceTransducer = ::fst::ReplaceFst<Arc>;
+  using ReplaceOptions = ::fst::ReplaceFstOptions<Arc>;
+  using Label = typename Arc::Label;
 
   Replace() {}
   ~Replace() final {}
@@ -67,13 +67,14 @@ class Replace : public Function<Arc> {
     Label root = labels[0];
     std::vector<std::pair<Label, const Transducer*> > ifst_array;
     for (int i = 1; i < args.size(); ++i) {
-      const Transducer* fst = *args[i]->get<Transducer*>();
-      ifst_array.push_back(std::make_pair(labels[i - 1], fst));
+      const auto* fst = *args[i]->get<Transducer*>();
+      ifst_array.emplace_back(labels[i - 1], fst);
     }
     // Explicitly constructs ReplaceFst so we can check for cyclic dependencies
     // before attempting expansion.
-    fst::ReplaceFstOptions<Arc> opts(root, fst::REPLACE_LABEL_NEITHER,
-                                         fst::REPLACE_LABEL_NEITHER, 0);
+    ::fst::ReplaceFstOptions<Arc> opts(root,
+                                           ::fst::REPLACE_LABEL_NEITHER,
+                                           ::fst::REPLACE_LABEL_NEITHER, 0);
     opts.gc = true;     // These options to the underlying cache supposedly
     opts.gc_limit = 0;  // result in faster batch expansion.
     ReplaceTransducer replace(ifst_array, opts);
@@ -81,7 +82,7 @@ class Replace : public Function<Arc> {
       std::cout << "Replace: Cyclic dependencies detected; cannot expand";
       return nullptr;
     }
-    MutableTransducer* output = new MutableTransducer();
+    auto* output = new MutableTransducer();
     *output = replace;  // Expansion.
     return new DataType(output);
   }
@@ -89,8 +90,8 @@ class Replace : public Function<Arc> {
  private:
   void ExtractReplacementLabels(MutableTransducer* fst,
                                 std::vector<Label>* labels) {
-    fst::RmEpsilon(fst);
-    typename Arc::StateId s = fst->Start();
+    ::fst::RmEpsilon(fst);
+    auto s = fst->Start();
     while (fst->Final(s) == Arc::Weight::Zero()) {
       if (fst->NumArcs(s) != 1) {
         std::cout << "Label transducer must have exactly one label arc "
@@ -98,8 +99,8 @@ class Replace : public Function<Arc> {
         labels->clear();
         return;
       }
-      fst::ArcIterator<MutableTransducer> aiter(*fst, s);
-      const Arc& arc = aiter.Value();
+      ::fst::ArcIterator<MutableTransducer> aiter(*fst, s);
+      const auto& arc = aiter.Value();
       labels->push_back(arc.ilabel);
       s = arc.nextstate;
     }

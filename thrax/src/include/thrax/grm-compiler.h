@@ -1,21 +1,6 @@
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
-// Copyright 2005-2011 Google, Inc.
-// Author: ttai@google.com (Terry Tai)
-//
 // This is the main compiler class that takes in a source file and calls the
 // parser to produce an AST and then walks that AST to generate the desired
-// FSTs.  These FSTs are then loaded into a GrmManagerSpec.
+// FSTs. These FSTs are then loaded into a GrmManagerSpec.
 
 #ifndef NLP_GRM_LANGUAGE_GRM_COMPILER_H_
 #define NLP_GRM_LANGUAGE_GRM_COMPILER_H_
@@ -50,8 +35,11 @@ template <typename Arc> class AstEvaluator;
 class GrmCompilerParserInterface {
  public:
   virtual ~GrmCompilerParserInterface() {}
+
   virtual void SetAst(Node* root) = 0;
+
   virtual Lexer* GetLexer() = 0;
+
   virtual void Error(const std::string& message) = 0;
 };
 
@@ -60,6 +48,7 @@ template <typename Arc>
 class GrmCompilerSpec : public GrmCompilerParserInterface {
  public:
   GrmCompilerSpec();
+
   ~GrmCompilerSpec();
 
   // ***************************************************************************
@@ -69,8 +58,10 @@ class GrmCompilerSpec : public GrmCompilerParserInterface {
   //   2.) load up an existing FST Archive by using LoadArchive().
 
   // Parses the provided grammar data via the filename or the file contents.
-  // Defined in parser.y.  Returns true on success and false on failure.
+  // Defined in parser.y. Returns true on success and false on failure.
+
   bool ParseFile(const std::string& filename);
+
   bool ParseContents(const std::string& contents);
 
   // Print the AST to stdout. Returns true if the AST is valid, false otherwise.
@@ -78,12 +69,12 @@ class GrmCompilerSpec : public GrmCompilerParserInterface {
   bool PrintAst(bool include_line_numbers);
 
   // Evaluate the AST from scratch, creating a new walker with no preset
-  // environment.  Returns true on success and false on failure.
+  // environment. Returns true on success and false on failure.
   bool EvaluateAst() { return EvaluateAstWithEnvironment(nullptr, true); }
 
-  // Evaluate the AST using the provided environment namespace.  This is likely
+  // Evaluate the AST using the provided environment namespace. This is likely
   // for imported files and modules and should really only be called by AST
-  // walkers (i.e., not by users).  Call using nullptr to create a new
+  // walkers (i.e., not by users). Call using nullptr to create a new
   // environment. Returns true on success and false on failure.
   //
   // Boolean argument top_level indicates whether or not this is a top level
@@ -98,19 +89,20 @@ class GrmCompilerSpec : public GrmCompilerParserInterface {
 
   Lexer* GetLexer() { return &lexer_; }
 
-  void SetAst(Node* root);           // Adds a new AST for this compiler.
+  void SetAst(Node* root) override;  // Adds a new AST for this compiler.
+
   Node* GetAst() { return root_; }  // Gets the most recently AST.
 
   // Returns a pointer to the grammar manager so that we can perform rewrites
-  // (or exports, or whatever).  This pointer remains owned by this class,
+  // (or exports, or whatever). This pointer remains owned by this class,
   // however, so it should not be deleted by the caller.
   const GrmManagerSpec<Arc>* GetGrmManager() const { return &grm_manager_; }
 
   // ***************************************************************************
   // Various other useful functions.
 
-  // Sets the parsing to failure.  If provided with a non-empty message, then
-  // we'll print that out for the user.  If the message is empty, print out
+  // Sets the parsing to failure. If provided with a non-empty message, then
+  // we'll print that out for the user. If the message is empty, print out
   // nothing (and just silently fail the parse/compile).
   void Error(const std::string& message) override;
 
@@ -146,9 +138,7 @@ void GrmCompilerSpec<Arc>::SetAst(Node* root) {
 
 template <typename Arc>
 bool GrmCompilerSpec<Arc>::PrintAst(bool include_line_numbers) {
-  if (!success_ || !root_) {
-    return false;
-  }
+  if (!success_ || !root_) return false;
   AstPrinter printer;
   printer.include_line_numbers = include_line_numbers;
   root_->Accept(&printer);
@@ -182,9 +172,8 @@ bool GrmCompilerSpec<Arc>::EvaluateAstWithEnvironment(Namespace* env,
   } else {
     // We want to get a count of the identifiers so that we can free their
     // memory when the time comes.
-    AstIdentifierCounter* id_counter = new AstIdentifierCounter();
+    auto* id_counter = new AstIdentifierCounter();
     root_->Accept(id_counter);
-
     // If we don't have an environment, then we're doing the top level version,
     // where we execute the body.
     evaluator = new AstEvaluator<Arc>();
@@ -192,11 +181,10 @@ bool GrmCompilerSpec<Arc>::EvaluateAstWithEnvironment(Namespace* env,
   }
   evaluator->set_file(file_);
   root_->Accept(evaluator);
-
   if (evaluator->Success()) {
-    // We can always retrieve the FSTs.  If there are none (ex., since we're
+    // We can always retrieve the FSTs. If there are none (ex., since we're
     // only importing the file), this operation is still safe/fast.
-    VLOG(1) << "Compilation complete.  Expanding exported FSTs.";
+    VLOG(1) << "Compilation complete. Expanding exported FSTs.";
     evaluator->GetFsts(grm_manager_.GetFstMap(), top_level);
     grm_manager_.SortRuleInputLabels();
   } else {
@@ -220,7 +208,6 @@ void GrmCompilerSpec<Arc>::Error(const std::string& message) {
 template <typename Arc>
 bool GrmCompilerSpec<Arc>::ParseFile(const std::string& filename) {
   VLOG(1) << "Parsing file: " << filename;
-
   file_ = filename;
   std::string contents;
   ReadFileToStringOrDie(filename, &contents);
@@ -244,9 +231,10 @@ bool GrmCompilerSpec<Arc>::ParseContents(const std::string& contents) {
 }
 
 // A lot of code outside this build uses GrmCompiler with the old meaning of
-// GrmCompilerSpec<fst::StdArc>, forward-declaring it as a class. To obviate
-// the need to change all that outside code, we provide this derived class:
-class GrmCompiler : public GrmCompilerSpec<fst::StdArc> {};
+// GrmCompilerSpec<::fst::StdArc>, forward-declaring it as a class. To
+// obviate the need to change all that outside code, we provide this derived
+// class.
+class GrmCompiler : public GrmCompilerSpec<::fst::StdArc> {};
 
 }  // namespace thrax
 

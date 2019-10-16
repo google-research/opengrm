@@ -32,9 +32,8 @@ namespace function {
 template <typename Arc>
 class CDRewrite : public Function<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
-  typedef fst::VectorFst<Arc> MutableTransducer;
-  using Weight = typename Arc::Weight;
+  using Transducer = ::fst::Fst<Arc>;
+  using MutableTransducer = ::fst::VectorFst<Arc>;
   using Label = typename Arc::Label;
 
   CDRewrite() {}
@@ -73,41 +72,44 @@ class CDRewrite : public Function<Arc> {
     // 3) Null out the symbol tables of all of the pieces, pass them in and then
     //    put the symbol table on the result when we are done. This seems the
     //    simplest and safest.
-    const fst::SymbolTable* symbols = nullptr;
+    const ::fst::SymbolTable* symbols = nullptr;
     if (FLAGS_save_symbols) {
-      if (!CompatSymbols(tau.InputSymbols(), tau.OutputSymbols())) {
+      if (!::fst::CompatSymbols(tau.InputSymbols(), tau.OutputSymbols())) {
         std::cout
             << "CDRewrite: input symbols and output symbols must match for tau"
             << std::endl;
         return nullptr;
       }
-      if (!CompatSymbols(lambda.InputSymbols(), lambda.OutputSymbols())) {
+      if (!::fst::CompatSymbols(lambda.InputSymbols(),
+                                    lambda.OutputSymbols())) {
         std::cout << "CDRewrite: input symbols and output symbols must match "
                      "for lambda" << std::endl;
         return nullptr;
       }
-      if (!CompatSymbols(rho.InputSymbols(), rho.OutputSymbols())) {
+      if (!::fst::CompatSymbols(rho.InputSymbols(), rho.OutputSymbols())) {
         std::cout
             << "CDRewrite: input symbols and output symbols must match for rho"
             << std::endl;
         return nullptr;
       }
-      if (!CompatSymbols(sigma.InputSymbols(), sigma.OutputSymbols())) {
+      if (!::fst::CompatSymbols(sigma.InputSymbols(),
+                                    sigma.OutputSymbols())) {
         std::cout << "CDRewrite: input symbols and output symbols must match "
                      "for sigma" << std::endl;
         return nullptr;
       }
-      if (!CompatSymbols(tau.InputSymbols(), lambda.InputSymbols())) {
+      if (!::fst::CompatSymbols(tau.InputSymbols(),
+                                    lambda.InputSymbols())) {
         std::cout << "CDRewrite: symbol tables for tau and lambda must match"
                   << std::endl;
         return nullptr;
       }
-      if (!CompatSymbols(tau.InputSymbols(), rho.InputSymbols())) {
+      if (!::fst::CompatSymbols(tau.InputSymbols(), rho.InputSymbols())) {
         std::cout << "CDRewrite: symbol tables for tau and rho must match"
                   << std::endl;
         return nullptr;
       }
-      if (!CompatSymbols(tau.InputSymbols(), sigma.InputSymbols())) {
+      if (!::fst::CompatSymbols(tau.InputSymbols(), sigma.InputSymbols())) {
         std::cout << "CDRewrite: symbol tables for tau and sigma must match"
                   << std::endl;
         return nullptr;
@@ -122,8 +124,8 @@ class CDRewrite : public Function<Arc> {
       sigma.SetInputSymbols(nullptr);
       sigma.SetOutputSymbols(nullptr);
     }
-    fst::CDRewriteDirection dir = fst::LEFT_TO_RIGHT;
-    fst::CDRewriteMode mode = fst::OBLIGATORY;
+    ::fst::CDRewriteDirection dir = ::fst::LEFT_TO_RIGHT;
+    ::fst::CDRewriteMode mode = ::fst::OBLIGATORY;
     if (args.size() == 6) {
       for (int i = 4; i < 6; ++i) {
         if (!args[i]->is<std::string>()) {
@@ -134,11 +136,11 @@ class CDRewrite : public Function<Arc> {
       }
       const auto& direction_str = *args[4]->get<std::string>();
       if (direction_str == "ltr") {
-        dir = fst::LEFT_TO_RIGHT;
+        dir = ::fst::LEFT_TO_RIGHT;
       } else if (direction_str == "rtl") {
-        dir = fst::RIGHT_TO_LEFT;
+        dir = ::fst::RIGHT_TO_LEFT;
       } else if (direction_str == "sim") {
-        dir = fst::SIMULTANEOUS;
+        dir = ::fst::SIMULTANEOUS;
       } else {
         std::cout << "CDRewrite: Invalid direction: " << direction_str
                   << std::endl;
@@ -146,17 +148,17 @@ class CDRewrite : public Function<Arc> {
       }
       const auto& mode_str = *args[5]->get<std::string>();
       if (mode_str == "obl") {
-        mode = fst::OBLIGATORY;
+        mode = ::fst::OBLIGATORY;
       } else if (mode_str == "opt") {
-        mode = fst::OPTIONAL;
+        mode = ::fst::OPTIONAL;
       } else {
         std::cout << "CDRewrite: Invalid mode: " << mode_str << std::endl;
         return nullptr;
       }
     }
-    MutableTransducer* output = new MutableTransducer();
-    fst::CDRewriteCompile(tau, lambda, rho, sigma, output, dir, mode,
-                              kInitialBoundaryLabel, kFinalBoundaryLabel);
+    auto* output = new MutableTransducer();
+    ::fst::CDRewriteCompile(tau, lambda, rho, sigma, output, dir, mode,
+                                kInitialBoundaryLabel, kFinalBoundaryLabel);
     if (FLAGS_save_symbols) {
       output->SetInputSymbols(symbols);
       output->SetOutputSymbols(symbols);

@@ -23,7 +23,7 @@ namespace function {
 template <typename Arc>
 class LoadFst : public Function<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
+  using Transducer = ::fst::Fst<Arc>;
 
   LoadFst() {}
   ~LoadFst() final {}
@@ -43,7 +43,7 @@ class LoadFst : public Function<Arc> {
     const auto& file =
         JoinPath(FLAGS_indir, *args[0]->get<std::string>());
     VLOG(2) << "Loading FST: " << file;
-    Transducer* fst = Transducer::Read(file);
+    auto* fst = Transducer::Read(file);
     if (!fst) {
       std::cout << "LoadFst: Failed to load FST from file: " << file
                 << std::endl;

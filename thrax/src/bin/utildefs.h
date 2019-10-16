@@ -1,24 +1,10 @@
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
-// Copyright 2005-2011 Google, Inc.
-// Author: rws@google.com (Richard Sproat)
-//
 // Definitions needed by various utilities here.
 
 #ifndef NLP_GRM_LANGUAGE_UTIL_UTILDEFS_H_
 #define NLP_GRM_LANGUAGE_UTIL_UTILDEFS_H_
 
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <fst/compat.h>
@@ -39,16 +25,16 @@ namespace thrax {
 // the grammar are output as "[name]" where "name" is the name of the generated
 // label. Paths are sorted in ascending order of weights.
 
-bool FstToStrings(const fst::VectorFst<fst::StdArc> &fst,
+bool FstToStrings(const ::fst::VectorFst<::fst::StdArc> &fst,
                   std::vector<std::pair<std::string, float>> *strings,
-                  const fst::SymbolTable *generated_symtab,
-                  TokenType type = BYTE, fst::SymbolTable *symtab = nullptr,
-                  size_t n = 1);
+                  const ::fst::SymbolTable *generated_symtab,
+                  TokenType type = BYTE,
+                  ::fst::SymbolTable *symtab = nullptr, size_t n = 1);
 
 // Find the generated labels from the grammar.
 
-const fst::SymbolTable *GetGeneratedSymbolTable(
-    GrmManagerSpec<fst::StdArc> *grm);
+const ::fst::SymbolTable *GetGeneratedSymbolTable(
+    GrmManagerSpec<::fst::StdArc> *grm);
 
 }  // namespace thrax
 

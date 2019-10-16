@@ -19,8 +19,8 @@ namespace function {
 template <typename Arc>
 class RmEpsilon : public UnaryFstFunction<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
-  typedef fst::VectorFst<Arc> MutableTransducer;
+  using Transducer = ::fst::Fst<Arc>;
+  using MutableTransducer = ::fst::VectorFst<Arc>;
 
   RmEpsilon() {}
   ~RmEpsilon() final {}
@@ -33,8 +33,8 @@ class RmEpsilon : public UnaryFstFunction<Arc> {
                 << std::endl;
       return nullptr;
     }
-    MutableTransducer* output = new MutableTransducer(fst);
-    fst::RmEpsilon(output);
+    auto* output = new MutableTransducer(fst);
+    ::fst::RmEpsilon(output);
     return output;
   }
 

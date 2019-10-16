@@ -59,7 +59,7 @@ class ResourceMap {
  public:
   ResourceMap() {}
   ~ResourceMap() {
-    fst::MutexLock lock(&mutex_);
+    ::fst::MutexLock lock(&mutex_);
     STLDeleteContainerPairSecondPointers(map_.begin(), map_.end());
   }
 
@@ -79,7 +79,7 @@ class ResourceMap {
   // of the closure pointer and call it when the object dies.
   template <typename T>
   bool InsertWithDeleter(const std::string& name, T* thing, Closure* deleter) {
-    fst::MutexLock lock(&mutex_);
+    ::fst::MutexLock lock(&mutex_);
     // Searches the map for the correct hash position of the new insert. We'll
     // use a nullptr as the value for now since we'll create it from scratch in
     // the future, after the potential deletion of the pre-existing object.
@@ -101,7 +101,7 @@ class ResourceMap {
   // received.
   template <typename T>
   T* Get(const std::string& name) const {
-    fst::MutexLock lock(&mutex_);
+    ::fst::MutexLock lock(&mutex_);
     const auto it = map_.find(name);
     if (it == map_.end()) return nullptr;
     CheckType<T>(it, name);
@@ -114,7 +114,7 @@ class ResourceMap {
   // Returns true if the map contains an object with the given name
   // (disregarding the type of the stored object).
   bool Contains(const std::string& name) const {
-    fst::MutexLock lock(&mutex_);
+    ::fst::MutexLock lock(&mutex_);
     return map_.find(name) != map_.end();
   }
 
@@ -122,7 +122,7 @@ class ResourceMap {
   // proper type.
   template <typename T>
   bool ContainsType(const std::string& name) const {
-    fst::MutexLock lock(&mutex_);
+    ::fst::MutexLock lock(&mutex_);
     const auto it = map_.find(name);
     return it != map_.end() && it->second->type == typeid(T*);
   }
@@ -130,7 +130,7 @@ class ResourceMap {
   // Removes the specified object from the map. Returns true if an object was
   // successfully erased, and false if the object didn't exist.
   bool Erase(const std::string& name) {
-    fst::MutexLock lock(&mutex_);
+    ::fst::MutexLock lock(&mutex_);
     auto it = map_.find(name);
     if (it == map_.end()) return false;
     delete it->second;
@@ -140,7 +140,7 @@ class ResourceMap {
 
   template <typename T>
   T* Release(const std::string& name) {
-    fst::MutexLock lock(&mutex_);
+    ::fst::MutexLock lock(&mutex_);
     T* val = nullptr;
     auto it = map_.find(name);
     if (it != map_.end()) {
@@ -157,13 +157,13 @@ class ResourceMap {
 
   // Returns the number of elements in the map.
   int Size() const {
-    fst::MutexLock lock(&mutex_);
+    ::fst::MutexLock lock(&mutex_);
     return map_.size();
   }
 
   // Erases all elements in the current map.
   void Clear() {
-    fst::MutexLock lock(&mutex_);
+    ::fst::MutexLock lock(&mutex_);
     STLDeleteContainerPairSecondPointers(map_.begin(), map_.end());
     map_.clear();
   }
@@ -200,7 +200,7 @@ class ResourceMap {
   };
 
   Map map_;
-  mutable fst::Mutex mutex_;
+  mutable ::fst::Mutex mutex_;
 };
 
 };  // namespace thrax

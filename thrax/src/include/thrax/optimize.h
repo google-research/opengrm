@@ -17,16 +17,11 @@
 namespace thrax {
 namespace function {
 
-// We don't need to encode weights if the FST has no weighted cycles, which
-// is true if kUnweightedCycles, and is implied by kAcyclic and kUnweighted.
-const uint64 kDoNotEncodeWeights = (fst::kAcyclic | fst::kUnweighted |
-                                    fst::kUnweightedCycles);
-
 template <typename Arc>
 class Optimize : public UnaryFstFunction<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
-  typedef fst::VectorFst<Arc> MutableTransducer;
+  using Transducer = ::fst::Fst<Arc>;
+  using MutableTransducer = ::fst::VectorFst<Arc>;
 
   Optimize() {}
   ~Optimize() final {}
@@ -36,15 +31,15 @@ class Optimize : public UnaryFstFunction<Arc> {
   // rigmarole.
   static Transducer* ActuallyOptimize(const Transducer& fst,
                                       bool compute_props = false) {
-    MutableTransducer* output = new MutableTransducer(fst);
-    fst::Optimize(output, compute_props);
+    auto* output = new MutableTransducer(fst);
+    ::fst::Optimize(output, compute_props);
     return output;
   }
 
   static Transducer* ActuallyOptimizeDifferenceRhs(const Transducer& fst,
       bool compute_props = false) {
-    MutableTransducer* output = new MutableTransducer(fst);
-    fst::OptimizeDifferenceRhs(output, compute_props);
+    auto* output = new MutableTransducer(fst);
+    ::fst::OptimizeDifferenceRhs(output, compute_props);
     return output;
   }
 

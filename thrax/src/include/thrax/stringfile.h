@@ -27,9 +27,9 @@ namespace function {
 template <typename Arc>
 class StringFile : public Function<Arc> {
  public:
-  typedef fst::VectorFst<Arc> MutableTransducer;
-  typedef fst::PrefixTree<Arc> PrefixTree;
-  typedef typename Arc::Label Label;
+  using MutableTransducer = ::fst::VectorFst<Arc>;
+  using PrefixTree = ::fst::PrefixTree<Arc>;
+  using Label = typename Arc::Label;
 
   StringFile() {}
   ~StringFile() final {}
@@ -46,8 +46,8 @@ class StringFile : public Function<Arc> {
                 << std::endl;
       return nullptr;
     }
-    auto imode = fst::StringTokenType::BYTE;
-    const fst::SymbolTable *isymbols = nullptr;
+    auto imode = ::fst::StringTokenType::BYTE;
+    const ::fst::SymbolTable *isymbols = nullptr;
     if (args.size() == 1) {
       // If the StringFile call doesn't specify a parse mode, but if
       // FLAGS_save_symbols is set, we should set the symbol table to byte
@@ -56,37 +56,37 @@ class StringFile : public Function<Arc> {
     } else if (args.size() > 1) {
       if (args[1]->is<std::string>()) {
         if (*args[1]->get<std::string>() == "utf8") {
-          imode = fst::StringTokenType::UTF8;
+          imode = ::fst::StringTokenType::UTF8;
           if (FLAGS_save_symbols) isymbols = GetUtf8SymbolTable();
         } else {
-          imode = fst::StringTokenType::BYTE;
+          imode = ::fst::StringTokenType::BYTE;
           if (FLAGS_save_symbols) isymbols = GetByteSymbolTable();
         }
-      } else if (args[1]->is<fst::SymbolTable>()) {
-        isymbols = args[1]->get<fst::SymbolTable>();
-        imode = fst::StringTokenType::SYMBOL;
+      } else if (args[1]->is<::fst::SymbolTable>()) {
+        isymbols = args[1]->get<::fst::SymbolTable>();
+        imode = ::fst::StringTokenType::SYMBOL;
       } else {
         std::cout << "StringFile: Invalid parse mode or symbol table "
                   << "for input symbols" << std::endl;
         return nullptr;
       }
     }
-    auto omode = fst::StringTokenType::BYTE;
+    auto omode = ::fst::StringTokenType::BYTE;
     // If this is an acceptor then the output symbols are whatever the input
     // symbols are.
-    const fst::SymbolTable *osymbols = isymbols;
+    const ::fst::SymbolTable *osymbols = isymbols;
     if (args.size() > 2) {
       if (args[2]->is<std::string>()) {
         if (*args[2]->get<std::string>() == "utf8") {
-          omode = fst::StringTokenType::UTF8;
+          omode = ::fst::StringTokenType::UTF8;
           if (FLAGS_save_symbols) osymbols = GetUtf8SymbolTable();
         } else {
-          omode = fst::StringTokenType::BYTE;
+          omode = ::fst::StringTokenType::BYTE;
           if (FLAGS_save_symbols) osymbols = GetByteSymbolTable();
         }
-      } else if (args[2]->is<fst::SymbolTable>()) {
-        osymbols = args[2]->get<fst::SymbolTable>();
-        omode = fst::StringTokenType::SYMBOL;
+      } else if (args[2]->is<::fst::SymbolTable>()) {
+        osymbols = args[2]->get<::fst::SymbolTable>();
+        omode = ::fst::StringTokenType::SYMBOL;
       } else {
         std::cout << "StringFile: Invalid parse mode or symbol table "
                   << "for output symbols" << std::endl;
@@ -101,9 +101,9 @@ class StringFile : public Function<Arc> {
     int linenum = 1;
     bool acceptor = true;
     for (InputBuffer ibuf(fp); ibuf.ReadLine(&line); ++linenum) {
-      line = fst::StripCommentAndRemoveEscape(line);
+      line = ::fst::StripCommentAndRemoveEscape(line);
       std::vector<std::string> words =
-          thrax::StringSplit(line, '\t');
+          ::fst::StringSplit(line, '\t');
       size_t size = words.size();
       if (size == 0) continue;
       std::vector<Label> ilabels;
@@ -138,15 +138,15 @@ class StringFile : public Function<Arc> {
     auto *fst = new MutableTransducer();
     pt.ToFst(fst);
     if (acceptor) {
-      fst::Project(fst, fst::PROJECT_INPUT);
+      ::fst::Project(fst, ::fst::PROJECT_INPUT);
     } else {
       MutableTransducer copy(*fst);
-      fst::Push<Arc, fst::REWEIGHT_TO_INITIAL>(copy, fst,
-                                                       fst::kPushLabels);
+      ::fst::Push<Arc, ::fst::REWEIGHT_TO_INITIAL>(
+          copy, fst, ::fst::kPushLabels);
     }
-    fst::RmEpsilon(fst);
-    static const fst::ILabelCompare<Arc> icomp;
-    fst::ArcSort(fst, icomp);
+    ::fst::RmEpsilon(fst);
+    static const ::fst::ILabelCompare<Arc> icomp;
+    ::fst::ArcSort(fst, icomp);
     if (FLAGS_save_symbols) {
       fst->SetInputSymbols(isymbols);
       fst->SetOutputSymbols(osymbols);
@@ -157,10 +157,10 @@ class StringFile : public Function<Arc> {
  private:
   // Wrapper around internal functionality used by the OpenFst StringCompiler.
   bool ConvertStringToLabels(const std::string &str, std::vector<Label> *labels,
-                             fst::StringTokenType token_type,
-                             const fst::SymbolTable *syms) const {
-    return fst::internal::ConvertStringToLabels(
-        str, token_type, syms, fst::kNoLabel, false, labels);
+                             ::fst::StringTokenType token_type,
+                             const ::fst::SymbolTable *syms) const {
+    return ::fst::internal::ConvertStringToLabels(
+        str, token_type, syms, ::fst::kNoLabel, false, labels);
   }
 };
 

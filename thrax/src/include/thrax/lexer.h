@@ -1,19 +1,3 @@
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
-// Copyright 2005-2011 Google, Inc.
-// Author: wojciech@google.com (Wojciech Skut)
-//         ttai@google.com (Terry Tai)
-//
 // Lexer class for grammars.
 
 #ifndef NLP_GRM_LANGUAGE_LEXER_H_
@@ -29,10 +13,6 @@
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
 #include <thrax/compat/utils.h>
-
-// Removed by Rosie-managed cl/136839945/  This was commented out to facilitate
-// changing the export scripts for the open source version of this code.
-// TODO(rws) Actually remove this when the scripts are updated.
 
 namespace thrax {
 
@@ -53,8 +33,8 @@ class Lexer {
 
   static const std::set<std::string> kKeywords;
 
-  // Preprocessing - must be called before the grammar is processed via repeated
-  // calls to YYLex().
+  // Must be called before the grammar is processed via repeated calls to
+  // YYLex().
   void ScanString(const std::string &str) {
     grammar_.push(GrammarFile("", str));
   }
@@ -72,7 +52,7 @@ class Lexer {
   int YYBeginPos() const;
   int YYEndPos() const;
 
-  // Current line number in the grammar being processed.  If the grammar has
+  // Current line number in the grammar being processed. If the grammar has
   // been popped empty, which can happen in GetChar() if we run off the end of
   // the file while in the middle of processing, return -1.
   int line_number() const {
@@ -80,8 +60,8 @@ class Lexer {
     return curr_file()->line_number;
   }
 
-  // Context string (for error messages and debugging).
-  // If grammar is popped empty, return empty string.
+  // Context string (for error messages and debugging). If grammar is popped
+  // empty, return empty string.
   std::string GetCurrentContext() const {
     if (grammar_.empty()) return "";
     int end = curr_file()->pos;
@@ -132,16 +112,16 @@ class Lexer {
   GrammarFile *curr_file() { return &grammar_.top(); }
   const GrammarFile *curr_file() const { return &grammar_.top(); }
 
-  // The following symbols are considered connectors (unless escaped).
-  // '-' and '_' are also connectors but are handled separately.
+  // The following symbols are considered connectors (unless escaped). '-' and
+  // '_' are also connectors but are handled separately.
   bool is_connector(char c) const { return strchr("()=:;[]{}|*+@,.?$/", c); }
 
   int GetChar() {
     int c = 0;
-
-    while (!grammar_.empty() && curr_file()->pos >= curr_file()->content.size())
+    while (!grammar_.empty() &&
+           curr_file()->pos >= curr_file()->content.size()) {
       grammar_.pop();
-
+    }
     if (!grammar_.empty() && curr_file()->pos < curr_file()->content.size()) {
       c = curr_file()->content[curr_file()->pos++];
       if (c == '\n') ++curr_file()->line_number;

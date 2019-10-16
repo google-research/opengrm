@@ -19,8 +19,8 @@ namespace function {
 template <typename Arc>
 class Expand : public UnaryFstFunction<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
-  typedef fst::VectorFst<Arc> MutableTransducer;
+  using Transducer = ::fst::Fst<Arc>;
+  using MutableTransducer = ::fst::VectorFst<Arc>;
 
   Expand() {}
   ~Expand() final {}

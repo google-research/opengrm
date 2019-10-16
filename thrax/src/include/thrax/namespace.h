@@ -1,23 +1,3 @@
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
-// Copyright 2005-2011 Google, Inc.
-// Author: ttai@google.com (Terry Tai)
-//
-// A namespace manager for the tree evaluator.  This handles nested levels of
-// identifiers.  Essentially, this is a manager/wrapper for ResourceMap,
-// collecting shared resources into a single map and allowing local variables to
-// live in a hierarchical stack of maps.
-
 #ifndef THRAX_NAMESPACE_H_
 #define THRAX_NAMESPACE_H_
 
@@ -31,33 +11,42 @@
 #include <thrax/algo/resource-map.h>
 
 namespace thrax {
+
 class ResourceMap;
+
 }  // namespace thrax
 
 namespace thrax {
 
+// A namespace manager for the tree evaluator. This handles nested levels of
+// identifiers. Essentially, this is a manager/wrapper for ResourceMap,
+// collecting shared resources into a single map and allowing local variables to
+// live in a hierarchical stack of maps.
 class Namespace {
  public:
   Namespace();
+
   ~Namespace();
 
-  // Create (and return) a new sub-namespace using the provided filename and
-  // alias, adding it to the namespace tree.  The returned namespace is still
+  // Creates (and return) a new sub-namespace using the provided filename and
+  // alias, adding it to the namespace tree. The returned namespace is still
   // owned by this class and must not be freed by the caller.
   Namespace* AddSubNamespace(const std::string& filename,
                              const std::string& alias);
 
   // These functions will create a new local environment space (or destroy the
   // newest one).
+
   void PushLocalEnvironment();
+
   void PopLocalEnvironment();
 
-  // Returns the size of stack size of the local environment.  This will help us
+  // Returns the size of stack size of the local environment. This will help us
   // to determine how many recursive iterations we are down.
   int LocalEnvironmentDepth() const;
 
-  // Adds the provided resource to this namespace.  Returns true if the resource
-  // was a new insertion and false if we clobbered a pre-existing object.  The
+  // Adds the provided resource to this namespace. Returns true if the resource
+  // was a new insertion and false if we clobbered a pre-existing object. The
   // second version inserts the object without taking over ownership of the
   // pointer.
   template <typename T>
@@ -65,6 +54,7 @@ class Namespace {
     const std::string& name = ConstructMapName(identifier_name);
     return resources_->Insert(name, resource);
   }
+
   template <typename T>
   bool InsertWithoutDelete(const std::string& identifier_name, T* resource) {
     const std::string& name = ConstructMapName(identifier_name);
@@ -86,7 +76,7 @@ class Namespace {
   }
 
   // Returns the resource associated with this namespace (and nullptr if the
-  // provided name is not found or if the type is incorrect).  If the provided
+  // provided name is not found or if the type is incorrect). If the provided
   // Namespace pointer-pointer is not nullptr, then we'll also return the
   // namespace where it was found.
   template <typename T>
@@ -102,7 +92,7 @@ class Namespace {
     }
 
     // At this point, either there is no local resource of the provided name, or
-    // we have a namespaced identifier.  So in either case, let's check the
+    // we have a namespaced identifier. So in either case, let's check the
     // global map.
     Namespace* final_namespace = ResolveNamespace(identifier);
     if (final_namespace) {
@@ -113,9 +103,9 @@ class Namespace {
         return resources_->Get<T>(name);
       }
     }
-
     return nullptr;
   }
+
   template <typename T>
   T* Get(const IdentifierNode& identifier) {
     return Get<T>(identifier, nullptr);
@@ -131,11 +121,12 @@ class Namespace {
   std::string GetFilename() const;
 
   void SetTopLevel();
+
   bool IsTopLevel() const;
 
  private:
   // This constructor creates a sub-namespace that shares resources with the
-  // parent.  As such, it should be invoked only through AddSubNamespace().
+  // parent. As such, it should be invoked only through AddSubNamespace().
   Namespace(const std::string& filename, ResourceMap* resource_map);
 
   // Creates the semi-unique joined name for a given identifier, currently the
@@ -152,24 +143,20 @@ class Namespace {
   // corresponding to the main body of the file currently being compiled) and
   // false otherwise.
   bool toplevel_;
-
   // The filename associated with this particular namespace alias.
   std::string filename_;
-
   // Provides a mapping from a single-component alias to the next Namespace
-  // object.  This map is expected to be reasonably small, so we'll use a normal
+  // object. This map is expected to be reasonably small, so we'll use a normal
   // map instead of a hash_map.
   std::map<std::string, Namespace*> alias_namespace_map_;
-
-  // The actual map of string to global resources.  This resource map will
-  // likely be shared across this namespace and all sub-namespaces.  Keys are
-  // those provided by ConstructMapName().
+  // The actual map of string to global resources. This resource map will likely
+  // be shared across this namespace and all sub-namespaces. Keys are those
+  // provided by ConstructMapName().
   ResourceMap* resources_;
   bool owns_resources_;
-
   // We still, however, need a list of local variables on a per-namespace basis.
   // This will be for function calls primarily and other non-globally-exported
-  // stuff.  The front of the list is the bottom of the stack; the back will be
+  // stuff. The front of the list is the bottom of the stack; the back will be
   // the newest scope.
   std::vector<ResourceMap*> local_env_;
 

@@ -47,9 +47,9 @@ namespace function {
 template <typename Arc>
 class PdtCompose : public Function<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
-  typedef fst::VectorFst<Arc> MutableTransducer;
-  typedef typename Arc::Label Label;
+  using Transducer = ::fst::Fst<Arc>;
+  using MutableTransducer = ::fst::VectorFst<Arc>;
+  using Label = typename Arc::Label;
 
   PdtCompose() {}
   ~PdtCompose() final {}
@@ -61,7 +61,6 @@ class PdtCompose : public Function<Arc> {
                 << std::endl;
       return nullptr;
     }
-
     if (!args[0]->is<Transducer*>()
         || !args[1]->is<Transducer*>()
         || !args[2]->is<Transducer*>()) {
@@ -69,8 +68,8 @@ class PdtCompose : public Function<Arc> {
                 << std::endl;
       return nullptr;
     }
-    const Transducer* left = *args[0]->get<Transducer*>();
-    const Transducer* right = *args[1]->get<Transducer*>();
+    const auto* left = *args[0]->get<Transducer*>();
+    const auto* right = *args[1]->get<Transducer*>();
     if (FLAGS_save_symbols) {
       if (!CompatSymbols(left->OutputSymbols(), right->InputSymbols())) {
         std::cout << "PdtCompose: output symbol table of 1st argument "
@@ -80,7 +79,7 @@ class PdtCompose : public Function<Arc> {
       }
     }
     MutableTransducer parens_transducer(**args[2]->get<Transducer*>());
-    std::vector<std::pair<Label, Label> > parens;
+    std::vector<std::pair<Label, Label>> parens;
     MakeParensPairVector(parens_transducer, &parens);
     bool left_pdt = false;
     if (args.size() > 3) {
@@ -97,7 +96,8 @@ class PdtCompose : public Function<Arc> {
       }
       if (pdt_direction == "left_pdt") left_pdt = true;
     }
-    bool delete_left = false, delete_right = false;
+    bool delete_left = false;
+    bool delete_right = false;
     if (args.size() == 5) {
       if (!args[4]->is<std::string>()) {
         std::cout << "PdtCompose: Expected string for argument 5" << std::endl;
@@ -111,25 +111,25 @@ class PdtCompose : public Function<Arc> {
         return nullptr;
       }
       if (sort_mode != "right") {
-        static const fst::OLabelCompare<Arc> ocomp;
-        left = new fst::ArcSortFst<Arc, fst::OLabelCompare<Arc>>(*left,
-                                                                         ocomp);
+        static const ::fst::OLabelCompare<Arc> ocomp;
+        left = new ::fst::ArcSortFst<Arc, ::fst::OLabelCompare<Arc>>(
+            *left, ocomp);
         delete_left = true;
       }
       if (sort_mode != "left") {
-        static const fst::ILabelCompare<Arc> icomp;
-        right = new fst::ArcSortFst<Arc, fst::ILabelCompare<Arc>>(
+        static const ::fst::ILabelCompare<Arc> icomp;
+        right = new ::fst::ArcSortFst<Arc, ::fst::ILabelCompare<Arc>>(
             *right, icomp);
         delete_right = true;
       }
     }
-    MutableTransducer* output = new MutableTransducer();
-    fst::PdtComposeOptions opts = fst::PdtComposeOptions();
+    auto* output = new MutableTransducer();
+    auto opts = ::fst::PdtComposeOptions();
     opts.connect = false;
     if (left_pdt) {
-      fst::Compose(*left, parens, *right, output, opts);
+      ::fst::Compose(*left, parens, *right, output, opts);
     } else {
-      fst::Compose(*left, *right, parens, output, opts);
+      ::fst::Compose(*left, *right, parens, output, opts);
     }
     if (delete_left) delete left;
     if (delete_right) delete right;
@@ -137,9 +137,6 @@ class PdtCompose : public Function<Arc> {
   }
 
  private:
-  fst::ILabelCompare<Arc> icomp;
-  fst::OLabelCompare<Arc> ocomp;
-
   PdtCompose<Arc>(const PdtCompose<Arc>&) = delete;
   PdtCompose<Arc>& operator=(const PdtCompose<Arc>&) = delete;
 };

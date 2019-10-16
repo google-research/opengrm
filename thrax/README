@@ -1,26 +1,18 @@
-Thrax - Release 1.2.8
-
 Thrax is a toolkit for compiling grammars based on regular expressions and
 context-dependent rewrite rules into weighted finite-state transducers
 (FSTs). The FST representation uses OpenFst.
 
 REQUIREMENTS:
-  This version is known to work under Linux and MacOS using g++ (>=
-  4.2). Expected to work wherever adequate POSIX (dlopen, ssize_t, basename),
-  c99 (snprintf, strtoll, <stdint.h>), and C++11 with GNU extensions are
-  available.
-
-  It is assumed you have OpenFst (www.openfst.org) 1.7.1 or higher and have
-  installed it.
-
-  MAKE SURE YOU CONFIGURE OpenFst WITH THE --enable-far, --enable-pdt AND
-  --enable-mpdt FLAGS. Starting with OpenFst 1.6.0, you can also just use
-  --enable-grm.
+  This version is known to work under Linux g++ (>= 4.6) and MacOS X
+  using XCode 5. Expected to work wherever adequate POSIX (dlopen, ssize_t,
+  basename), c99 (snprintf, strtoll, <stdint.h>), and C__11 (ordered_set>,
+  ordered_map>, <forward_list>) support are available. It assumes you
+  have installed OpenFst (www.openfst.org) and configured it with 
+  (at least) --enable-grm.
 
 INSTALLATION:
-  Follow the generic GNU build system instructions in ./INSTALL.  We
-  recommend configuring with =--enable-static=no= for faster
-  compiles.
+  Follow the generic GNU build system instructions in ./INSTALL. We
+  recommend configuring with =--enable-static=no= for faster compiles.
 
   Configuring with --enable-bin=no excludes the command line utilities (not
   generally useful).

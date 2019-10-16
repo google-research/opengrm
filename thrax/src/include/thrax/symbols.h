@@ -11,9 +11,10 @@
 namespace thrax {
 namespace function {
 
-// Defined in loader.cc
-fst::SymbolTable* GetByteSymbolTable();
-fst::SymbolTable* GetUtf8SymbolTable();
+// Defined in loader.cc.
+::fst::SymbolTable* GetByteSymbolTable();
+::fst::SymbolTable* GetUtf8SymbolTable();
+
 void AddToByteSymbolTable(std::string symbol, int64 label);
 void AddToUtf8SymbolTable(std::string symbol, int64 label);
 
@@ -23,19 +24,25 @@ static const char kUtf8SymbolTableName[] = "**UTF8 symbols";
 class SymbolTableBuilder {
  public:
   SymbolTableBuilder();
+
   ~SymbolTableBuilder();
-  fst::SymbolTable* GetByteSymbolTable();
-  fst::SymbolTable* GetUtf8SymbolTable();
+
+  ::fst::SymbolTable* GetByteSymbolTable();
+  ::fst::SymbolTable* GetUtf8SymbolTable();
+
   void AddToByteSymbolTable(std::string symbol, int64 label);
+
   void AddToUtf8SymbolTable(std::string symbol, int64 label);
 
  private:
   void GenerateByteSymbolTable();
+
   inline void GenerateUtf8SymbolTable();
 
-  fst::Mutex map_mutex_;
-  fst::SymbolTable* byte_symbols_;
-  fst::SymbolTable* utf8_symbols_;
+  ::fst::Mutex map_mutex_;
+  ::fst::SymbolTable* byte_symbols_;
+  ::fst::SymbolTable* utf8_symbols_;
+
   SymbolTableBuilder(const SymbolTableBuilder&) = delete;
   SymbolTableBuilder& operator=(const SymbolTableBuilder&) = delete;
 };

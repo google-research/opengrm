@@ -1,20 +1,3 @@
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
-// Copyright 2005-2011 Google, Inc.
-// Author: ttai@google.com (Terry Tai)
-//
-// A AST walker that prints out each node as it visits it.
-
 #ifndef THRAX_PRINTER_H_
 #define THRAX_PRINTER_H_
 
@@ -41,6 +24,7 @@ class StatementNode;
 class StringFstNode;
 class StringNode;
 
+// An AST walker that prints out each node as it visits it.
 class AstPrinter : public AstWalker {
  public:
   AstPrinter();
@@ -64,8 +48,8 @@ class AstPrinter : public AstWalker {
   bool include_line_numbers = false;
 
  private:
-  // Returns the spacing prefix for the current nested level.
-  // Plus the line number if line_numbers is true.
+  // Returns the spacing prefix for the current nested level, plus the line
+  // number if line_numbers is true.
   std::string Spaces(Node* node) const;
 
   // A scoped counter that increments and decrements the spacing as necessary.

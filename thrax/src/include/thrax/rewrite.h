@@ -23,7 +23,8 @@ namespace function {
 template <typename Arc>
 class Rewrite : public BinaryFstFunction<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
+  using Transducer = ::fst::Fst<Arc>;
+  using MutableTransducer = ::fst::VectorFst<Arc>;
 
   Rewrite() {}
   ~Rewrite() final {}
@@ -39,9 +40,8 @@ class Rewrite : public BinaryFstFunction<Arc> {
     // If we keep the symbol tables and if either the input or the output is not
     // an acceptor, then the output symbols of the left and the output symbols
     // of the right must match.
-    if (FLAGS_save_symbols &&
-        (!left.Properties(fst::kAcceptor, true) ||
-         !right.Properties(fst::kAcceptor, true))) {
+    if (FLAGS_save_symbols && (!left.Properties(::fst::kAcceptor, true) ||
+                               !right.Properties(::fst::kAcceptor, true))) {
       if (!CompatSymbols(left.OutputSymbols(), right.InputSymbols())) {
         std::cout << "Rewrite: output symbol table of 1st argument "
                   << "does not match input symbol table of 2nd argument "
@@ -49,8 +49,8 @@ class Rewrite : public BinaryFstFunction<Arc> {
         return nullptr;
       }
     }
-    auto *output = new fst::VectorFst<Arc>;
-    fst::CrossProduct(left, right, output);
+    auto* output = new MutableTransducer();
+    ::fst::CrossProduct(left, right, output);
     return output;
   }
 

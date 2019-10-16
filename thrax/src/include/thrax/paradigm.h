@@ -74,8 +74,8 @@ namespace function {
 template <typename Arc>
 class Analyzer : public Function<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
-  typedef fst::VectorFst<Arc> MutableTransducer;
+  using Transducer = ::fst::Fst<Arc>;
+  using MutableTransducer = ::fst::VectorFst<Arc>;
 
   Analyzer() {}
   ~Analyzer() final {}
@@ -87,12 +87,10 @@ class Analyzer : public Function<Arc> {
     MutableTransducer stems(**args[1]->get<Transducer*>());
     MutableTransducer stemmer(**args[2]->get<Transducer*>());
     MutableTransducer deleter(**args[3]->get<Transducer*>());
-    MutableTransducer* analyzer = BuildAnalyzer(&paradigm, &stems,
-                                                &stemmer, &deleter);
-    Transducer* optimized_analyzer = Optimize<Arc>::ActuallyOptimize(*analyzer);
+    auto* analyzer = BuildAnalyzer(&paradigm, &stems, &stemmer, &deleter);
+    auto* optimized_analyzer = Optimize<Arc>::ActuallyOptimize(*analyzer);
     delete analyzer;
-    MutableTransducer* final_analyzer =
-        new MutableTransducer(*optimized_analyzer);
+    auto* final_analyzer = new MutableTransducer(*optimized_analyzer);
     if (FLAGS_save_symbols) {
       final_analyzer->SetInputSymbols(paradigm.InputSymbols());
       final_analyzer->SetOutputSymbols(paradigm.OutputSymbols());
@@ -109,23 +107,24 @@ class Analyzer : public Function<Arc> {
     // Construct a mapper from all possible analyzed forms to a stemmed version,
     // where "stemmer" defines what "stemmed" means. For example, this might map
     // from "long+us[cas=nom,num=sg]" to "long[cas=nom,num=sg]"
-    fst::Compose(*paradigm, *stemmer, &mapper);
+    ::fst::Compose(*paradigm, *stemmer, &mapper);
     // Invert to map the other way.
-    fst::Invert(&mapper);
+    ::fst::Invert(&mapper);
     MutableTransducer inflected;
     // Now compose with the set of stems to map from a given list of stems into
     // analyzed inflected forms.
-    fst::ArcSort(&mapper, fst::ILabelCompare<Arc>());
-    fst::Compose(*stems, mapper, &inflected);
+    static const ::fst::ILabelCompare<Arc> icomp;
+    ::fst::ArcSort(&mapper, icomp);
+    ::fst::Compose(*stems, mapper, &inflected);
     // We only want the second dimension, namely analyzed inflected forms.
-    fst::Project(&inflected, fst::PROJECT_OUTPUT);
+    ::fst::Project(&inflected, ::fst::PROJECT_OUTPUT);
     MutableTransducer result;
     // Compose the specific set of analyzed forms with the deleter, which should
     // get rid of features, morph boundaries and other annotations to yield
     // actual surface forms.
-    fst::Compose(inflected, *deleter, &result);
+    ::fst::Compose(inflected, *deleter, &result);
     // Invert to map from surface inflected forms to their analyses.
-    fst::Invert(&result);
+    ::fst::Invert(&result);
     return new MutableTransducer(result);
   }
 
@@ -155,8 +154,8 @@ class Analyzer : public Function<Arc> {
 template <typename Arc>
 class Tagger : public Function<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
-  typedef fst::VectorFst<Arc> MutableTransducer;
+  using Transducer = ::fst::Fst<Arc>;
+  using MutableTransducer = ::fst::VectorFst<Arc>;
 
   Tagger() : Function<Arc>() {}
 
@@ -176,10 +175,10 @@ class Tagger : public Function<Arc> {
                                                                &deleter);
     MutableTransducer tagger;
     // See above on "boundary_deleter"
-    fst::Compose(*analyzer, boundary_deleter, &tagger);
-    Transducer* optimized_tagger = Optimize<Arc>::ActuallyOptimize(tagger);
+    ::fst::Compose(*analyzer, boundary_deleter, &tagger);
+    auto* optimized_tagger = Optimize<Arc>::ActuallyOptimize(tagger);
     delete analyzer;
-    MutableTransducer* final_tagger = new MutableTransducer(*optimized_tagger);
+    auto* final_tagger = new MutableTransducer(*optimized_tagger);
     if (FLAGS_save_symbols) {
       final_tagger->SetInputSymbols(paradigm.InputSymbols());
       final_tagger->SetOutputSymbols(paradigm.OutputSymbols());
@@ -212,8 +211,8 @@ class Tagger : public Function<Arc> {
 template <typename Arc>
 class ParadigmReplace : public Function<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
-  typedef fst::VectorFst<Arc> MutableTransducer;
+  using Transducer = ::fst::Fst<Arc>;
+  using MutableTransducer = ::fst::VectorFst<Arc>;
 
   ParadigmReplace() {}
   ~ParadigmReplace() final {}
@@ -224,18 +223,17 @@ class ParadigmReplace : public Function<Arc> {
     MutableTransducer paradigm(**args[0]->get<Transducer*>());
     MutableTransducer old_forms(**args[1]->get<Transducer*>());
     MutableTransducer new_forms(**args[2]->get<Transducer*>());
-    fst::RmEpsilon(&old_forms);
+    ::fst::RmEpsilon(&old_forms);
     MutableTransducer det_old_forms;
-    fst::Determinize(old_forms, &det_old_forms);
+    ::fst::Determinize(old_forms, &det_old_forms);
     MutableTransducer difference;
     // First subtract out the old forms that are to be replaced
-    fst::Difference(paradigm, det_old_forms, &difference);
-    // Then add in the new forms
-    fst::Union(&difference, new_forms);
+    ::fst::Difference(paradigm, det_old_forms, &difference);
+    // Then add in the new forms.
+    ::fst::Union(&difference, new_forms);
     Transducer* optimized_paradigm =
         Optimize<Arc>::ActuallyOptimize(difference);
-    MutableTransducer* final_paradigm =
-        new MutableTransducer(*optimized_paradigm);
+    auto* final_paradigm = new MutableTransducer(*optimized_paradigm);
     if (FLAGS_save_symbols) {
       final_paradigm->SetInputSymbols(paradigm.InputSymbols());
       final_paradigm->SetOutputSymbols(paradigm.OutputSymbols());

@@ -18,8 +18,8 @@ namespace function {
 template <typename Arc>
 class Reverse : public UnaryFstFunction<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
-  typedef fst::VectorFst<Arc> MutableTransducer;
+  using Transducer = ::fst::Fst<Arc>;
+  using MutableTransducer = ::fst::VectorFst<Arc>;
 
   Reverse() {}
   ~Reverse() final {}
@@ -32,8 +32,8 @@ class Reverse : public UnaryFstFunction<Arc> {
                 << std::endl;
       return nullptr;
     }
-    MutableTransducer* output = new MutableTransducer();
-    fst::Reverse(fst, output);
+    auto* output = new MutableTransducer();
+    ::fst::Reverse(fst, output);
     return output;
   }
 

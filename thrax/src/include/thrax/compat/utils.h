@@ -24,7 +24,6 @@
 #include <cstdarg>
 #include <cstdio>
 
-#include <algorithm>
 #include <fstream>
 #include <memory>
 #include <string>
@@ -76,10 +75,6 @@ inline std::string StringCat(const StringOrInt &s1, const StringOrInt &s2,
   return s1.Get() + StringCat(s2, s3, s4, s5);
 }
 
-namespace internal {
-
-// Destructive variants.
-
 inline void StringReplace(std::string *full, const std::string &before,
                           const std::string &after) {
   size_t pos = 0;
@@ -89,48 +84,15 @@ inline void StringReplace(std::string *full, const std::string &before,
   }
 }
 
-inline void StripTrailingAsciiWhitespace(std::string *full) {
-  const auto lambda = [](char ch) { return !std::isspace(ch); };
-  const auto pos = std::find_if(full->rbegin(), full->rend(), lambda).base();
-  full->erase(pos, full->end());
-}
-
-}  // namespace internal
-
 inline std::string StringReplace(const std::string &full,
                                  const std::string &before,
                                  const std::string &after, bool /* ignored */) {
   std::string copy(full);
-  internal::StringReplace(&copy, before, after);
+  StringReplace(&copy, before, after);
   return copy;
-}
-
-inline std::string StripTrailingAsciiWhitespace(const std::string &full) {
-  std::string copy(full);
-  internal::StripTrailingAsciiWhitespace(&copy);
-  return copy;
-}
-
-std::string StringJoin(const std::vector<std::string> &elements,
-                       const std::string &delim);
-
-std::vector<std::string> StringSplit(const std::string &full,
-                                     const char *delim);
-
-inline std::vector<std::string> StringSplit(const std::string &full,
-                                            char delim) {
-  return StringSplit(full, std::string(1, delim).c_str());
-}
-
-inline std::vector<std::string> StringSplit(const std::string &full,
-                                            const std::string &delim) {
-  return StringSplit(full, delim.c_str());
 }
 
 std::string StringPrintf(const char *format, ...);
-
-void SplitStringAllowEmpty(const std::string &full, const char *delim,
-                           std::vector<std::string> *result);
 
 // Operations on filenames.
 

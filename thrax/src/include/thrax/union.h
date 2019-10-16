@@ -21,8 +21,8 @@ namespace function {
 template <typename Arc>
 class Union : public BinaryFstFunction<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
-  typedef fst::VectorFst<Arc> MutableTransducer;
+  using Transducer = ::fst::Fst<Arc>;
+  using MutableTransducer = ::fst::VectorFst<Arc>;
 
   Union() {}
   ~Union() final {}
@@ -36,21 +36,23 @@ class Union : public BinaryFstFunction<Arc> {
       return nullptr;
     }
     if (FLAGS_save_symbols) {
-      if (!CompatSymbols(left.InputSymbols(), right.InputSymbols())) {
+      if (!::fst::CompatSymbols(left.InputSymbols(),
+                                    right.InputSymbols())) {
         std::cout << "Union: input symbol table of 1st argument "
                   << "does not match input symbol table of 2nd argument"
                   << std::endl;
         return nullptr;
       }
-      if (!CompatSymbols(left.OutputSymbols(), right.OutputSymbols())) {
+      if (!::fst::CompatSymbols(left.OutputSymbols(),
+                                    right.OutputSymbols())) {
         std::cout << "Union: output symbol table of 1st argument "
                   << "does not match output symbol table of 2nd argument"
                   << std::endl;
         return nullptr;
       }
     }
-    MutableTransducer* mutable_left = new MutableTransducer(left);
-    fst::Union(mutable_left, right);
+    auto* mutable_left = new MutableTransducer(left);
+    ::fst::Union(mutable_left, right);
     return mutable_left;
   }
 
@@ -62,7 +64,7 @@ class Union : public BinaryFstFunction<Arc> {
 template <typename Arc>
 class UnionDelayed : public BinaryFstFunction<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
+  using Transducer = ::fst::Fst<Arc>;
 
   UnionDelayed() {}
   ~UnionDelayed() final {}
@@ -76,20 +78,22 @@ class UnionDelayed : public BinaryFstFunction<Arc> {
       return nullptr;
     }
     if (FLAGS_save_symbols) {
-      if (!CompatSymbols(left.InputSymbols(), right.InputSymbols())) {
+      if (!::fst::CompatSymbols(left.InputSymbols(),
+                                    right.InputSymbols())) {
         std::cout << "UnionDelayed: input symbol table of 1st argument "
                   << "does not match input symbol table of 2nd argument"
                   << std::endl;
         return nullptr;
       }
-      if (!CompatSymbols(left.OutputSymbols(), right.OutputSymbols())) {
+      if (!::fst::CompatSymbols(left.OutputSymbols(),
+                                    right.OutputSymbols())) {
         std::cout << "UnionDelayed: output symbol table of 1st argument "
                   << "does not match output symbol table of 2nd argument"
                   << std::endl;
         return nullptr;
       }
     }
-    return new fst::UnionFst<Arc>(left, right);
+    return new ::fst::UnionFst<Arc>(left, right);
   }
 
  private:

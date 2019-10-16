@@ -1,9 +1,9 @@
-algo_include_headers = thrax/algo/cdrewrite.h thrax/algo/concatrange.h \
-					   thrax/algo/crossproduct.h thrax/algo/lenientlycompose.h \
-					   thrax/algo/paths.h thrax/algo/prefix_tree.h \
-					   thrax/algo/resource-map.h thrax/algo/optimize.h \
-					   thrax/algo/sigma_star.h thrax/algo/stringprint.h \
-					   thrax/algo/stripcomment.h
+algo_include_headers = thrax/algo/cdrewrite.h thrax/algo/checkprops.h \
+                       thrax/algo/concatrange.h thrax/algo/crossproduct.h \
+                       thrax/algo/lenientlycompose.h thrax/algo/paths.h \
+                       thrax/algo/prefix_tree.h thrax/algo/resource-map.h \
+                       thrax/algo/optimize.h thrax/algo/stringprint.h \
+                       thrax/algo/stripcomment.h
 
 compat_include_headers = thrax/compat/compat.h \
                          thrax/compat/closure.h thrax/compat/oneof.h \

@@ -40,15 +40,14 @@ class SymbolTable : public Function<Arc> {
     const auto& file =
         JoinPath(FLAGS_indir, *args[0]->get<std::string>());
     VLOG(2) << "Loading symbol table: " << file;
-    fst::SymbolTable* symtab(fst::SymbolTable::ReadText(file));
+    std::unique_ptr<::fst::SymbolTable> symtab(
+        ::fst::SymbolTable::ReadText(file));
     if (!symtab) {
       std::cout << "SymbolTable: Unable to load symbol table file: " << file
                 << std::endl;
       return nullptr;
     }
-    DataType* output = new DataType(*symtab);
-    delete symtab;
-    return output;
+    return new DataType(*symtab);
   }
 
  private:

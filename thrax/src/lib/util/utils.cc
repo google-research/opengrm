@@ -35,53 +35,6 @@ namespace thrax {
 
 // Operations on strings.
 
-namespace {
-
-// Computes size of joined string.
-size_t GetResultSize(const std::vector<std::string> &elements, size_t s_size) {
-  const auto lambda = [](size_t partial, const std::string &right) {
-    return partial + right.size();
-  };
-  return (std::accumulate(elements.begin(), elements.end(), 0, lambda) +
-          s_size * (elements.size() - 1));
-}
-
-}  // namespace
-
-// Joins a vector of strings on a given delimiter.
-std::string StringJoin(const std::vector<std::string> &elements,
-                       const std::string &delim) {
-  std::string result;
-  if (elements.empty()) return result;
-  size_t s_size = delim.size();
-  result.reserve(GetResultSize(elements, s_size));
-  auto it = elements.begin();
-  result.append(it->data(), it->size());
-  for (++it; it != elements.end(); ++it) {
-    result.append(delim.data(), s_size);
-    result.append(it->data(), it->size());
-  }
-  return result;
-}
-
-// Splits a string according to delimiter, skipping over consecutive
-// delimiters.
-std::vector<std::string> StringSplit(const std::string &full,
-                                     const char *delim) {
-  size_t prev = 0;
-  size_t found = full.find_first_of(delim);
-  size_t size = found - prev;
-  std::vector<std::string> result;
-  if (size > 0) result.push_back(full.substr(prev, size));
-  while (found != std::string::npos) {
-    prev = found + 1;
-    found = full.find_first_of(delim, prev);
-    size = found - prev;
-    if (size > 0) result.push_back(full.substr(prev, size));
-  }
-  return result;
-}
-
 // Split a string according to the delimiters, including consecutive
 // delimiters as empty strings.
 void StripSplitAllowEmpty(const std::string &full, const char *delim,
@@ -169,7 +122,7 @@ void ReadFileToStringOrDie(const std::string &file, std::string *store) {
 
 bool RecursivelyCreateDir(const std::string &path) {
   if (path.empty()) return true;
-  std::vector<std::string> path_comp(StringSplit(path, "/"));
+  std::vector<std::string> path_comp(::fst::StringSplit(path, "/"));
   if (path[0] == '/') path_comp[0] = "/" + path_comp[0];
   struct stat stat_buf;
   std::string rpath;
@@ -192,7 +145,7 @@ File *Open(const std::string &filename, const std::string &mode) {
   if (mode.find('r') != std::string::npos) m |= std::ios::in;
   if (mode.find('w') != std::string::npos) m |= std::ios::out;
   if (mode.find('a') != std::string::npos) m |= std::ios::app;
-  std::unique_ptr<std::fstream> fstrm(new std::fstream(filename.c_str(), m));
+  auto fstrm = ::fst::make_unique<std::fstream>(filename.c_str(), m);
   return fstrm->fail() ? nullptr : new File(std::move(fstrm));
 }
 

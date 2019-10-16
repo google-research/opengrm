@@ -17,23 +17,23 @@ class DataType {
   explicit DataType(T thing) : thing_(std::move(thing)) {}
 
   DataType* Copy() const {
-    if (is<fst::Fst<fst::StdArc>*>()) {
+    if (is<::fst::Fst<::fst::StdArc> *>()) {
       return new DataType(
-          (*get<fst::Fst<fst::StdArc>*>())->Copy());
-    } else if (is<fst::Fst<fst::LogArc>*>()) {
+          (*get<::fst::Fst<::fst::StdArc> *>())->Copy());
+    } else if (is<::fst::Fst<::fst::LogArc> *>()) {
       return new DataType(
-          (*get<fst::Fst<fst::LogArc>*>())->Copy());
+          (*get<::fst::Fst<::fst::LogArc> *>())->Copy());
     } else {
-      DataType* retval = new DataType(thing_);
-      return retval;
+      return new DataType(thing_);
     }
   }
 
   ~DataType() {
-    if (is<fst::Fst<fst::StdArc>*>())
-      delete *get<fst::Fst<fst::StdArc>*>();
-    else if (is<fst::Fst<fst::LogArc>*>())
-      delete *get<fst::Fst<fst::LogArc>*>();
+    if (is<::fst::Fst<::fst::StdArc> *>()) {
+      delete *get<::fst::Fst<::fst::StdArc> *>();
+    } else if (is<::fst::Fst<::fst::LogArc> *>()) {
+      delete *get<::fst::Fst<::fst::LogArc> *>();
+    }
   }
 
   template <typename T>
@@ -52,10 +52,10 @@ class DataType {
   }
 
  private:
-  using ThingType = thrax::Oneof<fst::Fst<fst::StdArc> *,
-                                  fst::Fst<fst::LogArc> *,
-                                  fst::Fst<fst::Log64Arc> *,
-                                  fst::SymbolTable, std::string, int>;
+  using ThingType = thrax::Oneof<::fst::Fst<::fst::StdArc> *,
+                                  ::fst::Fst<::fst::LogArc> *,
+                                  ::fst::Fst<::fst::Log64Arc> *,
+                                  ::fst::SymbolTable, std::string, int>;
 
   ThingType thing_;
 

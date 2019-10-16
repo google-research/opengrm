@@ -30,11 +30,9 @@ class Function {
   // Runs the desired function by wrapping Execute() and then freeing the
   // arguments.
   DataType* Run(std::vector<DataType*>* args) {
-    DataType* return_value = Execute(*args);
-
+    auto* return_value = Execute(*args);
     STLDeleteContainerPointers(args->begin(), args->end());
     delete args;
-
     return return_value;
   }
 
@@ -74,7 +72,7 @@ extern void RegisterFunctions();
 template <typename Arc>
 class UnaryFstFunction : public Function<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
+  using Transducer = ::fst::Fst<Arc>;
 
   UnaryFstFunction() {}
   virtual ~UnaryFstFunction() {}
@@ -90,8 +88,8 @@ class UnaryFstFunction : public Function<Arc> {
       std::cout << "UnaryFstFunction: Expected FST for argument 1" << std::endl;
       return nullptr;
     }
-    const Transducer* fst = *args[0]->get<Transducer*>();
-    Transducer* output = UnaryFstExecute(*fst, args);
+    const auto* fst = *args[0]->get<Transducer*>();
+    auto* output = UnaryFstExecute(*fst, args);
     return output ? new DataType(output) : nullptr;
   }
 
@@ -111,7 +109,7 @@ class UnaryFstFunction : public Function<Arc> {
 template <typename Arc>
 class BinaryFstFunction : public Function<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
+  using Transducer = ::fst::Fst<Arc>;
 
   BinaryFstFunction() {}
   virtual ~BinaryFstFunction() {}
@@ -130,9 +128,9 @@ class BinaryFstFunction : public Function<Arc> {
         return nullptr;
       }
     }
-    const Transducer* left = *args[0]->get<Transducer*>();
-    const Transducer* right = *args[1]->get<Transducer*>();
-    Transducer* output = BinaryFstExecute(*left, *right, args);
+    const auto* left = *args[0]->get<Transducer*>();
+    const auto* right = *args[1]->get<Transducer*>();
+    auto* output = BinaryFstExecute(*left, *right, args);
     return output ? new DataType(output) : nullptr;
   }
 

@@ -23,8 +23,8 @@ namespace function {
 template <typename Arc>
 class Closure : public UnaryFstFunction<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
-  typedef fst::VectorFst<Arc> MutableTransducer;
+  using Transducer = ::fst::Fst<Arc>;
+  using MutableTransducer = ::fst::VectorFst<Arc>;
 
   Closure() {}
   ~Closure() final {}
@@ -40,10 +40,9 @@ class Closure : public UnaryFstFunction<Arc> {
       std::cout << "Closure: Expected int/enum for argument 2" << std::endl;
       return nullptr;
     }
-    RepetitionFstNode::RepetitionFstNodeType type =
-        static_cast<RepetitionFstNode::RepetitionFstNodeType>(
-            *args[1]->get<int>());
-    MutableTransducer* output = new MutableTransducer(fst);
+    const auto type = static_cast<RepetitionFstNode::RepetitionFstNodeType>(
+        *args[1]->get<int>());
+    auto* output = new MutableTransducer(fst);
     switch (type) {
       case RepetitionFstNode::STAR: {
         if (args.size() != 2) {
@@ -51,7 +50,7 @@ class Closure : public UnaryFstFunction<Arc> {
                     << std::endl;
           return nullptr;
         }
-        fst::Closure(output, fst::CLOSURE_STAR);
+        ::fst::Closure(output, fst::CLOSURE_STAR);
         break;
       }
       case RepetitionFstNode::PLUS: {
@@ -60,7 +59,7 @@ class Closure : public UnaryFstFunction<Arc> {
                     << std::endl;
           return nullptr;
         }
-        fst::Closure(output, fst::CLOSURE_PLUS);
+        ::fst::Closure(output, fst::CLOSURE_PLUS);
         break;
       }
       case RepetitionFstNode::QUESTION: {
@@ -69,7 +68,7 @@ class Closure : public UnaryFstFunction<Arc> {
                     << std::endl;
           return nullptr;
         }
-        fst::ConcatRange(output, 0, 1);
+        ::fst::ConcatRange(output, 0, 1);
         break;
       }
       case RepetitionFstNode::RANGE: {
@@ -88,7 +87,7 @@ class Closure : public UnaryFstFunction<Arc> {
         }
         const auto min = *args[2]->get<int>();
         const auto max = *args[3]->get<int>();
-        fst::ConcatRange(output, min, max);
+        ::fst::ConcatRange(output, min, max);
         break;
       }
       default: {

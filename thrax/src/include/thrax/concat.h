@@ -25,8 +25,8 @@ namespace function {
 template <typename Arc>
 class Concat : public BinaryFstFunction<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
-  typedef fst::VectorFst<Arc> MutableTransducer;
+  using Transducer = ::fst::Fst<Arc>;
+  using MutableTransducer = ::fst::VectorFst<Arc>;
 
   Concat() {}
   ~Concat() final {}
@@ -40,21 +40,23 @@ class Concat : public BinaryFstFunction<Arc> {
       return nullptr;
     }
     if (FLAGS_save_symbols) {
-      if (!CompatSymbols(left.InputSymbols(), right.InputSymbols())) {
+      if (!::fst::CompatSymbols(left.InputSymbols(),
+                                    right.InputSymbols())) {
         std::cout << "Concat: input symbol table of 1st argument "
                   << "does not match input symbol table of 2nd argument"
                   << std::endl;
         return nullptr;
       }
-      if (!CompatSymbols(left.OutputSymbols(), right.OutputSymbols())) {
+      if (!::fst::CompatSymbols(left.OutputSymbols(),
+                                    right.OutputSymbols())) {
         std::cout << "Concat: output symbol table of 1st argument "
                   << "does not match output symbol table of 2nd argument"
                   << std::endl;
         return nullptr;
       }
     }
-    MutableTransducer* mutable_right = new MutableTransducer(right);
-    fst::Concat(left, mutable_right);
+    auto* mutable_right = new MutableTransducer(right);
+    ::fst::Concat(left, mutable_right);
     return mutable_right;
   }
 
@@ -66,7 +68,7 @@ class Concat : public BinaryFstFunction<Arc> {
 template <typename Arc>
 class ConcatDelayed : public BinaryFstFunction<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
+  using Transducer = ::fst::Fst<Arc>;
 
   ConcatDelayed() {}
   virtual ~ConcatDelayed() {}
@@ -80,20 +82,22 @@ class ConcatDelayed : public BinaryFstFunction<Arc> {
       return nullptr;
     }
     if (FLAGS_save_symbols) {
-      if (!CompatSymbols(left.InputSymbols(), right.InputSymbols())) {
+      if (!::fst::CompatSymbols(left.InputSymbols(),
+                                    right.InputSymbols())) {
         std::cout << "ConcatDelayed: input symbol table of 1st argument "
                   << "does not match input symbol table of 2nd argument"
                   << std::endl;
         return nullptr;
       }
-      if (!CompatSymbols(left.OutputSymbols(), right.OutputSymbols())) {
+      if (!::fst::CompatSymbols(left.OutputSymbols(),
+                                    right.OutputSymbols())) {
         std::cout << "ConcatDelayed: output symbol table of 1st argument "
                   << "does not match output symbol table of 2nd argument"
                   << std::endl;
         return nullptr;
       }
     }
-    return new fst::ConcatFst<Arc>(left, right);
+    return new ::fst::ConcatFst<Arc>(left, right);
   }
 
  private:

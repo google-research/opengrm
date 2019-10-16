@@ -8,15 +8,15 @@
 namespace thrax {
 namespace function {
 
-// Needed for symbol table functionality built into symbols.h
+// Needed for symbol table functionality built into symbols.h.
 
 SymbolTableBuilder kSymbolTableBuilder;
 
-fst::SymbolTable* GetByteSymbolTable() {
+::fst::SymbolTable* GetByteSymbolTable() {
   return kSymbolTableBuilder.GetByteSymbolTable();
 }
 
-fst::SymbolTable* GetUtf8SymbolTable() {
+::fst::SymbolTable* GetUtf8SymbolTable() {
   return kSymbolTableBuilder.GetUtf8SymbolTable();
 }
 
@@ -135,12 +135,12 @@ SymbolTableBuilder::~SymbolTableBuilder() {
   delete utf8_symbols_;
 }
 
-fst::SymbolTable* SymbolTableBuilder::GetByteSymbolTable() {
+::fst::SymbolTable* SymbolTableBuilder::GetByteSymbolTable() {
   if (!byte_symbols_) GenerateByteSymbolTable();
   return byte_symbols_;
 }
 
-fst::SymbolTable* SymbolTableBuilder::GetUtf8SymbolTable() {
+::fst::SymbolTable* SymbolTableBuilder::GetUtf8SymbolTable() {
   if (!utf8_symbols_) GenerateUtf8SymbolTable();
   return utf8_symbols_;
 }
@@ -156,8 +156,8 @@ void SymbolTableBuilder::AddToUtf8SymbolTable(std::string symbol, int64 label) {
 }
 
 void SymbolTableBuilder::GenerateByteSymbolTable() {
-  fst::MutexLock lock(&map_mutex_);
-  byte_symbols_ = new fst::SymbolTable(kByteSymbolTableName);
+  ::fst::MutexLock lock(&map_mutex_);
+  byte_symbols_ = new ::fst::SymbolTable(kByteSymbolTableName);
   byte_symbols_->AddSymbol("<epsilon>", 0);
   char c_str[5];
   for (int c = 1; c < 256; ++c) {
@@ -172,14 +172,14 @@ void SymbolTableBuilder::GenerateByteSymbolTable() {
 }
 
 void SymbolTableBuilder::GenerateUtf8SymbolTable() {
-  fst::MutexLock lock(&map_mutex_);
-  utf8_symbols_ = new fst::SymbolTable(kUtf8SymbolTableName);
+  ::fst::MutexLock lock(&map_mutex_);
+  utf8_symbols_ = new ::fst::SymbolTable(kUtf8SymbolTableName);
   utf8_symbols_->AddSymbol("<epsilon>", 0);
   for (int c = 1; c < 0x10000; ++c) {
     std::vector<int> labels;
     labels.push_back(c);
     std::string utf8_label;
-    if (fst::LabelsToUTF8String(labels, &utf8_label)) {
+    if (::fst::LabelsToUTF8String(labels, &utf8_label)) {
       if (IsUnicodeSpaceOrControl(c)) {
         char c_str[7];
         snprintf(c_str, sizeof(c_str), "0x%04x", c);

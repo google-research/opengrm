@@ -17,8 +17,7 @@ namespace function {
 template <typename Arc>
 class Project : public UnaryFstFunction<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
-  typedef fst::VectorFst<Arc> MutableTransducer;
+  using Transducer = ::fst::Fst<Arc>;
 
   Project() {}
   ~Project() final {}
@@ -35,12 +34,11 @@ class Project : public UnaryFstFunction<Arc> {
       std::cout << "Project: Expected string for argument 2" << std::endl;
       return nullptr;
     }
-
     const auto& project = *args[1]->get<std::string>();
     if (project == "input") {
-      return new fst::ProjectFst<Arc>(fst, fst::PROJECT_INPUT);
+      return new ::fst::ProjectFst<Arc>(fst, ::fst::PROJECT_INPUT);
     } else if (project == "output") {
-      return new fst::ProjectFst<Arc>(fst, fst::PROJECT_OUTPUT);
+      return new ::fst::ProjectFst<Arc>(fst, ::fst::PROJECT_OUTPUT);
     } else {
       std::cout << "Project: Invalid projection parameter: " << project
                 << " (should be 'input' or 'output')" << std::endl;

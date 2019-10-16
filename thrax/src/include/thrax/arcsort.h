@@ -20,11 +20,11 @@ namespace function {
 template <typename Arc>
 class ArcSort : public UnaryFstFunction<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
-  typedef fst::VectorFst<Arc> MutableTransducer;
+  using Transducer = ::fst::Fst<Arc>;
+  using MutableTransducer = ::fst::VectorFst<Arc>;
 
   ArcSort() {}
-  ~ArcSort() final {}
+  ~ArcSort() final{};
 
  protected:
   Transducer* UnaryFstExecute(const Transducer& fst,
@@ -40,11 +40,13 @@ class ArcSort : public UnaryFstFunction<Arc> {
     }
     const auto& sort = *args[1]->get<std::string>();
     if (sort == "input") {
-      return new fst::ArcSortFst<Arc, fst::ILabelCompare<Arc> >(
-          fst, fst::ILabelCompare<Arc>());
+      static const ::fst::ILabelCompare<Arc> icomp;
+      return new ::fst::ArcSortFst<Arc, ::fst::ILabelCompare<Arc>>(
+          fst, icomp);
     } else if (sort == "output") {
-      return new fst::ArcSortFst<Arc, fst::OLabelCompare<Arc> >(
-          fst, fst::OLabelCompare<Arc>());
+      static const ::fst::OLabelCompare<Arc> ocomp;
+      return new ::fst::ArcSortFst<Arc, fst::OLabelCompare<Arc>>(fst,
+                                                                         ocomp);
     } else {
       std::cout << "ArcSort: Invalid sort parameter: " << sort
                 << " (should be 'input' or 'output')" << std::endl;

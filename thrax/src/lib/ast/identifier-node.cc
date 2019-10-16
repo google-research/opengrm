@@ -1,18 +1,3 @@
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
-// Copyright 2005-2011 Google, Inc.
-// Author: ttai@google.com (Terry Tai)
-
 #include <thrax/identifier-node.h>
 
 #include <ctype.h>
@@ -47,7 +32,7 @@ IdentifierNode::IdentifierNode(const std::string& name)
 
 IdentifierNode::IdentifierNode(const std::string& name, int begin_pos)
     : Node(), full_name_(name), begin_pos_(begin_pos) {
-  namespaces_ = thrax::StringSplit(full_name_, '.');
+  namespaces_ = ::fst::StringSplit(full_name_, '.');
   identifier_ = namespaces_.back();
   namespaces_.pop_back();
   valid_ = CalculateValidity();
@@ -63,9 +48,7 @@ IdentifierNode::const_iterator IdentifierNode::end() const {
   return namespaces_.end();
 }
 
-bool IdentifierNode::HasNamespaces() const {
-  return !namespaces_.empty();
-}
+bool IdentifierNode::HasNamespaces() const { return !namespaces_.empty(); }
 
 const std::string& IdentifierNode::GetIdentifier() const { return identifier_; }
 
@@ -73,13 +56,9 @@ const std::string& IdentifierNode::Get() const { return full_name_; }
 
 int IdentifierNode::GetBeginPos() const { return begin_pos_; }
 
-bool IdentifierNode::IsValid() const {
-  return valid_;
-}
+bool IdentifierNode::IsValid() const { return valid_; }
 
-void IdentifierNode::Accept(AstWalker* walker) {
-  walker->Visit(this);
-}
+void IdentifierNode::Accept(AstWalker* walker) { walker->Visit(this); }
 
 bool IdentifierNode::CalculateValidity() {
   for (int i = 0; i < namespaces_.size(); ++i) {

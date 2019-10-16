@@ -1,5 +1,8 @@
+#include <../bin/rewrite-tester-utils.h>
+
 #include <iostream>
 #include <set>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -11,7 +14,6 @@
 #include <fst/vector-fst.h>
 #include <thrax/grm-manager.h>
 #include <../bin/utildefs.h>
-#include <../bin/rewrite-tester-utils.h>
 #include <thrax/symbols.h>
 #define HISTORY_FILE ".rewrite-tester-history"
 #ifdef HAVE_READLINE
@@ -19,13 +21,14 @@ using thrax::File;
 using thrax::Open;
 #endif  // HAVE_READLINE
 
-using fst::StdVectorFst;
-using fst::StringCompiler;
-using fst::SymbolTable;
-using fst::VectorFst;
-using thrax::FstToStrings;
-using thrax::GetGeneratedSymbolTable;
-using thrax::GrmManagerSpec;
+using ::fst::StdArc;
+using ::fst::StdVectorFst;
+using ::fst::StringCompiler;
+using ::fst::StringTokenType;
+using ::fst::SymbolTable;
+using ::thrax::FstToStrings;
+using ::thrax::GetGeneratedSymbolTable;
+using ::thrax::RuleTriple;
 
 DEFINE_string(far, "", "Path to the FAR.");
 DEFINE_string(rules, "", "Names of the rewrite rules.");
@@ -50,15 +53,15 @@ inline void InitializeHistoryFile() {
     kHistoryFileInitialized = true;
     return;
   }
-  // Create history file if it doesn't exist
+  // Creates history file if it doesn't exist.
   if (!Open(FLAGS_history_file, "r")) {
     File* fp = Open(FLAGS_history_file, "w");
-    // Fail silently if we can't open it: just don't record history
+    // Fails silently if we can't open it: just don't record history.
     if (fp) fp->Close();
   }
-  // This will fail silently if history_file doesn't open
+  // This will fail silently if history_file doesn't open.
   read_history(FLAGS_history_file.c_str());
-  // Doesn't mean it succeeded: just means don't try this again:
+  // Doesn't mean it succeeded: just means don't try this again.
   kHistoryFileInitialized = true;
 }
 
@@ -98,12 +101,12 @@ RewriteTesterUtils::~RewriteTesterUtils() {
 
 void RewriteTesterUtils::Initialize() {
   CHECK(grm_.LoadArchive(FLAGS_far));
-  rules_ = thrax::StringSplit(FLAGS_rules, ',');
+  rules_ = ::fst::StringSplit(FLAGS_rules, ',');
   byte_symtab_ = nullptr;
   utf8_symtab_ = nullptr;
   if (rules_.empty()) LOG(FATAL) << "--rules must be specified";
   for (size_t i = 0; i < rules_.size(); ++i) {
-    thrax::RuleTriple triple(rules_[i]);
+    RuleTriple triple(rules_[i]);
     const auto *fst = grm_.GetFst(triple.main_rule);
     if (!fst) {
       LOG(FATAL) << "grm.GetFst() must be non nullptr for rule: "
@@ -116,11 +119,11 @@ void RewriteTesterUtils::Initialize() {
     if (vfst.InputSymbols()) {
       if (!byte_symtab_ &&
           vfst.InputSymbols()->Name() ==
-          thrax::function::kByteSymbolTableName) {
+              ::thrax::function::kByteSymbolTableName) {
         byte_symtab_ = vfst.InputSymbols()->Copy();
       } else if (!utf8_symtab_ &&
                  vfst.InputSymbols()->Name() ==
-                 thrax::function::kUtf8SymbolTableName) {
+                     ::thrax::function::kUtf8SymbolTableName) {
         utf8_symtab_ = vfst.InputSymbols()->Copy();
       }
     }
@@ -139,19 +142,19 @@ void RewriteTesterUtils::Initialize() {
       }
     }
   }
-
   generated_symtab_ = GetGeneratedSymbolTable(&grm_);
   if (FLAGS_input_mode == "byte") {
-    compiler_ = new Compiler(fst::StringTokenType::BYTE);
+    compiler_ = new StringCompiler<StdArc>(StringTokenType::BYTE);
   } else if (FLAGS_input_mode == "utf8") {
-    compiler_ = new Compiler(fst::StringTokenType::UTF8);
+    compiler_ = new StringCompiler<StdArc>(StringTokenType::UTF8);
   } else {
     input_symtab_ = SymbolTable::ReadText(FLAGS_input_mode);
-    if (!input_symtab_)
+    if (!input_symtab_) {
       LOG(FATAL) << "Invalid mode or symbol table path.";
-    compiler_ = new Compiler(fst::StringTokenType::SYMBOL, input_symtab_);
+    }
+    compiler_ =
+        new StringCompiler<StdArc>(StringTokenType::SYMBOL, input_symtab_);
   }
-
   output_symtab_ = nullptr;
   if (FLAGS_output_mode == "byte") {
     type_ = BYTE;
@@ -160,18 +163,20 @@ void RewriteTesterUtils::Initialize() {
   } else {
     type_ = SYMBOL;
     output_symtab_ = SymbolTable::ReadText(FLAGS_output_mode);
-    if (!output_symtab_)
+    if (!output_symtab_) {
       LOG(FATAL) << "Invalid mode or symbol table path.";
+    }
   }
 }
 
 const std::string RewriteTesterUtils::ProcessInput(const std::string& input,
                                                    bool prepend_output) {
-  StdVectorFst input_fst, output_fst;
+  StdVectorFst input_fst;
+  StdVectorFst output_fst;
   if (!compiler_->operator()(input, &input_fst)) {
     return "Unable to parse input string.";
   }
-  std::string return_val = "";
+  std::ostringstream sstrm;
   // Set symbols for the input, if appropriate
   if (byte_symtab_ && type_ == BYTE) {
     input_fst.SetInputSymbols(byte_symtab_);
@@ -183,10 +188,9 @@ const std::string RewriteTesterUtils::ProcessInput(const std::string& input,
     input_fst.SetInputSymbols(input_symtab_);
     input_fst.SetOutputSymbols(input_symtab_);
   }
-
   bool succeeded = true;
   for (size_t i = 0; i < rules_.size(); ++i) {
-    thrax::RuleTriple triple(rules_[i]);
+    RuleTriple triple(rules_[i]);
     if (grm_.Rewrite(triple.main_rule, input_fst, &output_fst,
                      triple.pdt_parens_rule, triple.mpdt_assignments_rule)) {
       if (FLAGS_show_details && rules_.size() > 1) {
@@ -194,12 +198,8 @@ const std::string RewriteTesterUtils::ProcessInput(const std::string& input,
         FstToStrings(output_fst, &tmp, generated_symtab_, type_,
                      output_symtab_, FLAGS_noutput);
         for (const auto& one_result : tmp) {
-          return_val +=
-              "output of rule[" +
-              triple.main_rule +
-              "] is: " +
-              one_result.first +
-              "\n";
+          sstrm << "output of rule[" << triple.main_rule
+                << "] is: " << one_result.first << '\n';
         }
       }
       input_fst = output_fst;
@@ -208,28 +208,26 @@ const std::string RewriteTesterUtils::ProcessInput(const std::string& input,
       break;
     }
   }
-
   std::vector<std::pair<std::string, float>> strings;
   std::set<std::string> seen;
   if (succeeded && FstToStrings(output_fst, &strings,
                                 generated_symtab_, type_,
                                 output_symtab_, FLAGS_noutput)) {
-    std::vector<std::pair<std::string, float>>::iterator itr = strings.begin();
-    for (; itr != strings.end(); ++itr) {
-      std::set<std::string>::iterator sx = seen.find(itr->first);
+    for (auto it = strings.cbegin(); it != strings.cend(); ++it) {
+      const auto sx = seen.find(it->first);
       if (sx != seen.end()) continue;
       if (prepend_output) {
-        return_val += "Output string: " + itr->first;
+        sstrm << "Output string: " << it->first;
       } else {
-        return_val += itr->first;
+        sstrm << it->first;
       }
-      if (FLAGS_noutput != 1 && itr->second != 0) {
-        return_val += " <cost=" + std::to_string(itr->second) + ">";
+      if (FLAGS_noutput != 1 && it->second != 0) {
+        sstrm << " <cost=" << it->second << '>';
       }
-      seen.insert(itr->first);
-      if (itr + 1 != strings.end()) return_val += "\n";
+      seen.insert(it->first);
+      if (it + 1 != strings.cend()) sstrm << '\n';
     }
-    return return_val;
+    return sstrm.str();
   } else {
     return "Rewrite failed.";
   }

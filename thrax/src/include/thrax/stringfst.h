@@ -8,9 +8,11 @@
 #define THRAX_STRINGFST_H_
 
 #include <stdlib.h>
+
 #include <cctype>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -44,7 +46,7 @@ constexpr int64 kFinalBoundaryLabel = 0x10fffd;
 template <typename Arc>
 class StringFst : public Function<Arc> {
  public:
-  using MutableTransducer = fst::VectorFst<Arc>;
+  using MutableTransducer = ::fst::VectorFst<Arc>;
 
   StringFst() {}
   ~StringFst() final {}
@@ -53,36 +55,36 @@ class StringFst : public Function<Arc> {
   DataType* Execute(const std::vector<DataType*>& args) final {
     CHECK_GE(args.size(), 2);
     // Find the mode (and maybe the symbol table).
-    auto mode = fst::StringTokenType::BYTE;
-    const fst::SymbolTable* symtab = nullptr;
+    auto mode = ::fst::StringTokenType::BYTE;
+    const ::fst::SymbolTable* symtab = nullptr;
     switch (*args[0]->get<int>()) {
       case StringFstNode::BYTE: {
         CHECK_EQ(args.size(), 2);
-        mode = fst::StringTokenType::BYTE;
+        mode = ::fst::StringTokenType::BYTE;
         break;
       }
       case StringFstNode::UTF8: {
         CHECK_EQ(args.size(), 2);
-        mode = fst::StringTokenType::UTF8;
+        mode = ::fst::StringTokenType::UTF8;
         break;
       }
       case StringFstNode::SYMBOL_TABLE: {
         CHECK_EQ(args.size(), 3);
-        mode = fst::StringTokenType::SYMBOL;
-        if (!args[2]->is<fst::SymbolTable>()) {
+        mode = ::fst::StringTokenType::SYMBOL;
+        if (!args[2]->is<::fst::SymbolTable>()) {
           std::cout
               << "StringFst: Invalid symbol table for symbol table parse mode"
               << std::endl;
           return nullptr;
         }
-        symtab = args[2]->get<fst::SymbolTable>();
+        symtab = args[2]->get<::fst::SymbolTable>();
         break;
       }
       default: {
         LOG(FATAL) << "Unhandled parse mode.";
       }
     }
-    const fst::StringCompiler<Arc> compiler(mode, symtab);
+    const ::fst::StringCompiler<Arc> compiler(mode, symtab);
     // Create a single state acceptor to serve as the basis onto which we'll
     // concatenate everything.
     std::unique_ptr<MutableTransducer> fst(new MutableTransducer());
@@ -98,7 +100,7 @@ class StringFst : public Function<Arc> {
     bool in_genlab = false;
     for (size_t i = 0; i < text.length(); ++i) {
       char c = text[i];
-      if (c == '[' && mode != fst::StringTokenType::SYMBOL) {
+      if (c == '[' && mode != ::fst::StringTokenType::SYMBOL) {
         if (in_genlab) {
           std::cout << "StringFst: Cannot start new generated label while in "
                     << "previous label" << std::endl;
@@ -110,7 +112,7 @@ class StringFst : public Function<Arc> {
           return nullptr;
         }
         in_genlab = true;
-      } else if (c == ']' && mode != fst::StringTokenType::SYMBOL) {
+      } else if (c == ']' && mode != ::fst::StringTokenType::SYMBOL) {
         if (!in_genlab) {
           std::cout
               << "StringFst: Cannot terminate generated label without already "
@@ -168,12 +170,12 @@ class StringFst : public Function<Arc> {
       std::cout << "StringFst: Failed to compile chunk: " << chunk << std::endl;
       return nullptr;
     }
-    fst::RmEpsilon(fst.get());
+    ::fst::RmEpsilon(fst.get());
     if (FLAGS_save_symbols) {
       if (symtab) {
         fst->SetInputSymbols(symtab);
         fst->SetOutputSymbols(symtab);
-      } else if (mode == fst::StringTokenType::UTF8) {
+      } else if (mode == ::fst::StringTokenType::UTF8) {
         fst->SetInputSymbols(GetUtf8SymbolTable());
         fst->SetOutputSymbols(GetUtf8SymbolTable());
       } else {
@@ -197,10 +199,10 @@ class StringFst : public Function<Arc> {
   // top-level grammar and we are saving out the FARs for this grammar (i.e.,
   // if it is not being imported into another top-level grammar). The boolean
   // argument top_level controls this.
-  static fst::SymbolTable* GetLabelSymbolTable(bool top_level) {
-    fst::MutexLock lock(&map_mutex_);
+  static ::fst::SymbolTable* GetLabelSymbolTable(bool top_level) {
+    ::fst::MutexLock lock(&map_mutex_);
     if (symbol_label_map_.empty()) return nullptr;
-    auto* symtab = new fst::SymbolTable();
+    auto* symtab = new ::fst::SymbolTable();
     for (auto it = symbol_label_map_.begin(); it != symbol_label_map_.end();
          ++it) {
       const auto& symbol = it->first;
@@ -216,8 +218,8 @@ class StringFst : public Function<Arc> {
 
   // This takes in a symbol table and merges it into the current symbol/label
   // map, returning true on success or failure if we encounter any conflicts.
-  static bool MergeLabelSymbolTable(const fst::SymbolTable& symtab) {
-    fst::MutexLock lock(&map_mutex_);
+  static bool MergeLabelSymbolTable(const ::fst::SymbolTable& symtab) {
+    ::fst::MutexLock lock(&map_mutex_);
     bool success = true;
     for (int i = 0; i < symtab.NumSymbols(); ++i) {
       int64 label = symtab.GetNthKey(i);
@@ -283,10 +285,10 @@ class StringFst : public Function<Arc> {
 
   static void ClearRemap() { remap_.clear(); }
 
-  // Returns the remap value, or fst::kNoLabel
+  // Returns the remap value, or ::fst::kNoLabel
   static int64 FindRemapLabel(int64 old_label) {
     const auto it = remap_.find(old_label);
-    return it == remap_.end() ? fst::kNoLabel : it->second;
+    return it == remap_.end() ? ::fst::kNoLabel : it->second;
   }
 
   // This stores the assigned label for the provided symbol (from the map) into
@@ -300,12 +302,12 @@ class StringFst : public Function<Arc> {
   }
 
  private:
-  bool AddBlock(const fst::StringCompiler<Arc>& compiler,
+  bool AddBlock(const ::fst::StringCompiler<Arc>& compiler,
                 std::string* chunk, MutableTransducer* fst) {
     VLOG(3) << "Adding block: " << *chunk;
     MutableTransducer chunk_fst;
     if (!compiler(*chunk, &chunk_fst)) return false;
-    fst::Concat(fst, chunk_fst);
+    ::fst::Concat(fst, chunk_fst);
     chunk->clear();
     return true;
   }
@@ -317,7 +319,7 @@ class StringFst : public Function<Arc> {
   }
 
   bool AddGeneratedLabel(std::string* symbol, MutableTransducer* fst,
-                         enum fst::StringTokenType mode) {
+                         enum ::fst::StringTokenType mode) {
     VLOG(3) << "Finding label for symbol: " << *symbol;
     int64 label;
     // First, we'll check to see if the symbol is actually just a number. If
@@ -337,9 +339,9 @@ class StringFst : public Function<Arc> {
         // Single-byte bracketed character.
         StringFst<Arc>::SingleCharacterError(*symbol);
         return false;
-      } else if (mode == fst::StringTokenType::UTF8) {
+      } else if (mode == ::fst::StringTokenType::UTF8) {
         std::vector<int64> labels;
-        if (!fst::UTF8StringToLabels(*symbol, &labels)) return false;
+        if (!::fst::UTF8StringToLabels(*symbol, &labels)) return false;
         // Single Unicode codepoint-bracketed character.
         if (labels.size() == 1) {
           StringFst<Arc>::SingleCharacterError(*symbol);
@@ -369,9 +371,9 @@ class StringFst : public Function<Arc> {
     const auto p = genlab_fst.AddState();
     const auto q = genlab_fst.AddState();
     genlab_fst.SetStart(p);
-    genlab_fst.AddArc(p, Arc(label, label, Arc::Weight::One(), q));
+    genlab_fst.EmplaceArc(p, label, label, q);
     genlab_fst.SetFinal(q, Arc::Weight::One());
-    fst::Concat(fst, genlab_fst);
+    ::fst::Concat(fst, genlab_fst);
     symbol->clear();
     return true;
   }
@@ -380,7 +382,7 @@ class StringFst : public Function<Arc> {
   // clean up between test runs. This is somewhat less appropriately named than
   // it used to be since it clears more than just the symbol_label_map_
   static void ClearSymbolLabelMapForTest() {
-    fst::MutexLock lock(&map_mutex_);
+    ::fst::MutexLock lock(&map_mutex_);
     symbol_label_map_.clear();
     label_symbol_map_.clear();
     remap_.clear();
@@ -391,7 +393,7 @@ class StringFst : public Function<Arc> {
   static std::map<int64, std::string> label_symbol_map_;
   static std::map<int64, int64> remap_;
   static int64 next_label_;
-  static fst::Mutex map_mutex_;
+  static ::fst::Mutex map_mutex_;
 
   friend class CategoryTest;
   friend class FeatureTest;
@@ -415,7 +417,7 @@ template <typename Arc>
 int64 StringFst<Arc>::next_label_ = kGeneratedLabelStartIndex;
 
 template <typename Arc>
- fst::Mutex StringFst<Arc>::map_mutex_;
+ ::fst::Mutex StringFst<Arc>::map_mutex_;
 
 }  // namespace function
 }  // namespace thrax

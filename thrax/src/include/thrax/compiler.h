@@ -28,17 +28,17 @@ bool CompileGrammar(const std::string& input_grammar,
   return false;
 }
 
-extern template bool CompileGrammar<fst::StdArc>(const std::string&,
-                                                     const std::string&, bool,
-                                                     bool);
-
-extern template bool CompileGrammar<fst::LogArc>(const std::string&,
-                                                     const std::string&, bool,
-                                                     bool);
-
-extern template bool CompileGrammar<fst::Log64Arc>(const std::string&,
+extern template bool CompileGrammar<::fst::StdArc>(const std::string&,
                                                        const std::string&, bool,
                                                        bool);
+
+extern template bool CompileGrammar<::fst::LogArc>(const std::string&,
+                                                       const std::string&, bool,
+                                                       bool);
+
+extern template bool CompileGrammar<::fst::Log64Arc>(const std::string&,
+                                                         const std::string&,
+                                                         bool, bool);
 
 }  // namespace thrax
 

@@ -4,7 +4,8 @@
 // An iterative definition of all paths of an acyclic automaton.
 //
 // For a given path, one can ask for the input label sequence, output label
-// sequence, and total weight.
+// sequence, and total weight; the StringPathIterator also can print the label
+// sequences as strings.
 //
 // The PathIterator class is agnostic about labels and symbol tables; the
 // StringPathIterator wrapper knows about this and also checks the input FST's
@@ -16,8 +17,8 @@
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
-#include <fst/fstlib.h>
-#include <thrax/algo/stringprint.h>
+#include <fst/fst.h>
+#include <fst/string.h>
 
 namespace fst {
 

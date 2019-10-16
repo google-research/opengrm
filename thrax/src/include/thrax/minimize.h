@@ -18,8 +18,8 @@ namespace function {
 template <typename Arc>
 class Minimize : public UnaryFstFunction<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
-  typedef fst::VectorFst<Arc> MutableTransducer;
+  using Transducer = ::fst::Fst<Arc>;
+  using MutableTransducer = ::fst::VectorFst<Arc>;
 
   Minimize() {}
   ~Minimize() final {}
@@ -32,8 +32,8 @@ class Minimize : public UnaryFstFunction<Arc> {
                 << std::endl;
       return nullptr;
     }
-    MutableTransducer* output = new MutableTransducer(fst);
-    fst::Minimize(output);
+    auto* output = new MutableTransducer(fst);
+    ::fst::Minimize(output);
     return output;
   }
 

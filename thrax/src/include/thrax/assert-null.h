@@ -9,6 +9,7 @@
 #define THRAX_ASSERT_NULL_H_
 
 #include <iostream>
+#include <memory>
 #include <vector>
 
 #include <fst/compat.h>
@@ -25,18 +26,17 @@
 
 DECLARE_bool(save_symbols);  // From util/flags.cc.
 
-// TODO(rws): some day we should make this so that it doesn't return a
-// value, but merely runs the assertion. That, however, would require changing
-// the parser.
-
 namespace thrax {
 namespace function {
 
+// TODO(rws): Some day we should make this so that it doesn't return a
+// value, but merely runs the assertion. That, however, would require changing
+// the parser.
 template <typename Arc>
 class AssertNull : public UnaryFstFunction<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
-  typedef fst::VectorFst<Arc> MutableTransducer;
+  using Transducer = ::fst::Fst<Arc>;
+  using MutableTransducer = ::fst::VectorFst<Arc>;
 
   AssertNull() {}
   ~AssertNull() final {}
@@ -49,16 +49,16 @@ class AssertNull : public UnaryFstFunction<Arc> {
                 << args.size() << std::endl;
       return nullptr;
     }
-    MutableTransducer* mutable_left = new MutableTransducer(left);
-    fst::Project(mutable_left, fst::PROJECT_OUTPUT);
-    fst::RmEpsilon(mutable_left);
+    std::unique_ptr<MutableTransducer> mutable_left(
+        new MutableTransducer(left));
+    ::fst::Project(mutable_left.get(), ::fst::PROJECT_OUTPUT);
+    ::fst::RmEpsilon(mutable_left.get());
     if (mutable_left->NumStates() != 0) {
       std::cout << "Argument to AssertNull is not null:"
                 << std::endl;
-      delete mutable_left;
       return nullptr;
     }
-    return mutable_left;
+    return mutable_left.release();
   }
 
  private:

@@ -1,18 +1,3 @@
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
-// Copyright 2005-2011 Google, Inc.
-// Author: ttai@google.com (Terry Tai)
-
 #include <thrax/fst-node.h>
 
 #include <string>
@@ -32,9 +17,7 @@ FstNode::~FstNode() {
   delete weight_;
 }
 
-void FstNode::AddArgument(Node* arg) {
-  arguments_.push_back(arg);
-}
+void FstNode::AddArgument(Node* arg) { arguments_.push_back(arg); }
 
 bool FstNode::SetWeight(StringNode* weight) {
   if (weight_) {
@@ -42,38 +25,26 @@ bool FstNode::SetWeight(StringNode* weight) {
     delete weight;
     return false;
   }
-
   weight_ = weight;
   return true;
 }
 
-FstNode::FstNodeType FstNode::GetType() const {
-  return type_;
-}
+FstNode::FstNodeType FstNode::GetType() const { return type_; }
 
-int FstNode::NumArguments() const {
-  return arguments_.size();
-}
+int FstNode::NumArguments() const { return arguments_.size(); }
 
-Node* FstNode::GetArgument(int index) const {
-  return arguments_[index];
-}
+Node* FstNode::GetArgument(int index) const { return arguments_[index]; }
 
-bool FstNode::HasWeight() const {
-  return weight_;
-}
+bool FstNode::HasWeight() const { return weight_; }
+
 const std::string& FstNode::GetWeight() const { return weight_->Get(); }
 
 const bool FstNode::ShouldOptimize() const {
   return optimize_;
 }
-void FstNode::SetOptimize() {
-  optimize_ = true;
-}
+void FstNode::SetOptimize() { optimize_ = true; }
 
-void FstNode::Accept(AstWalker* walker) {
-  walker->Visit(this);
-}
+void FstNode::Accept(AstWalker* walker) { walker->Visit(this); }
 
 const char* FstNode::FstNodeTypeToString(FstNodeType type) {
   switch (type) {
@@ -89,6 +60,7 @@ const char* FstNode::FstNodeTypeToString(FstNodeType type) {
     case UNKNOWN_FSTNODE:      return "UNKNOWN_FSTNODE";
     default:                   LOG(FATAL) << "Invalid FstNodeType: " << type;
   }
+  return "";  // Unreachable.
 }
 
 StringFstNode::StringFstNode(ParseMode parse_mode)
@@ -100,9 +72,7 @@ StringFstNode::ParseMode StringFstNode::GetParseMode() const {
   return parse_mode_;
 }
 
-void StringFstNode::Accept(AstWalker* walker) {
-  walker->Visit(this);
-}
+void StringFstNode::Accept(AstWalker* walker) { walker->Visit(this); }
 
 RepetitionFstNode::RepetitionFstNode(RepetitionFstNodeType type)
     : FstNode(REPETITION_FSTNODE), repetition_type_(type) {}
@@ -125,9 +95,7 @@ void RepetitionFstNode::GetRange(int* min, int* max) const {
   *max = range_max_;
 }
 
-void RepetitionFstNode::Accept(AstWalker* walker) {
-  walker->Visit(this);
-}
+void RepetitionFstNode::Accept(AstWalker* walker) { walker->Visit(this); }
 
 const char* RepetitionFstNode::RepetitionFstNodeTypeToString(
     RepetitionFstNodeType type) {
@@ -138,6 +106,7 @@ const char* RepetitionFstNode::RepetitionFstNodeTypeToString(
     case RANGE:     return "RANGE";
     default:        LOG(FATAL) << "Invalid RepetitionFstNodeType: " << type;
   }
+  return "";  // Unreachable.
 }
 
 }  // namespace thrax

@@ -30,7 +30,7 @@ namespace function {
 template <typename Arc>
 class Compose : public Function<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
+  using Transducer = ::fst::Fst<Arc>;
 
   Compose() {}
   ~Compose() final {}
@@ -46,9 +46,10 @@ class Compose : public Function<Arc> {
       std::cout << "Compose: First two arguments should be FSTs" << std::endl;
       return nullptr;
     }
-    const Transducer* left = *args[0]->get<Transducer*>();
-    const Transducer* right = *args[1]->get<Transducer*>();
-    bool delete_left = false, delete_right = false;
+    const auto* left = *args[0]->get<Transducer*>();
+    const auto* right = *args[1]->get<Transducer*>();
+    bool delete_left = false;
+    bool delete_right = false;
     if (FLAGS_save_symbols) {
       if (!CompatSymbols(left->OutputSymbols(), right->InputSymbols())) {
         std::cout << "Compose: output symbol table of 1st argument "
@@ -70,19 +71,19 @@ class Compose : public Function<Arc> {
         return nullptr;
       }
       if (sort_mode != "right") {
-        static const fst::OLabelCompare<Arc> ocomp;
-        left = new fst::ArcSortFst<Arc, fst::OLabelCompare<Arc>>(*left,
-                                                                         ocomp);
+        static const ::fst::OLabelCompare<Arc> ocomp;
+        left = new ::fst::ArcSortFst<Arc, ::fst::OLabelCompare<Arc>>(
+            *left, ocomp);
         delete_left = true;
       }
       if (sort_mode != "left") {
-        static const fst::ILabelCompare<Arc> icomp;
-        right = new fst::ArcSortFst<Arc, fst::ILabelCompare<Arc>>(
+        static const ::fst::ILabelCompare<Arc> icomp;
+        right = new ::fst::ArcSortFst<Arc, ::fst::ILabelCompare<Arc>>(
             *right, icomp);
         delete_right = true;
       }
     }
-    Transducer* output = new fst::ComposeFst<Arc>(*left, *right);
+    auto* output = new ::fst::ComposeFst<Arc>(*left, *right);
     if (delete_left) delete left;
     if (delete_right) delete right;
     return new DataType(output);

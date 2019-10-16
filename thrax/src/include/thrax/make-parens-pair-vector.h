@@ -16,15 +16,15 @@ namespace thrax {
 
 template <class Arc>
 void MakeParensPairVector(
-    const fst::Fst<Arc> &parens_transducer,
+    const ::fst::Fst<Arc> &parens_transducer,
     std::vector<std::pair<typename Arc::Label, typename Arc::Label>> *parens) {
   using Label = typename Arc::Label;
   std::set<Label> seen_labels;
-  for (fst::StateIterator<fst::Fst<Arc>> siter(parens_transducer);
+  for (::fst::StateIterator<::fst::Fst<Arc>> siter(parens_transducer);
        !siter.Done(); siter.Next()) {
     const auto state = siter.Value();
-    for (fst::ArcIterator<fst::Fst<Arc>> aiter(parens_transducer,
-                                                       state);
+    for (::fst::ArcIterator<::fst::Fst<Arc>> aiter(parens_transducer,
+                                                           state);
          !aiter.Done(); aiter.Next()) {
       const auto &arc = aiter.Value();
       if (!arc.ilabel && !arc.olabel) {
@@ -63,17 +63,17 @@ void MakeParensPairVector(
 
 template <class Arc>
 void MakeAssignmentsVector(
-    const fst::Fst<Arc> &assignments_transducer,
+    const ::fst::Fst<Arc> &assignments_transducer,
     const std::vector<std::pair<typename Arc::Label, typename Arc::Label>>
         &parens,
     std::vector<typename Arc::Label> *assignments) {
   using Label = typename Arc::Label;
   std::map<Label, Label> assignment_map;
-  for (fst::StateIterator<fst::Fst<Arc>> siter(assignments_transducer);
+  for (::fst::StateIterator<::fst::Fst<Arc>> siter(
+           assignments_transducer);
        !siter.Done(); siter.Next()) {
-    const auto state = siter.Value();
-    for (fst::ArcIterator<fst::Fst<Arc>> aiter(assignments_transducer,
-                                                       state);
+    for (::fst::ArcIterator<::fst::Fst<Arc>> aiter(
+             assignments_transducer, siter.Value());
          !aiter.Done(); aiter.Next()) {
       const auto &arc = aiter.Value();
       if (!arc.ilabel && !arc.olabel) {

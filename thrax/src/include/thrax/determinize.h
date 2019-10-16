@@ -18,8 +18,8 @@ namespace function {
 template <typename Arc>
 class Determinize : public UnaryFstFunction<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
-  typedef fst::VectorFst<Arc> MutableTransducer;
+  using Transducer = ::fst::Fst<Arc>;
+  using MutableTransducer = ::fst::VectorFst<Arc>;
 
   Determinize() {}
   ~Determinize() final {}
@@ -32,8 +32,8 @@ class Determinize : public UnaryFstFunction<Arc> {
                 << std::endl;
       return nullptr;
     }
-    MutableTransducer* output = new MutableTransducer();
-    fst::Determinize(fst, output);
+    auto* output = new MutableTransducer();
+    ::fst::Determinize(fst, output);
     return output;
   }
 

@@ -5,7 +5,7 @@
 
 namespace thrax {
 
-template bool CompileGrammar<fst::LogArc>(const std::string&,
-                                              const std::string&, bool, bool);
+template bool CompileGrammar<::fst::LogArc>(const std::string&,
+                                                const std::string&, bool, bool);
 
 }  // namespace thrax

@@ -20,7 +20,7 @@ namespace function {
 template <typename Arc>
 class Invert : public UnaryFstFunction<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
+  using Transducer = ::fst::Fst<Arc>;
 
   Invert() {}
   ~Invert() final {}
@@ -33,8 +33,7 @@ class Invert : public UnaryFstFunction<Arc> {
                 << std::endl;
       return nullptr;
     }
-
-    return new fst::InvertFst<Arc>(fst);
+    return new ::fst::InvertFst<Arc>(fst);
   }
 
  private:

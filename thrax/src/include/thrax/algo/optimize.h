@@ -1,9 +1,24 @@
 #ifndef FST_UTIL_OPERATORS_OPTIMIZE_H_
 #define FST_UTIL_OPERATORS_OPTIMIZE_H_
 
+// Generic optimization methods for FSTs, inspired by those originally included
+// in Thrax.
+//
+// For more information on the optimization procedure, see:
+//
+// Allauzen, C., Mohri, M., Riley, M., and Roark, B. 2004. A generalized
+// construction of integrated speech recognition transducers. In Proc. ICASSP,
+// pages 761-764.
+
 #include <type_traits>
 
-#include <fst/fstlib.h>
+#include <fst/arcsort.h>
+#include <fst/determinize.h>
+#include <fst/encode.h>
+#include <fst/minimize.h>
+#include <fst/mutable-fst.h>
+#include <fst/rmepsilon.h>
+#include <fst/state-map.h>
 
 // These functions are generic optimization methods for mutable FSTs, inspired
 // by those originally included in Thrax.
@@ -43,8 +58,8 @@ void ArcSumMap(MutableFst<Arc> *fst) {
 //   kEncodeWeights: optimize as an unweighted transducer
 //   kEncodeLabels | kEncodeWeights: optimize as an unweighted acceptor
 template <class Arc>
-void OptimizeAs(MutableFst<Arc> *fst, uint32 flags) {
-  EncodeMapper<Arc> encoder(flags, ENCODE);
+void OptimizeAs(MutableFst<Arc> *fst, uint8 flags) {
+  EncodeMapper<Arc> encoder(flags);
   Encode(fst, &encoder);
   DeterminizeAndMinimize(fst);
   Decode(fst, encoder);
@@ -179,7 +194,8 @@ void OptimizeDifferenceRhs(MutableFst<Arc> *fst, bool compute_props = false) {
   }
   // Minimally, RHS must be input label-sorted; the LHS does not need
   // arc-sorting when the RHS is deterministic (as it now should be).
-  ArcSort(fst, ILabelCompare<Arc>());
+  static const ILabelCompare<Arc> comp;
+  ArcSort(fst, comp);
 }
 
 }  // namespace fst

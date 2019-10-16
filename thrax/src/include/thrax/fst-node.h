@@ -1,21 +1,6 @@
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
-// Copyright 2005-2011 Google, Inc.
-// Author: ttai@google.com (Terry Tai)
-//
-// This node represents basic (primitive) types in the language.  This name is
-// currently misleading - the held type can be anything represented in a
-// DataType essentially - FST, symbol table, or string.
+// This node represents basic (primitive) types in the language. This name is
+// currently misleading. The held type can be anything represented in a
+// DataType essentially: FST, symbol table, or string.
 
 #ifndef THRAX_FST_NODE_H_
 #define THRAX_FST_NODE_H_
@@ -46,22 +31,29 @@ class FstNode : public Node {
     UNION_FSTNODE,
     UNKNOWN_FSTNODE,
   };
+
   static const char* FstNodeTypeToString(FstNodeType type);
 
   explicit FstNode(FstNodeType type);
+
   virtual ~FstNode();
 
   void AddArgument(Node* arg);
+
   bool SetWeight(StringNode* weight);
 
   FstNodeType GetType() const;
 
   int NumArguments() const;
+
   Node* GetArgument(int index) const;
 
   bool HasWeight() const;
+
   const std::string& GetWeight() const;
+
   const bool ShouldOptimize() const;
+
   void SetOptimize();
 
   virtual void Accept(AstWalker* walker);
@@ -77,7 +69,7 @@ class FstNode : public Node {
   FstNode& operator=(const FstNode&) = delete;
 };
 
-// A specialization to string FSTs, containing parse information.  If we should
+// A specialization to string FSTs, containing parse information. If we should
 // parse the text using a symbol table, then the symbol table identifier should
 // be in arguments_[1].
 class StringFstNode : public FstNode {
@@ -115,6 +107,7 @@ class RepetitionFstNode : public FstNode {
   static const char* RepetitionFstNodeTypeToString(RepetitionFstNodeType type);
 
   explicit RepetitionFstNode(RepetitionFstNodeType type);
+
   virtual ~RepetitionFstNode();
 
   RepetitionFstNodeType GetRepetitionType() const;

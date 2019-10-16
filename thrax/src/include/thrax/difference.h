@@ -23,18 +23,10 @@ DECLARE_bool(save_symbols);  // From util/flags.cc.
 namespace thrax {
 namespace function {
 
-// The function may only be called with an unweighted acceptor RHS.
-constexpr uint64 kRightInputProps = fst::kAcceptor |
-                                    fst::kUnweighted;
-// The underlying difference operation requires the RHS to have these
-// properties as well, but they can satisfied by optimization.
-constexpr uint64 kRightOptimizationProps = fst::kNoEpsilons |
-                                           fst::kIDeterministic;
-
 template <typename Arc>
 class Difference : public BinaryFstFunction<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
+  using Transducer = ::fst::Fst<Arc>;
 
   Difference() {}
   ~Difference() final {}
@@ -48,33 +40,40 @@ class Difference : public BinaryFstFunction<Arc> {
       return nullptr;
     }
     if (FLAGS_save_symbols) {
-      if (!CompatSymbols(left.InputSymbols(), right.InputSymbols())) {
+      if (!::fst::CompatSymbols(left.InputSymbols(),
+                                    right.InputSymbols())) {
         std::cout << "Difference: input symbol table of 1st argument "
                   << "does not match input symbol table of 2nd argument"
                   << std::endl;
         return nullptr;
       }
-      if (!CompatSymbols(left.OutputSymbols(), right.OutputSymbols())) {
+      if (!::fst::CompatSymbols(left.OutputSymbols(),
+                                    right.OutputSymbols())) {
         std::cout << "Difference: output symbol table of 1st argument "
                   << "does not match output symbol table of 2nd argument"
                   << std::endl;
         return nullptr;
       }
     }
+    // The function may only be called with an unweighted acceptor RHS.
+    constexpr auto kRightInputProps =
+        ::fst::kAcceptor | ::fst::kUnweighted;
     if (right.Properties(kRightInputProps, true) != kRightInputProps) {
       std::cout << "Difference: 2nd argument must be an unweighted acceptor"
                 << std::endl;
       return nullptr;
     }
+    // The underlying difference operation requires the RHS to have these
+    // properties as well, but they may be satisfied by optimization.
+    constexpr auto kRightOptimizationProps =
+        ::fst::kNoEpsilons | ::fst::kIDeterministic;
     if (right.Properties(kRightOptimizationProps, false) ==
                          kRightOptimizationProps) {
-      return new fst::DifferenceFst<Arc>(left, right);
+      return new ::fst::DifferenceFst<Arc>(left, right);
     } else {
       std::unique_ptr<Transducer> optimized_right(
           Optimize<Arc>::ActuallyOptimizeDifferenceRhs(right, true));
-      Transducer* return_fst =
-          new fst::DifferenceFst<Arc>(left, *optimized_right);
-      return return_fst;
+      return new ::fst::DifferenceFst<Arc>(left, *optimized_right);
     }
   }
 

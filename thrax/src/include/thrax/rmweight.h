@@ -18,7 +18,7 @@ namespace function {
 template <typename Arc>
 class RmWeight : public UnaryFstFunction<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
+  using Transducer = ::fst::Fst<Arc>;
 
   RmWeight() {}
   ~RmWeight() final {}
@@ -31,8 +31,9 @@ class RmWeight : public UnaryFstFunction<Arc> {
                 << std::endl;
       return nullptr;
     }
-    return new fst::ArcMapFst<Arc, Arc, fst::RmWeightMapper<Arc>>(
-        fst, fst::RmWeightMapper<Arc>());
+    static const ::fst::RmWeightMapper<Arc> mapper;
+    return new ::fst::ArcMapFst<Arc, Arc, ::fst::RmWeightMapper<Arc>>(
+        fst, mapper);
   }
 
  private:

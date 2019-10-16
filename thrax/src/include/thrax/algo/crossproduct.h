@@ -1,7 +1,11 @@
 #ifndef FST_UTIL_OPERATORS_CROSSPRODUCT_H_
 #define FST_UTIL_OPERATORS_CROSSPRODUCT_H_
 
-#include <fst/fstlib.h>
+#include <fst/arc-map.h>
+#include <fst/compose.h>
+#include <fst/fst.h>
+#include <fst/mutable-fst.h>
+#include <fst/rmepsilon.h>
 
 namespace fst {
 

@@ -23,8 +23,8 @@ namespace function {
 template <typename Arc>
 class LenientlyCompose : public Function<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
-  typedef fst::VectorFst<Arc> MutableTransducer;
+  using Transducer = ::fst::Fst<Arc>;
+  using MutableTransducer = ::fst::VectorFst<Arc>;
 
   LenientlyCompose() {}
   ~LenientlyCompose() final {}
@@ -43,9 +43,9 @@ class LenientlyCompose : public Function<Arc> {
       std::cout << "LenientlyCompose: Arguments should be FSTs" << std::endl;
       return nullptr;
     }
-    const Transducer* left = *args[0]->get<Transducer*>();
-    const Transducer* right = *args[1]->get<Transducer*>();
-    const Transducer* sigstar = *args[2]->get<Transducer*>();
+    const auto* left = *args[0]->get<Transducer*>();
+    const auto* right = *args[1]->get<Transducer*>();
+    const auto* sigstar = *args[2]->get<Transducer*>();
     if (FLAGS_save_symbols) {
       if (!CompatSymbols(left->OutputSymbols(), right->InputSymbols())) {
         std::cout << "LenientlyCompose: output symbol table of 1st argument "
@@ -56,22 +56,23 @@ class LenientlyCompose : public Function<Arc> {
       // LenientlyCompose computes the difference between sigstar and the input
       // projection of the first FST, so that means the same comparison as is
       // done in Difference must be done here.
-      if (!CompatSymbols(sigstar->InputSymbols(), left->InputSymbols())) {
+      if (!::fst::CompatSymbols(sigstar->InputSymbols(),
+                                    left->InputSymbols())) {
         std::cout << "LenientlyCompose: Input symbol of 1st argument "
                   << "does not match input symbol table of sigma star argument"
                   << std::endl;
         return nullptr;
       }
-      if (!CompatSymbols(sigstar->OutputSymbols(),
-                         left->InputSymbols() /* sic */)) {
+      if (!::fst::CompatSymbols(sigstar->OutputSymbols(),
+                                    left->InputSymbols() /* sic */)) {
         std::cout << "LenientlyCompose: Input symbol of 1st argument "
                   << "does not match output symbol table of sigma star argument"
                   << std::endl;
         return nullptr;
       }
     }
-    MutableTransducer* output = new MutableTransducer();
-    fst::LenientlyCompose(*left, *right, *sigstar, output);
+    auto* output = new MutableTransducer();
+    ::fst::LenientlyCompose(*left, *right, *sigstar, output);
     return new DataType(output);
   }
 

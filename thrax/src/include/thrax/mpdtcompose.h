@@ -55,9 +55,9 @@ namespace function {
 template <typename Arc>
 class MPdtCompose : public Function<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
-  typedef fst::VectorFst<Arc> MutableTransducer;
-  typedef typename Arc::Label Label;
+  using Transducer = ::fst::Fst<Arc>;
+  using MutableTransducer = ::fst::VectorFst<Arc>;
+  using Label = typename Arc::Label;
 
   MPdtCompose() {}
   ~MPdtCompose() final {}
@@ -80,7 +80,8 @@ class MPdtCompose : public Function<Arc> {
     const Transducer* left = *args[0]->get<Transducer*>();
     const Transducer* right = *args[1]->get<Transducer*>();
     if (FLAGS_save_symbols) {
-      if (!CompatSymbols(left->OutputSymbols(), right->InputSymbols())) {
+      if (!::fst::CompatSymbols(left->OutputSymbols(),
+                                    right->InputSymbols())) {
         std::cout << "MPdtCompose: output symbol table of 1st argument "
                   << "does not match input symbol table of 2nd argument"
                   << std::endl;
@@ -110,7 +111,8 @@ class MPdtCompose : public Function<Arc> {
       }
       if (mpdt_direction == "left_mpdt") left_mpdt = true;
     }
-    bool delete_left = false, delete_right = false;
+    bool delete_left = false;
+    bool delete_right = false;
     if (args.size() == 6) {
       if (!args[5]->is<std::string>()) {
         std::cout << "MPdtCompose: Expected string for argument 6" << std::endl;
@@ -124,25 +126,25 @@ class MPdtCompose : public Function<Arc> {
       }
 
       if (sort_mode != "right") {
-        static const fst::OLabelCompare<Arc> ocomp;
-        left = new fst::ArcSortFst<Arc, fst::OLabelCompare<Arc> >(
+        static const ::fst::OLabelCompare<Arc> ocomp;
+        left = new ::fst::ArcSortFst<Arc, ::fst::OLabelCompare<Arc> >(
             *left, ocomp);
         delete_left = true;
       }
       if (sort_mode != "left") {
-        static const fst::ILabelCompare<Arc> icomp;
-        right = new fst::ArcSortFst<Arc, fst::ILabelCompare<Arc> >(
+        static const ::fst::ILabelCompare<Arc> icomp;
+        right = new ::fst::ArcSortFst<Arc, ::fst::ILabelCompare<Arc> >(
             *right, icomp);
         delete_right = true;
       }
     }
-    MutableTransducer* output = new MutableTransducer();
-    fst::MPdtComposeOptions opts = fst::MPdtComposeOptions();
+    auto* output = new MutableTransducer();
+    auto opts = ::fst::MPdtComposeOptions();
     opts.connect = false;
     if (left_mpdt) {
-      fst::Compose(*left, parens, assignments, *right, output, opts);
+      ::fst::Compose(*left, parens, assignments, *right, output, opts);
     } else {
-      fst::Compose(*left, *right, parens, assignments, output, opts);
+      ::fst::Compose(*left, *right, parens, assignments, output, opts);
     }
     if (delete_left) delete left;
     if (delete_right) delete right;

@@ -14,8 +14,6 @@
 #include <../bin/utildefs.h>
 
 class RewriteTesterUtils {
-  typedef fst::StringCompiler<fst::StdArc> Compiler;
-
  public:
   RewriteTesterUtils();
 
@@ -34,15 +32,15 @@ class RewriteTesterUtils {
   // Reader for the input in interactive version.
   bool ReadInput(std::string* s);
 
-  thrax::GrmManagerSpec<fst::StdArc> grm_;
+  ::thrax::GrmManagerSpec<::fst::StdArc> grm_;
   std::vector<std::string> rules_;
-  Compiler* compiler_;
-  fst::SymbolTable* byte_symtab_;
-  fst::SymbolTable* utf8_symtab_;
-  const fst::SymbolTable* generated_symtab_;
-  fst::SymbolTable* input_symtab_;
+  ::fst::StringCompiler<::fst::StdArc>* compiler_;
+  ::fst::SymbolTable* byte_symtab_;
+  ::fst::SymbolTable* utf8_symtab_;
+  const ::fst::SymbolTable* generated_symtab_;
+  ::fst::SymbolTable* input_symtab_;
   TokenType type_;
-  fst::SymbolTable* output_symtab_;
+  ::fst::SymbolTable* output_symtab_;
 
   RewriteTesterUtils(const RewriteTesterUtils&) = delete;
   RewriteTesterUtils& operator=(const RewriteTesterUtils&) = delete;

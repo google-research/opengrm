@@ -12,7 +12,7 @@ std::string StripComment(const std::string &line) {
     const char this_char = line[i];
     if (this_char == '#' && prev_char != '\\') {
       // Strips comment and any trailing whitespace.
-      return std::string(thrax::StripTrailingAsciiWhitespace(line.substr(0, i)));
+      return std::string(::fst::StripTrailingAsciiWhitespace(line.substr(0, i)));
     }
     prev_char = this_char;
   }

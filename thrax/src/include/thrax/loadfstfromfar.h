@@ -4,6 +4,7 @@
 #define THRAX_LOADFSTFROMFAR_H_
 
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -24,7 +25,7 @@ namespace function {
 template <typename Arc>
 class LoadFstFromFar : public Function<Arc> {
  public:
-  typedef fst::VectorFst<Arc> MutableTransducer;
+  using MutableTransducer = ::fst::VectorFst<Arc>;
 
   LoadFstFromFar() {}
   ~LoadFstFromFar() final {}
@@ -48,9 +49,10 @@ class LoadFstFromFar : public Function<Arc> {
                 << std::endl;
       return nullptr;
     }
-    const std::string& fst_name = *args[1]->get<std::string>();
+    const auto& fst_name = *args[1]->get<std::string>();
     VLOG(2) << "Loading FST " << fst_name << " from " << far_file;
-    fst::FarReader<Arc>* reader(fst::FarReader<Arc>::Open(far_file));
+    std::unique_ptr<::fst::FarReader<Arc>> reader(
+        ::fst::FarReader<Arc>::Open(far_file));
     if (!reader) {
       std::cout << "LoadFstFromFar: Unable to open FAR: " << far_file
                 << std::endl;
@@ -60,11 +62,9 @@ class LoadFstFromFar : public Function<Arc> {
     if (!reader->Find(fst_name)) {
       std::cout << "LoadFstFromFar: Unable to find FST: " << fst_name
                 << std::endl;
-      delete reader;
       return nullptr;
     }
-    MutableTransducer* fst = new MutableTransducer(*(reader->GetFst()));
-    delete reader;
+    auto* fst = new MutableTransducer(*(reader->GetFst()));
     if (FLAGS_save_symbols) {
       if (!fst->InputSymbols()) {
         LOG(WARNING) << "LoadFstFromFar: FLAGS_save_symbols is set "

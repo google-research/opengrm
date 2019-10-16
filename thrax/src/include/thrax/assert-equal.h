@@ -15,6 +15,7 @@
 #define THRAX_ASSERT_EQUAL_H_
 
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -32,9 +33,9 @@
 
 DECLARE_bool(save_symbols);  // From util/flags.cc.
 
-// TODO(rws,ttai): some day we should make this so that it doesn't return a
-// value, but merely runs the assertion. That, however, would require changing
-// the parser.
+// TODO(rws): Some day we should make this so that it doesn't return a value,
+// but merely runs the assertion. That, however, would require changing the
+// parser.
 
 namespace thrax {
 namespace function {
@@ -42,8 +43,8 @@ namespace function {
 template <typename Arc>
 class AssertEqual : public BinaryFstFunction<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
-  typedef fst::VectorFst<Arc> MutableTransducer;
+  using Transducer = ::fst::Fst<Arc>;
+  using MutableTransducer = ::fst::VectorFst<Arc>;
 
   AssertEqual() {}
   ~AssertEqual() final {}
@@ -56,18 +57,18 @@ class AssertEqual : public BinaryFstFunction<Arc> {
                 << args.size() << std::endl;
       return nullptr;
     }
-    auto mode = fst::StringTokenType::BYTE;
-    const fst::SymbolTable* symbols = nullptr;
+    auto mode = ::fst::StringTokenType::BYTE;
+    const ::fst::SymbolTable* symbols = nullptr;
     if (args.size() > 2) {
       if (args[2]->is<std::string>()) {
         if (*args[2]->get<std::string>() == "utf8") {
-          mode = fst::StringTokenType::UTF8;
+          mode = ::fst::StringTokenType::UTF8;
         } else {
-          mode = fst::StringTokenType::BYTE;
+          mode = ::fst::StringTokenType::BYTE;
         }
-      } else if (args[2]->is<fst::SymbolTable>()) {
-        symbols = args[2]->get<fst::SymbolTable>();
-        mode = fst::StringTokenType::SYMBOL;
+      } else if (args[2]->is<::fst::SymbolTable>()) {
+        symbols = args[2]->get<::fst::SymbolTable>();
+        mode = ::fst::StringTokenType::SYMBOL;
       } else {
         std::cout << "AssertEqual: Invalid parse mode or symbol table "
                   << "for symbols" << std::endl;
@@ -75,48 +76,52 @@ class AssertEqual : public BinaryFstFunction<Arc> {
       }
     }
     if (FLAGS_save_symbols) {
-      if (!CompatSymbols(left.InputSymbols(), right.InputSymbols())) {
+      if (!::fst::CompatSymbols(left.InputSymbols(),
+                                    right.InputSymbols())) {
         std::cout << "AssertEqual: input symbol table of 1st argument "
                   << "does not match input symbol table of 2nd argument"
                   << std::endl;
         return nullptr;
       }
-      if (!CompatSymbols(left.OutputSymbols(), right.OutputSymbols())) {
+      if (!::fst::CompatSymbols(left.OutputSymbols(),
+                                    right.OutputSymbols())) {
         std::cout << "AssertEqual: output symbol table of 1st argument "
                   << "does not match output symbol table of 2nd argument"
                   << std::endl;
         return nullptr;
       }
     }
-    auto *mutable_left = new MutableTransducer(left);
-    fst::Project(mutable_left, fst::PROJECT_OUTPUT);
-    fst::RmEpsilon(mutable_left);
+    std::unique_ptr<MutableTransducer> mutable_left(
+        new MutableTransducer(left));
+    ::fst::Project(mutable_left.get(), ::fst::PROJECT_OUTPUT);
+    ::fst::RmEpsilon(mutable_left.get());
     MutableTransducer determinized_left;
-    fst::Determinize(*mutable_left, &determinized_left);
-    fst::Prune(determinized_left, mutable_left, Arc::Weight::One());
-    fst::ArcMap(mutable_left, fst::RmWeightMapper<Arc>());
+    ::fst::Determinize(*mutable_left, &determinized_left);
+    ::fst::Prune(determinized_left, mutable_left.get(), Arc::Weight::One());
+    static const ::fst::RmWeightMapper<Arc> mapper;
+    ::fst::ArcMap(mutable_left.get(), mapper);
     MutableTransducer mutable_right(right);
-    fst::Project(&mutable_right, fst::PROJECT_OUTPUT);
-    fst::RmEpsilon(&mutable_right);
+    ::fst::Project(&mutable_right, ::fst::PROJECT_OUTPUT);
+    ::fst::RmEpsilon(&mutable_right);
     MutableTransducer determinized_right;
-    fst::Determinize(mutable_right, &determinized_right);
-    fst::Prune(determinized_right, &mutable_right, Arc::Weight::One());
-    fst::ArcMap(&mutable_right, fst::RmWeightMapper<Arc>());
+    ::fst::Determinize(mutable_right, &determinized_right);
+    ::fst::Prune(determinized_right, &mutable_right, Arc::Weight::One());
+    ::fst::ArcMap(&mutable_right, mapper);
     MutableTransducer intersection;
-    fst::Intersect(*mutable_left, mutable_right, &intersection);
+    ::fst::Intersect(*mutable_left, mutable_right, &intersection);
     // If both mutable_left and mutable_right have zero states, then they count
     // as equivalent. We only consider the intersection a failure if at least
     // one of them has some states.
     if ((mutable_left->NumStates() != 0 || mutable_right.NumStates() != 0) &&
-        intersection.Start() == fst::kNoStateId) {
-      // Print strings for debug message.
+        intersection.Start() == ::fst::kNoStateId) {
+      // Prints strings for debug message.
       // TODO(rws): This is still going to fail to produce useful output for
-      // extended labels since those will have labels outside the range of BYTE
-      // or UTF8
-      fst::RmEpsilon(mutable_left);
-      fst::RmEpsilon(&mutable_right);
+      // extended labels since those will have labels outside the byte or UTF-8
+      // range.
+      ::fst::RmEpsilon(mutable_left.get());
+      ::fst::RmEpsilon(&mutable_right);
       std::string lstring;
-      if (mutable_left->Start() == fst::kNoStateId) {
+      if (mutable_left->Start() == ::fst::kNoStateId) {
         lstring = "nullptr";
       } else {
         std::string content;
@@ -124,7 +129,7 @@ class AssertEqual : public BinaryFstFunction<Arc> {
         lstring = "\"" + content + "\"";
       }
       std::string rstring;
-      if (mutable_right.Start() == fst::kNoStateId) {
+      if (mutable_right.Start() == ::fst::kNoStateId) {
         rstring = "nullptr";
       } else {
         std::string content;
@@ -135,26 +140,25 @@ class AssertEqual : public BinaryFstFunction<Arc> {
                 << "  expect: " << rstring << "\n"
                 << "     got: " << lstring << "\n"
                 << std::endl;
-      delete mutable_left;
       return nullptr;
     }
-    return mutable_left;
+    return mutable_left.release();
   }
 
  private:
-  // Coerces an FST to a string by calling ShortestPath, TopSort, and the
-  // string printer. This is necessary so we have exactly one string to
-  // to show in the debug message.
+  // Coerces an FST to a string by calling ShortestPath, TopSort, and the string
+  // printer. This is necessary so we have exactly one string to show in the
+  // debug message.
   static void CoerceToString(const MutableTransducer& fst, std::string* str,
-                             const fst::SymbolTable* symbols = nullptr) {
-    fst::StringPrinter<Arc> printer(fst::StringTokenType::BYTE,
-                                        symbols);
-    if (fst.Properties(fst::kString, true) == fst::kString) {
+                             const ::fst::SymbolTable* symbols = nullptr) {
+    const ::fst::StringPrinter<Arc> printer(
+        ::fst::StringTokenType::BYTE, symbols);
+    if (fst.Properties(::fst::kString, true) == ::fst::kString) {
       printer(fst, str);
     } else {
       MutableTransducer string_fst(fst);
-      fst::ShortestPath(fst, &string_fst);
-      fst::TopSort(&string_fst);
+      ::fst::ShortestPath(fst, &string_fst);
+      ::fst::TopSort(&string_fst);
       printer(string_fst, str);
     }
   }
