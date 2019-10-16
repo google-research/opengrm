@@ -51,7 +51,7 @@ compile_test_fst earnest.cnts
 cmp "${TESTDATA}/earnest.cnt.print" "${TEST_TMPDIR}/earnest.cnt.print"
 
 "${BIN}/ngramread" \
-  --symbols="${TESTDATA}/earnest.syms" \
+  --symbols="${TESTDATA}/earnest.sym" \
   "${TESTDATA}/earnest.cnt.print" \
   "${TEST_TMPDIR}/earnest.cnts"
 
@@ -59,7 +59,7 @@ cmp "${TESTDATA}/earnest.cnt.print" "${TEST_TMPDIR}/earnest.cnt.print"
   --check_consistency \
   "${TEST_TMPDIR}/earnest.cnts" \
   | "${BIN}/ngramread" \
-  --symbols="${TESTDATA}/earnest.syms" \
+  --symbols="${TESTDATA}/earnest.sym" \
   - \
   "${TEST_TMPDIR}/earnest.cnts2"
 

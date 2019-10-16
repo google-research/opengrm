@@ -34,9 +34,9 @@ constexpr size_t kHistogramBins = 7;
 namespace fst {
 
 // HistogramArc is the Cartesian product of kHistogramBins StdArcs.
-struct HistogramArc : public PowerArc<StdArc, ngram::kHistogramBins> {
+struct HistogramArc : public PowerArc<StdArc, ::ngram::kHistogramBins> {
   // Inherited types.
-  using Base = PowerArc<StdArc, ngram::kHistogramBins>;
+  using Base = PowerArc<StdArc, ::ngram::kHistogramBins>;
   using Base::Label;
   using Base::StateId;
   using Base::Weight;

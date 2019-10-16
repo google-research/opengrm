@@ -31,7 +31,7 @@ dist_check_SCRIPTS = disttestsetup.sh \
                      ngramshrink_test.sh \
                      ngramsymbols_test.sh
 
-dist_noinst_DATA = testdata/ab.syms \
+dist_noinst_DATA = testdata/ab.sym \
                    testdata/earnest-absolute.mod.sym \
                    testdata/earnest-absolute.mod.txt \
                    testdata/earnest.arpa \
@@ -80,7 +80,7 @@ dist_noinst_DATA = testdata/ab.syms \
                    testdata/earnest-relative_entropy.pru.txt \
                    testdata/earnest-seymore.pru.sym \
                    testdata/earnest-seymore.pru.txt \
-                   testdata/earnest.syms \
+                   testdata/earnest.sym \
                    testdata/earnest.txt \
                    testdata/earnest-unsmoothed.mod.sym \
                    testdata/earnest-unsmoothed.mod.txt \

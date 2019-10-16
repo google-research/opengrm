@@ -27,7 +27,7 @@ compile_test_far() {
 
 farcompilestrings \
   --fst_type=compact \
-  --symbols="${TESTDATA}/earnest.syms" \
+  --symbols="${TESTDATA}/earnest.sym" \
   --keep_symbols \
   "${TESTDATA}/earnest.txt" \
   "${TEST_TMPDIR}/earnest.far"

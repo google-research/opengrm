@@ -9,8 +9,8 @@ readonly TEST_TMPDIR="${TEST_TMPDIR:-$(mktemp -d)}"
 
 compile_test_fst() {
   fstcompile \
-    --isymbols="${TESTDATA}/${2}.syms" \
-    --osymbols="${TESTDATA}/${2}.syms" \
+    --isymbols="${TESTDATA}/${2}.sym" \
+    --osymbols="${TESTDATA}/${2}.sym" \
     --keep_isymbols \
     --keep_osymbols \
     --keep_state_numbering \
@@ -24,7 +24,7 @@ farcreate \
   "${TEST_TMPDIR}/single_fst.far"
 "./ngramhisttest" \
   --ifile="${TESTDATA}/single_fst_ref.txt" \
-  --syms="${TESTDATA}/ab.syms" \
+  --syms="${TESTDATA}/ab.sym" \
   --ofile="${TEST_TMPDIR}/single_fst_ref.ref"
 "${BIN}/ngramcount" \
   --order=3 \
@@ -37,7 +37,7 @@ farcreate \
 
 "./ngramhisttest" \
   --ifile="${TESTDATA}/hist.ref.txt" \
-  --syms="${TESTDATA}/ab.syms" \
+  --syms="${TESTDATA}/ab.sym" \
   --ofile="${TEST_TMPDIR}/hist.ref.ref"
 compile_test_fst fst1.hist ab
 compile_test_fst fst2.hist ab

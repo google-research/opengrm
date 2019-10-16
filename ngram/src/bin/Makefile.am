@@ -1,5 +1,6 @@
 AM_CPPFLAGS = -I$(srcdir)/../include
-AM_LDFLAGS = -L/usr/local/lib/fst -lfstfar -lfst -lm -ldl
+AM_LDFLAGS = -L/usr/local/lib/fst -lfstfarscript -lfstfar -lfstscript -lfst \
+             -lm -ldl
 
 bin_PROGRAMS = ngramapply \
                ngramcontext \

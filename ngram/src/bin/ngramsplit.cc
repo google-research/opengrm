@@ -22,6 +22,10 @@ DEFINE_string(method, "count_split",
               "\"histogram_split\"");
 DEFINE_double(norm_eps, ngram::kNormEps, "Normalization check epsilon");
 DEFINE_bool(complete, false, "Complete partial models");
+DEFINE_string(far_type, "",
+              "Type of far to compile (not FAR if empty):"
+              " one of: \"default\", "
+              "\"stlist\", \"sttable\"");
 
 int ngramsplit_main(int argc, char** argv);
 int main(int argc, char** argv) {

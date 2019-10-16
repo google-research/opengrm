@@ -19,13 +19,13 @@
 #include <fst/const-fst.h>
 #include <fst/fst.h>
 #include <fst/script/fstscript.h>
-#include <fst/script/register.h>
 
 namespace fst {
 namespace script {
 
-REGISTER_FST(VectorFst, HistogramArc);
 REGISTER_FST(ConstFst, HistogramArc);
+REGISTER_FST(VectorFst, HistogramArc);
+
 REGISTER_FST_CLASSES(HistogramArc);
 REGISTER_FST_OPERATIONS(HistogramArc);
 REGISTER_FST_WEIGHT(HistogramArc::Weight);

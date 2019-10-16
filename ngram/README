@@ -1,22 +1,19 @@
-OpenGrm NGram - Release 1.3
-
-The OpenGrm NGram library is used for making and modifying n-gram
-language models encoded as weighted finite-state transducers
-(FSTs). It makes use of functionality in the OpenFst library to
-create, access and manipulate n-gram models.
+The NGram library is used for making and modifying n-gram language models
+encoded as weighted finite-state transducers (FSTs). It makes use of
+functionality in the OpenFst library to create, access and manipulate
+n-gram models.
 
 REQUIREMENTS:
   This version is known to work under Linux g++ (>= 4.6) and MacOS X
   using XCode 5. Expected to work wherever adequate POSIX (dlopen, ssize_t,
   basename), c99 (snprintf, strtoll, <stdint.h>), and C__11 (ordered_set>,
   ordered_map>, <forward_list>) support are available. It assumes you
-  have installed OpenFst (www.openfst.org) 1.6.6 or higher and have
-  configured it with the --enable-far flag.
+  have installed OpenFst (www.openfst.org) and configured it with the 
+  --enable-far flag.
 
 INSTALLATION:
-  Follow the generic GNU build system instructions in ./INSTALL.  We
-  recommend configuring with =--enable-static=no= for faster
-  compiles.
+  Follow the generic GNU build system instructions in ./INSTALL. We
+  recommend configuring with =--enable-static=no= for faster compiles.
 
   Configuring with --enable-bin=no gives very fast compiles, but
   excludes the command line utilities.
@@ -33,11 +30,11 @@ USAGE:
   binaries are found on /usr/local/bin. Headers will be in
   /usr/local/include/ngram, and libraries in /usr/local/lib.
 
-  To use in your own programs you will need to include
-  <ngram/ngram.h>. Compile with '-I /usr/local/include' and link
-  against /usr/local/lib/libfst.so, /usr/local/lib/fst/libfstfar.so
+  To use in your own programs you will need to include <ngram/ngram.h>.
+  Compile with '-I /usr/local/include' and link against
+  /usr/local/lib/libfst.so, /usr/local/lib/fst/libfstfar.so
   and /usr/local/lib/libngram.so. Set your LD_LIBRARY_PATH (or
-  equivalent) to contain /usr/local/lib.
+  equivalent) to include /usr/local/lib.
 
   The linking is, by default, dynamic so that the Fst and Arc type DSO
   extensions can be used correctly if desired.

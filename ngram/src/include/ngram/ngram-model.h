@@ -139,6 +139,7 @@ class NGramModel {
   int HiOrder() const { return hi_order_; }
 
   // Returns order of a given state
+  // Order 1 is unigram, order 2 is bigram, and so on.
   int StateOrder(StateId state) const {
     if (state >= 0 && state < nstates_)
       return state_orders_[state];

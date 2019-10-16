@@ -52,7 +52,7 @@ distributed_test() {
   # Non-distributed version.
   "${NODIST_BIN}" \
     --itype=text_sents \
-    --symbols="${TESTDATA}/earnest.syms" \
+    --symbols="${TESTDATA}/earnest.sym" \
     "$@" \
     --bins="${NODIST_DISCOUNT_BINS}" \
     --ifile="${TESTDATA}/earnest.txt" \
@@ -61,7 +61,7 @@ distributed_test() {
   # Distributed version.
   "${DIST_BIN}" \
     --itype=text_sents \
-    --symbols="${TESTDATA}/earnest.syms" \
+    --symbols="${TESTDATA}/earnest.sym" \
     "$@" \
     --contexts="${TEST_TMPDIR}/earnest.cntxs" \
     --merge_contexts \

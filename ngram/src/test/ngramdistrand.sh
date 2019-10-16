@@ -31,7 +31,7 @@ distributed_test() {
     --itype=fst_sents \
     --ifile="${TEST_TMPDIR}/${RANDF}.tocount.far" \
     --ofile="${TEST_TMPDIR}/${RANDF}.nodist" \
-    --symbols="${TEST_TMPDIR}/${RANDF}.syms" \
+    --symbols="${TEST_TMPDIR}/${RANDF}.sym" \
     "$@"
 
   # Distributed version.
@@ -44,7 +44,7 @@ distributed_test() {
     --itype=fst_sents \
     --ifile="${TEST_TMPDIR}/${RANDF}.tocount.far."* \
     --ofile="${TEST_TMPDIR}/${RANDF}.dist" \
-    --symbols="${TEST_TMPDIR}/${RANDF}.syms" \
+    --symbols="${TEST_TMPDIR}/${RANDF}.sym" \
     "$@"
 
   # Verifies non-distributed and distributed versions give the same result.
