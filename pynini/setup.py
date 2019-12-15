@@ -22,6 +22,7 @@ from setuptools import Extension, setup
 
 COMPILE_ARGS = [
     "-std=c++17",
+    "-Wno-register",
     "-Wno-unused-function",
     "-Wno-unused-local-typedefs",
     "-funsigned-char",
@@ -76,7 +77,7 @@ with open(path.join(this_directory, "README.md"), encoding="utf8") as source:
 
 setup(
     name="pynini",
-    version="2.0.9.post1",
+    version="2.0.9.post2",
     description="Finite-state grammar compilation library",
     long_description=long_description,
     long_description_content_type="text/markdown",
