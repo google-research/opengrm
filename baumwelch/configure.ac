@@ -1,11 +1,11 @@
-AC_INIT([BaumWelch], [0.3.0], [kbg@google.com])
+AC_INIT([BaumWelch], [0.3.1], [kbg@google.com])
 AM_INIT_AUTOMAKE([foreign nostdinc -Wall -Werror])
 AM_PROG_AR
 
 AC_PROG_CXX
 # This library does not throw exceptions, so we do not generate exception
 # handling code. However, users are free to re-enable exception handling.
-CXX="$CXX -std=c++11 -fno-exceptions"
+CXX="$CXX -std=c++17 -fno-exceptions"
 
 AC_DISABLE_STATIC
 AC_PROG_LIBTOOL

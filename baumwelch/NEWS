@@ -1,6 +1,7 @@
 v. 0.3
 ======
 
+* Places a-star decoding method in separate header (0.3.1)
 * Fixes CPPFLAG handling (0.3.0)
 * Removes obsolete OILabel functor (0.3.0)
 

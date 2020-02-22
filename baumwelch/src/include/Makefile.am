@@ -1,4 +1,5 @@
-nobase_include_HEADERS = baumwelch/baumwelch.h         \
+nobase_include_HEADERS = baumwelch/a-star.h            \
+                         baumwelch/baumwelch.h         \
                          baumwelch/cascade.h           \
                          baumwelch/data.h              \
                          baumwelch/decode.h            \
