@@ -200,13 +200,12 @@ class NGramCounter {
   // Adds count to the unigram count of all symbols in the symbol table.
   void AddCountToSymbolUnigrams(const fst::SymbolTable &syms,
                                        Weight neg_log_count) {
-    for (fst::SymbolTableIterator siter(syms); !siter.Done();
-         siter.Next()) {
-      if (siter.Value() == 0) {
+    for (const auto &sitem : syms) {
+      if (sitem.Label() == 0) {
         // If label == 0, updates final cost of unigram state.
         UpdateFinalCount(NGramUnigramState(), neg_log_count);
       } else {
-        UpdateCount(NGramUnigramState(), siter.Value(), neg_log_count);
+        UpdateCount(NGramUnigramState(), sitem.Label(), neg_log_count);
       }
     }
   }

@@ -485,6 +485,31 @@ class NGramModel {
     return bocost;
   }
 
+  // Estimate total unigram count based on probabilities in unigram state
+  // The difference between two smallest probs should be 1/N, return reciprocal
+  double EstimateTotalUnigramCount() const {
+    StateId st = UnigramState();
+    bool first = true;
+    double max = LogArc::Weight::Zero().Value(), nextmax = max;
+    if (st < 0) st = GetFst().Start();  // if model unigram, use Start()
+    for (ArcIterator<Fst<Arc>> aiter(GetFst(), st); !aiter.Done();
+         aiter.Next()) {
+      Arc arc = aiter.Value();
+      if (arc.ilabel == BackoffLabel()) continue;
+      if (first || ScalarValue(arc.weight) > max) {
+        // maximum negative log prob case
+        nextmax = max;  // keep both max and nextmax (to calculate diff)
+        max = ScalarValue(arc.weight);
+        first = false;
+      } else if (ScalarValue(arc.weight) < max &&
+                 ScalarValue(arc.weight) > nextmax) {
+        nextmax = ScalarValue(arc.weight);
+      }
+    }
+    if (nextmax == LogArc::Weight::Zero().Value()) return exp(max);
+    return exp(NegLogDiff(nextmax, max));
+  }
+
   // Returns true if model in a bad state/not a proper LM.
   bool Error() const { return error_; }
 
@@ -620,31 +645,6 @@ class NGramModel {
     if (!neglogs || intcnts) wt = exp(-wt);
     if (intcnts) wt = round(wt);
     return wt;
-  }
-
-  // Estimate total unigram count based on probabilities in unigram state
-  // The difference between two smallest probs should be 1/N, return reciprocal
-  double EstimateTotalUnigramCount() const {
-    StateId st = UnigramState();
-    bool first = true;
-    double max = LogArc::Weight::Zero().Value(), nextmax = max;
-    if (st < 0) st = GetFst().Start();  // if model unigram, use Start()
-    for (ArcIterator<Fst<Arc>> aiter(GetFst(), st); !aiter.Done();
-         aiter.Next()) {
-      Arc arc = aiter.Value();
-      if (arc.ilabel == BackoffLabel()) continue;
-      if (first || ScalarValue(arc.weight) > max) {
-        // maximum negative log prob case
-        nextmax = max;  // keep both max and nextmax (to calculate diff)
-        max = ScalarValue(arc.weight);
-        first = false;
-      } else if (ScalarValue(arc.weight) < max &&
-                 ScalarValue(arc.weight) > nextmax) {
-        nextmax = ScalarValue(arc.weight);
-      }
-    }
-    if (nextmax == LogArc::Weight::Zero().Value()) return exp(max);
-    return exp(NegLogDiff(nextmax, max));
   }
 
  private:
