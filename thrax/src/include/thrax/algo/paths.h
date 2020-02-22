@@ -221,6 +221,9 @@ void PathIterator<Arc>::MaybePopLabels() {
   }
 }
 
+// A useful alias when using StdArc.
+using StdPathIterator = PathIterator<StdArc>;
+
 // StringPathIterator is a wrapper for PathIterator that handles symbol tables
 // and the conversion of the label sequences to strings.
 //
@@ -321,6 +324,9 @@ std::string StringPathIterator<Arc>::OString() {
   OString(&result);
   return result;
 }
+
+// A useful alias when using StdArc.
+using StdStringPathIterator = StringPathIterator<StdArc>;
 
 }  // namespace fst
 

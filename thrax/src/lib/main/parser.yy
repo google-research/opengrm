@@ -33,7 +33,7 @@ namespace thrax_rewriter {
   int yyerror(GrmCompilerParserInterface *, const char *);
 %}
 
-%pure-parser
+%define api.pure
 
 %param { GrmCompilerParserInterface *parm }
 

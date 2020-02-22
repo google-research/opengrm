@@ -31,9 +31,7 @@ class RmWeight : public UnaryFstFunction<Arc> {
                 << std::endl;
       return nullptr;
     }
-    static const ::fst::RmWeightMapper<Arc> mapper;
-    return new ::fst::ArcMapFst<Arc, Arc, ::fst::RmWeightMapper<Arc>>(
-        fst, mapper);
+    return MakeArcMapFst(fst, ::fst::RmWeightMapper<Arc>()).Copy();
   }
 
  private:

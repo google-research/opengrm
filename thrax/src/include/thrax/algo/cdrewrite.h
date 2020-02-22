@@ -340,9 +340,7 @@ void CDRewriteRule<Arc>::MakeFilter(
   }
   static const IdentityArcMapper<StdArc> imapper;
   if (reverse) {
-    Reverse(
-        ArcMapFst<StdArc, StdArc, IdentityArcMapper<StdArc>>(ufilter, imapper),
-        &ufilter);
+    Reverse(MakeArcMapFst(ufilter, imapper), &ufilter);
     VectorFst<StdArc> reversed_sigma;
     Reverse(usigma, &reversed_sigma);
     RmEpsilon(&reversed_sigma);
@@ -356,9 +354,7 @@ void CDRewriteRule<Arc>::MakeFilter(
   Minimize(&ufilter);
   MakeMarker(&ufilter, usigma, type, markers);
   if (reverse) {
-    Reverse(
-        ArcMapFst<StdArc, StdArc, IdentityArcMapper<StdArc>>(ufilter, imapper),
-        &ufilter);
+    Reverse(MakeArcMapFst(ufilter, imapper), &ufilter);
   }
   static const ILabelCompare<StdArc> icomp;
   ArcSort(&ufilter, icomp);
@@ -481,25 +477,25 @@ void CDRewriteRule<Arc>::Compile(const Fst<Arc> &sigma, MutableFst<Arc> *fst,
                                  CDRewriteDirection dir, CDRewriteMode mode) {
   dir_ = dir;
   mode_ = mode;
-  if (!CheckUnweightedAcceptor(*phi_, "CDRewrite::Compile", "phi")) {
+  if (!CheckUnweightedAcceptor(*phi_, "CDRewriteRule::Compile", "phi")) {
     fst->SetProperties(kError, kError);
     return;
   }
-  if (!CheckUnweightedAcceptor(*lambda_, "CDRewrite::Compile", "lambda")) {
+  if (!CheckUnweightedAcceptor(*lambda_, "CDRewriteRule::Compile", "lambda")) {
     fst->SetProperties(kError, kError);
     return;
   }
-  if (!CheckUnweightedAcceptor(*rho_, "CDRewrite::Compile", "rho")) {
+  if (!CheckUnweightedAcceptor(*rho_, "CDRewriteRule::Compile", "rho")) {
     fst->SetProperties(kError, kError);
     return;
   }
   if (!phiXpsi_ && (psi_->Properties(kAcceptor, true) != kAcceptor)) {
-    FSTERROR() << "CDRewriteRule::Compile: psi must be an acceptor or phiXpsi "
-               << "must be set to true";
+    FSTERROR() << "CDRewriteRuleRule::Compile: psi must be an acceptor or "
+               << "phiXpsi must be set to true";
     fst->SetProperties(kError, kError);
     return;
   }
-  if (!CheckUnweightedAcceptor(sigma, "CDRewrite::Compile", "sigma")) {
+  if (!CheckUnweightedAcceptor(sigma, "CDRewriteRule::Compile", "sigma")) {
     fst->SetProperties(kError, kError);
     return;
   }

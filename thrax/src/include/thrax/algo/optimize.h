@@ -47,11 +47,6 @@ void DeterminizeAndMinimize(MutableFst<Arc> *fst) {
   Minimize(fst);
 }
 
-template <class Arc>
-void ArcSumMap(MutableFst<Arc> *fst) {
-  StateMap(fst, ArcSumMapper<Arc>(*fst));
-}
-
 // Optimizes the FST according to the encoder flags:
 //
 //   kEncodeLabels: optimize as a weighted acceptor
@@ -66,7 +61,7 @@ void OptimizeAs(MutableFst<Arc> *fst, uint8 flags) {
 }
 
 // Generic FST optimization function to be used when the FST is known to be an
-// acceptor.  Version for FSTs with non-idempotent weights, limiting
+// acceptor. Version for FSTs with non-idempotent weights, limiting
 // optimization possibilities.
 template <class Arc,
           typename std::enable_if<(Arc::Weight::Properties() & kIdempotent) !=
@@ -74,9 +69,6 @@ template <class Arc,
 void OptimizeAcceptor(MutableFst<Arc> *fst, bool compute_props = false) {
   // If the FST is not (known to be) epsilon-free, perform epsilon-removal.
   MaybeRmEpsilon(fst, compute_props);
-  // Combines identically labeled arcs with the same source and destination,
-  // and sums their weights.
-  ArcSumMap(fst);
   // The FST has non-idempotent weights; limiting optimization possibilities.
   if (fst->Properties(kIDeterministic, compute_props) != kIDeterministic) {
     // But "any acyclic weighted automaton over a zero-sum-free semiring has
@@ -95,16 +87,14 @@ template <class Arc,
 void OptimizeAcceptor(MutableFst<Arc> *fst, bool compute_props = false) {
   // If the FST is not (known to be) epsilon-free, perform epsilon-removal.
   MaybeRmEpsilon(fst, compute_props);
-  // Combines identically labeled arcs with the same source and destination,
-  // and sums their weights.
-  ArcSumMap(fst);
   // If the FST is not (known to be) deterministic, determinize it.
   if (fst->Properties(kIDeterministic, compute_props) != kIDeterministic) {
     // If the FST is not known to have no weighted cycles, it is encoded
     // before determinization and minimization.
     if (!fst->Properties(kDoNotEncodeWeights, compute_props)) {
       OptimizeAs(fst, kEncodeWeights);
-      ArcSumMap(fst);
+      // Combines any remaining muti-arcs.
+      StateMap(fst, ArcSumMapper<Arc>(*fst));
     } else {
       DeterminizeAndMinimize(fst);
     }
@@ -114,7 +104,7 @@ void OptimizeAcceptor(MutableFst<Arc> *fst, bool compute_props = false) {
 }
 
 // Generic FST optimization function to be used when the FST is (may be) a
-// transducer.  Version for FSTs with non-idempotent weights, limiting
+// transducer. Version for FSTs with non-idempotent weights, limiting
 // optimization possibilities.
 template <class Arc,
           typename std::enable_if<(Arc::Weight::Properties() & kIdempotent) !=
@@ -122,9 +112,6 @@ template <class Arc,
 void OptimizeTransducer(MutableFst<Arc> *fst, bool compute_props = false) {
   // If the FST is not (known to be) epsilon-free, perform epsilon-removal.
   MaybeRmEpsilon(fst, compute_props);
-  // Combines identically labeled arcs with the same source and destination,
-  // and sums their weights.
-  ArcSumMap(fst);
   // The FST has non-idempotent weights; limiting optimization possibilities.
   if (fst->Properties(kIDeterministic, compute_props) != kIDeterministic) {
     // But "any acyclic weighted automaton over a zero-sum-free semiring has
@@ -144,9 +131,6 @@ template <class Arc,
 void OptimizeTransducer(MutableFst<Arc> *fst, bool compute_props = false) {
   // If the FST is not (known to be) epsilon-free, perform epsilon-removal.
   MaybeRmEpsilon(fst, compute_props);
-  // Combines identically labeled arcs with the same source and destination,
-  // and sums their weights.
-  ArcSumMap(fst);
   // If the FST is not (known to be) deterministic, determinize it.
   if (fst->Properties(kIDeterministic, compute_props) != kIDeterministic) {
     // FST labels are always encoded before determinization and minimization.
@@ -154,7 +138,8 @@ void OptimizeTransducer(MutableFst<Arc> *fst, bool compute_props = false) {
     // also encoded before determinization and minimization.
     if (!fst->Properties(kDoNotEncodeWeights, compute_props)) {
       OptimizeAs(fst, kEncodeLabels | kEncodeWeights);
-      ArcSumMap(fst);
+      // Combines any remaining muti-arcs.
+      StateMap(fst, ArcSumMapper<Arc>(*fst));
     } else {
       OptimizeAs(fst, kEncodeLabels);
     }

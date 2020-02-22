@@ -1,11 +1,11 @@
-AC_INIT([Thrax], [1.3.1], [help@opengrm.org])
+AC_INIT([Thrax], [1.3.2], [help@opengrm.org])
 AM_INIT_AUTOMAKE([foreign nostdinc -Wall -Werror])
 AM_PROG_AR
 
 AC_PROG_CXX
 # This library does not throw exceptions, so we do not generate exception
 # handling code. However, users are free to re-enable exception handling.
-CXX="$CXX -std=c++11 -fno-exceptions"
+CXX="$CXX -std=c++17 -fno-exceptions"
 
 AC_PROG_LIBTOOL
 AC_DISABLE_STATIC

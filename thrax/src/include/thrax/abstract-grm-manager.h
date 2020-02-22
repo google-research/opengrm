@@ -6,6 +6,7 @@
 #define NLP_GRM_LANGUAGE_ABSTRACT_GRM_MANAGER_H_
 
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -17,8 +18,8 @@
 #include <fst/extensions/pdt/pdt.h>
 #include <fst/extensions/pdt/shortest-path.h>
 #include <fst/arc.h>
-#include <fst/fstlib.h>
 #include <fst/fst.h>
+#include <fst/fstlib.h>
 #include <fst/string.h>
 #include <fst/vector-fst.h>
 #include <thrax/make-parens-pair-vector.h>
@@ -96,9 +97,8 @@ class AbstractGrmManager {
 
   // Gets the named FST, just like GetFst(), but this function doesn't lock
   // anything and is thread-safe because it returns a transducer safely
-  // shallow-copied from the original. The caller assumes the ownership of the
-  // returned transducer.
-  Transducer* GetFstSafe(const std::string& name) const;
+  // shallow-copied from the original.
+  std::unique_ptr<Transducer> GetFstSafe(const std::string& name) const;
 
   // Modify the transducer under the given name. If no such rule name exists,
   // returns false, otherwise returns true. Note: For thread-safety, it is
@@ -187,10 +187,10 @@ AbstractGrmManager<Arc>::GetFst(const std::string& name) const {
 }
 
 template <typename Arc>
-typename AbstractGrmManager<Arc>::Transducer*
+std::unique_ptr<typename AbstractGrmManager<Arc>::Transducer>
 AbstractGrmManager<Arc>::GetFstSafe(const std::string& name) const {
   const auto* fst = GetFst(name);
-  return fst ? fst->Copy(true) : nullptr;
+  return WrapUnique(fst ? fst->Copy(true) : nullptr);
 }
 
 template <typename Arc>
@@ -250,28 +250,25 @@ bool AbstractGrmManager<Arc>::Rewrite(
     const std::string& rule, const Transducer& input, MutableTransducer* output,
     const std::string& pdt_parens_rule,
     const std::string& mpdt_assignments_rule) const {
-  const auto* rule_fst = GetFstSafe(rule);
+  const std::unique_ptr<const Transducer> rule_fst = GetFstSafe(rule);
   if (!rule_fst) {
     LOG(ERROR) << "Rule " << rule << " not found.";
     return false;
   }
-  const Transducer* pdt_parens_fst = nullptr;
+  std::unique_ptr<const Transducer> pdt_parens_fst;
   if (!pdt_parens_rule.empty()) {
     pdt_parens_fst = GetFstSafe(pdt_parens_rule);
     if (!pdt_parens_fst) {
       LOG(ERROR) << "PDT parentheses rule " << pdt_parens_rule << " not found.";
-      delete rule_fst;
       return false;
     }
   }
-  const Transducer* mpdt_assignments_fst = nullptr;
+  std::unique_ptr<const Transducer> mpdt_assignments_fst;
   if (!mpdt_assignments_rule.empty()) {
     mpdt_assignments_fst = GetFstSafe(mpdt_assignments_rule);
     if (!mpdt_assignments_fst) {
       LOG(ERROR) << "MPDT assignments rule " << mpdt_assignments_rule
                  << " not found.";
-      delete rule_fst;
-      if (pdt_parens_fst) delete pdt_parens_fst;
       return false;
     }
   }
@@ -291,19 +288,16 @@ bool AbstractGrmManager<Arc>::Rewrite(
                                                       ::fst::EXPAND_FILTER);
       ::fst::Compose(input, *rule_fst, pdt_parens, mpdt_assignments, output,
                          opts);
-      delete mpdt_assignments_fst;
     } else {
       static const ::fst::PdtComposeOptions opts(true,
                                                      ::fst::EXPAND_FILTER);
       ::fst::Compose(input, *rule_fst, pdt_parens, output, opts);
     }
-    delete pdt_parens_fst;
   } else {
     static const ::fst::ComposeOptions opts(true,
                                                 ::fst::ALT_SEQUENCE_FILTER);
     ::fst::Compose(input, *rule_fst, output, opts);
   }
-  delete rule_fst;
   return true;
 }
 

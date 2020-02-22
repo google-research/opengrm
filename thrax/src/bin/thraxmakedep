@@ -56,7 +56,7 @@ def MakeDepend(grammar, makep):
       if match:
         interpreted_file = match.group(2)
         interpreted_files.append(interpreted_file)
-  fars = map(ReplaceExt, grammars)
+  fars = [ReplaceExt(g) for g in grammars]
   far = ReplaceExt(grammar)
   dependents = ' '.join(fars + interpreted_files)
   makep.write('%s: %s %s\n' % (far, grammar, dependents))
