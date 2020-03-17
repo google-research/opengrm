@@ -90,9 +90,12 @@ int main(int argc, char** argv) {
   RmEpsilon(&cleaned);
   std::vector<std::pair<std::string, float>> istrings;
   std::vector<std::pair<std::string, float>> ostrings;
+
   ::UniformArcSelector<StdArc> uniform_selector;
   const RandGenOptions<UniformArcSelector<StdArc>> opts(
-      uniform_selector, INT_MAX, 1, true, false);
+      uniform_selector, /*max_length=*/std::numeric_limits<int32>::max(),
+      /*npath=*/1, true, false);
+
   for (int i = 0; i < FLAGS_noutput; ++i) {
     StdVectorFst ofst;
     RandGen(cleaned, &ofst, opts);
