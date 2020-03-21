@@ -1,4 +1,17 @@
-# Encoding: UTF-8
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Copyright 2016 and onwards Google, Inc.
+#
 # For general information on the Pynini grammar compilation library, see
 # pynini.opengrm.org.
 
@@ -434,7 +447,7 @@ class StringTest(unittest.TestCase):
   def setUpClass(cls):
     cls.cheese = "Red Leicester"
     cls.reply = "I'm afraid we're fresh out of Red Leicester sir"
-    cls.imported_cheese = u"Pont l'Evêque"
+    cls.imported_cheese = "Pont l'Evêque"
     cls.acceptor_props = (ACCEPTOR | I_DETERMINISTIC | O_DETERMINISTIC |
                           I_LABEL_SORTED | O_LABEL_SORTED | UNWEIGHTED |
                           ACYCLIC | INITIAL_ACYCLIC | TOP_SORTED | ACCESSIBLE |
@@ -479,7 +492,7 @@ class StringTest(unittest.TestCase):
 
   def testUnicodeBytestringAcceptorCompilation(self):
     cheese = acceptor(self.imported_cheese)
-    self.assertEqual(cheese, self.imported_cheese.encode("utf8"))
+    self.assertEqual(cheese, self.imported_cheese)
     self.assertEqual(cheese.properties(self.acceptor_props, True),
                      self.acceptor_props)
 
@@ -562,7 +575,7 @@ class StringTest(unittest.TestCase):
     ac.set_output_symbols(None)
     self.assertEqual(ac.string("utf8"), self.imported_cheese)
 
- def testStringifyOnNonkStringFstRaisesFstOpError(self):
+  def testStringifyOnNonkStringFstRaisesFstOpError(self):
     with self.assertRaises(FstOpError):
       unused_ac = union(self.cheese, self.imported_cheese).string()
 

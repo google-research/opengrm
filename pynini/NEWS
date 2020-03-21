@@ -1,3 +1,8 @@
+v. 2.1.1 (compatible with OpenFst 1.7.7)
+========================================
+
+* Adds PEP 484/PEP 561-compatible type stubs
+
 v. 2.1.0 (compatible with OpenFst 1.7.6)
 ========================================
 
