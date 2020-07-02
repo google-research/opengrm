@@ -15,17 +15,15 @@
 #ifndef BAUMWELCH_EXPECTATION_TABLE_H_
 #define BAUMWELCH_EXPECTATION_TABLE_H_
 
-// Tables of expectations for use in Baum-Welch training, and some helper
-// objects and functions.
+// Tables of expectations for use in Baum-Welch training.
 
-#include <cmath>
 #include <cstddef>
 #include <utility>
 #include <vector>
 
 #include <fst/arc.h>
-#include <baumwelch/cascade.h>
-#include <baumwelch/summation.h>
+#include <fst/fst.h>
+#include <baumwelch/log-adder.h>
 #include <unordered_map>
 
 namespace fst {
@@ -86,127 +84,32 @@ struct UnweightedArcHash {
 //   using StateId = typename Arc::StateId;
 //   using Weight = typename Arc::Weight;
 //
-//   using Cascade = ...;
-//
 //   // Required constructor; the FST argument is usually just used to
 //   // size the table.
 //   explicit ExpectationTable(const Fst<Arc> &channel);
 //
 //   // Collects an arc expectation.
-//   void CollectExpectation(StateId state, Label ilabel, Label olabel,
-//                           const Weight &weight, StateId nextstate);
+//   void Forward(StateId state, Label ilabel, Label olabel,
+//                Weight weight, StateId nextstate);
 //
 //   // Collects a state expectation. This may be no-op, or it may
 //   // call the above overload using special label/state symbols.
-//   void CollectExpectation(StateId state, const Weight &weight);
+//   void Forward(StateId state, Weight &weight);
 //
 //   // Collects a likelihood for an observation using the reverse
 //   // shortest path weight on the start state.
-//   void CollectLikelihood(const Weight &weight);
+//   void CollectLikelihood(Weight weight);
 //
 //   // Returns the likelihood for the current iteration.
 //   Weight Likelihood() const;
 //
 //   // Returns the M-step weight for a state/arc in the channel model.
-//   Weight Maximize(StateId state, const Arc &arc) const;
+//   Weight Backward(StateId state, const Arc &arc) const;
 //
 //   // Returns the M-step final weight for an state in the channel model.
 //   // This may call the above overload using a special label/state symbols.
-//   Weight Maximize(StateId state) const;
-//
-//   // Resets the expectations and the likelihood.
-//   void Reset();
+//   Weight Backward(StateId state) const;
 // };
-
-// Normalizes expectations globally.
-//
-// This is to be used with acyclic channel model.
-template <class A>
-class GlobalExpectationTable {
- public:
-  using Arc = A;
-  using Label = typename Arc::Label;
-  using StateId = typename Arc::StateId;
-  using Weight = typename Arc::Weight;
-
-  using Cascade = internal::MultiStateCascade<Arc>;
-  using UnweightedArc = internal::UnweightedArc<Arc>;
-  using ArcHash = internal::UnweightedArcHash<UnweightedArc>;
-  using Summation = internal::Summation<Weight>;
-
-  explicit GlobalExpectationTable(const Fst<Arc> &channel)
-      : num_states_(CountStates(channel)),
-        table_(num_states_) {}
-
-  // NB: This copies the table sizing and likelihood but not the expectations.
-  GlobalExpectationTable &operator=(const GlobalExpectationTable &other) {
-    num_states_ = other.num_states_;
-    Reset();
-    likelihood_ = other.likelihood_;
-    return *this;
-  }
-
-  // Arc.
-  void CollectExpectation(StateId state, const Arc &arc) {
-    CollectExpectation(state, UnweightedArc(arc), arc.weight);
-  }
-
-  // Arc built on the fly.
-  void CollectExpectation(StateId state, Label ilabel, Label olabel,
-                          const Weight &weight, StateId nextstate) {
-    CollectExpectation(state, UnweightedArc(ilabel, olabel, nextstate), weight);
-  }
-
-  // Final weight.
-  void CollectExpectation(StateId state, const Weight &weight) {
-    CollectExpectation(state, UnweightedArc(), weight);
-  }
-
-  void CollectLikelihood(const Weight &weight) {
-    likelihood_.Add(weight);
-  }
-
-  Weight Likelihood() const { return likelihood_.Get(); }
-
-  // Arc.
-  Weight Maximize(StateId state, const Arc &arc) const {
-    return Maximize(state, UnweightedArc(arc));
-  }
-
-  // Final weight.
-  Weight Maximize(StateId state) const {
-    return Maximize(state, UnweightedArc());
-  }
-
-  void Reset() {
-    likelihood_.Reset();
-    table_.clear();
-    table_.resize(num_states_);
-  }
-
- private:
-  void CollectExpectation(StateId state, UnweightedArc &&uarc,
-                          const Weight &weight) {
-    auto &s_table = table_[state];
-    auto it_and_success = s_table.emplace(uarc, weight);
-    if (!it_and_success.second) {
-      auto &iweight = it_and_success.first->second;
-      iweight.Add(weight);
-    }
-  }
-
-  Weight Maximize(StateId state, UnweightedArc &&uarc) const {
-    const auto &s_table = table_[state];
-    const auto &it = s_table.find(uarc);
-    return (it == s_table.end() ?
-            Weight::Zero() :
-            Divide(it->second.Get(), likelihood_.Get()));
-  }
-
-  Summation likelihood_;
-  size_t num_states_;
-  std::vector<std::unordered_map<UnweightedArc, Summation, ArcHash>> table_;
-};
 
 // Normalizes expectations locally, using state ID as the conditioning factor.
 //
@@ -225,66 +128,40 @@ class StateExpectationTable {
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
 
-  using Cascade = internal::MultiStateCascade<Arc>;
   using UnweightedArc = internal::UnweightedArc<Arc>;
   using ArcHash = internal::UnweightedArcHash<UnweightedArc>;
-  using Summation = internal::Summation<Weight>;
+  using Sum = LogAdder<Weight>;
 
   explicit StateExpectationTable(const Fst<Arc> &channel)
       : num_states_(CountStates(channel)),
         table_(num_states_) {}
 
-  // NB: This copies the table sizing and likelihood but not the expectations.
-  StateExpectationTable &operator=(const StateExpectationTable &other) {
-    num_states_ = other.num_states_;
-    Reset();
-    likelihood_ = other.likelihood_;
-    return *this;
-  }
-
-  // Arc.
-  void CollectExpectation(StateId state, const Arc &arc) {
-    CollectExpectation(state,
-                       UnweightedArc(arc.ilabel, arc.olabel, arc.nextstate),
-                       arc.weight);
-  }
-
   // Arc built on the fly.
-  void CollectExpectation(StateId state, Label ilabel, Label olabel,
-                          const Weight &weight, StateId nextstate) {
-    CollectExpectation(state, UnweightedArc(ilabel, olabel, nextstate), weight);
+  void Forward(StateId state, Label ilabel, Label olabel, Weight weight,
+               StateId nextstate) {
+    Forward(state, UnweightedArc(ilabel, olabel, nextstate), std::move(weight));
   }
 
   // Final weight.
-  void CollectExpectation(StateId state, const Weight &weight) {
-    CollectExpectation(state, UnweightedArc(), weight);
+  void Forward(StateId state, Weight weight) {
+    Forward(state, UnweightedArc(), std::move(weight));
   }
-
-  void CollectLikelihood(const Weight &weight) {
-    likelihood_.Add(weight);
-  }
-
-  Weight Likelihood() const { return likelihood_.Get(); }
 
   // Arc.
-  Weight Maximize(StateId state, const Arc &arc) const {
-    return Maximize(state, UnweightedArc(arc));
+  Weight Backward(StateId state, const Arc &arc) const {
+    return Backward(state, UnweightedArc(arc));
   }
 
   // Final weight.
-  Weight Maximize(StateId state) const {
-    return Maximize(state, UnweightedArc());
-  }
-
-  void Reset() {
-    likelihood_.Reset();
-    table_.clear();
-    table_.resize(num_states_);
+  Weight Backward(StateId state) const {
+    return Backward(state, UnweightedArc());
   }
 
  private:
-  void CollectExpectation(StateId state, UnweightedArc &&uarc,
-                          const Weight &weight) {
+  StateExpectationTable(const StateExpectationTable &) = delete;
+  StateExpectationTable &operator=(const StateExpectationTable &) = delete;
+
+  void Forward(StateId state, UnweightedArc &&uarc, Weight weight) {
     auto &spair = table_[state];
     spair.likelihood.Add(weight);
     auto it_and_success = spair.expectations.emplace(uarc, weight);
@@ -294,130 +171,22 @@ class StateExpectationTable {
     }
   }
 
-  Weight Maximize(StateId state, UnweightedArc &&uarc) const {
+  Weight Backward(StateId state, UnweightedArc &&uarc) const {
     const auto &spair = table_[state];
     const auto it = spair.expectations.find(uarc);
-    return (it == spair.expectations.end() ?
-            Weight::Zero() :
-            Divide(it->second.Get(), spair.likelihood.Get()));
+    return (it == spair.expectations.end()
+                ? Weight::Zero()
+                : Divide(it->second.Sum(), spair.likelihood.Sum()));
   }
 
   struct Pair {
-    std::unordered_map<UnweightedArc, Summation, ArcHash> expectations;
-    Summation likelihood;
+    std::unordered_map<UnweightedArc, Sum, ArcHash> expectations;
+    Sum likelihood;
   };
 
-  Summation likelihood_;
+  Sum likelihood_;
   size_t num_states_;
   std::vector<Pair> table_;
-};
-
-// Normalizes expectations locally, using input label as the conditioning
-// factor.
-//
-// This is to be used with single-state channel models, as it assumes
-// a single-state channel and ignores state IDs otherwise.
-template <class A>
-class ILabelExpectationTable {
- public:
-  using Arc = A;
-  using Label = typename Arc::Label;
-  using StateId = typename Arc::StateId;
-  using Weight = typename Arc::Weight;
-
-  using Cascade = internal::SingleStateCascade<Arc>;
-  using UnweightedArc = internal::UnweightedArc<Arc>;
-  using Summation = internal::Summation<Weight>;
-
-  // Constructor argument is ignored.
-  explicit ILabelExpectationTable(const Fst<Arc> &) {}
-
-  // NB: This copies the likelihood but not the expectations.
-  ILabelExpectationTable &operator=(const ILabelExpectationTable &other) {
-    Reset();
-    likelihood_ = other.likelihood_;
-    return *this;
-  }
-
-  // Arc.
-  void CollectExpectation(StateId, const Arc &arc) {
-    CollectExpectation(arc.ilabel, arc.olabel, arc.weight);
-  }
-
-  // Arc built on the fly.
-  void CollectExpectation(StateId, Label ilabel, Label olabel,
-                          const Weight &weight, StateId) {
-    CollectExpectation(ilabel, olabel, weight);
-  }
-
-  // Final weight.
-  void CollectExpectation(StateId, const Weight &weight) {
-    CollectExpectation(kNoLabel, kNoLabel, weight);
-  }
-
-  void CollectLikelihood(const Weight &weight) {
-    likelihood_.Add(weight);
-  }
-
-  Weight Likelihood() const { return likelihood_.Get(); }
-
-  Weight Maximize(StateId, const Arc &arc) const {
-    return Maximize(arc.ilabel, arc.olabel);
-  }
-
-  Weight Maximize(StateId) const { return Maximize(kNoLabel, kNoLabel); }
-
-  void Reset() {
-    likelihood_.Reset();
-    table_.clear();
-  }
-
- private:
-  void CollectExpectation(Label ilabel, Label olabel, const Weight &weight) {
-    auto it_and_success = table_.emplace(ilabel, Pair(olabel, weight));
-    // If insertion just succeeded, we're done.
-    if (it_and_success.second) return;
-    // Otherwise, we need to mutate the inner table.
-    auto &inner = it_and_success.first->second;
-    // Handles the expectations.
-    auto &expectations = inner.expectations;
-    auto it = expectations.find(olabel);
-    if (it == expectations.end()) {
-      expectations[olabel].Set(weight);
-    } else {
-      auto &iweight = expectations[olabel];
-      iweight.Add(weight);
-    }
-    // Handles the likelihood.
-    auto &ilikelihood = inner.likelihood;
-    ilikelihood.Add(weight);
-  }
-
-  Weight Maximize(Label ilabel, Label olabel) const {
-    const auto it = table_.find(ilabel);
-    // Fails to find ilabel.
-    if (it == table_.end()) return Weight::Zero();
-    const auto &inner = it->second;
-    const auto iit = inner.expectations.find(olabel);
-    return (iit == inner.expectations.end() ?
-            Weight::Zero() :
-            Divide(iit->second.Get(), inner.likelihood.Get()));
-  }
-
-  struct Pair {
-    std::unordered_map<Label, Summation> expectations;
-    Summation likelihood;
-
-    // This constructor takes an olabel/weight pair and initializes both
-    // elements accordingly.
-    Pair(Label olabel, const Weight &weight) {
-      expectations[olabel].Set(weight);
-      likelihood.Set(weight);
-    }
-  };
-
-  Summation likelihood_;
-  std::unordered_map<Label, Pair> table_;
 };
 
 // Normalizes expectations locally, using state ID and input label as
@@ -433,63 +202,41 @@ class StateILabelExpectationTable {
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
 
-  using Cascade = internal::MultiStateCascade<Arc>;
   using UnweightedArc = internal::UnweightedArc<Arc>;
   using ArcHash = internal::UnweightedArcHash<UnweightedArc>;
-  using Summation = internal::Summation<Weight>;
+  using Sum = LogAdder<Weight>;
 
   explicit StateILabelExpectationTable(const Fst<Arc> &channel) :
         num_states_(CountStates(channel)),
         table_(num_states_) {}
 
-  // NB: This copies the table sizing but not the actual expectations.
-  StateILabelExpectationTable &operator=(
-      const StateILabelExpectationTable &other) {
-    num_states_ = other.num_states_;
-    Reset();
-    likelihood_ = other.likelihood_;
-    return *this;
-  }
-
-  // Arc.
-  void CollectExpectation(StateId state, const Arc &arc) {
-    CollectExpectation(state, UnweightedArc(arc), arc.weight);
-  }
-
   // Arc built on the fly.
-  void CollectExpectation(StateId state, Label ilabel, Label olabel,
-                          const Weight &weight, StateId nextstate) {
-    CollectExpectation(state, UnweightedArc(ilabel, olabel, nextstate), weight);
+  void Forward(StateId state, Label ilabel, Label olabel, Weight weight,
+               StateId nextstate) {
+    Forward(state, UnweightedArc(ilabel, olabel, nextstate), std::move(weight));
   }
 
   // Final weight.
-  void CollectExpectation(StateId state, const Weight &weight) {
-    CollectExpectation(state, UnweightedArc(), weight);
+  void Forward(StateId state, Weight weight) {
+    Forward(state, UnweightedArc(), std::move(weight));
   }
-
-  void CollectLikelihood(const Weight &weight) { likelihood_.Add(weight); }
-
-  Weight Likelihood() const { return likelihood_.Get(); }
 
   // Arc.
-  Weight Maximize(StateId state, const Arc &arc) const {
-    return Maximize(state, UnweightedArc(arc));
+  Weight Backward(StateId state, const Arc &arc) const {
+    return Backward(state, UnweightedArc(arc));
   }
 
   // Final weight.
-  Weight Maximize(StateId state) const {
-    return Maximize(state, UnweightedArc());
-  }
-
-  void Reset() {
-    likelihood_.Reset();
-    table_.clear();
-    table_.resize(num_states_);
+  Weight Backward(StateId state) const {
+    return Backward(state, UnweightedArc());
   }
 
  private:
-  void CollectExpectation(StateId state, UnweightedArc &&uarc,
-                          const Weight &weight) {
+  StateILabelExpectationTable(const StateILabelExpectationTable &) = delete;
+  StateILabelExpectationTable &operator=(const StateILabelExpectationTable &) =
+      delete;
+
+  void Forward(StateId state, UnweightedArc &&uarc, Weight weight) {
     auto &spair = table_[state];
     // Handles the expectations.
     {
@@ -509,23 +256,23 @@ class StateILabelExpectationTable {
     }
   }
 
-  Weight Maximize(StateId state, UnweightedArc &&uarc) const {
+  Weight Backward(StateId state, UnweightedArc &&uarc) const {
     const auto &spair = table_[state];
     const auto &it = spair.expectations.find(uarc);
     if (it == spair.expectations.end()) {
       return Weight::Zero();
     } else {
       const auto likelihood = spair.likelihoods.find(uarc.ilabel)->second;
-      return Divide(it->second.Get(), likelihood.Get());
+      return Divide(it->second.Sum(), likelihood.Sum());
     }
   }
 
   struct Pair {
-    std::unordered_map<UnweightedArc, Summation, ArcHash> expectations;
-    std::unordered_map<Label, Summation> likelihoods;
+    std::unordered_map<UnweightedArc, Sum, ArcHash> expectations;
+    std::unordered_map<Label, Sum> likelihoods;
   };
 
-  Summation likelihood_;
+  Sum likelihood_;
   size_t num_states_;
   std::vector<Pair> table_;
 };

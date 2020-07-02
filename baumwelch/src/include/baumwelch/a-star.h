@@ -29,10 +29,10 @@ namespace fst {
 // Computes the shortest path string over a semiring without the path property:
 //
 // * Compute the NFA beta.
-// * Lazily determinize and compute the DFA beta
-// * Lazily cast into the tropical semiring
-// * Compute the shortest path using the DFA beta as an A* heuristic
-// * Cast back into the input semiring
+// * Lazily determinize and compute the DFA beta.
+// * Lazily cast into the tropical semiring.
+// * Compute the shortest path using the DFA beta as an A* heuristic.
+// * Cast back into the input semiring.
 //
 // Due to limitations of determinization, this only works for acceptors.
 template <class Arc,
@@ -40,19 +40,15 @@ template <class Arc,
               * = nullptr>
 void AStarSingleShortestPath(const Fst<Arc> &ifst, MutableFst<Arc> *ofst,
                              float delta = kShortestDelta) {
+  using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
+  using PathWeight = TropicalWeightTpl<typename Weight::ValueType>;
+  using PathArc = ArcTpl<PathWeight>;
   std::vector<Weight> nfa_beta;
   ShortestDistance(ifst, &nfa_beta, /*reverse=*/true);
   std::vector<Weight> dfa_beta;
   static const DeterminizeFstOptions<Arc> dopts;
   const DeterminizeFst<Arc> dfa(ifst, &nfa_beta, &dfa_beta, dopts);
-  // Computing shortest path.
-  using StateId = typename Arc::StateId;
-  using PathWeight = TropicalWeightTpl<typename Weight::ValueType>;
-  using PathArc = ArcTpl<PathWeight>;
-  using ToPathMapper = WeightConvertMapper<Arc, PathArc>;
-  using FromPathMapper = WeightConvertMapper<PathArc, Arc>;
-  const auto path_dfa = MakeArcMapFst(dfa, ToPathMapper());
   VectorFst<PathArc> path_shortest;
   {
     using MyEstimate = NaturalAStarEstimate<StateId, PathWeight>;
@@ -60,11 +56,14 @@ void AStarSingleShortestPath(const Fst<Arc> &ifst, MutableFst<Arc> *ofst,
     using MyArcFilter = AnyArcFilter<PathArc>;
     using MyShortestPathOptions =
         ShortestPathOptions<PathArc, MyQueue, MyArcFilter>;
+    using ToPathMapper = WeightConvertMapper<Arc, PathArc>;
+    static constexpr ToPathMapper to_mapper;
+    const auto path_dfa = MakeArcMapFst(dfa, to_mapper);
     const MyEstimate estimate(
         reinterpret_cast<const std::vector<PathWeight> &>(dfa_beta));
     std::vector<PathWeight> dfa_alpha;
     MyQueue queue(dfa_alpha, estimate);
-    static const MyArcFilter arc_filter;
+    static constexpr MyArcFilter arc_filter;
     const MyShortestPathOptions sopts(
         &queue, arc_filter,
         /*nshortest=*/1,        // 1-best.
@@ -73,9 +72,10 @@ void AStarSingleShortestPath(const Fst<Arc> &ifst, MutableFst<Arc> *ofst,
         /*delta=*/delta,
         /*first_path=*/true);  // Heuristic is admissible.
     ShortestPath(path_dfa, &path_shortest, &dfa_alpha, sopts);
-    VLOG(1) << internal::CountExploredStates(dfa_alpha) << " states explored";
+    VLOG(1) << internal::ExploredStates(dfa_alpha) << " states explored";
   }
-  static const FromPathMapper from_mapper;
+  using FromPathMapper = WeightConvertMapper<PathArc, Arc>;
+  static constexpr FromPathMapper from_mapper;
   ArcMap(path_shortest, ofst, from_mapper);
 }
 

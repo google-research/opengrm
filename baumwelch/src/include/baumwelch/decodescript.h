@@ -16,46 +16,26 @@
 #define BAUMWELCH_DECODESCRIPT_H_
 
 #include <fst/extensions/far/far-class.h>
-#include <fst/script/arg-packs.h>
 #include <fst/script/fst-class.h>
 #include <baumwelch/decode.h>
 
 namespace fst {
 namespace script {
 
-// 1: Pair construction.
-
-using DecodeBaumWelchArgs1 = std::tuple<FarReaderClass *, FarReaderClass *,
-                                        const FstClass &, FarWriterClass *>;
+using DecodeBaumWelchArgs = std::tuple<FarReaderClass *, FarReaderClass *,
+                                       const FstClass &, FarWriterClass *>;
 
 template <class Arc>
-void DecodeBaumWelch(DecodeBaumWelchArgs1 *args) {
-  FarReader<Arc> *plaintext = std::get<0>(*args)->GetFarReader<Arc>();
-  FarReader<Arc> *ciphertext = std::get<1>(*args)->GetFarReader<Arc>();
-  const Fst<Arc> &channel = *(std::get<2>(*args).GetFst<Arc>());
+void DecodeBaumWelch(DecodeBaumWelchArgs *args) {
+  FarReader<Arc> *input = std::get<0>(*args)->GetFarReader<Arc>();
+  FarReader<Arc> *output = std::get<1>(*args)->GetFarReader<Arc>();
+  const Fst<Arc> &model = *(std::get<2>(*args).GetFst<Arc>());
   FarWriter<Arc> *hypotext = std::get<3>(*args)->GetFarWriter<Arc>();
-  DecodeBaumWelch(plaintext, ciphertext, channel, hypotext);
+  DecodeBaumWelch(input, output, model, hypotext);
 }
 
-// 2: Decipherment construction.
-
-using DecodeBaumWelchArgs2 = std::tuple<const FstClass &, FarReaderClass *,
-                                        const FstClass &, FarWriterClass *>;
-
-template <class Arc>
-void DecodeBaumWelch(DecodeBaumWelchArgs2 *args) {
-  const Fst<Arc> &plaintext = *(std::get<0>(*args).GetFst<Arc>());
-  FarReader<Arc> *ciphertext = std::get<1>(*args)->GetFarReader<Arc>();
-  const Fst<Arc> &channel = *(std::get<2>(*args).GetFst<Arc>());
-  FarWriter<Arc> *hypotext = std::get<3>(*args)->GetFarWriter<Arc>();
-  DecodeBaumWelch(plaintext, ciphertext, channel, hypotext);
-}
-
-void DecodeBaumWelch(FarReaderClass *plaintext, FarReaderClass *ciphertext,
-                     const FstClass &channel, FarWriterClass *hypotext);
-
-void DecodeBaumWelch(const FstClass &plaintext, FarReaderClass *ciphertext,
-                     const FstClass &channel, FarWriterClass *hypotext);
+void DecodeBaumWelch(FarReaderClass *input, FarReaderClass *output,
+                     const FstClass &model, FarWriterClass *hypotext);
 
 }  // namespace script
 }  // namespace fst

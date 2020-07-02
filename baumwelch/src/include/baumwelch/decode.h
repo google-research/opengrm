@@ -36,7 +36,6 @@
 #include <fst/statesort.h>
 #include <baumwelch/a-star.h>
 #include <baumwelch/cascade.h>
-#include <baumwelch/data.h>
 
 namespace fst {
 namespace internal {
@@ -50,80 +49,65 @@ void MakeString(MutableFst<Arc> *fst) {
   std::vector<StateId> order(fst->NumStates());
   std::iota(order.rbegin(), order.rend(), 0);
   StateSort(fst, order);
-  ArcMap(fst, RmWeightMapper<Arc>());
+  static const RmWeightMapper<Arc> rmweight;
+  ArcMap(fst, rmweight);
 }
 
-// Computes the shortest path string over a semiring with the path property.
+// Pair decoding for semirings with the path property.
+template <class Arc>
+CompactUnweightedFst<Arc> DecodePair(const Fst<Arc> &ifst) {
+  VectorFst<Arc> ofst;
+  ShortestPath(ifst, &ofst);
+  MakeString(&ofst);
+  return CompactUnweightedFst<Arc>(ofst);
+}
+
+// Decipherment decoding for semirings with the path property.
 template <class Arc, typename std::enable_if<
                          IsPath<typename Arc::Weight>::value>::type * = nullptr>
-void ShortestPathString(const Fst<Arc> &ifst, VectorFst<Arc> *ofst) {
-  ShortestPath(ifst, ofst);
-  MakeString(ofst);
+CompactStringFst<Arc> DecodeDecipherment(const Fst<Arc> &ifst) {
+  VectorFst<Arc> lattice;
+  Project(ifst, &lattice, ProjectType::INPUT);
+  RmEpsilon(&lattice);
+  VectorFst<Arc> ofst;
+  ShortestPath(lattice, &ofst);
+  MakeString(&ofst);
+  return CompactStringFst<Arc>(ofst);
 }
 
-// Computes the shortest path string over a semiring without the path property
-// using lazily determinization with A* search.
+// Decipherment decoding for semirings without the path property.
 template <class Arc,
           typename std::enable_if<!IsPath<typename Arc::Weight>::value>::type
               * = nullptr>
-void ShortestPathString(const Fst<Arc> &ifst, VectorFst<Arc> *ofst) {
-  AStarSingleShortestPath(ifst, ofst);
-  MakeString(ofst);
-}
-
-// Computes the shortest path input string; we project and remove epsilons
-// beforehand.
-template <class Arc>
-void DeciphermentShortestPathString(const Fst<Arc> &ifst,
-                                    VectorFst<Arc> *ofst) {
+CompactStringFst<Arc> DecodeDecipherment(const Fst<Arc> &ifst) {
   VectorFst<Arc> lattice;
-  Project(ifst, &lattice, PROJECT_INPUT);
+  Project(ifst, &lattice, ProjectType::INPUT);
   RmEpsilon(&lattice);
-  ShortestPathString(lattice, ofst);
-}
-
-// Paired data construction; outputs the highest-scoring alignment.
-template <class Arc>
-void DecodeBaumWelch(PairedData<Arc> *data, const Fst<Arc> &channel,
-                     FarWriter<Arc> *hypotext) {
-  for (; !data->Done(); data->Next()) {
-    const SingleStateCascade<Arc> cascade(data->GetInput(), data->GetOutput(),
-                                          channel);
-    VectorFst<Arc> ofst;
-    ShortestPathString(cascade.GetFst(), &ofst);
-    hypotext->Add(data->GetKey(), CompactUnweightedFst<Arc>(ofst));
-  }
-}
-
-// Decipherment construction; outputs the highest-scoring input string.
-template <class Arc>
-void DecodeBaumWelch(DeciphermentData<Arc> *data, const Fst<Arc> &channel,
-                     FarWriter<Arc> *hypotext) {
-  for (; !data->Done(); data->Next()) {
-    const SingleStateCascade<Arc> cascade(data->GetInput(), data->GetOutput(),
-                                          channel);
-    VectorFst<Arc> ofst;
-    DeciphermentShortestPathString(cascade.GetFst(), &ofst);
-    hypotext->Add(data->GetKey(), CompactStringFst<Arc>(ofst));
-  }
+  VectorFst<Arc> ofst;
+  AStarSingleShortestPath(lattice, &ofst);
+  MakeString(&ofst);
+  return CompactStringFst<Arc>(ofst);
 }
 
 }  // namespace internal
 
-// This instantiates the paired construction.
+// Full decipherment setup.
 template <class Arc>
 void DecodeBaumWelch(FarReader<Arc> *input, FarReader<Arc> *output,
-                     const Fst<Arc> &channel, FarWriter<Arc> *writer) {
-  internal::PairedData<Arc> data(input, output);
-  internal::DecodeBaumWelch(&data, channel, writer);
-}
-
-// This instantiates the decipherment construction.
-template <class Arc>
-void DecodeBaumWelch(const Fst<Arc> &input, FarReader<Arc> *output,
-                     const Fst<Arc> &channel, FarWriter<Arc> *writer) {
-  internal::DeciphermentData<Arc> data(input, output);
-  internal::DecodeBaumWelch(&data, channel, writer);
+                     const Fst<Arc> &model, FarWriter<Arc> *hypotext) {
+  while (!input->Done() && !output->Done()) {
+    const SimpleCascade<Arc> cascade(*input->GetFst(), *output->GetFst(),
+                                     model);
+    if (input->Type() == FarType::FST) {
+      hypotext->Add(output->GetKey(),
+                    internal::DecodeDecipherment(cascade.GetFst()));
+    } else {
+      hypotext->Add(input->GetKey() + "_" + output->GetKey(),
+                    internal::DecodePair(cascade.GetFst()));
+      input->Next();
+    }
+    output->Next();
+  }
 }
 
 }  // namespace fst

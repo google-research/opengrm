@@ -12,22 +12,20 @@
 //
 // Copyright 2017 and onwards Google, Inc.
 
-#ifndef BAUMWELCH_SUMMATION_H_
-#define BAUMWELCH_SUMMATION_H_
+#ifndef BAUMWELCH_LOG_ADDER_H_
+#define BAUMWELCH_LOG_ADDER_H_
 
 #include <type_traits>
 
 #include <fst/float-weight.h>
 
 namespace fst {
-namespace internal {
 
-// Class storing the summation of multiple weights. If the input weight type
-// is idempotent, we use a LogWeight(Tpl) of the appropriate size and assume
-// that there are valid weight converters between the template weight type and
-// the said LogWeight.
+// This wraps the Adder class, using LogWeight(Tpl) of the appropriate size
+// internally and hiding conversion. It assumes the existence of a valid weight
+// converters between the template weight type and the said LogWeight.
 template <class Weight>
-class Summation {
+class LogAdder {
  public:
   // HelperWeight is Weight for non-idempotent weights, as is the converter;
   // it is a LogWeightTpl of appropriate precision otherwise.
@@ -35,36 +33,17 @@ class Summation {
       (Weight::Properties() & kIdempotent) == kIdempotent,
       LogWeightTpl<typename Weight::ValueType>, Weight>::type;
 
-  Summation() : sum_(HelperWeight::Zero()) {}
+  explicit LogAdder(Weight weight = Weight::Zero())
+      : sum_(LogAdder<Weight>::To(weight)) {}
 
-  Summation &operator=(const Summation &other) {
-    sum_ = other.sum_;
-    return *this;
-  }
-
-  explicit Summation(const Weight &weight) {
-    Set(weight);
-  }
-
-  // Sets the summation's value using a weight type.
-  void Set(const Weight &weight) {
-    sum_ = Summation<Weight>::To(weight);
-  }
-
-  // Resets the summation to Zero.
-  void Reset() {
-    sum_ = HelperWeight::Zero();
-  }
+  // Resets the summation's value using a weight type.
+  void Reset(const Weight &weight) { sum_.Reset(LogAdder<Weight>::To(weight)); }
 
   // Adds a weight to the sum.
-  void Add(const Weight &weight) {
-    sum_ = Plus(sum_, Summation<Weight>::To(weight));
-  }
+  void Add(const Weight &weight) { sum_.Add(LogAdder<Weight>::To(weight)); }
 
   // Gets the sum in the template-argument weight type.
-  Weight Get() const {
-    return Summation<Weight>::From(sum_);
-  }
+  Weight Sum() const { return LogAdder<Weight>::From(sum_.Sum()); }
 
  private:
   static HelperWeight To(const Weight &weight) {
@@ -77,11 +56,10 @@ class Summation {
     return from(weight);
   }
 
-  HelperWeight sum_;
+  Adder<HelperWeight> sum_;
 };
 
-}  // namespace internal
 }  // namespace fst
 
-#endif  // BAUMWELCH_SUMMATION_H_
+#endif  // BAUMWELCH_LOG_ADDER_H_
 

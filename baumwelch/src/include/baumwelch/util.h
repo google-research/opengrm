@@ -17,7 +17,6 @@
 
 // Utility functions.
 
-#include <algorithm>
 #include <vector>
 
 namespace fst {
@@ -26,7 +25,7 @@ namespace internal {
 // Computes the number of explored states in a distance vector. This is used to
 // log the expansion of the DFA in A* search.
 template <class Weight>
-size_t CountExploredStates(const std::vector<Weight> &distance) {
+size_t ExploredStates(const std::vector<Weight> &distance) {
   static const auto nonzero_weight = [](const Weight &weight) {
     return weight != Weight::Zero();
   };

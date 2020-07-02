@@ -3,9 +3,10 @@ LDADD = ../script/libbaumwelchscript.la -L/usr/local/lib/fst \
         -lfstfarscript -lfstfar -lfstscript -lfst -lm -ldl
 
 if HAVE_BIN
-bin_PROGRAMS = baumwelchtrain baumwelchdecode
+bin_PROGRAMS = baumwelchdecode baumwelchrandomize baumwelchtrain
 
-baumwelchtrain_SOURCES = baumwelchtrain.cc baumwelchtrain-main.cc
 baumwelchdecode_SOURCES = baumwelchdecode.cc baumwelchdecode-main.cc
+baumwelchrandomize_SOURCES = baumwelchrandomize.cc baumwelchrandomize-main.cc
+baumwelchtrain_SOURCES = baumwelchtrain.cc baumwelchtrain-main.cc
 
 endif

@@ -21,74 +21,82 @@
 // Cascade objects used during the E-step.
 
 namespace fst {
-namespace internal {
 
-// Cascade objects represent the composition of a plaintext WFSA (usually a
-// string or an LM), the channel model, and a ciphertext string FSA. They
-// handle the actual composition as well as the mapping from cascade state IDs
-// to channel state IDs. They have the following interface:
+// Struct holding two cache options structs.
+struct CascadeOptions {
+  CascadeOptions(const CascadeOptions &) = default;
+
+  explicit CascadeOptions(
+      const CacheOptions &co_cache_options = CacheOptions(),
+      const CacheOptions &ico_cache_options = CacheOptions())
+      : co_cache_options(co_cache_options),
+        ico_cache_options(ico_cache_options) {}
+
+  const CacheOptions co_cache_options;
+  const CacheOptions ico_cache_options;
+};
+
+// Cascade objects represent the composition of a input WFSA (usually a
+// string or an LM), the model, and a output string FSA. They minimally have the
+// following interface:
 //
 // template <class Arc>
-// class Cascade {
+// class CascadeInterface {
 //  public:
 //   using StateId = typename Arc::StateId;
 //
 //   // Required constructor, which builds the cascade.
-//   Cascade(const Fst<Arc> &plaintext, const Fst<Arc> &ciphertext,
-//           const Fst<Arc> &channel);
+//   CascadeInterface(const Fst<Arc> &input, const Fst<Arc> &output,
+//                    const Fst<Arc> &model);
 //
 //   // Returns reference to the cascade.
 //   const ComposeFst<Arc> &GetFst() const;
-//
-//   // Maps from cascade state ID to channel state ID.
-//   StateId ChannelState(StateId) const;
 // };
 
-// Cascade object that assumes the channel only has one state.
+// Simple cascade object.
 template <class Arc>
-class SingleStateCascade {
+class SimpleCascade {
  public:
   using StateId = typename Arc::StateId;
 
-  SingleStateCascade(const Fst<Arc> &plaintext, const Fst<Arc> &ciphertext,
-                     const Fst<Arc> &channel,
-                     const CacheOptions &co_cache_options = CacheOptions(),
-                     const CacheOptions &ico_cache_options = CacheOptions())
-      : co_options_(co_cache_options),
-        co_(channel, ciphertext, co_options_),
-        ico_options_(ico_cache_options),
-        ico_(plaintext, co_, ico_options_) {}
+  SimpleCascade(const Fst<Arc> &input, const Fst<Arc> &output,
+                const Fst<Arc> &model,
+                const CascadeOptions &opts = CascadeOptions())
+      : co_options_(opts.co_cache_options),
+        co_(model, output, co_options_),
+        ico_options_(opts.ico_cache_options),
+        ico_(input, co_, ico_options_) {}
 
   const ComposeFst<Arc> &GetFst() const { return ico_; }
 
-  constexpr StateId ChannelState(StateId) const { return 0; }
-
  private:
+  SimpleCascade(const SimpleCascade &) = delete;
+  SimpleCascade &operator=(const SimpleCascade &) = delete;
+
   const ComposeFstOptions<Arc> co_options_;
   const ComposeFst<Arc> co_;
   const ComposeFstOptions<Arc> ico_options_;
   const ComposeFst<Arc> ico_;
 };
 
-// Cascade object for a (possibly) multistate channel.
+// Cascade object that also keeps track of state IDs in the original model.
 template <class Arc, class M = Matcher<Fst<Arc>>,
           class Filter = SequenceComposeFilter<M>,
           class StateTable =
               GenericComposeStateTable<Arc, typename Filter::FilterState>>
-class MultiStateCascade {
+class ChannelStateCascade {
  public:
   using StateId = typename Arc::StateId;
 
-  MultiStateCascade(const Fst<Arc> &plaintext, const Fst<Arc> &ciphertext,
-                    const Fst<Arc> &channel,
-                    const CacheOptions &co_cache_options = CacheOptions(),
-                    const CacheOptions &ico_cache_options = CacheOptions())
-      : co_options_(co_cache_options, nullptr, nullptr, nullptr,
-                    new StateTable(channel, ciphertext)),
-        co_(channel, ciphertext, co_options_),
-        ico_options_(ico_cache_options, nullptr, nullptr, nullptr,
-                     new StateTable(plaintext, co_)),
-        ico_(plaintext, co_, ico_options_) {}
+  ChannelStateCascade(const Fst<Arc> &input, const Fst<Arc> &output,
+                      const Fst<Arc> &model,
+                      const CascadeOptions &opts = CascadeOptions())
+      : co_options_(opts.co_cache_options, nullptr, nullptr, nullptr,
+                    new StateTable(model, output)),
+        co_(model, output, co_options_),
+        ico_options_(opts.ico_cache_options, nullptr, nullptr, nullptr,
+                     new StateTable(input, co_)),
+        ico_(input, co_, ico_options_) {}
 
   const ComposeFst<Arc> &GetFst() const { return ico_; }
 
@@ -98,6 +106,9 @@ class MultiStateCascade {
   }
 
  private:
+  ChannelStateCascade(const ChannelStateCascade &) = delete;
+  ChannelStateCascade &operator=(const ChannelStateCascade &) = delete;
+
   StateId InputChannelState(StateId ico_state) const {
     return ico_options_.state_table->Tuple(ico_state).StateId2();
   }
@@ -108,7 +119,6 @@ class MultiStateCascade {
   const ComposeFst<Arc> ico_;
 };
 
-}  // namespace internal
 }  // namespace fst
 
 #endif  // BAUMWELCH_CASCADE_H_

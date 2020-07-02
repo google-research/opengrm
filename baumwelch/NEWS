@@ -1,7 +1,13 @@
 v. 0.3
 ======
 
-* Places a-star decoding method in separate header (0.3.1)
+* Adds minibatch support via `--batch_size` (0.3.3)
+* Uses OpenFst `Adder` class to implement `LogAdder` (0.3.3)
+* Configures expectation table via `--normalize_ilabel` (0.3.3)
+* Automatically configures decipherment mode using input type (0.3.3)
+* Separates out randomization and adds `baumwelchrandomize` (0.3.2)
+* Adds stepwise training, with learning rate controlled by `--lr` (0.3.2)
+* Places the A* decoding function in a separate header (0.3.1)
 * Fixes CPPFLAG handling (0.3.0)
 * Removes obsolete OILabel functor (0.3.0)
 

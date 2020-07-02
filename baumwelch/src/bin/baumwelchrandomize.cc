@@ -12,27 +12,15 @@
 //
 // Copyright 2017 and onwards Google, Inc.
 
-#include <baumwelch/getters.h>
+// Randomizes model weights.
 
-namespace fst {
-namespace script {
+#include <random>
 
-bool GetExpectationTableType(const std::string &str,
-                             ExpectationTableType *etype) {
-  if (str == "global") {
-    *etype = GLOBAL;
-  } else if (str == "state") {
-    *etype = STATE;
-  } else if (str == "ilabel") {
-    *etype = ILABEL;
-  } else if (str == "state_ilabel") {
-    *etype = STATE_ILABEL;
-  } else {
-    return false;
-  }
-  return true;
-}
+#include <fst/flags.h>
 
-}  // namespace script
-}  // namespace fst
+DEFINE_uint64(seed, std::random_device()(), "Random seed");
+
+int baumwelchrandomize_main(int argc, char **argv);
+
+int main(int argc, char **argv) { return baumwelchrandomize_main(argc, argv); }
 

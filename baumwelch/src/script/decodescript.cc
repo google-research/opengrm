@@ -19,34 +19,19 @@
 namespace fst {
 namespace script {
 
-// 1: Pair construction.
-void DecodeBaumWelch(FarReaderClass *plaintext, FarReaderClass *ciphertext,
-                     const FstClass &channel, FarWriterClass *hypotext) {
-  if (!internal::ArcTypesMatch(*plaintext, channel, "DecodeBaumWelch") ||
-      !internal::ArcTypesMatch(*ciphertext, channel, "DecodeBaumWelch") ||
-      !internal::ArcTypesMatch(*hypotext, channel, "DecodeBaumWelch")) {
+void DecodeBaumWelch(FarReaderClass *input, FarReaderClass *output,
+                     const FstClass &model, FarWriterClass *hypotext) {
+  if (!internal::ArcTypesMatch(*input, model, "DecodeBaumWelch") ||
+      !internal::ArcTypesMatch(*output, model, "DecodeBaumWelch") ||
+      !internal::ArcTypesMatch(*hypotext, model, "DecodeBaumWelch")) {
     return;
   }
-  DecodeBaumWelchArgs1 args(plaintext, ciphertext, channel, hypotext);
-  Apply<Operation<DecodeBaumWelchArgs1>>("DecodeBaumWelch", channel.ArcType(),
-                                         &args);
+  DecodeBaumWelchArgs args(input, output, model, hypotext);
+  Apply<Operation<DecodeBaumWelchArgs>>("DecodeBaumWelch", model.ArcType(),
+                                        &args);
 }
 
-// 2: Decipherment construction.
-void DecodeBaumWelch(const FstClass &plaintext, FarReaderClass *ciphertext,
-                     const FstClass &channel, FarWriterClass *hypotext) {
-  if (!internal::ArcTypesMatch(plaintext, channel, "DecodeBaumWelch") ||
-      !internal::ArcTypesMatch(*ciphertext, channel, "DecodeBaumWelch") ||
-      !internal::ArcTypesMatch(*hypotext, channel, "DecodeBaumWelch")) {
-    return;
-  }
-  DecodeBaumWelchArgs2 args(plaintext, ciphertext, channel, hypotext);
-  Apply<Operation<DecodeBaumWelchArgs2>>("DecodeBaumWelch", channel.ArcType(),
-                                         &args);
-}
-
-REGISTER_FST_OPERATION_3ARCS(DecodeBaumWelch, DecodeBaumWelchArgs1);
-REGISTER_FST_OPERATION_3ARCS(DecodeBaumWelch, DecodeBaumWelchArgs2);
+REGISTER_FST_OPERATION_3ARCS(DecodeBaumWelch, DecodeBaumWelchArgs);
 
 }  // namespace script
 }  // namespace fst

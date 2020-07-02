@@ -12,7 +12,7 @@
 //
 // Copyright 2017 and onwards Google, Inc.
 
-// Decodes Baum-Welch channel model.
+// Decodes Baum-Welch model.
 
 #include <cstring>
 #include <memory>
@@ -22,17 +22,16 @@
 
 #include <baumwelch/decodescript.h>
 
-DECLARE_bool(decipherment);
-
 int baumwelchdecode_main(int argc, char **argv) {
-  namespace s = fst::script;
+  using fst::FarType;
+  using fst::script::DecodeBaumWelch;
   using fst::script::FarReaderClass;
   using fst::script::FarWriterClass;
   using fst::script::FstClass;
 
-  std::string usage = "Decodes a WFST channel model\n\n  Usage: ";
+  std::string usage = "Decodes a WFST model\n\n  Usage: ";
   usage += argv[0];
-  usage += " input.f(ar|st) output.far channel.fst [out.far]\n";
+  usage += " input.f(ar|st) output.far model.fst [out.far]\n";
 
   std::set_new_handler(FailedNewHandler);
   SET_FLAGS(usage.c_str(), &argc, &argv, true);
@@ -44,41 +43,35 @@ int baumwelchdecode_main(int argc, char **argv) {
 
   const std::string input_name = strcmp(argv[1], "-") != 0 ? argv[1] : "";
   const std::string output_name = strcmp(argv[2], "-") != 0 ? argv[2] : "";
-  const std::string channel_name = strcmp(argv[3], "-") != 0 ? argv[3] : "";
+  const std::string model_name = strcmp(argv[3], "-") != 0 ? argv[3] : "";
   const std::string out_name = argc > 4 ? argv[4] : "";
 
-  if (input_name.empty() && (output_name.empty() || channel_name.empty())) {
+  if (input_name.empty() && (output_name.empty() || model_name.empty())) {
     LOG(ERROR) << argv[0] << ": Can't take more than one input from standard "
                << "input";
     return 1;
   }
-  if (output_name.empty() && channel_name.empty()) {
+  if (output_name.empty() && model_name.empty()) {
     LOG(ERROR) << argv[0] << ": Can't take more than one input from standard "
                << "input";
     return 1;
   }
+
+  const std::unique_ptr<FarReaderClass> input(FarReaderClass::Open(input_name));
+  if (!input) return 1;
 
   const std::unique_ptr<FarReaderClass> output(
       FarReaderClass::Open(output_name));
   if (!output) return 1;
 
-  const std::unique_ptr<const FstClass> channel(FstClass::Read(channel_name));
-  if (!channel) return 1;
+  const std::unique_ptr<const FstClass> model(FstClass::Read(model_name));
+  if (!model) return 1;
 
   const std::unique_ptr<FarWriterClass> out(
       FarWriterClass::Create(out_name, output->ArcType()));
   if (!out) return 1;
 
-  if (FLAGS_decipherment) {
-    const std::unique_ptr<const FstClass> input(FstClass::Read(input_name));
-    if (!input) return 1;
-    s::DecodeBaumWelch(*input, output.get(), *channel, out.get());
-  } else {
-    const std::unique_ptr<FarReaderClass> input(
-        FarReaderClass::Open(input_name));
-    if (!input) return 1;
-    s::DecodeBaumWelch(input.get(), output.get(), *channel, out.get());
-  }
+  DecodeBaumWelch(input.get(), output.get(), *model, out.get());
 
   return out->Error();
 }

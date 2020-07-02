@@ -10,10 +10,10 @@ This library is primarily developed by [Kyle Gorman](mailto:kbg@google.com).
 
 This library depends on:
 
-* A standards-compliant C++ 11 compiler (GCC \>= 4.8 or Clang \>= 700)
-* The most recent version of [OpenFst](http://openfst.org) (at the time of
-  writing, 1.7.4) built with the `far` and `script` extensions (i.e., built
-  with `./configure --enable-grm` or `./configure --enable-far`) and headers
+*   A standards-compliant C++ 11 compiler (GCC \>= 4.8 or Clang \>= 700)
+*   The most recent version of [OpenFst](http://openfst.org) built with the
+    `far` and `script` extensions (i.e., built with `./configure --enable-grm`
+    or `./configure --enable-far`) and headers
 
 # Installation instructions
 
@@ -22,20 +22,21 @@ This library uses GNU autotools so one can simply use the standard
 
 # Binaries
 
-In addition to library code, this package provides two binaries:
+In addition to library code, this package provides three binaries:
 
-* `baumwelchtrain` trains an FST channel model given an FST language model
-  and a FAR of ciphertext strings. The exact count-collection logic is
-  determined by the semiring of the inputs: in the log semiring (or other
-  non-idempotent semirings), it performs true Baum-Welch training, and in the
-  tropical semiring (or other idempotent semirings) it performs Viterbi
-  training, an approximation.
-* `baumwelchdecode` decodes a FAR of ciphertext given an FST language model,
-  a trained FST channel model. Once again, the exact decoding method is
-  determined by the semiring of the inputs: in the log semiring (or other 
-  non-path semirings) it performs forward-backward decoding using an A-star
-  search strategy, and in the tropical semiring (or other path semirings) it
-  performs Viterbi decoding.
+*   `baumwelchrandomize` randomizes the weights of an FST channel model.
+*   `baumwelchtrain` trains an FST channel model given an FST language model and
+    a FAR of ciphertext strings. The exact count-collection logic is determined
+    by the semiring of the inputs: in the log semiring (or other non-idempotent
+    semirings), it performs true Baum-Welch training, and in the tropical
+    semiring (or other idempotent semirings) it performs Viterbi training, an
+    approximation.
+*   `baumwelchdecode` decodes a FAR of ciphertext given an FST language model, a
+    trained FST channel model. Once again, the exact decoding method is
+    determined by the semiring of the inputs: in the log semiring (or other
+    non-path semirings) it performs forward-backward decoding using an A-star
+    search strategy, and in the tropical semiring (or other path semirings) it
+    performs Viterbi decoding.
 
 # Documentation
 

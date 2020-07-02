@@ -12,27 +12,19 @@
 //
 // Copyright 2017 and onwards Google, Inc.
 
-// Trains Baum-Welch channel model.
+// Trains Baum-Welch model.
 
-#include <unistd.h>
+#include <random>
 
 #include <fst/flags.h>
-#include <baumwelch/baumwelch.h>
+#include <baumwelch/train.h>
 
-DEFINE_bool(decipherment, false,
-            "Use decipherment construction; i.e., input is a WFSA rather "
-            "than a FAR");
-DEFINE_string(expectation_table, "state_ilabel",
-              "Expectation table, one of: \"global\", \"state\", \"ilabel\", "
-              "\"state_ilabel\"");
-DEFINE_int32(max_iters, fst::kMaxIters,
+DEFINE_int32(batch_size, 0, "Batch size; 0 indicates full-batch training");
+DEFINE_double(delta, ::fst::kDelta, "Comparison/quantization delta");
+DEFINE_double(lr, ::fst::kLr, "Learning rate");
+DEFINE_int32(max_iters, ::fst::kMaxIters,
              "Maximum number of iterations to perform");
-DEFINE_bool(flat_start, true, "Perform one round of flat start training?");
-DEFINE_int32(random_starts, fst::kRandomStarts,
-             "Number of random starts to perform");
-DEFINE_bool(remove_zero_arcs, true, "Should zero arcs be removed?");
-DEFINE_double(delta, fst::kDelta, "Comparison/quantization delta");
-DEFINE_int32(seed, time(nullptr) + getpid(), "Random seed");
+DEFINE_bool(normalize_ilabel, true, "Should ilabel be used in normalization?");
 
 int baumwelchtrain_main(int argc, char **argv);
 

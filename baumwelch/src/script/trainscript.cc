@@ -15,44 +15,25 @@
 #include <baumwelch/trainscript.h>
 
 #include <fst/script/script-impl.h>
-#include <baumwelch/getters.h>
 
 namespace fst {
 namespace script {
 
-bool TrainBaumWelch(FarReaderClass *input, FarReaderClass *output,
-                    MutableFstClass *channel, ExpectationTableType etype,
-                    const BaumWelchTrainOptions &opts) {
-  if (!internal::ArcTypesMatch(*input, *channel, "TrainBaumWelch") ||
-      !internal::ArcTypesMatch(*output, *channel, "TrainBaumWelch")) {
-    channel->SetProperties(kError, kError);
-    return false;
+// 1: Pair construction.
+void TrainBaumWelch(FarReaderClass *input, FarReaderClass *output,
+                    MutableFstClass *model, bool normalize_ilabel,
+                    const TrainBaumWelchOptions &opts) {
+  if (!internal::ArcTypesMatch(*input, *model, "TrainBaumWelch") ||
+      !internal::ArcTypesMatch(*output, *model, "TrainBaumWelch")) {
+    model->SetProperties(kError, kError);
+    return;
   }
-  TrainBaumWelchInnerArgs1 iargs(input, output, channel, etype, opts);
-  TrainBaumWelchArgs1 args(iargs);
-  Apply<Operation<TrainBaumWelchArgs1>>("TrainBaumWelch", channel->ArcType(),
-                                        &args);
-  return args.retval;
+  TrainBaumWelchArgs args(input, output, model, normalize_ilabel, opts);
+  Apply<Operation<TrainBaumWelchArgs>>("TrainBaumWelch", model->ArcType(),
+                                       &args);
 }
 
-// 2: Decipherment construction.
-bool TrainBaumWelch(const FstClass &input, FarReaderClass *output,
-                    MutableFstClass *channel, ExpectationTableType etype,
-                    const BaumWelchTrainOptions &opts) {
-  if (!internal::ArcTypesMatch(input, *channel, "TrainBaumWelch") ||
-      !internal::ArcTypesMatch(*output, *channel, "TrainBaumWelch")) {
-    channel->SetProperties(kError, kError);
-    return false;
-  }
-  TrainBaumWelchInnerArgs2 iargs(input, output, channel, etype, opts);
-  TrainBaumWelchArgs2 args(iargs);
-  Apply<Operation<TrainBaumWelchArgs2>>("TrainBaumWelch", channel->ArcType(),
-                                        &args);
-  return args.retval;
-}
-
-REGISTER_FST_OPERATION_3ARCS(TrainBaumWelch, TrainBaumWelchArgs1);
-REGISTER_FST_OPERATION_3ARCS(TrainBaumWelch, TrainBaumWelchArgs2);
+REGISTER_FST_OPERATION_3ARCS(TrainBaumWelch, TrainBaumWelchArgs);
 
 }  // namespace script
 }  // namespace fst

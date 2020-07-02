@@ -12,21 +12,30 @@
 //
 // Copyright 2017 and onwards Google, Inc.
 
-#ifndef BAUMWELCH_GETTERS_H_
-#define BAUMWELCH_GETTERS_H_
+#ifndef BAUMWELCH_RANDOMIZESCRIPT_H_
+#define BAUMWELCH_RANDOMIZESCRIPT_H_
 
-#include <string>
+#include <random>
 
-#include <baumwelch/baumwelch.h>
+#include <fst/script/fst-class.h>
+#include <baumwelch/randomize.h>
 
 namespace fst {
 namespace script {
 
-bool GetExpectationTableType(const std::string &str,
-                             ExpectationTableType *etype);
+using RandomizeBaumWelchArgs = std::tuple<MutableFstClass *, uint64>;
+
+template <class Arc>
+void RandomizeBaumWelch(RandomizeBaumWelchArgs *args) {
+  MutableFst<Arc> *model = std::get<0>(*args)->GetMutableFst<Arc>();
+  RandomizeBaumWelch(model, std::get<1>(*args));
+}
+
+void RandomizeBaumWelch(MutableFstClass *fst,
+                        uint64 seed = std::random_device()());
 
 }  // namespace script
 }  // namespace fst
 
-#endif  // BAUMWELCH_GETTERS_H_
+#endif  // BAUMWELCH_RANDOMIZESCRIPT_H_
 

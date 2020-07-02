@@ -12,9 +12,21 @@
 //
 // Copyright 2017 and onwards Google, Inc.
 
-// Decodes Baum-Welch model.
+#include <baumwelch/randomizescript.h>
 
-int baumwelchdecode_main(int argc, char **argv);
+#include <fst/script/script-impl.h>
 
-int main(int argc, char **argv) { return baumwelchdecode_main(argc, argv); }
+namespace fst {
+namespace script {
+
+void RandomizeBaumWelch(MutableFstClass *fst, uint64 seed) {
+  RandomizeBaumWelchArgs args(fst, seed);
+  Apply<Operation<RandomizeBaumWelchArgs>>("RandomizeBaumWelch", fst->ArcType(),
+                                           &args);
+}
+
+REGISTER_FST_OPERATION_3ARCS(RandomizeBaumWelch, RandomizeBaumWelchArgs);
+
+}  // namespace script
+}  // namespace fst
 
