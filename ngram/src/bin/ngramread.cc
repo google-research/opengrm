@@ -21,7 +21,7 @@ DEFINE_bool(renormalize_arpa, false,
             "backoff weights.  Only used if --ARPA=true.");
 DEFINE_string(symbols, "", "Label symbol table");
 DEFINE_string(epsilon_symbol, "<epsilon>", "Label for epsilon transitions");
-DEFINE_string(OOV_symbol, "<unk>", "Class label for OOV symbols");
+DEFINE_string(OOV_symbol, "<UNK>", "Class label for OOV symbols");
 DECLARE_string(start_symbol);  // defined in ngram-output.cc
 DECLARE_string(end_symbol);    // defined in ngram-output.cc
 

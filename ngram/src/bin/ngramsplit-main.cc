@@ -34,9 +34,9 @@ DECLARE_string(far_type);
 namespace {
 
 template <class Arc>
-bool Split(fst::VectorFst<Arc> *fst,
-           const std::vector<std::string> &context_patterns,
-           const std::string &out_name_prefix) {
+bool SplitToFsts(fst::VectorFst<Arc> *fst,
+                 const std::vector<std::string> &context_patterns,
+                 const std::string &out_name_prefix) {
   ngram::NGramSplit<Arc> split(*fst, context_patterns, FLAGS_backoff_label,
                                FLAGS_norm_eps);
   for (int i = 0; !split.Done(); ++i) {
@@ -60,7 +60,7 @@ void GetSortedPatterns(const std::vector<std::string> &context_patterns,
                                     std::to_string(i));
   }
   std::sort(sorted_full_patterns->begin(), sorted_full_patterns->end());
-  for (auto full_pattern : *sorted_full_patterns) {
+  for (const auto &full_pattern : *sorted_full_patterns) {
     std::vector<std::string> split_pattern =
         ::fst::StringSplit(full_pattern, '/');
     CHECK_EQ(split_pattern.size(), 2);
@@ -69,13 +69,10 @@ void GetSortedPatterns(const std::vector<std::string> &context_patterns,
 }
 
 template <class Arc>
-bool Split(fst::VectorFst<Arc> *fst,
-           const std::vector<std::string> &context_patterns,
-           const std::string &out_name_prefix,
-           const std::string &input_far_type) {
-  if (input_far_type.empty()) {
-    return Split(fst, context_patterns, out_name_prefix);
-  }
+bool SplitToFar(fst::VectorFst<Arc> *fst,
+                const std::vector<std::string> &context_patterns,
+                const std::string &out_name_prefix,
+                const fst::FarType input_far_type) {
   std::vector<std::string> sorted_full_patterns;
   std::vector<std::string> sorted_context_patterns;
   GetSortedPatterns(context_patterns, &sorted_full_patterns,
@@ -83,9 +80,8 @@ bool Split(fst::VectorFst<Arc> *fst,
   ngram::NGramSplit<Arc> split(*fst, sorted_context_patterns,
                                FLAGS_backoff_label, FLAGS_norm_eps);
   std::unique_ptr<fst::FarWriter<Arc>> far_writer(
-      fst::FarWriter<Arc>::Create(
-          out_name_prefix + "split_fsts.far",
-          fst::script::GetFarType(input_far_type)));
+      fst::FarWriter<Arc>::Create(out_name_prefix + "split_fsts.far",
+                                      input_far_type));
   if (!far_writer) {
     NGRAMERROR() << "Can't open " << out_name_prefix
                  << "split_fsts.far for writing";
@@ -96,6 +92,35 @@ bool Split(fst::VectorFst<Arc> *fst,
     if (!split.NextNGramModel(&ofst)) return true;
     CHECK_LT(i, context_patterns.size());
     far_writer->Add(sorted_full_patterns[i], ofst);
+  }
+  return false;
+}
+
+template <class Arc>
+bool CountOrHistogramSplit(const std::string &in_name,
+                           const std::vector<std::string> &context_patterns,
+                           const std::string &out_name_prefix,
+                           const std::string &input_far_type_str) {
+  std::unique_ptr<fst::VectorFst<Arc>> fst(
+      fst::VectorFst<Arc>::Read(in_name));
+  if (!fst || (FLAGS_complete && !ngram::NGramComplete(fst.get()))) {
+    return true;
+  }
+  if (input_far_type_str.empty()) {
+    // When an empty string far_type is provided, this is not a FarType at all,
+    // and it means there is a number of created output FSTs.
+    return SplitToFsts(fst.get(), context_patterns, out_name_prefix);
+  } else {
+    // Otherwise, we expect the user plans to provide a well-formed FarType
+    // string representation.
+    fst::FarType far_type;
+    if (!fst::script::GetFarType(input_far_type_str, &far_type)) {
+      NGRAMERROR() << "Unknown or unsupported FAR type: " << input_far_type_str;
+      return true;
+    }
+    if (!SplitToFar(fst.get(), context_patterns, out_name_prefix, far_type)) {
+      return true;
+    }
   }
   return false;
 }
@@ -129,21 +154,11 @@ int ngramsplit_main(int argc, char **argv) {
   }
 
   if (FLAGS_method == "count_split") {
-    std::unique_ptr<fst::StdVectorFst> fst(
-        fst::StdVectorFst::Read(in_name));
-    if (!fst || (FLAGS_complete && !ngram::NGramComplete(fst.get()))) {
-      return 1;
-    }
-    return Split(fst.get(), context_patterns, out_name_prefix,
-                 FLAGS_far_type);
+    return CountOrHistogramSplit<fst::StdArc>(
+        in_name, context_patterns, out_name_prefix, FLAGS_far_type);
   } else if (FLAGS_method == "histogram_split") {
-    std::unique_ptr<fst::VectorFst<ngram::HistogramArc>> fst(
-        fst::VectorFst<ngram::HistogramArc>::Read(in_name));
-    if (!fst || (FLAGS_complete && !ngram::NGramComplete(fst.get()))) {
-      return 1;
-    }
-    return Split(fst.get(), context_patterns, out_name_prefix,
-                 FLAGS_far_type);
+    return CountOrHistogramSplit<ngram::HistogramArc>(
+        in_name, context_patterns, out_name_prefix, FLAGS_far_type);
   } else {
     LOG(ERROR) << argv[0] << ": bad split method: " << FLAGS_method;
     return 1;

@@ -13,8 +13,10 @@
 //
 // Copyright 2005-2016 Brian Roark and Google, Inc.
 #include <fst/flags.h>
+#include <ngram/ngram-model.h>
 
 DEFINE_bool(check_consistency, true, "Check model consistency");
+DEFINE_double(norm_eps, ngram::kNormEps, "Normalization check epsilon");
 
 int ngraminfo_main(int argc, char** argv);
 int main(int argc, char** argv) {

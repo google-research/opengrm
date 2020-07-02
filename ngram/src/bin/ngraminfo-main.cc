@@ -26,6 +26,7 @@
 #include <ngram/util.h>
 
 DECLARE_bool(check_consistency);
+DECLARE_double(norm_eps);
 
 namespace ngram {
 
@@ -112,7 +113,7 @@ int ngraminfo_main(int argc, char **argv) {
     }
   }
   std::ostream &ostrm = ofstrm.is_open() ? ofstrm : std::cout;
-  ngram::NGramModel<fst::StdArc> ngram(*fst, 0, ngram::kNormEps,
+  ngram::NGramModel<fst::StdArc> ngram(*fst, 0, FLAGS_norm_eps,
                                            FLAGS_check_consistency);
   if (FLAGS_check_consistency && !ngram.CheckTopology()) {
     NGRAMERROR() << "Bad ngram model topology";

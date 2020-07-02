@@ -124,7 +124,7 @@ int ngramrandgen_main(int argc, char **argv) {
 
   std::unique_ptr<fst::FarWriter<fst::StdArc>> far_writer(
       fst::FarWriter<fst::StdArc>::Create(
-          ofile, fst::FAR_STLIST));  // type change for fst
+          ofile, fst::FarType::STLIST));  // type change for fst
   if (!far_writer) {
     LOG(ERROR) << "Can't open " << (ofile.empty() ? "stdout" : ofile)
                << " for writing";

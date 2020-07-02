@@ -19,6 +19,7 @@
 
 #include <fst/fst.h>
 #include <fst/map.h>
+#include <fst/properties.h>
 #include <ngram/hist-arc.h>
 
 namespace fst {
@@ -46,7 +47,9 @@ struct ToStdArcMapper {
     return MAP_COPY_SYMBOLS;
   }
 
-  uint64 Properties(uint64 props) const { return props; }
+  uint64 Properties(uint64 props) const {
+    return props & kWeightInvariantProperties;
+  }
 };
 
 // Mapper from Arc to HistogramArc.
@@ -95,7 +98,9 @@ class ToHistogramMapper {
     return MAP_COPY_SYMBOLS;
   }
 
-  uint64 Properties(uint64 props) const { return props; }
+  uint64 Properties(uint64 props) const {
+    return props & kWeightInvariantProperties;
+  }
 };
 
 }  // namespace fst

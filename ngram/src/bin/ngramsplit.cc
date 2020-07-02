@@ -22,6 +22,10 @@ DEFINE_string(method, "count_split",
               "\"histogram_split\"");
 DEFINE_double(norm_eps, ngram::kNormEps, "Normalization check epsilon");
 DEFINE_bool(complete, false, "Complete partial models");
+// TODO(wolfsonkin): Change the default `far_type` from this rather strange
+// empty string implying to create a bunch of FSTs to the literal `"default"`.
+// Note that the disttests depend on this default implicitly, so they will have
+// to be provided `--far_type=""`.
 DEFINE_string(far_type, "",
               "Type of far to compile (not FAR if empty):"
               " one of: \"default\", "

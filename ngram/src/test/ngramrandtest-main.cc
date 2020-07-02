@@ -145,7 +145,7 @@ int CountFromRandGen(fst::StdMutableFst *genmodel,
       add_to_idx = first ? 0 : num_strings;
   double shard_prob = 5 * (rand() / (RAND_MAX + 1.0));  // NOLINT
   shard_prob /= num_strings;
-  fst::FarType far_type = fst::FAR_STLIST;
+  fst::FarType far_type = fst::FarType::STLIST;
   if (order < 2) order = 2;  // minimum bigram
   if (!first) varstrm << "ORDER=" << order << std::endl;
   std::unique_ptr<fst::FarWriter<fst::StdArc>> far_writer1;
@@ -227,7 +227,7 @@ int ngramrandtest_main(int argc, char **argv) {
     return 1;
   }
   std::ostream &cntxstrm = cntxfstrm;
-  fst::FarType far_type = fst::FAR_STLIST;
+  fst::FarType far_type = fst::FarType::STLIST;
   std::unique_ptr<fst::FarWriter<fst::StdArc>> far_writer(
       fst::FarWriter<fst::StdArc>::Create(directory + "tocount.far",
                                                   far_type));

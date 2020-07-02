@@ -60,7 +60,7 @@ class NGramOutput : public NGramMutableModel<StdArc> {
     }
   }
 
-  enum ShowBackoff {
+  enum class ShowBackoff {
     EPSILON,  // Show backoff Weights as explicit epsilon transitions.
     INLINE,  // Show backoff Weights in a third column when present.
     NONE,

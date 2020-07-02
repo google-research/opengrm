@@ -40,7 +40,7 @@ class NGramCountOfCounts {
   typedef typename Arc::Label Label;
   typedef typename Arc::Weight Weight;
 
-  static const int kMaxBins = 32;  // maximum # of bins allowed
+  static constexpr int kMaxBins = 32;  // maximum # of bins allowed
 
   explicit NGramCountOfCounts(int bins = -1)
       : bins_(bins <= 0 || bins > kMaxBins ? kMaxBins : bins) {

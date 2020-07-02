@@ -39,16 +39,16 @@ using fst::kNoStateId;
 
 using fst::Fst;
 using fst::StdFst;
-using fst::VectorFst;
 using fst::StdMutableFst;
+using fst::VectorFst;
 
-using fst::StdArc;
-using fst::LogArc;
+using fst::ArcIterator;
 using fst::HistogramArc;
-using fst::Matcher;
+using fst::LogArc;
 using fst::MATCH_INPUT;
 using fst::MATCH_NONE;
-using fst::ArcIterator;
+using fst::Matcher;
+using fst::StdArc;
 
 using fst::StdILabelCompare;
 
@@ -161,8 +161,7 @@ class NGramModel {
         continue;
       }
       matcher.SetState(state);
-      if (!matcher.Find(*it))
-        break;
+      if (!matcher.Find(*it)) break;
       const Arc &arc = matcher.Value();
       state = arc.nextstate;
     }
@@ -230,11 +229,15 @@ class NGramModel {
     return true;
   }
 
-  // Iterates through all states and validate that they are fully normalized
+  // Iterates through all states and validate that they are fully normalized.
   bool CheckNormalization() const {
     if (Error()) return false;
-    for (StateId st = 0; st < nstates_; ++st)
-      if (!CheckNormalizationState(st)) return false;
+    for (StateId st = 0; st < nstates_; ++st) {
+      if (!CheckNormalizationState(st)) {
+        VLOG(1) << "Failed normalization check at " << st;
+        return false;
+      }
+    }
     return true;
   }
 
@@ -374,7 +377,7 @@ class NGramModel {
     for (int n = 0; n < ngram.size(); ++n) {
       Label label = ngram[n];
       if (label == 0) {
-        if (n == 0) continue;           // super-initial word
+        if (n == 0) continue;  // super-initial word
         if (n != ngram.size() - 1) {
           NGRAMERROR() << "end-of-string is not the super-final word";
           return Weight::Zero();
@@ -620,8 +623,8 @@ class NGramModel {
                         double *low_neglog_sum, bool infinite_backoff = false,
                         bool unigram = false) const {
     StateId bo = GetBackoff(st, 0);
-    if (bo < 0 && !unigram) return false;   // only calc for states that backoff
-    *low_neglog_sum = *hi_neglog_sum =      // final costs initialize the sum
+    if (bo < 0 && !unigram) return false;  // only calc for states that backoff
+    *low_neglog_sum = *hi_neglog_sum =     // final costs initialize the sum
         ScalarValue(fst_.Final(st));
     // if st is final
     if (bo >= 0 && *hi_neglog_sum != ScalarValue(Arc::Weight::Zero()))
@@ -1071,21 +1074,20 @@ class NGramModel {
       }
       VLOG(2) << "NGramModel::StationaryStateProbs: state probs changed: "
               << changed;
-      if (++iters > maxiters)
-        return false;
+      if (++iters > maxiters) return false;
     } while (changed > 0);
     return true;
   }
 
   const Fst<Arc> &fst_;
-  StateId unigram_;           // unigram state
-  Label backoff_label_;       // label of backoff transitions
-  StateId nstates_;           // number of states in LM
-  int hi_order_;              // highest order in the model
-  double norm_eps_;           // epsilon diff allowed to ensure normalized
+  StateId unigram_;                // unigram state
+  Label backoff_label_;            // label of backoff transitions
+  StateId nstates_;                // number of states in LM
+  int hi_order_;                   // highest order in the model
+  double norm_eps_;                // epsilon diff allowed to ensure normalized
   std::vector<int> state_orders_;  // order of each state
-  bool have_state_ngrams_;    // compute and store state n-gram info
-  mutable size_t ascending_ngrams_;     // # of n-gram arcs that increase order
+  bool have_state_ngrams_;         // compute and store state n-gram info
+  mutable size_t ascending_ngrams_;  // # of n-gram arcs that increase order
   std::vector<std::vector<Label>>
       state_ngrams_;  // n-gram always read to reach state
   const std::vector<Label> empty_label_vector_;

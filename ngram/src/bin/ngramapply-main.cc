@@ -89,7 +89,7 @@ int ngramapply_main(int argc, char** argv) {
     NGRAMERROR() << "Can't open " << in2_name << " for reading";
     return 1;
   }
-  fst::FarType far_type = fst::FAR_STLIST;
+  fst::FarType far_type = fst::FarType::STLIST;
   std::string out_name = (argc > 3 && strcmp(argv[3], "-") != 0) ? argv[3] : "";
   std::unique_ptr<fst::FarWriter<fst::StdArc>> far_writer(
       fst::FarWriter<fst::StdArc>::Create(out_name, far_type));

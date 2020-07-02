@@ -29,7 +29,7 @@ void GetNGramListToPrune(
   if (ngrams_to_prune.empty()) {
     LOG(WARNING) << "vector of ngram strings empty, no list compiled.";
   }
-  for (auto ngram_string : ngrams_to_prune) {
+  for (const auto &ngram_string : ngrams_to_prune) {
     if (!ngram_string.empty()) {
       std::vector<std::string> ngram_words;
       ReadTokenString(ngram_string, &ngram_words);

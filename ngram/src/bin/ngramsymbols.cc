@@ -15,7 +15,7 @@
 #include <fst/flags.h>
 
 DEFINE_string(epsilon_symbol, "<epsilon>", "Label for epsilon");
-DEFINE_string(OOV_symbol, "<unk>", "Class label for OOV symbols");
+DEFINE_string(OOV_symbol, "<UNK>", "Class label for OOV symbols");
 
 int ngramsymbols_main(int argc, char** argv);
 int main(int argc, char** argv) {
