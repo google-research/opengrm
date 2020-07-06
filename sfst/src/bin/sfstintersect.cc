@@ -76,8 +76,8 @@ int main(int argc, char **argv) {
   }
 
   f::StdVectorFst ofst;
-  if (!sfst::PhiIntersect(*ifst1, *ifst2, &ofst, FLAGS_phi_label,
-                          FLAGS_trim, trim_type))
+  if (!sfst::Intersect(*ifst1, *ifst2, &ofst, FLAGS_phi_label,
+                       FLAGS_trim, trim_type))
     return 1;
 
   if (!ofst.Write(out_name))

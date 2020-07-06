@@ -47,6 +47,11 @@ inline bool Less(fst::TropicalWeight weight1,
   return weight1.Value() > weight2.Value();
 }
 
+// Order w.r.t. probability: weight
+inline bool Less(fst::Real64Weight weight1, fst::Real64Weight weight2) {
+  return weight1.Value() < weight2.Value();
+}
+
 inline bool Less(fst::SignedLog64Weight weight1,
                  fst::SignedLog64Weight weight2) {
   bool s1 = weight1.Value1().Value() > 0.0;
@@ -68,6 +73,11 @@ bool LessOrEqual(Weight w1, Weight w2) {
   return Less(w1, w2) || w1 == w2;
 }
 
+inline bool IsNegative(fst::SignedLog64Weight w) {
+  using SLWeight = fst::SignedLog64Weight;
+  return Less(w, SLWeight::Zero());
+}
+
 inline bool ApproxZero(
     fst::Log64Weight weight,
     fst::Log64Weight approx_zero = kApproxZeroWeight) {
@@ -84,6 +94,29 @@ inline bool ApproxZero(
     return LessOrEqual(weight.Value2(), neg_approx_zero);
   }
 }
+
+
+// Compares w.r.t. exponentiated values ('probabilities' vs
+// '- log probabilities'). Appropriate from SignedLog(64) weights.
+template <class Weight>
+class SignedLogWeightApproxEqual {
+ public:
+  explicit SignedLogWeightApproxEqual(float delta) : delta_(delta) {}
+
+  bool operator()(const Weight &w1, const Weight &w2) const {
+    double sgn1 = w1.Value1().Value();
+    double sgn2 = w2.Value1().Value();
+    double val1 = w1.Value2().Value();
+    double val2 = w2.Value2().Value();
+    double exp1 = sgn1 * std::exp(-val1);
+    double exp2 = sgn2 * std::exp(-val2);
+
+    return std::abs(exp1 - exp2) < delta_;
+  }
+
+ private:
+  const float delta_;
+};
 
 // Assumes Less(weight2, weight1)
 inline fst::Log64Weight Minus(fst::Log64Weight weight1,

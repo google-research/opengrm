@@ -15,7 +15,7 @@
 // rmphi.h
 //
 // Replaces failure with epsilon transitions, correcting for
-// over-acceptance by adding negatively-weighted transtions or by
+// over-acceptance by adding negatively-weighted transitions or by
 // subtracting weights from existing transitions and final weights
 
 #ifndef SFST_RMPHI_H_
@@ -194,22 +194,24 @@ void RmPhiMapper<Arc>::SetState(StateId s) {
           Arc failarc = matcher_.Value();
           Label faillabel = match_input_ ? failarc.ilabel : failarc.olabel;
           Weight corr_weight = f::Times(fail_weight, failarc.weight);
+          Weight comb_weight = Minus(arc.weight, corr_weight);
           if (faillabel == f::kNoLabel) {
             // implicit self-loop
             continue;
           } else if (failarc.nextstate == arc.nextstate &&
                      failarc.ilabel == arc.ilabel &&
                      failarc.olabel == arc.olabel &&
-                     Less(corr_weight, arc.weight)) {
+                     !IsNegative(comb_weight) &&
+                     comb_weight != Weight::Zero()) {
             // Subtracts corrective weight from arc.
             // Not applied if result is a negative weight
             // since these arcs need to be treated specially
             // by the shortest distance algorithm
-            arc.weight = f::Minus(arc.weight, corr_weight);
+            arc.weight = comb_weight;
             matched = true;
-          } else {
+            } else {
             // Adds negatively-weighted correcting arc
-            failarc.weight = f::Minus(Weight::Zero(), corr_weight);
+            failarc.weight = Minus(Weight::Zero(), corr_weight);
             arcs_.push_back(failarc);
             matched = true;
           }
@@ -221,39 +223,38 @@ void RmPhiMapper<Arc>::SetState(StateId s) {
   }
 }
 
-}  // namespace internal
-
-
-// Converts a canonical SFST possibly with phi labels to an equivalent
-// FST in the signed log semiring where the failure transitions are
-// now epsilon transitions. Assumes input has no (non-phi) epsilons
-// (or treats such epsilons as if they were regular symbols that are
-// uniquely labeled wrt equivalence). The rewrite_mode determines if
-// both input and output failure labels are replaced.
-template <class Arc>
-void SLRmPhi(const fst::Fst<Arc>& ifst,
-             fst::MutableFst<fst::SignedLog64Arc> *ofst,
-             typename Arc::Label phi_label = fst::kNoLabel,
-             fst::MatcherRewriteMode rewrite_mode =
-             fst::MATCHER_REWRITE_AUTO) {
+// Converts a canonical SFST possibly with phi labels to an equivalent FST
+// where the failure transitions are now epsilon transitions. Assumes input has
+// no (non-phi) epsilons (or treats such epsilons as if they were regular
+// symbols that are uniquely labeled wrt equivalence). The rewrite_mode
+// determines if both input and output failure labels are replaced. The
+// 'OArc' weight (e.g. for SignedLog64Arc) must have a Minus() operation
+// (forming a ring) and a WeightConvert method from 'IArc'.
+template <class IArc, class OArc,
+          class WC = fst::WeightConvert<typename IArc::Weight,
+                                           typename OArc::Weight>>
+void RmPhi(const fst::Fst<IArc>& ifst,
+           fst::MutableFst<OArc> *ofst,
+           typename IArc::Label phi_label = fst::kNoLabel,
+           fst::MatcherRewriteMode rewrite_mode =
+           fst::MATCHER_REWRITE_AUTO,
+           const WC &weight_convert = WC()) {
   namespace f = fst;
-  using SLArc = f::SignedLog64Arc;
-  using StateId = typename SLArc::StateId;
-  using Label = typename SLArc::Label;
-  using Weight = typename SLArc::Weight;
-  using WC = f::WeightConvertMapper<Arc, SLArc>;
+  using WCM = f::WeightConvertMapper<IArc, OArc, WC>;
 
-  WC to_sl_mapper;
+  WCM to_signed_mapper(weight_convert);
   if (phi_label != f::kNoLabel) {
-    f::ArcMapFst<Arc, SLArc, WC> tfst(ifst, to_sl_mapper);
-    internal::RmPhiMapper<SLArc> rm_phi_mapper(
+    auto tfst = MakeArcMapFst(ifst, to_signed_mapper);
+    RmPhiMapper<OArc> rm_phi_mapper(
         tfst, phi_label, true, rewrite_mode);
     f::StateMap(tfst, ofst, rm_phi_mapper);
-    f::ArcSort(ofst, f::ILabelCompare<SLArc>());
+    f::ArcSort(ofst, f::ILabelCompare<OArc>());
   } else {
-    f::ArcMap(ifst, ofst, to_sl_mapper);
+    f::ArcMap(ifst, ofst, to_signed_mapper);
   }
 }
+
+}  // namespace internal
 
 }  // namespace sfst
 

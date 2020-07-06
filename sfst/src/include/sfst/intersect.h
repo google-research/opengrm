@@ -33,12 +33,12 @@ namespace sfst {
 // Intersects two canonical stochastic FSAs.
 // The second FSA must be input-epsilon free (when phi_label != 0).
 template <class Arc>
-bool PhiIntersect(const fst::Fst<Arc> &ifst1,
-                  const fst::Fst<Arc> &ifst2,
-                  fst::MutableFst<Arc> *ofst,
-                  typename Arc::Label phi_label = fst::kNoLabel,
-                  bool trim = true,
-                  TrimType trim_type = TRIM_NEEDED_FINAL) {
+bool Intersect(const fst::Fst<Arc> &ifst1,
+               const fst::Fst<Arc> &ifst2,
+               fst::MutableFst<Arc> *ofst,
+               typename Arc::Label phi_label = fst::kNoLabel,
+               bool trim = true,
+               TrimType trim_type = TRIM_NEEDED_FINAL) {
   namespace f = fst;
   using PM = Phi2Matcher<f::Matcher<f::Fst<Arc>>>;
   using PF = Phi2Filter<PM>;

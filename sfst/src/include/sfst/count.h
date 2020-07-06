@@ -281,7 +281,7 @@ void Counter<Arc>::BuildComp(const fst::Fst<Arc> &ifst,
   // Moves to the signed-log converting phi-labels to epsilons.
   const Label rm_phi_label =
       have_iphi_ && have_ophi_ ? phi_label_ : f::kNoLabel;
-  SLRmPhi(cfst, ofst, rm_phi_label, fst::MATCHER_REWRITE_NEVER);
+  internal::RmPhi(cfst, ofst, rm_phi_label, fst::MATCHER_REWRITE_NEVER);
 }
 
 template <class Arc>
@@ -289,10 +289,13 @@ bool Counter<Arc>::ComputeDistances(bool norm, fst::MutableFst<SLArc> *cfst,
                                     std::vector<SLWeight> *distance,
                                     std::vector<SLWeight> *rdistance) const {
   namespace f = fst;
+  using WeightEqual = SignedLogWeightApproxEqual<f::SignedLog64Weight>;
+
   // Computes shortest distance on signed log semiring
   if (norm) {
     // Normalized: we only need the s.d. from the initial states
-    SLShortestDistance sdist(cfst, phi_label_, delta_);
+    internal::SignedShortestDistance<SLArc, WeightEqual>
+        sdist(cfst, phi_label_, delta_);
     if (!sdist.ComputeDistance(distance, false)) {
       return false;
     }
@@ -300,7 +303,8 @@ bool Counter<Arc>::ComputeDistances(bool norm, fst::MutableFst<SLArc> *cfst,
     return true;
   } else {
     // Not normalized: we need the s.d. in both directions
-    SLShortestDistance sdist(cfst, phi_label_, delta_);
+    internal::SignedShortestDistance<SLArc, WeightEqual>
+        sdist(cfst, phi_label_, delta_);
     return sdist.ComputeDistance(distance, false) &&
            sdist.ComputeDistance(rdistance, true);
   }

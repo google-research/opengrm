@@ -188,11 +188,10 @@ bool GlobalNormalize(fst::MutableFst<Arc> *fst,
   }
   // Reweights with the weights found above.
   std::vector<Weight> distance;
-  if (!PhiShortestDistance(*fst, &distance, phi_label, true, delta))
+  const auto total_weight =
+      ShortestDistance(*fst, &distance, phi_label, true, delta);
+  if (!total_weight.Member())
     return false;
-
-  Weight total_weight =
-      f::ComputeTotalWeight(*fst, distance, true);
   f::Reweight(fst, distance, f::REWEIGHT_TO_INITIAL);
   f::RemoveWeight(fst, total_weight, false);
 
@@ -787,7 +786,8 @@ bool CountNormalizer<Arc>::LambdaSearch(
     const SLWeight lambda = Divide(Plus(lambda_hi, lambda_low), two);
     const SLWeight arc_sum =
         NormArcWeights(fst, s, norm_type, norm_factor, lambda, arc_weights);
-    if (ApproxEqual(arc_sum, SLWeight::One(), delta_)) {
+    if (ApproxEqual(arc_sum, SLWeight::One(), delta_) ||
+        ApproxEqual(lambda_low, lambda_hi, kNormDelta)) {
       return true;
     } else if (Less(arc_sum, SLWeight::One())) {
       lambda_hi = lambda;

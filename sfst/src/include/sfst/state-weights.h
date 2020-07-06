@@ -150,8 +150,8 @@ template <class Weight>
 
 
 // Converts between state weights that exclude the incoming failure mass
-// (e.g. as produced by PhiStationaryDistrib) to those that include it
-// (e.g. as produced by PhiShortestDistance). The 'fail_arc' bool
+// (e.g. as produced by StationaryDistrib) to those that include it
+// (e.g. as produced by ShortestDistance). The 'fail_arc' bool
 // determines in the incoming failure arc weight is included. Assumes
 // (but does not fully check) that the input has the canonical topology
 // (see canonical.h).
@@ -191,8 +191,8 @@ void SumStateWeights(const fst::Fst<Arc> &fst,
 }
 
 // Converts between state weights that include the incoming failure mass
-// (e.g. as produced by PhiStationaryDistrib) to those that exclude it
-// (e.g. as produced by PhiStationaryDistrib). The 'fail_arc' bool
+// (e.g. as produced by ShortestDistance) to those that exclude it
+// (e.g. as produced by StationaryDistrib). The 'fail_arc' bool
 // determines in the incoming failure arc weight is included. Assumes
 // (but does not fully check) that the input has the canonical topology
 // (see canonical.h).

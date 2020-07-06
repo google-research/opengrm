@@ -1,4 +1,4 @@
-OpenGrm SFst - Release 1.1
+OpenGrm SFst - Release 1.2
 
 OpenGrm SFst is a library for normalizing, sampling, combining, and
 approximating stochastic (or probabilistic) finite-state
@@ -10,7 +10,7 @@ REQUIREMENTS:
   work wherever adequate POSIX (dlopen, ssize_t, basename), c99
   (snprintf, strtoll, <stdint.h>), and C__11 (<ordered_set>,
   <ordered_map>, <forward_list>) support are available. It assumes you
-  have installed OpenFst (www.openfst.org) 1.6.8 or higher and have
+  have installed OpenFst (www.openfst.org) 1.7.8 and have
   configured it with the --enable-far flag.
 
 INSTALLATION:

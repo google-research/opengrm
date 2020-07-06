@@ -1,4 +1,4 @@
-AC_INIT([Sfst], [1.1.0], [sfst@opengrm.org])
+AC_INIT([Sfst], [1.2.0], [sfst@opengrm.org])
 AM_INIT_AUTOMAKE([foreign nostdinc -Wall -Werror])
 AM_PROG_AR
 

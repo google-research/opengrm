@@ -38,6 +38,11 @@ DEFINE_bool(weighted, false,
             "Output tree weighted by path count vs. unweighted paths");
 DEFINE_bool(remove_total_weight, false,
             "Remove total weight when output weighted");
+DEFINE_bool(minimal, false,
+            "Epsilon/phi-remove and minimize when output is weighted");
+DEFINE_bool(stochastic, false,
+            "Same as --weighted --remove_total_weight --minimal");
+
 
 int main(int argc, char **argv) {
   namespace f = fst;
@@ -47,6 +52,12 @@ int main(int argc, char **argv) {
 
   std::set_new_handler(FailedNewHandler);
   SET_FLAGS(usage.c_str(), &argc, &argv, true);
+  if (FLAGS_stochastic) {
+    FLAGS_weighted = true;
+    FLAGS_remove_total_weight = true;
+    FLAGS_minimal = true;
+  }
+
   if (argc > 3) {
     ShowUsage();
     return 1;
@@ -73,6 +84,8 @@ int main(int argc, char **argv) {
       opts(selector, FLAGS_max_length, FLAGS_npath, FLAGS_weighted,
            FLAGS_remove_total_weight);
   f::RandGen(*ifst, &ofst, opts);
+  if (FLAGS_weighted && FLAGS_minimal)
+    f::RandMinimize(&ofst, FLAGS_phi_label);
   if (!ofst.Write(out_name))
     return 1;
 

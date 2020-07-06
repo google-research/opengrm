@@ -36,13 +36,13 @@
 DEFINE_int64(phi_label, fst::kNoLabel,
              "Specifies failure label (default: none)");
 DEFINE_int64(unknown_label, fst::kNoLabel,
-             "Unknown word label (determines OOV handling)");
-DEFINE_int64(unknown_class_size, 10000,
-             "Number of members of unknown (OOV) class");
-DEFINE_bool(detailed, false, "Compute perplexity per sentence");
+             "Unknown symbol label (determines OOV handling)");
+DEFINE_bool(detailed, false, "Compute perplexity per source");
 DEFINE_double(delta, fst::kDelta, "Comparison delta");
-DEFINE_double(shortest_delta, fst::kShortestDelta,
-              "Delta for computing shortest distance");
+DEFINE_double(entropy_delta, sfst::kEntropyDelta,
+              "Convergence delta for entropy/perplexity algorithms");
+
+constexpr double kSkippedDelta = 1.0e-6;
 
 int main(int argc, char **argv) {
   using fst::FarReader;
@@ -50,28 +50,38 @@ int main(int argc, char **argv) {
   using fst::StdFst;
   using sfst::Perplexity;
 
-  std::string usage = "Computes perplexity for an SFST.\n\n  Usage: ";
+  std::string usage = "Computes perplexity for SFSTs.\n\n  Usage: ";
   usage += argv[0];
-  usage += " in.fst [in.far]\n";
+  usage += " q.fst p.{fst,far}   (cross perplexity w.r.t. -p log q)\n         ";
+  usage += argv[0];
+  usage += " p.{fst,far}         (self perplexity)\n";
 
   std::set_new_handler(FailedNewHandler);
   SET_FLAGS(usage.c_str(), &argc, &argv, true);
-  if (argc < 2 || argc > 4) {
+  if (argc < 2 || argc > 3) {
     ShowUsage();
     return 1;
   }
 
-  std::string far_name =
-      (argc > 2 && (strcmp(argv[2], "-") != 0)) ? argv[2] : "";
+  std::string far_name = argc == 3 ? argv[2] : argv[1];
 
-  StdFst *sfst = StdFst::Read(argv[1]);
-  if (!sfst) return 1;
+  Perplexity<StdArc> perp(FLAGS_phi_label, FLAGS_unknown_label,
+                          FLAGS_delta, FLAGS_entropy_delta);
+  std::string entropy_type = "self entropy/source";
 
-  Perplexity<StdArc> perp(*sfst, FLAGS_phi_label, FLAGS_unknown_label,
-                          FLAGS_unknown_class_size, FLAGS_delta,
-                          FLAGS_shortest_delta);
+  if (argc == 3) {
+    std::unique_ptr<StdFst> fst(StdFst::Read(argv[1]));
+    if (!fst) return 1;
+    perp.SetTarget(*fst);
+    entropy_type = "cross entropy/source";
+  }
+
   std::unique_ptr<FarReader<StdArc>> far_reader(
       FarReader<StdArc>::Open(far_name));
+  if (!far_reader) {
+    LOG(ERROR) << argv[0] << ": Can't open source FST/FAR file: " << far_name;
+    return 1;
+  }
 
   std::cout.setf(std::ios::left);
   size_t nsent = 0;
@@ -79,12 +89,15 @@ int main(int argc, char **argv) {
     if (!perp.Apply(*far_reader->GetFst())) return 1;
     if (FLAGS_detailed) {
       std::cout.width(50);
-      std::cout << "sentence" << nsent << std::endl;
-      if (perp.NumSkipped() < 1) {
-        std::cout.width(50);
-        std::cout << "perplexity" << perp.GetPerplexity() << std::endl;
-        std::cout.width(50);
-        std::cout << "# of words" << perp.NumWords() << std::endl;
+      std::cout << "source" << nsent << std::endl;
+      std::cout.width(50);
+      if (perp.SkipCount() > kSkippedDelta)
+        std::cout << "skip count" << perp.SkipCount() << std::endl;
+      std::cout.width(50);
+      std::cout << entropy_type << perp.GetEntropy() << std::endl;
+      std::cout.width(50);
+      std::cout << "perplexity/symbol" << perp.GetPerplexity() << std::endl;
+      if (perp.NumOOVs() > 0) {
         std::cout.width(50);
         std::cout << "# of OOVs" << perp.NumOOVs() << std::endl;
       }
@@ -94,20 +107,20 @@ int main(int argc, char **argv) {
 
   if (!FLAGS_detailed) {
     std::cout.width(50);
-    std::cout << "# of sentences" << perp.NumSentences() << std::endl;
-    if (perp.NumSkipped() > 0) {
+    std::cout << "# of sources" << perp.NumSources() << std::endl;
+    if (perp.SkipCount() > kSkippedDelta * perp.NumSources()) {
       std::cout.width(50);
-      std::cout << "# of skipped sentences" << perp.NumSkipped() << std::endl;
+      std::cout << "skip count" << perp.SkipCount() << std::endl;
     }
-    if (perp.NumSkipped() < perp.NumSentences()) {
+    if (perp.SkipCount() < perp.NumSources() + kSkippedDelta) {
       std::cout.width(50);
-      std::cout << "cross entropy" << perp.GetCrossEntropy() << std::endl;
+      std::cout << entropy_type << perp.GetEntropy() << std::endl;
       std::cout.width(50);
-      std::cout << "perplexity" << perp.GetPerplexity() << std::endl;
-      std::cout.width(50);
-      std::cout << "# of words" << perp.NumWords() << std::endl;
-      std::cout.width(50);
-      std::cout << "# of OOVs" << perp.NumOOVs() << std::endl;
+      std::cout << "perplexity/symbol" << perp.GetPerplexity() << std::endl;
+      if (perp.NumOOVs() > 0) {
+        std::cout.width(50);
+        std::cout << "# of OOVs" << perp.NumOOVs() << std::endl;
+      }
     }
   }
 

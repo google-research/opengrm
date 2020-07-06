@@ -35,6 +35,8 @@ class RmPhiWeightMapper {
  public:
   using Label = typename Arc::Label;
   using Weight = typename Arc::Weight;
+  using FromArc = Arc;
+  using ToArc = Arc;
 
   explicit RmPhiWeightMapper(Label phi_label) : phi_label_(phi_label) {}
 
@@ -91,8 +93,8 @@ bool Equal(const fst::Fst<Arc> &fst1, const fst::Fst<Arc> &fst2,
   } else {
     // Maps all failure weights to One() before comparing.
     Mapper mapper(phi_label);
-    f::ArcMapFst<Arc, Arc, Mapper> mfst1(fst1, mapper);
-    f::ArcMapFst<Arc, Arc, Mapper> mfst2(fst2, mapper);
+    auto mfst1 = MakeArcMapFst(fst1, mapper);
+    auto mfst2 = MakeArcMapFst(fst2, mapper);
     return f::Equal(mfst1, mfst2, delta, etype);
   }
 }
@@ -121,8 +123,8 @@ bool Isomorphic(const fst::Fst<Arc> &fst1, const fst::Fst<Arc> &fst2,
   } else {
     // Maps all failure weights to One() before comparing
     Mapper mapper(phi_label);
-    f::ArcMapFst<Arc, Arc, Mapper> mfst1(fst1, mapper);
-    f::ArcMapFst<Arc, Arc, Mapper> mfst2(fst2, mapper);
+    auto mfst1 = MakeArcMapFst(fst1, mapper);
+    auto mfst2 = MakeArcMapFst(fst2, mapper);
     return f::Isomorphic(mfst1, mfst2, delta);
   }
 }

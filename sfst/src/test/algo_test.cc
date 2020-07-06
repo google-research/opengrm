@@ -58,7 +58,7 @@ class AlgoTester {
   using Label = StdArc::Label;
   using Weight = StdArc::Weight;
 
-  AlgoTester() : weight_generator_(false) {
+  explicit AlgoTester(uint64 seed) : generate_(seed, false), seed_(seed) {
     univ_fst_.AddState();
     univ_fst_.SetStart(0);
     univ_fst_.SetFinal(0, Weight::One());
@@ -162,34 +162,8 @@ class AlgoTester {
   // by input FST phi-removal.
   void TestNGramApproxRmPhi(const StdFst &ifst, int order) const;
 
-
   // Test SFST approximation.
-  void TestApprox(const StdFst &ifst) const {
-    namespace f = fst;
-    if (ifst.Start() == f::kNoStateId)  // no states
-      return;
-
-    // Uses n-gram FST as input
-    StdVectorFst nfst(ifst), afst;
-    CHECK(Trim(&nfst, kPhiLabel));
-    CHECK(GlobalNormalize(&nfst, kPhiLabel, kAlgoDelta));
-    CHECK(NGramApprox(nfst, &afst, 2, kPhiLabel, kAlgoDelta, NORM_SUMMED));
-    StdVectorFst ofst(afst);
-
-    // Requires sanity of input.
-    if (!SaneFst(afst, kPhiLabel)) return;
-    // Check phi-summed approximation.
-    CHECK(Approx(afst, &ofst, kPhiLabel, kAlgoDelta, NORM_SUMMED));
-    // Requires sanity of output for next step.
-    if (!SaneFst(ofst, kPhiLabel)) return;
-
-    // Tests marginally-constrained approximation onto same
-    // topology is an identity.
-    if (!Approx(afst, &ofst, kPhiLabel, kAlgoDelta, NORM_KL_MIN)) {
-      return;
-    }
-    CHECK(RmPhiIsomorphic(afst, ofst));
-  }
+  void TestApprox(const StdFst &ifst) const;
 
  private:
   // Generates a canonical but unnormalized stochastic FSA
@@ -268,9 +242,8 @@ class AlgoTester {
     }
     return true;
   }
-
-
-  mutable WeightGenerator weight_generator_;
+  mutable WeightGenerator generate_;
+  uint64 seed_;
   // Sigma* machine.
   fst::StdVectorFst univ_fst_;
 
@@ -313,10 +286,10 @@ void AlgoTester::TestShortestDistance(const StdFst &ifst) const {
   ThompsonUnion(&ufst, lfst);
 
   std::vector<LWeight> distance, rdistance, cdistance, udistance;
-  PhiShortestDistance(lfst, &distance, kPhiLabel, false, kAlgoDelta);
-  PhiShortestDistance(lfst, &rdistance, kPhiLabel, true, kAlgoDelta);
-  PhiShortestDistance(cfst, &cdistance, kPhiLabel, false, kAlgoDelta);
-  PhiShortestDistance(ufst, &udistance, kPhiLabel, false, kAlgoDelta);
+  ShortestDistance(lfst, &distance, kPhiLabel, false, kAlgoDelta);
+  ShortestDistance(lfst, &rdistance, kPhiLabel, true, kAlgoDelta);
+  ShortestDistance(cfst, &cdistance, kPhiLabel, false, kAlgoDelta);
+  ShortestDistance(ufst, &udistance, kPhiLabel, false, kAlgoDelta);
 
   // This computation assumes all super-final arcs can be
   // read. Using a superfinal state as above ensures this is
@@ -351,10 +324,10 @@ void AlgoTester::TestStationaryDistribShDist(const StdFst &ifst) const {
   f::ArcSort(&nfst, f::StdILabelCompare());
 
   std::vector<Weight> distance, weights;
-  if (!PhiShortestDistance(nfst, &distance, kPhiLabel, false, kAlgoDelta))
+  auto total = ShortestDistance(nfst, &distance, kPhiLabel, false, kAlgoDelta);
+  if (!total.Member())
     return;
-  if (!PhiStationaryDistrib(nfst, &weights, kReEntryWeight, kPhiLabel,
-                            kSTDelta))
+  if (!StationaryDistrib(nfst, &weights, kReEntryWeight, kPhiLabel, kSTDelta))
     return;
 
   NormWeights(&distance);
@@ -378,7 +351,7 @@ void AlgoTester::TestStationaryDistribStateSum(const StdFst &ifst,
   CHECK(NGramApprox(nfst, &afst, order, kPhiLabel, kAlgoDelta, NORM_SUMMED));
 
   std::vector<Weight> weights1;
-  if (!PhiStationaryDistrib(afst, &weights1, 1.0e-6, kPhiLabel, 1.0e-6))
+  if (!StationaryDistrib(afst, &weights1, 1.0e-6, kPhiLabel, 1.0e-6))
     return;
   SumStateWeights(afst, &weights1, kPhiLabel, false);
   NormWeights(&weights1);
@@ -522,17 +495,44 @@ void AlgoTester::TestNGramApproxRmPhi(const StdFst &ifst, int order) const {
   CHECK(RmPhiIsomorphic(ofst, profst));
 }
 
+void AlgoTester::TestApprox(const StdFst &ifst) const {
+  namespace f = fst;
+  if (ifst.Start() == f::kNoStateId)  // no states
+    return;
+
+  // Uses n-gram FST as input
+  StdVectorFst nfst(ifst), afst;
+  CHECK(Trim(&nfst, kPhiLabel));
+  CHECK(GlobalNormalize(&nfst, kPhiLabel, kAlgoDelta));
+  CHECK(NGramApprox(nfst, &afst, 2, kPhiLabel, kAlgoDelta, NORM_SUMMED));
+  StdVectorFst ofst(afst);
+
+  // Requires sanity of input.
+  if (!SaneFst(afst, kPhiLabel)) return;
+  // Check phi-summed approximation.
+  CHECK(Approx(afst, &ofst, kPhiLabel, kAlgoDelta, NORM_SUMMED));
+  // Requires sanity of output for next step.
+  if (!SaneFst(ofst, kPhiLabel)) return;
+
+  // Tests marginally-constrained approximation onto same
+  // topology is an identity.
+  if (!Approx(afst, &ofst, kPhiLabel, kAlgoDelta, NORM_KL_MIN)) {
+    return;
+  }
+  CHECK(RmPhiIsomorphic(afst, ofst));
+}
+
 void AlgoTester::MakeRandFsa(StdMutableFst *fst,
                              bool cyclic) const {
   StdVectorFst rfst;
   namespace f = fst;
   f::RandFst<StdArc, WeightGenerator>(kNumRandomStates, kNumRandomArcs,
-                                      kNumRandomLabels, 1.0,
-                                      &weight_generator_, &rfst);
+                                      kNumRandomLabels, 1.0, generate_, seed_,
+                                      &rfst);
   // Connected so it can be normalized.
   f::Connect(&rfst);
   // Projected so it can be determinized.
-  f::Project(&rfst, f::PROJECT_INPUT);
+  f::Project(&rfst, f::ProjectType::INPUT);
   // Determinized so it is canonical (wrt phi label).
   f::Determinize(rfst, fst);
   // Increases sharing and pushes weight
@@ -606,7 +606,7 @@ void AlgoTester::ThompsonUnion(fst::MutableFst<A> *fst1,
 // DEFINEs determine which semirings are tested; these are controlled by
 // the `defines` attributes of the associated build rules.
 
-DEFINE_int32(seed, -1, "random seed");
+DEFINE_uint64(seed, 403, "random seed");
 DEFINE_int32(repeat, 25, "number of test repetitions");
 
 int main(int argc, char **argv) {
@@ -614,13 +614,9 @@ int main(int argc, char **argv) {
   std::set_new_handler(FailedNewHandler);
   SET_FLAGS(argv[0], &argc, &argv, true);
 
-  srand(FLAGS_seed);
   LOG(INFO) << "Seed = " << FLAGS_seed;
-
-  sfst::AlgoTester algo_tester;
+  sfst::AlgoTester algo_tester(FLAGS_seed);
   for (int i = 0; i < FLAGS_repeat; ++i) algo_tester.Test();
-
-  std::cout << "PASS" << std::endl;
 
   return 0;
 }

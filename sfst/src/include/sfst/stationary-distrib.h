@@ -38,8 +38,6 @@ const fst::SignedLog64Weight kReEntryWeight = {1.0, 1.0e-6};
 // Maximum number of stationary distribution iterations
 constexpr size_t kMaxSDIters = 100;
 
-}  // namespace internal
-
 // Computes the stationary distribution of the Markov chain consisting
 // of the closure of the input stochastic FST with re-entry weight
 // 'alpha'. This version is on the signed log semiring. The
@@ -50,12 +48,15 @@ constexpr size_t kMaxSDIters = 100;
 // For cyclic input and 'negative' weights, any convergence is, in
 // general, conditional and not absolute, so it will depend on the
 // specific input.
-bool SLStationaryDistrib(
+bool SignedStationaryDistrib(
     const fst::Fst<fst::SignedLog64Arc> &fst,
     std::vector<fst::SignedLog64Weight> *weight,
     fst::SignedLog64Weight alpha = internal::kReEntryWeight,
     float delta = fst::kDelta,
     size_t maxiters = internal::kMaxSDIters);
+
+}  // namespace internal
+
 
 // Computes the stationary distribution of the Markov chain consisting
 // of the closure of the input stochastic FST with re-entry weight
@@ -67,7 +68,7 @@ bool SLStationaryDistrib(
 // treats such epsilons w.r.t. the failure semantics as if they were
 // regular, uniquely-labeled symbols).
 template <class Arc>
-bool PhiStationaryDistrib(
+bool StationaryDistrib(
     const fst::Fst<Arc> &fst,
     std::vector<typename Arc::Weight> *weight,
     typename Arc::Weight alpha,
@@ -80,12 +81,13 @@ bool PhiStationaryDistrib(
   using SLWeight = SLArc::Weight;
 
   f::VectorFst<SLArc> slfst;
-  SLRmPhi(fst, &slfst, phi_label);
+  internal::RmPhi(fst, &slfst, phi_label);
   f::WeightConvert<Weight, SLWeight> to_sl_convert;
   auto slalpha = to_sl_convert(alpha);
 
   std::vector<SLWeight> slweight;
-  if (!SLStationaryDistrib(slfst, &slweight, slalpha, delta, max_iters))
+  if (!internal::SignedStationaryDistrib(slfst, &slweight, slalpha,
+                                         delta, max_iters))
     return false;
 
   f::WeightConvert<SLWeight, Weight> from_sl_convert;

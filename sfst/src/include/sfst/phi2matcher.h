@@ -125,7 +125,19 @@ class Phi2Matcher : public fst::MatcherBase<typename M::Arc> {
   const FST &GetFst() const override { return matcher_.GetFst(); }
 
   uint64 Properties(uint64 props) const override {
-    return matcher_.Properties(props);
+    namespace f = fst;
+    auto outprops = matcher_.Properties(props);
+    // matcher_.Priority() ensures all phi_labels are removed
+    // but we circumvent that above so we adjust the Properties()
+    // accordingly.
+    if (matcher_.PhiLabel() == 0) {
+      if (matcher_.Type(false) ==  f::MATCH_INPUT) {
+        outprops &= ~(f::kNoEpsilons | f::kNoIEpsilons);
+      } else if (matcher_.Type(false) ==  f::MATCH_OUTPUT) {
+        outprops &= ~(f::kNoEpsilons | f::kNoOEpsilons);
+      }
+    }
+    return outprops;
   }
 
   uint32 Flags() const override {

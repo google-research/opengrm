@@ -32,13 +32,13 @@
 
 namespace sfst {
 
-namespace {
+namespace internal {
 
 // At a given state, calculate one step of the power method
 // for the stationary distribution of the closure of the
 // input stochastic FST with re-entry weight 'alpha'.
 // TODO(riley): handle epsilons - pushed?
-void SLStationaryDistribState(
+void SignedStationaryDistribState(
     const fst::Fst<fst::SignedLog64Arc> &fst,
     int st,
     std::vector<fst::SignedLog64Weight> *prev_weight,
@@ -69,9 +69,7 @@ void SLStationaryDistribState(
   }
 }
 
-}  // namespace
-
-bool SLStationaryDistrib(
+bool SignedStationaryDistrib(
     const fst::Fst<fst::SignedLog64Arc> &fst,
     std::vector<fst::SignedLog64Weight> *weight,
     fst::SignedLog64Weight alpha /* kReEntryWeight */,
@@ -85,7 +83,8 @@ bool SLStationaryDistrib(
 
   std::vector<StateId> top_order;
   if (!PhiTopOrder(fst,  f::kNoLabel, &top_order)) {  // epsilon top order
-    LOG(ERROR) << "SLStationaryDistrib: FST has (input) epsilon cycles";
+    LOG(ERROR) << "SignedStationaryDistrib: "
+               << "FST has (input) epsilon cycles";
     return false;
   }
 
@@ -105,7 +104,7 @@ bool SLStationaryDistrib(
     tmp_weight = prev_weight;
     for (size_t i = 0; i < nstates; ++i) {
       StateId st = top_order[i];   // ith state in epsilon top order
-      SLStationaryDistribState(fst, st, &tmp_weight, weight, alpha);
+      SignedStationaryDistribState(fst, st, &tmp_weight, weight, alpha);
     }
 
     changed = 0;
@@ -122,10 +121,14 @@ bool SLStationaryDistrib(
         (niter > nstates && ApproxZero((*weight)[fst.Start()])))
       return false;
 
-    VLOG(2) << "SLStationaryDistrib: state weights changed: " << changed;
+    VLOG(2) << "SignedStationaryDistrib: state weights changed: "
+            << changed;
   } while (changed > 0);
 
   return true;
 }
+
+}  // namespace internal
+
 
 }  // namespace sfst

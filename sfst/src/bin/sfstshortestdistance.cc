@@ -55,8 +55,9 @@ int main(int argc, char **argv) {
   if (!fst) return 1;
 
   std::vector<f::StdArc::Weight> distance;
-  if (!sfst::PhiShortestDistance(*fst, &distance, FLAGS_phi_label,
-                                 FLAGS_reverse, FLAGS_delta))
+  auto total_weight = sfst::ShortestDistance(*fst, &distance, FLAGS_phi_label,
+                                             FLAGS_reverse, FLAGS_delta);
+  if (!total_weight.Member())
     return 1;
 
   if (!sfst::WriteWeights(out_name, distance))

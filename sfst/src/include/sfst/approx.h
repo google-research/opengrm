@@ -35,7 +35,7 @@
 namespace sfst {
 
 // A float delta for SFST approximation algorithms.
-constexpr float kApproxDelta = 1e-9;
+constexpr float kApproxDelta = 1e-10;
 
 // Approximates a stochastic FSA as a backoff FSA.  The input 'ifst'
 // should be a canonical stochastic FSA (see canonical.h). If it is
@@ -43,13 +43,13 @@ constexpr float kApproxDelta = 1e-9;
 // checked). Assumes input has no (non-phi) epsilons (or treats such
 // epsilons w.r.t. the failure semantics as if they were regular,
 // uniquely-labeled symbols).  The topology FST is provided in 'ofst'
-// (with incoming weights ignored) and must be a backoff FSA (see
+// (with incoming weights ignored) and must be a backoff-complete FSA (see
 // backoff.h). The 'phi_label' is the failure label (defaults to
 // kNoLabel -> None). The 'delta' parameter controls the degree of
-// algorithm convergence.  The result is the backoff FSA weighted and
-// normalized to approximate the input.  The algorithm computes
-// (smoothed) counts and then normalizes those counts. See
-// sfst::CountNormType for the normalization variants. Returns true on success.
+// and algorithm convergence.  The result is the backoff-complete FSA weighted
+// normalized to approximate the input.  The algorithm computes (smoothed)
+// counts and then normalizes those counts. See sfst::CountNormType
+// for the normalization variants. Returns true on success.
 template <class Arc>
 bool Approx(const fst::Fst<Arc> &ifst,
             fst::MutableFst<Arc> *ofst,

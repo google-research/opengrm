@@ -35,7 +35,13 @@
 #include <utility>
 #include <vector>
 
+#include <fst/arc-map.h>
+#include <fst/arcsort.h>
+#include <fst/determinize.h>
+#include <fst/minimize.h>
 #include <fst/randgen.h>
+#include <fst/relabel.h>
+#include <fst/rmepsilon.h>
 
 namespace sfst {
 
@@ -352,6 +358,26 @@ void ArcSampler<A, sfst::SFstArcSelector<A> >::MultinomialSample(
     for (size_t i = 0; i < pr_.size(); ++i)
       sample_map_[pos_[i]] = ceil(pr_[i] * rstate.nsamples);
   }
+}
+
+// Epsilons/phi removes and minimizes the result of weighted SFST randgen.
+template <class A>
+    void RandMinimize(MutableFst<A> *fst, typename A::Label phi_label) {
+  using Label = typename A::Label;
+
+  WeightConvertMapper<A, Log64Arc> to_log_mapper;
+  WeightConvertMapper<Log64Arc, A> from_log_mapper;
+  VectorFst<Log64Arc> lfst, dfst;
+  ArcMap(*fst, &lfst, to_log_mapper);
+  if (phi_label != kNoLabel && phi_label != 0) {
+    std::vector<std::pair<Label, Label>> relab = {{phi_label, 0}};
+    Relabel(&lfst, relab, relab);
+  }
+  RmEpsilon(&lfst);
+  Determinize(lfst, &dfst);
+  Minimize(&dfst);
+  ArcMap(dfst, fst, from_log_mapper);
+  ArcSort(fst, ILabelCompare<A>());
 }
 
 }  // namespace fst

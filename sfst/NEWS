@@ -1,5 +1,9 @@
+OpenGrm SFst - Release 1.2
+  * Improved speed of approximations
+  * Added entropy semiring
+  * Changed Perplexity to accept for general sources ('p') and targets ('q')
 OpenGrm SFst - Release 1.1
-  * Changed Approx and NGramApprox to compute the KL minimum solution (via improved 
+  * Changed Approx and NGramApprox to compute the KL minimum solution (via improved
     CountNormalize); now the default
   * Added Intersect()
   * Added sfstcount, sfstintersect, sfstshortestdistance, sfsttopology
