@@ -246,18 +246,20 @@ class StringPathIterator : public PathIterator<Arc> {
   using PathIterator<Arc>::Reset;
   using PathIterator<Arc>::SetError;
 
-  explicit StringPathIterator(const Fst<Arc> &fst, StringTokenType itype = BYTE,
-                              StringTokenType otype = BYTE,
-                              const SymbolTable *isyms = nullptr,
-                              const SymbolTable *osyms = nullptr,
+  explicit StringPathIterator(const Fst<Arc> &fst,
+                              TokenType input_token_type = TokenType::BYTE,
+                              TokenType output_token_type = TokenType::BYTE,
+                              const SymbolTable *isymbols = nullptr,
+                              const SymbolTable *osymbols = nullptr,
                               bool check_acyclic = true);
 
   // The same, but sets input and output token types/symbol tables to the same
   // argument.
-  explicit StringPathIterator(const Fst<Arc> &fst, StringTokenType ttype,
-                              const SymbolTable *syms = nullptr,
+  explicit StringPathIterator(const Fst<Arc> &fst, TokenType token_type,
+                              const SymbolTable *symbols = nullptr,
                               bool check_acyclic = true)
-      : StringPathIterator(fst, ttype, ttype, syms, syms, check_acyclic) {}
+      : StringPathIterator(fst, token_type, token_type, symbols, symbols,
+                           check_acyclic) {}
 
   void IString(std::string *str);
 
@@ -268,10 +270,10 @@ class StringPathIterator : public PathIterator<Arc> {
   std::string OString();
 
  private:
-  StringTokenType itype_;
-  StringTokenType otype_;
-  const SymbolTable *isyms_;
-  const SymbolTable *osyms_;
+  TokenType input_token_type_;
+  TokenType output_token_type_;
+  const SymbolTable *isymbols_;
+  const SymbolTable *osymbols_;
 };
 
 // When check_acyclic is set, checks acyclicity of FST. An acyclic FST may
@@ -279,31 +281,21 @@ class StringPathIterator : public PathIterator<Arc> {
 // caller can ensure finite iteration (e.g., knowing the FST is acyclic or
 // limiting the number of iterated paths).
 template <class Arc>
-StringPathIterator<Arc>::StringPathIterator(
-    const Fst<Arc> &fst, StringTokenType itype, StringTokenType otype,
-    const SymbolTable *isyms, const SymbolTable *osyms, bool check_acyclic)
+StringPathIterator<Arc>::StringPathIterator(const Fst<Arc> &fst,
+                                            TokenType input_token_type,
+                                            TokenType output_token_type,
+                                            const SymbolTable *isymbols,
+                                            const SymbolTable *osymbols,
+                                            bool check_acyclic)
     : PathIterator<Arc>(fst, check_acyclic),
-      itype_(itype),
-      otype_(otype),
-      isyms_(isyms),
-      osyms_(osyms) {
-  // If the FST has its own symbol tables and symbol table use is requested,
-  // we use those unless isyms or osyms is specified.
-  if (itype == SYMBOL && !isyms_ && !(isyms_ = fst.InputSymbols())) {
-    SetError();
-    FSTERROR() << "StringPathIterator:: Input symbol table use requested but "
-                  "none found";
-  }
-  if (otype == SYMBOL && !osyms_ && !(osyms_ = fst.OutputSymbols())) {
-    SetError();
-    FSTERROR() << "StringPathIterator:: Output symbol table use requested but "
-                  "none found";
-  }
-}
+      input_token_type_(input_token_type),
+      output_token_type_(output_token_type),
+      isymbols_(isymbols),
+      osymbols_(osymbols) {}
 
 template <class Arc>
 void StringPathIterator<Arc>::IString(std::string *str) {
-  if (!LabelsToString(ILabels(), str, itype_, isyms_)) SetError();
+  if (!LabelsToString(ILabels(), str, input_token_type_, isymbols_)) SetError();
 }
 
 template <class Arc>
@@ -315,7 +307,9 @@ std::string StringPathIterator<Arc>::IString() {
 
 template <class Arc>
 void StringPathIterator<Arc>::OString(std::string *str) {
-  if (!LabelsToString(OLabels(), str, otype_, osyms_)) SetError();
+  if (!LabelsToString(OLabels(), str, output_token_type_, osymbols_)) {
+    SetError();
+  }
 }
 
 template <class Arc>

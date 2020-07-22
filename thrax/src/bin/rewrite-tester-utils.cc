@@ -24,8 +24,8 @@ using thrax::Open;
 using ::fst::StdArc;
 using ::fst::StdVectorFst;
 using ::fst::StringCompiler;
-using ::fst::StringTokenType;
 using ::fst::SymbolTable;
+using ::fst::TokenType;
 using ::thrax::FstToStrings;
 using ::thrax::GetGeneratedSymbolTable;
 using ::thrax::RuleTriple;
@@ -144,24 +144,23 @@ void RewriteTesterUtils::Initialize() {
   }
   generated_symtab_ = GetGeneratedSymbolTable(&grm_);
   if (FLAGS_input_mode == "byte") {
-    compiler_ = new StringCompiler<StdArc>(StringTokenType::BYTE);
+    compiler_ = new StringCompiler<StdArc>(TokenType::BYTE);
   } else if (FLAGS_input_mode == "utf8") {
-    compiler_ = new StringCompiler<StdArc>(StringTokenType::UTF8);
+    compiler_ = new StringCompiler<StdArc>(TokenType::UTF8);
   } else {
     input_symtab_ = SymbolTable::ReadText(FLAGS_input_mode);
     if (!input_symtab_) {
       LOG(FATAL) << "Invalid mode or symbol table path.";
     }
-    compiler_ =
-        new StringCompiler<StdArc>(StringTokenType::SYMBOL, input_symtab_);
+    compiler_ = new StringCompiler<StdArc>(TokenType::SYMBOL, input_symtab_);
   }
   output_symtab_ = nullptr;
   if (FLAGS_output_mode == "byte") {
-    type_ = BYTE;
+    type_ = TokenType::BYTE;
   } else if (FLAGS_output_mode == "utf8") {
-    type_ = UTF8;
+    type_ = TokenType::UTF8;
   } else {
-    type_ = SYMBOL;
+    type_ = TokenType::SYMBOL;
     output_symtab_ = SymbolTable::ReadText(FLAGS_output_mode);
     if (!output_symtab_) {
       LOG(FATAL) << "Invalid mode or symbol table path.";
@@ -178,13 +177,13 @@ const std::string RewriteTesterUtils::ProcessInput(const std::string& input,
   }
   std::ostringstream sstrm;
   // Set symbols for the input, if appropriate
-  if (byte_symtab_ && type_ == BYTE) {
+  if (byte_symtab_ && type_ == TokenType::BYTE) {
     input_fst.SetInputSymbols(byte_symtab_);
     input_fst.SetOutputSymbols(byte_symtab_);
-  } else if (utf8_symtab_ && type_ == UTF8) {
+  } else if (utf8_symtab_ && type_ == TokenType::UTF8) {
     input_fst.SetInputSymbols(utf8_symtab_);
     input_fst.SetOutputSymbols(utf8_symtab_);
-  } else if (input_symtab_ && type_ == SYMBOL) {
+  } else if (input_symtab_ && type_ == TokenType::SYMBOL) {
     input_fst.SetInputSymbols(input_symtab_);
     input_fst.SetOutputSymbols(input_symtab_);
   }

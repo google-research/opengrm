@@ -117,7 +117,7 @@ class Analyzer : public Function<Arc> {
     ::fst::ArcSort(&mapper, icomp);
     ::fst::Compose(*stems, mapper, &inflected);
     // We only want the second dimension, namely analyzed inflected forms.
-    ::fst::Project(&inflected, ::fst::PROJECT_OUTPUT);
+    ::fst::Project(&inflected, ::fst::ProjectType::OUTPUT);
     MutableTransducer result;
     // Compose the specific set of analyzed forms with the deleter, which should
     // get rid of features, morph boundaries and other annotations to yield

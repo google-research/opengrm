@@ -5,6 +5,8 @@
 #ifndef NLP_GRM_LANGUAGE_GRM_MANAGER_H_
 #define NLP_GRM_LANGUAGE_GRM_MANAGER_H_
 
+#include <memory>
+
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
 #include <thrax/compat/utils.h>
@@ -18,9 +20,10 @@ namespace thrax {
 template <typename Arc>
 class GrmManagerSpec : public AbstractGrmManager<Arc> {
   using Base = AbstractGrmManager<Arc>;
-  using FstMap = std::map<std::string, const typename Base::Transducer *>;
 
  public:
+  using typename Base::FstMap;
+
   GrmManagerSpec() : Base() {}
 
   ~GrmManagerSpec() override {}
@@ -61,11 +64,11 @@ void GrmManagerSpec<Arc>::ExportFar(const std::string &filename) const {
     LOG(FATAL) << "Unable to create output directory: " << dir;
 
   const std::string out_path(JoinPath(FLAGS_outdir, filename));
-  auto *writer =
+  std::unique_ptr<::fst::FarWriter<Arc>> writer(
 #ifndef NO_GOOGLE
-      ::fst::STTableFarWriter<Arc>::Create(out_path);
+      ::fst::STTableFarWriter<Arc>::Create(out_path));
 #else
-      ::fst::STTableFarWriter<Arc>::Create(out_path);
+      ::fst::STTableFarWriter<Arc>::Create(out_path));
 #endif  // NO_GOOGLE
   if (!writer) {
     LOG(FATAL) << "Failed to create writer for: " << out_path;
@@ -75,7 +78,6 @@ void GrmManagerSpec<Arc>::ExportFar(const std::string &filename) const {
     VLOG(1) << "Writing FST: " << it->first;
     writer->Add(it->first, *it->second);
   }
-  delete writer;
 }
 
 // A lot of code outside this build uses GrmManager with the old meaning of

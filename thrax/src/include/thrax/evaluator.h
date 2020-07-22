@@ -357,16 +357,15 @@ class AstEvaluator : public AstWalker {
   // grammar). This information gets passed down ultimately to StringFst's
   // GetLabelSymbolTable to determine (assuming --save_symbols is set), whether
   // or not to add generated labels to the byte and utf8 symbol tables.
-  void GetFsts(std::map<std::string, const Transducer*>* fsts, bool top_level) {
+  void GetFsts(std::map<std::string, std::unique_ptr<const Transducer>>* fsts,
+               bool top_level) {
     // Checks if we ever used generated labels. If so, get the symbol table and
     // add it to a unique FST called kStringFstSymtabFst.
-    auto* generated_labels =
-        function::StringFst<Arc>::GetLabelSymbolTable(top_level);
-    if (generated_labels) {
-      MutableTransducer* label_fst = new MutableTransducer();
-      label_fst->SetInputSymbols(generated_labels);
-      (*fsts)[kStringFstSymtabFst] = label_fst;
-      delete generated_labels;
+    if (auto generated_labels =
+            function::StringFst<Arc>::GetLabelSymbolTable(top_level)) {
+      auto label_fst = fst::make_unique<MutableTransducer>();
+      label_fst->SetInputSymbols(generated_labels.get());
+      (*fsts)[kStringFstSymtabFst] = std::move(label_fst);
     }
 
     // Gets the exported FSTs and add them to the map.
@@ -393,19 +392,19 @@ class AstEvaluator : public AstWalker {
       }
       Transducer* fst =
           *env_->Get<DataType>(**fst_i)->template get<Transducer*>();
-      auto* nfst = new MutableTransducer(*fst);
+      auto nfst = fst::make_unique<MutableTransducer>(*fst);
       // If the transducer has input symbols or output symbols, and if those are
       // either the byte symbol table or the utf8 symbol table, then we must
       // reassign those tables, since we may have added generated labels. In the
       // worst case this is a no-op.
-      ReassignSymbols(nfst);
+      ReassignSymbols(nfst.get());
       // TopSort to address b/119868645.
       //
       // TODO(rws): The particular example in b/119868645 is evidently fixed by
       // this, but this is not guaranteed to work in general since TopSort is a
       // no-op on cyclic machines.
-      TopSort(nfst);
-      (*fsts)[(*fst_i)->Get()] = nfst;
+      TopSort(nfst.get());
+      (*fsts)[name] = std::move(nfst);
     }
   }
 

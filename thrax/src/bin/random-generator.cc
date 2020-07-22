@@ -21,13 +21,13 @@
 #include <thrax/symbols.h>
 
 using ::fst::Project;
-using ::fst::PROJECT_INPUT;
-using ::fst::PROJECT_OUTPUT;
+using ::fst::ProjectType;
 using ::fst::RandGen;
 using ::fst::RandGenOptions;
 using ::fst::StdArc;
 using ::fst::StdVectorFst;
 using ::fst::SymbolTable;
+using ::fst::TokenType;
 using ::fst::UniformArcSelector;
 using ::thrax::FstToStrings;
 using ::thrax::GetGeneratedSymbolTable;
@@ -53,11 +53,11 @@ int main(int argc, char** argv) {
   std::unique_ptr<SymbolTable> output_symtab;
   TokenType type;
   if (FLAGS_output_mode == "byte") {
-    type = BYTE;
+    type = TokenType::BYTE;
   } else if (FLAGS_output_mode == "utf8") {
-    type = UTF8;
+    type = TokenType::UTF8;
   } else {
-    type = SYMBOL;
+    type = TokenType::SYMBOL;
     output_symtab.reset(SymbolTable::ReadText(FLAGS_output_mode));
     if (!output_symtab) {
       LOG(FATAL) << "Invalid mode or symbol table path";
@@ -65,11 +65,11 @@ int main(int argc, char** argv) {
   }
   std::unique_ptr<SymbolTable> input_symtab;
   if (FLAGS_input_mode == "byte") {
-    type = BYTE;
+    type = TokenType::BYTE;
   } else if (FLAGS_input_mode == "utf8") {
-    type = UTF8;
+    type = TokenType::UTF8;
   } else {
-    type = SYMBOL;
+    type = TokenType::SYMBOL;
     input_symtab.reset(SymbolTable::ReadText(FLAGS_input_mode));
     if (!input_symtab) {
       LOG(FATAL) << "Invalid mode or symbol table path";
@@ -101,8 +101,8 @@ int main(int argc, char** argv) {
     RandGen(cleaned, &ofst, opts);
     if (ofst.NumStates() == 0) continue;
     StdVectorFst ifst(ofst);
-    Project(&ifst, PROJECT_INPUT);
-    Project(&ofst, PROJECT_OUTPUT);
+    Project(&ifst, ProjectType::INPUT);
+    Project(&ofst, ProjectType::OUTPUT);
     if (!FstToStrings(ifst, &istrings, generated_symtab, type,
                       input_symtab.get())) {
       LOG(FATAL) << "Can't generate strings for input side";

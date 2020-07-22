@@ -36,9 +36,10 @@ class Project : public UnaryFstFunction<Arc> {
     }
     const auto& project = *args[1]->get<std::string>();
     if (project == "input") {
-      return new ::fst::ProjectFst<Arc>(fst, ::fst::PROJECT_INPUT);
+      return new ::fst::ProjectFst<Arc>(fst, ::fst::ProjectType::INPUT);
     } else if (project == "output") {
-      return new ::fst::ProjectFst<Arc>(fst, ::fst::PROJECT_OUTPUT);
+      return new ::fst::ProjectFst<Arc>(fst,
+                                            ::fst::ProjectType::OUTPUT);
     } else {
       std::cout << "Project: Invalid projection parameter: " << project
                 << " (should be 'input' or 'output')" << std::endl;

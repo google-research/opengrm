@@ -15,8 +15,6 @@
 #include <fst/vector-fst.h>
 #include <thrax/grm-manager.h>
 
-enum TokenType { SYMBOL = 1, BYTE = 2, UTF8 = 3 };
-
 namespace thrax {
 
 // Computes the n-shortest paths and returns a vector of strings, each string
@@ -28,7 +26,7 @@ namespace thrax {
 bool FstToStrings(const ::fst::VectorFst<::fst::StdArc> &fst,
                   std::vector<std::pair<std::string, float>> *strings,
                   const ::fst::SymbolTable *generated_symtab,
-                  TokenType type = BYTE,
+                  ::fst::TokenType type = ::fst::TokenType::BYTE,
                   ::fst::SymbolTable *symtab = nullptr, size_t n = 1);
 
 // Find the generated labels from the grammar.

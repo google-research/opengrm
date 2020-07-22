@@ -45,7 +45,7 @@ void PriorityUnion(MutableFst<Arc> *fst1, const Fst<Arc> &fst2,
     fst1->SetProperties(kError, kError);
     return;
   }
-  const ProjectFst<Arc> project(*fst1, PROJECT_INPUT);
+  const ProjectFst<Arc> project(*fst1, ProjectType::INPUT);
   const RmEpsilonFst<Arc> rmepsilon(project);
   const DeterminizeFst<Arc> determinize(rmepsilon);
   const DifferenceFst<Arc> difference(sigma, determinize);

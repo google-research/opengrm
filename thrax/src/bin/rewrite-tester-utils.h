@@ -39,7 +39,7 @@ class RewriteTesterUtils {
   ::fst::SymbolTable* utf8_symtab_;
   const ::fst::SymbolTable* generated_symtab_;
   ::fst::SymbolTable* input_symtab_;
-  TokenType type_;
+  ::fst::TokenType type_;
   ::fst::SymbolTable* output_symtab_;
 
   RewriteTesterUtils(const RewriteTesterUtils&) = delete;

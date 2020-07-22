@@ -24,7 +24,6 @@
 #include <fst/vector-fst.h>
 #include <thrax/make-parens-pair-vector.h>
 #include <unordered_map>
-#include <thrax/compat/stlfunctions.h>
 
 namespace thrax {
 
@@ -33,17 +32,16 @@ class AbstractGrmManager {
  public:
   using Transducer = ::fst::Fst<Arc>;
   using MutableTransducer = ::fst::VectorFst<Arc>;
+  using FstMap = std::map<std::string, std::unique_ptr<const Transducer>>;
   using Label = typename Arc::Label;
 
   virtual ~AbstractGrmManager();
 
   // Read-only access to the underlying FST map.
-  const std::map<std::string, const Transducer*>& GetFstMap() const {
-    return fsts_;
-  }
+  const FstMap& GetFstMap() const { return fsts_; }
 
   // Compile-time access to the FST table.
-  std::map<std::string, const Transducer*>* GetFstMap() { return &fsts_; }
+  FstMap* GetFstMap() { return &fsts_; }
 
   // ***************************************************************************
   // REWRITE: These functions perform the actual rewriting of inputs using the
@@ -113,9 +111,8 @@ class AbstractGrmManager {
   void SortRuleInputLabels();
 
   // Alternative to LoadArchive, allowing you to provide the FSTs and keys
-  // directly. Takes ownership of the provided FSTs.
-  void LoadFstMap(
-      const std::unordered_map<std::string, const Transducer*>& named_fsts);
+  // directly.
+  void LoadFstMap(FstMap named_fsts);
 
  protected:
   AbstractGrmManager();
@@ -126,7 +123,7 @@ class AbstractGrmManager {
   bool LoadArchive(FarReader *reader);
 
   // The list of FSTs held by this manager.
-  std::map<std::string, const Transducer*> fsts_;
+  FstMap fsts_;
 
  private:
   AbstractGrmManager(const AbstractGrmManager&) = delete;
@@ -138,43 +135,40 @@ AbstractGrmManager<Arc>::AbstractGrmManager() {}
 
 template <typename Arc>
 AbstractGrmManager<Arc>::~AbstractGrmManager() {
-  STLDeleteContainerPairSecondPointers(fsts_.begin(), fsts_.end());
 }
 
 template <typename Arc>
 template <typename FarReader>
 bool AbstractGrmManager<Arc>::LoadArchive(FarReader *reader) {
-  STLDeleteValues(&fsts_);
+  fsts_.clear();
   for (reader->Reset(); !reader->Done(); reader->Next()) {
     const auto& name = reader->GetKey();
-    const auto* fst = new MutableTransducer(*reader->GetFst());
-    fsts_[name] = fst;
+    fsts_[name] = fst::make_unique<MutableTransducer>(*reader->GetFst());
   }
   SortRuleInputLabels();
   return true;
 }
 
 template <typename Arc>
-void AbstractGrmManager<Arc>::LoadFstMap(
-    const std::unordered_map<std::string, const Transducer*>& named_fsts) {
+void AbstractGrmManager<Arc>::LoadFstMap(FstMap named_fsts) {
   for (const auto& key_and_fst : named_fsts) {
-    fsts_[key_and_fst.first] = ABSL_DIE_IF_NULL(key_and_fst.second);
+    CHECK_NE(key_and_fst.second, nullptr);
   }
+  fsts_ = std::move(named_fsts);
   SortRuleInputLabels();
 }
 
 template <typename Arc>
 void AbstractGrmManager<Arc>::SortRuleInputLabels() {
   for (auto &pair : fsts_) {
-    auto *fst = pair.second;
+    const auto& fst = *pair.second;
     // Arc-sorts if the FST is not known to be input-sorted.
-    if (fst->Properties(::fst::kILabelSorted, false) !=
+    if (fst.Properties(::fst::kILabelSorted, false) !=
         ::fst::kILabelSorted) {
-      auto* sorted_fst = new MutableTransducer(*fst);
+      auto sorted_fst = fst::make_unique<MutableTransducer>(fst);
       static const ::fst::ILabelCompare<Arc> icomp;
-      ::fst::ArcSort(sorted_fst, icomp);
-      pair.second = static_cast<const Transducer*>(sorted_fst);
-      delete fst;
+      ::fst::ArcSort(sorted_fst.get(), icomp);
+      pair.second = std::move(sorted_fst);
     }
   }
 }
@@ -183,7 +177,7 @@ template <typename Arc>
 const typename AbstractGrmManager<Arc>::Transducer*
 AbstractGrmManager<Arc>::GetFst(const std::string& name) const {
   const auto it = fsts_.find(name);
-  return it == fsts_.end() ? nullptr : it->second;
+  return it == fsts_.end() ? nullptr : it->second.get();
 }
 
 template <typename Arc>
@@ -196,10 +190,12 @@ AbstractGrmManager<Arc>::GetFstSafe(const std::string& name) const {
 template <typename Arc>
 bool AbstractGrmManager<Arc>::SetFst(const std::string& name,
                                      const Transducer& input) {
-  if (fsts_.count(name) == 0) return false;
-  delete fsts_[name];
-  fsts_[name] = input.Copy(true);
-  return true;
+  auto it = fsts_.find(name);
+  if (it != fsts_.end()) {
+    it->second = WrapUnique(input.Copy(true));
+    return true;
+  }
+  return false;
 }
 
 template <typename Arc>
@@ -208,7 +204,7 @@ bool AbstractGrmManager<Arc>::RewriteBytes(
     const std::string& pdt_parens_rule,
     const std::string& mpdt_assignments_rule) const {
   static const ::fst::StringCompiler<Arc> compiler(
-      ::fst::StringTokenType::BYTE);
+      ::fst::TokenType::BYTE);
   MutableTransducer str_fst;
   if (!compiler(input, &str_fst)) return false;
   return RewriteBytes(rule, str_fst, output, pdt_parens_rule,
@@ -228,7 +224,7 @@ bool AbstractGrmManager<Arc>::RewriteBytes(
   StringifyFst(&output_fst);
   if (output_fst.Start() == ::fst::kNoStateId) return false;
   static const ::fst::StringPrinter<Arc> printer(
-      ::fst::StringTokenType::BYTE);
+      ::fst::TokenType::BYTE);
   return printer(output_fst, output);
 }
 
@@ -238,7 +234,7 @@ bool AbstractGrmManager<Arc>::Rewrite(
     MutableTransducer* output, const std::string& pdt_parens_rule,
     const std::string& mpdt_assignments_rule) const {
   static const ::fst::StringCompiler<Arc> compiler(
-      ::fst::StringTokenType::BYTE);
+      ::fst::TokenType::BYTE);
   MutableTransducer str_fst;
   if (!compiler(input, &str_fst)) return false;
   return Rewrite(rule, str_fst, output, pdt_parens_rule,
@@ -306,7 +302,7 @@ template <typename Arc>
 void AbstractGrmManager<Arc>::StringifyFst(MutableTransducer* fst) {
   MutableTransducer temp;
   ::fst::ShortestPath(*fst, &temp);
-  ::fst::Project(&temp, ::fst::PROJECT_OUTPUT);
+  ::fst::Project(&temp, ::fst::ProjectType::OUTPUT);
   ::fst::RmEpsilon(&temp);
   *fst = temp;
 }
@@ -408,7 +404,7 @@ template <typename Arc>
 bool RuleCascade<Arc>::RewriteBytes(const std::string& input,
                                     std::string* output) const {
   static const ::fst::StringCompiler<Arc> compiler(
-      ::fst::StringTokenType::BYTE);
+      ::fst::TokenType::BYTE);
   MutableTransducer input_fst;
   if (!compiler(input, &input_fst)) return false;
   MutableTransducer output_fst;
@@ -416,7 +412,7 @@ bool RuleCascade<Arc>::RewriteBytes(const std::string& input,
   AbstractGrmManager<Arc>::StringifyFst(&output_fst);
   if (output_fst.Start() == ::fst::kNoStateId) return false;
   static const ::fst::StringPrinter<Arc> printer(
-      ::fst::StringTokenType::BYTE);
+      ::fst::TokenType::BYTE);
   return printer(output_fst, output);
 }
 
@@ -428,7 +424,7 @@ bool RuleCascade<Arc>::RewriteBytes(const Transducer& input,
   AbstractGrmManager<Arc>::StringifyFst(&output_fst);
   if (output_fst.Start() == ::fst::kNoStateId) return false;
   static const ::fst::StringPrinter<Arc> printer(
-      ::fst::StringTokenType::BYTE);
+      ::fst::TokenType::BYTE);
   return printer(output_fst, output);
 }
 
@@ -436,7 +432,7 @@ template <typename Arc>
 bool RuleCascade<Arc>::Rewrite(const std::string& input,
                                MutableTransducer* output) const {
   static const ::fst::StringCompiler<Arc> compiler(
-      ::fst::StringTokenType::BYTE);
+      ::fst::TokenType::BYTE);
   MutableTransducer str_fst;
   if (!compiler(input, &str_fst)) return false;
   return Rewrite(str_fst, output);

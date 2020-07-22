@@ -57,18 +57,18 @@ class AssertEqual : public BinaryFstFunction<Arc> {
                 << args.size() << std::endl;
       return nullptr;
     }
-    auto mode = ::fst::StringTokenType::BYTE;
+    auto mode = ::fst::TokenType::BYTE;
     const ::fst::SymbolTable* symbols = nullptr;
     if (args.size() > 2) {
       if (args[2]->is<std::string>()) {
         if (*args[2]->get<std::string>() == "utf8") {
-          mode = ::fst::StringTokenType::UTF8;
+          mode = ::fst::TokenType::UTF8;
         } else {
-          mode = ::fst::StringTokenType::BYTE;
+          mode = ::fst::TokenType::BYTE;
         }
       } else if (args[2]->is<::fst::SymbolTable>()) {
         symbols = args[2]->get<::fst::SymbolTable>();
-        mode = ::fst::StringTokenType::SYMBOL;
+        mode = ::fst::TokenType::SYMBOL;
       } else {
         std::cout << "AssertEqual: Invalid parse mode or symbol table "
                   << "for symbols" << std::endl;
@@ -93,7 +93,7 @@ class AssertEqual : public BinaryFstFunction<Arc> {
     }
     std::unique_ptr<MutableTransducer> mutable_left(
         new MutableTransducer(left));
-    ::fst::Project(mutable_left.get(), ::fst::PROJECT_OUTPUT);
+    ::fst::Project(mutable_left.get(), ::fst::ProjectType::OUTPUT);
     ::fst::RmEpsilon(mutable_left.get());
     MutableTransducer determinized_left;
     ::fst::Determinize(*mutable_left, &determinized_left);
@@ -101,7 +101,7 @@ class AssertEqual : public BinaryFstFunction<Arc> {
     static const ::fst::RmWeightMapper<Arc> mapper;
     ::fst::ArcMap(mutable_left.get(), mapper);
     MutableTransducer mutable_right(right);
-    ::fst::Project(&mutable_right, ::fst::PROJECT_OUTPUT);
+    ::fst::Project(&mutable_right, ::fst::ProjectType::OUTPUT);
     ::fst::RmEpsilon(&mutable_right);
     MutableTransducer determinized_right;
     ::fst::Determinize(mutable_right, &determinized_right);
@@ -151,8 +151,8 @@ class AssertEqual : public BinaryFstFunction<Arc> {
   // debug message.
   static void CoerceToString(const MutableTransducer& fst, std::string* str,
                              const ::fst::SymbolTable* symbols = nullptr) {
-    const ::fst::StringPrinter<Arc> printer(
-        ::fst::StringTokenType::BYTE, symbols);
+    const ::fst::StringPrinter<Arc> printer(::fst::TokenType::BYTE,
+                                                symbols);
     if (fst.Properties(::fst::kString, true) == ::fst::kString) {
       printer(fst, str);
     } else {

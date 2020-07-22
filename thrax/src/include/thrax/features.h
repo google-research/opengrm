@@ -128,7 +128,7 @@ class Feature : public Function<Arc> {
  protected:
   DataType* Execute(const std::vector<DataType*>& args) final {
     CHECK_GE(args.size(), 2);
-    enum ::fst::StringTokenType mode = ::fst::StringTokenType::BYTE;
+    enum ::fst::TokenType mode = ::fst::TokenType::BYTE;
     const ::fst::SymbolTable* symtab = nullptr;
     // First argument is the name of the feature
     if (!args[0]->is<std::string>()) {
@@ -162,14 +162,14 @@ class Feature : public Function<Arc> {
     if (args[i]->is<::fst::SymbolTable>()) {
       CHECK_GE(args.size(), 3);
       symtab = args[i]->get<::fst::SymbolTable>();
-      mode = ::fst::StringTokenType::SYMBOL;
+      mode = ::fst::TokenType::SYMBOL;
     } else if (args[i]->is<std::string>()) {
       const auto& arg = *args[i]->get<std::string>();
       if (arg == "utf8") {
-        mode = ::fst::StringTokenType::UTF8;
+        mode = ::fst::TokenType::UTF8;
         if (FLAGS_save_symbols) symtab = GetUtf8SymbolTable();
       } else if (arg == "byte") {
-        mode = ::fst::StringTokenType::BYTE;
+        mode = ::fst::TokenType::BYTE;
         if (FLAGS_save_symbols) symtab = GetByteSymbolTable();
       } else {
         feature_values.push_back(arg);
@@ -205,7 +205,7 @@ class Feature : public Function<Arc> {
       if (symtab) {
         fst->SetInputSymbols(symtab);
         fst->SetOutputSymbols(symtab);
-      } else if (mode == ::fst::StringTokenType::UTF8) {
+      } else if (mode == ::fst::TokenType::UTF8) {
         fst->SetInputSymbols(GetUtf8SymbolTable());
         fst->SetOutputSymbols(GetUtf8SymbolTable());
       } else {

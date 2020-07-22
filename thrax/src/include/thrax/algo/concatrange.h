@@ -67,6 +67,19 @@ void SetStartFinal(MutableFst<Arc> *fst) {
 template <class Arc>
 void ConcatRange(MutableFst<Arc> *fst, int32 lower = 0, int32 upper = 0) {
   if (fst->Start() == kNoStateId) return;
+  if (lower < 0 || upper < 0) {
+    fst->SetProperties(kError, kError);
+    FSTERROR() << "ConcatRange: range bounds must be positive, got {" << lower
+               << "," << upper << "}";
+    return;
+  }
+  if (upper && lower > upper) {
+    fst->SetProperties(kError, kError);
+    FSTERROR()
+        << "ConcatRange: lower bound cannot be greater than upper bound, got {"
+        << lower << "," << upper << "}";
+    return;
+  }
   const std::unique_ptr<const MutableFst<Arc>> copy(fst->Copy());
   if (upper == 0) {
     // Infinite upper bound.

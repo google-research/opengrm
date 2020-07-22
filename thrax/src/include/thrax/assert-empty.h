@@ -46,7 +46,7 @@ class AssertEmpty : public UnaryFstFunction<Arc> {
     }
     std::unique_ptr<MutableTransducer> mutable_left(
         new MutableTransducer(left));
-    ::fst::Project(mutable_left.get(), ::fst::PROJECT_OUTPUT);
+    ::fst::Project(mutable_left.get(), ::fst::ProjectType::OUTPUT);
     ::fst::RmEpsilon(mutable_left.get());
     if (mutable_left->NumStates() == 1 &&
         mutable_left->NumArcs(0) == 0 &&

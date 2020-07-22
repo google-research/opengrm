@@ -11,10 +11,10 @@
 namespace fst {
 
 template <class Arc>
-bool PrintString(const Fst<Arc> &fst, std::string *str,
-                 StringTokenType ttype = BYTE,
-                 const SymbolTable *syms = nullptr) {
-  const StringPrinter<Arc> printer(ttype, syms);
+bool StringPrint(const Fst<Arc> &fst, std::string *str,
+                 TokenType token_type = TokenType::BYTE,
+                 const SymbolTable *symbols = nullptr) {
+  const StringPrinter<Arc> printer(token_type, symbols);
   return printer(fst, str);
 }
 

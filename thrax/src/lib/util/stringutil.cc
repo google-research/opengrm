@@ -1,4 +1,4 @@
-#include <thrax/algo/stripcomment.h>
+#include <thrax/algo/stringutil.h>
 
 #include <thrax/compat/utils.h>
 
@@ -20,13 +20,28 @@ std::string StripComment(const std::string &line) {
 }
 
 std::string RemoveEscape(const std::string &line) {
-  return thrax::StringReplace(StripComment(line), "\\#", "#", true);
+  return thrax::StringReplace(line, "\\#", "#", true);
 }
 
 }  // namespace
 
 std::string StripCommentAndRemoveEscape(const std::string &line) {
   return RemoveEscape(StripComment(line));
+}
+
+std::string Escape(const std::string &str) {
+  std::string result;
+  result.reserve(str.size());
+  for (char ch : str) {
+    switch (ch) {
+      case '[':
+      case ']':
+      case '\\':
+        result.push_back('\\');
+    }
+    result.push_back(ch);
+  }
+  return result;
 }
 
 }  // namespace fst

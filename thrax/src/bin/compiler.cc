@@ -1,6 +1,7 @@
 // Main compiler entry point, compiling a GRM source file into an FST archive.
 
 #include <thrax/compiler.h>
+
 #include <thrax/compat/utils.h>
 #include <thrax/grm-compiler.h>
 #include <thrax/grm-manager.h>

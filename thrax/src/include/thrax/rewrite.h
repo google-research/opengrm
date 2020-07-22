@@ -11,7 +11,7 @@
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
 #include <fst/fstlib.h>
-#include <thrax/algo/crossproduct.h>
+#include <thrax/algo/cross.h>
 #include <thrax/datatype.h>
 #include <thrax/function.h>
 
@@ -50,7 +50,7 @@ class Rewrite : public BinaryFstFunction<Arc> {
       }
     }
     auto* output = new MutableTransducer();
-    ::fst::CrossProduct(left, right, output);
+    ::fst::Cross(left, right, output);
     return output;
   }
 

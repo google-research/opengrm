@@ -18,11 +18,13 @@
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
-#include <fst/fstlib.h>
+#include <fst/fst.h>
+#include <fst/symbol-table.h>
+#include <fst/vector-fst.h>
 #include <thrax/algo/cdrewrite.h>
+#include <thrax/algo/stringcompile.h>
 #include <thrax/datatype.h>
 #include <thrax/function.h>
-#include <thrax/stringfst.h>
 
 DECLARE_bool(save_symbols);  // From util/flags.cc.
 
@@ -158,7 +160,7 @@ class CDRewrite : public Function<Arc> {
     }
     auto* output = new MutableTransducer();
     ::fst::CDRewriteCompile(tau, lambda, rho, sigma, output, dir, mode,
-                                kInitialBoundaryLabel, kFinalBoundaryLabel);
+                                ::fst::kBosIndex, ::fst::kEosIndex);
     if (FLAGS_save_symbols) {
       output->SetInputSymbols(symbols);
       output->SetOutputSymbols(symbols);

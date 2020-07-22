@@ -27,12 +27,13 @@ using ::fst::kNoStateId;
 using ::fst::LabelsToUTF8String;
 using ::fst::PathIterator;
 using ::fst::Project;
-using ::fst::PROJECT_OUTPUT;
+using ::fst::ProjectType;
 using ::fst::RmEpsilon;
 using ::fst::ShortestPath;
 using ::fst::StdArc;
 using ::fst::StdVectorFst;
 using ::fst::SymbolTable;
+using ::fst::TokenType;
 
 using Label = StdArc::Label;
 
@@ -47,7 +48,7 @@ inline bool AppendLabel(Label label, TokenType type,
     if (generated_symtab && !generated_symtab->Find(label).empty()) {
       const auto &sym = generated_symtab->Find(label);
       *path += "[" + sym + "]";
-    } else if (type == SYMBOL) {
+    } else if (type == TokenType::SYMBOL) {
       const auto &sym = symtab->Find(label);
       if (sym.empty()) {
         LOG(ERROR) << "Missing symbol in symbol table for id: " << label;
@@ -57,9 +58,9 @@ inline bool AppendLabel(Label label, TokenType type,
       // space-separated.
       if (!path->empty()) *path += FLAGS_field_separator;
       *path += sym;
-    } else if (type == BYTE) {
+    } else if (type == TokenType::BYTE) {
       path->push_back(label);
-    } else if (type == UTF8) {
+    } else if (type == TokenType::UTF8) {
       std::string utf8_string;
       std::vector<Label> labels;
       labels.push_back(label);
@@ -86,7 +87,7 @@ bool FstToStrings(const StdVectorFst &fst,
     // The uniqueness feature of ShortestPath requires us to have an acceptor,
     // so we project and remove epsilon arcs.
     StdVectorFst temp(fst);
-    Project(&temp, PROJECT_OUTPUT);
+    Project(&temp, ProjectType::OUTPUT);
     RmEpsilon(&temp);
     ShortestPath(temp, &shortest_path, n, /*unique=*/true);
   }

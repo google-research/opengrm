@@ -1,4 +1,4 @@
-AC_INIT([Thrax], [1.3.3], [help@opengrm.org])
+AC_INIT([Thrax], [1.3.4], [help@opengrm.org])
 AM_INIT_AUTOMAKE([foreign nostdinc -Wall -Werror])
 AM_PROG_AR
 
@@ -12,7 +12,7 @@ AC_DISABLE_STATIC
 AC_PROG_YACC
 
 AC_CONFIG_HEADERS([config.h])
-AC_CONFIG_SRCDIR([src/lib/main/grm-manager.cc])
+AC_CONFIG_SRCDIR([src/lib/main/grm-compiler.cc])
 AC_CONFIG_FILES([
   Makefile
   src/Makefile

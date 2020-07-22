@@ -1,7 +1,9 @@
 #ifndef FST_UTIL_STRING_PREFIX_TREE_H_
 #define FST_UTIL_STRING_PREFIX_TREE_H_
 
+#include <array>
 #include <map>
+#include <memory>
 #include <stack>
 #include <utility>
 
@@ -9,41 +11,185 @@
 #include <thrax/compat/compat.h>
 #include <fst/arc.h>
 #include <fst/vector-fst.h>
-#include <thrax/compat/stlfunctions.h>
 
 namespace fst {
+namespace internal {
+
+template <class Label, class StateId, class Node>
+Node *LookupOrInsertChild(std::map<Label, std::unique_ptr<Node>> *children,
+                          Label label, StateId *num_states) {
+  std::unique_ptr<Node> &value = (*children)[label];
+  if (!value) value = fst::make_unique<Node>((*num_states)++);
+  return value.get();
+}
+
+template <class Arc>
+class BaseONode {
+ public:
+  using StateId = typename Arc::StateId;
+  using ArcWeight = typename Arc::Weight;
+
+  explicit BaseONode(StateId state)
+      : weight_(ArcWeight::Zero()), state_(state) {}
+
+  const ArcWeight &Weight() const { return weight_; }
+
+  StateId State() const { return state_; }
+
+  void SetWeight(ArcWeight &&weight) { weight_ = weight; }
+
+ protected:
+  ArcWeight weight_;
+  const StateId state_;
+};
+
+template <class StateId, class ONode>
+class BaseINode {
+ public:
+  explicit BaseINode(StateId state) : onode_(nullptr), state_(state) {}
+
+  const ONode *Output() const { return onode_.get(); }
+
+  ONode *Output() { return onode_.get(); }
+
+  StateId State() const { return state_; }
+
+ protected:
+  std::unique_ptr<ONode> onode_;
+  const StateId state_;
+};
+
+// Prefix tree node for the output labels of the FST.
+template <class A>
+struct PrefixTreeTransducerPolicy {
+  using Arc = A;
+  using Label = typename Arc::Label;
+  using StateId = typename Arc::StateId;
+  using ArcWeight = typename Arc::Weight;
+
+  class ONode : public BaseONode<Arc> {
+   public:
+    using ChildMap = std::map<Label, std::unique_ptr<ONode>>;
+
+    explicit ONode(StateId state) : BaseONode<Arc>(state) {}
+
+    const ChildMap &Children() const { return children_; }
+
+    ONode *LookupOrInsertChild(Label label, StateId *num_states) {
+      return internal::LookupOrInsertChild(&children_, label, num_states);
+    }
+
+   private:
+    ChildMap children_;
+  };
+
+  class INode : public BaseINode<StateId, ONode> {
+   public:
+    using ChildMap = std::map<Label, std::unique_ptr<INode>>;
+
+    explicit INode(StateId state): BaseINode<StateId, ONode>(state) {}
+
+    const ChildMap &Children() const { return children_; }
+
+    INode *LookupOrInsertChild(Label label, StateId *num_states) {
+      return internal::LookupOrInsertChild(&children_, label, num_states);
+    }
+
+    void InsertONode(StateId *num_states) {
+      using Base = BaseINode<StateId, ONode>;
+      Base::onode_ = fst::make_unique<ONode>((*num_states)++);
+    }
+
+   private:
+    ChildMap children_;
+  };
+
+  static Arc MakeIArc(Label label, const INode *dest) {
+    return Arc(label, 0, dest->State());
+  }
+
+  static Arc MakeOArc(Label label, const ONode *dest) {
+    return Arc(0, label, dest->State());
+  }
+
+  static void InputOutputBridge(MutableFst<Arc> *fst, StateId start,
+                                const ONode *onode) {
+    fst->AddArc(start, Arc(0, 0, onode->State()));
+  }
+
+  static constexpr bool IsAcceptor() { return false; }
+};
+
+template <class A>
+struct PrefixTreeAcceptorPolicy {
+ public:
+  using Arc = A;
+  using Label = typename Arc::Label;
+  using StateId = typename Arc::StateId;
+  using ArcWeight = typename Arc::Weight;
+
+  class ONode : public BaseONode<Arc> {
+   public:
+    explicit ONode(StateId state) : BaseONode<Arc>(state) {}
+
+    // Returns a constexpr empty container.
+    static constexpr std::array<std::pair<Label, std::unique_ptr<ONode>>, 0>
+    Children() {
+      return {};
+    }
+
+    static constexpr ONode *LookupOrInsertChild(Label, StateId *) {
+      return nullptr;
+    }
+  };
+
+  class INode : public BaseINode<StateId, ONode> {
+   public:
+    using ChildMap = std::map<Label, std::unique_ptr<INode>>;
+
+    explicit INode(StateId state): BaseINode<StateId, ONode>(state) {}
+
+    const ChildMap &Children() const { return children_; }
+
+    INode *LookupOrInsertChild(Label label, StateId *num_states) {
+      return internal::LookupOrInsertChild(&children_, label, num_states);
+    }
+
+    void InsertONode(StateId *unused_num_states) {
+      using Base = BaseINode<StateId, ONode>;
+      // Make the ONode copy the INode's StateId, and not increment external
+      // `num_states`.
+      Base::onode_ = fst::make_unique<ONode>(Base::state_);
+    }
+
+   private:
+    ChildMap children_;
+  };
+
+  static Arc MakeIArc(Label label, const INode *dest) {
+    return Arc(label, label, dest->State());
+  }
+
+  static Arc MakeOArc(Label label, const ONode *dest) {
+    return Arc(0, 0, dest->State());
+  }
+
+  static void InputOutputBridge(MutableFst<Arc> *, StateId, const ONode *) {}
+
+  static constexpr bool IsAcceptor() { return true; }
+};
 
 // This class is neither thread-safe nor thread-hostile.
-template <class Arc>
+template <class Arc, class Policy>
 class PrefixTree {
  public:
   using Label = typename Arc::Label;
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
-
-  struct ONode;  // Forward declaration.
-
-  // Prefix tree node for the input labels of the FST.
-  struct INode {
-    std::map<Label, INode *> children;
-    ONode *output;
-    StateId state;
-
-    INode() : output(nullptr), state(kNoStateId) {}
-  };
-
-  // Prefix tree node for the output labels of the FST.
-  struct ONode {
-    std::map<Label, ONode *> children;
-    Weight weight;
-    StateId state;
-
-    ONode() : weight(Weight::Zero()), state(kNoStateId) {}
-  };
+  using ONode = typename Policy::ONode;
+  using INode = typename Policy::INode;
 
   PrefixTree() : num_states_(0), root_(nullptr) {}
-
-  ~PrefixTree() { Clear(); }
 
   StateId NumStates() const { return num_states_; }
 
@@ -54,26 +200,22 @@ class PrefixTree {
            T &&weight) {
     if (!root_) {
       CHECK_EQ(0, num_states_);
-      root_ = new INode();
-      root_->state = num_states_++;
+      root_ = fst::make_unique<INode>(num_states_++);
     }
-    INode *inode = root_;
-    for (; it1 != end1; ++it1) {
-      if (!*it1) continue;  // Skips over epsilons.
-      inode = thrax::LookupOrInsertNew(&inode->children, *it1);
-      if (kNoStateId == inode->state) inode->state = num_states_++;
+    INode *inode = root_.get();
+    for (Label ilabel : fst::make_range(it1, end1)) {
+      if (!ilabel) continue;  // Skips over epsilons.
+      inode = inode->LookupOrInsertChild(ilabel, &num_states_);
     }
-    if (!inode->output) {
-      inode->output = new ONode();
-      inode->output->state = num_states_++;
+    if (!inode->Output()) inode->InsertONode(&num_states_);
+    ONode *onode = inode->Output();
+    if (!Policy::IsAcceptor()) {
+      for (Label olabel : fst::make_range(it2, end2)) {
+        if (!olabel) continue;  // Skips over epsilons.
+        onode = onode->LookupOrInsertChild(olabel, &num_states_);
+      }
     }
-    ONode *onode = inode->output;
-    for (; it2 != end2; ++it2) {
-      if (!*it2) continue;  // Skips over epsilons.
-      onode = thrax::LookupOrInsertNew(&onode->children, *it2);
-      if (kNoStateId == onode->state) onode->state = num_states_++;
-    }
-    onode->weight = Plus(onode->weight, std::forward<T>(weight));
+    onode->SetWeight(Plus(onode->Weight(), std::forward<T>(weight)));
   }
 
   // With semiring One as a default.
@@ -96,36 +238,6 @@ class PrefixTree {
 
   // Removes all elements from this prefix tree.
   void Clear() {
-    if (!root_) {
-      CHECK_EQ(0, num_states_);
-      return;
-    }
-    std::stack<INode *> iq;
-    std::stack<ONode *> oq;
-    // First, performs a simple depth-first traversal over the input trie,
-    // starting at the root node. Node coloring is not needed, since we're
-    // dealing with a tree.
-    iq.push(root_);
-    while (!iq.empty()) {
-      INode *inode = iq.top();
-      iq.pop();
-      // Found a root node of an output trie.
-      if (inode->output) oq.push(inode->output);
-      for (const auto &item : inode->children) {
-        iq.push(item.second);
-      }
-      delete inode;
-    }
-    // Second, perform simple depth-first traversals over the output tries,
-    // starting at their root nodes.
-    while (!oq.empty()) {
-      ONode *onode = oq.top();
-      oq.pop();
-      for (const auto &item : onode->children) {
-        oq.push(item.second);
-      }
-      delete onode;
-    }
     num_states_ = 0;
     root_ = nullptr;
   }
@@ -140,46 +252,58 @@ class PrefixTree {
     // For the creation of the FST to be efficient, we reserve enough space
     // for the states and arcs to avoid reallocation and internal copying.
     fst->AddStates(num_states_);
-    fst->SetStart(root_->state);
-    std::stack<INode *> iq;
-    std::stack<ONode *> oq;
-    iq.push(root_);
+    fst->SetStart(root_->State());
+    std::stack<const INode *> iq;
+    std::stack<const ONode *> oq;
+    iq.push(root_.get());
     while (!iq.empty()) {
-      INode *inode = iq.top();
+      const INode *inode = iq.top();
       iq.pop();
-      const auto q = inode->state;
+      const auto q = inode->State();
       CHECK_NE(kNoStateId, q);
-      ONode *onode = inode->output;
-      fst->ReserveArcs(q, (onode ? 1 : 0) + inode->children.size());
+      const ONode *onode = inode->Output();
+      fst->ReserveArcs(q, (onode ? 1 : 0) + inode->Children().size());
       if (onode) {
-        fst->AddArc(q, Arc(0, 0, onode->state));
+        Policy::InputOutputBridge(fst, q, onode);
         oq.push(onode);
       }
-      for (const auto &item : inode->children) {
-        fst->AddArc(q, Arc(item.first, 0, item.second->state));
-        iq.push(item.second);
+      for (const auto &item : inode->Children()) {
+        fst->AddArc(q, Policy::MakeIArc(item.first, item.second.get()));
+        iq.push(item.second.get());
       }
     }
     while (!oq.empty()) {
-      ONode *onode = oq.top();
+      const ONode *onode = oq.top();
       oq.pop();
-      const auto q = onode->state;
+      const auto q = onode->State();
       CHECK_NE(kNoStateId, q);
-      for (const auto &item : onode->children) {
-        fst->AddArc(q, Arc(0, item.first, item.second->state));
-        oq.push(item.second);
+      for (const auto &item : onode->Children()) {
+        fst->AddArc(q, Policy::MakeOArc(item.first, item.second.get()));
+        oq.push(item.second.get());
       }
-      fst->SetFinal(q, onode->weight);
+      fst->SetFinal(q, onode->Weight());
     }
   }
 
  private:
   StateId num_states_;
-  INode *root_;
+  std::unique_ptr<INode> root_;
 
   PrefixTree(const PrefixTree &) = delete;
   PrefixTree &operator=(const PrefixTree &) = delete;
 };
+
+}  // namespace internal
+
+template <class Arc>
+using TransducerPrefixTree =
+    internal::PrefixTree<Arc, internal::PrefixTreeTransducerPolicy<Arc>>;
+
+// Note that during `Add`, an `AcceptorPrefixTree` only looks at the first of
+// the two strings passed.
+template <class Arc>
+using AcceptorPrefixTree =
+    internal::PrefixTree<Arc, internal::PrefixTreeAcceptorPolicy<Arc>>;
 
 }  // namespace fst
 
