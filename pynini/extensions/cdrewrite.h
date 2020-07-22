@@ -44,7 +44,7 @@
 #include <fst/rmepsilon.h>
 #include <fst/vector-fst.h>
 #include "checkprops.h"
-#include "crossproduct.h"
+#include "cross.h"
 #include "optimize.h"
 
 namespace fst {
@@ -546,7 +546,7 @@ void CDRewriteRule<Arc>::Compile(const Fst<Arc> &sigma, MutableFst<Arc> *fst,
   if (phiXpsi_) {
     ArcMap(*psi_, &replace, imapper);
   } else {
-    CrossProduct<Arc>(*phi_, *psi_, &replace);
+    Cross(*phi_, *psi_, &replace);
   }
   MakeReplace(&replace, mutable_sigma);
   switch (dir_) {
@@ -918,7 +918,7 @@ void CDRewriteCompile(const Fst<Arc> &tau, const Fst<Arc> &lambda,
                       typename Arc::Label initial_boundary_marker = kNoLabel,
                       typename Arc::Label final_boundary_marker = kNoLabel) {
   VectorFst<Arc> phi(tau);
-  Project(&phi, PROJECT_INPUT);
+  Project(&phi, ProjectType::INPUT);
   ArcMap(&phi, RmWeightMapper<Arc>());
   Optimize(&phi);
   CDRewriteCompile(phi, tau, lambda, rho, sigma, fst, dir, mode, true,

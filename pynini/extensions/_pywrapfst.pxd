@@ -41,6 +41,8 @@ cdef string tostring(data) except *
 
 cdef string weight_tostring(data) except *
 
+cdef string path_tostring(data) except *
+
 cdef fst.ComposeFilter _get_compose_filter(
     const string &compose_filter) except *
 
@@ -59,10 +61,10 @@ cdef fst.ReplaceLabelType _get_replace_label_type(
 # Weight.
 
 
-cdef fst.WeightClass _get_WeightClass_or_One(const string &weight_type,
+cdef fst.WeightClass _get_WeightClass_or_one(const string &weight_type,
                                              weight_string) except *
 
-cdef fst.WeightClass _get_WeightClass_or_Zero(const string &weight_type,
+cdef fst.WeightClass _get_WeightClass_or_zero(const string &weight_type,
                                               weight_string) except *
 
 
@@ -81,11 +83,11 @@ cdef class Weight(object):
   cpdef bool member(self)
 
 
-cdef Weight _Zero(weight_type)
+cdef Weight _zero(weight_type)
 
-cdef Weight _One(weight_type)
+cdef Weight _one(weight_type)
 
-cdef Weight _NoWeight(weight_type)
+cdef Weight _no_weight(weight_type)
 
 cdef Weight _plus(Weight lhs, Weight rhs)
 
@@ -215,8 +217,6 @@ cdef class EncodeMapper(object):
 
   cpdef uint8 flags(self)
 
-  cpdef uint64 properties(self, uint64 mask)
-
   cpdef void write(self, source) except *
 
   cpdef bytes write_to_string(self)
@@ -297,19 +297,9 @@ cdef class Fst(object):
                     bool show_weight_one=?,
                     missing_sym=?) except *
 
-  cpdef uint64 properties(self, uint64 mask, bool test)
-
   cpdef int64 start(self)
 
   cpdef StateIterator states(self)
-
-  cpdef string text(self,
-                    SymbolTableView isymbols=?,
-                    SymbolTableView osymbols=?,
-                    SymbolTableView ssymbols=?,
-                    bool acceptor=?,
-                    bool show_weight_one=?,
-                    missing_sym=?) except *
 
   cpdef bool verify(self)
 
@@ -356,7 +346,7 @@ cdef class MutableFst(Fst):
 
   cpdef int64 num_states(self)
 
-  cdef void _project(self, bool project_output=?) except *
+  cdef void _project(self, project_type) except *
 
   cdef void _prune(self, float delta=?, int64 nstate=?, weight=?) except *
 
@@ -391,8 +381,6 @@ cdef class MutableFst(Fst):
                        float delta=?) except *
 
   cdef void _set_final(self, int64 state, weight=?) except *
-
-  cdef void _set_properties(self, uint64 props, uint64 mask)
 
   cdef void _set_start(self, int64 state) except *
 
@@ -578,11 +566,12 @@ cpdef MutableFst replace(pairs,
 
 cpdef MutableFst reverse(Fst ifst, bool require_superinitial=?)
 
-cdef vector[fst.WeightClass] *_shortestdistance(Fst ifst,
-                                                float delta=?,
-                                                int64 nstate=?,
-                                                queue_type=?,
-                                                bool reverse=?) except *
+cdef void _shortestdistance(Fst ifst,
+                            vector[fst.WeightClass] *,
+                            float delta=?,
+                            int64 nstate=?,
+                            queue_type=?,
+                            bool reverse=?) except *
 
 cpdef MutableFst shortestpath(Fst ifst,
                               float delta=?,

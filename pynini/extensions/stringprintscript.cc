@@ -18,15 +18,15 @@
 namespace fst {
 namespace script {
 
-bool PrintString(const FstClass &fst, std::string *str, StringTokenType ttype,
-                 const SymbolTable *syms) {
-  PrintStringInnerArgs iargs(fst, str, ttype, syms);
-  PrintStringArgs args(iargs);
-  Apply<Operation<PrintStringArgs>>("PrintString", fst.ArcType(), &args);
+bool StringPrint(const FstClass &fst, std::string *str, TokenType token_type,
+                 const SymbolTable *symbols) {
+  StringPrintInnerArgs iargs(fst, str, token_type, symbols);
+  StringPrintArgs args(iargs);
+  Apply<Operation<StringPrintArgs>>("StringPrint", fst.ArcType(), &args);
   return args.retval;
 }
 
-REGISTER_FST_OPERATION_3ARCS(PrintString, PrintStringArgs);
+REGISTER_FST_OPERATION_3ARCS(StringPrint, StringPrintArgs);
 
 }  // namespace script
 }  // namespace fst

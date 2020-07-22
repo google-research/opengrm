@@ -18,6 +18,7 @@
 
 
 from libcpp cimport bool
+from libcpp.memory cimport unique_ptr
 from libcpp.string cimport string
 from libcpp.utility cimport pair
 from libcpp.vector cimport vector
@@ -30,6 +31,7 @@ from cpywrapfst cimport FstClass
 from cpywrapfst cimport MutableFstClass
 from cpywrapfst cimport QueueType
 from cpywrapfst cimport SymbolTable
+from cpywrapfst cimport TokenType
 from cpywrapfst cimport WeightClass
 
 
@@ -154,16 +156,11 @@ cdef extern from "<fst/extensions/pdt/pdtscript.h>" \
                        const PdtShortestPathOptions &)
 
 
-cdef extern from "<fst/fstlib.h>" namespace "fst" nogil:
+cdef extern from "<fst/util.h>" namespace "fst" nogil:
 
   bool ReadLabelPairs[L](const string &, vector[pair[L, L]] *, bool)
 
   bool WriteLabelPairs[L](const string &, const vector[pair[L, L]] &)
-
-  enum StringTokenType:
-    SYMBOL
-    BYTE
-    UTF8
 
 
 cdef extern from "cdrewrite.h" \
@@ -206,17 +203,11 @@ cdef extern from "getters.h" \
 
   bool GetCDRewriteMode(const string &, CDRewriteMode *)
 
-  bool GetStringTokenType(const string &, StringTokenType *)
 
-
-cdef extern from "crossproductscript.h" \
+cdef extern from "crossscript.h" \
     namespace "fst::script" nogil:
 
-  void CrossProduct(const FstClass &,
-                    const FstClass &,
-                    MutableFstClass *,
-                    const WeightClass &)
-
+  void Cross(const FstClass &, const FstClass &, MutableFstClass *)
 
 cdef extern from "lenientlycomposescript.h" \
     namespace "fst::script" nogil:
@@ -248,8 +239,8 @@ cdef extern from "pathsscript.h" \
   cdef cppclass StringPathIteratorClass:
 
     StringPathIteratorClass(const FstClass &,
-                            StringTokenType,
-                            StringTokenType,
+                            TokenType,
+                            TokenType,
                             const SymbolTable *,
                             const SymbolTable *)
 
@@ -272,22 +263,38 @@ cdef extern from "pathsscript.h" \
     WeightClass Weight()
 
 
+cdef extern from "defaults.h" namespace "fst" nogil:
+
+  TokenType GetDefaultTokenType()
+
+  const SymbolTable *GetDefaultSymbols()
+
+  void PushDefaults(TokenType token_type, const SymbolTable *);
+
+  void PopDefaults()
+
+
+cdef extern from "stringutil.h" \
+    namespace "fst" nogil:
+
+  string Escape(const string &)
+
+
 cdef extern from "stringcompile.h" \
     namespace "fst" nogil:
 
   int64 kBosIndex
   int64 kEosIndex
 
-  SymbolTable *GeneratedSymbols()
+  const SymbolTable &GeneratedSymbols()
 
 
 cdef extern from "stringcompilescript.h" \
     namespace "fst::script" nogil:
 
-
-  bool CompileString(const string &,
+  bool StringCompile(const string &,
                      MutableFstClass *,
-                     StringTokenType,
+                     TokenType,
                      const SymbolTable *,
                      const WeightClass &)
 
@@ -297,15 +304,15 @@ cdef extern from "stringmapscript.h" \
 
   bool StringFileCompile(const string &,
                          MutableFstClass *,
-                         StringTokenType,
-                         StringTokenType,
+                         TokenType,
+                         TokenType,
                          const SymbolTable *,
                          const SymbolTable *)
 
   bool StringMapCompile(const vector[vector[string]] &,
                         MutableFstClass *,
-                        StringTokenType,
-                        StringTokenType,
+                        TokenType,
+                        TokenType,
                         const SymbolTable *,
                         const SymbolTable *)
 
@@ -313,8 +320,8 @@ cdef extern from "stringmapscript.h" \
 cdef extern from "stringprintscript.h" \
     namespace "fst::script" nogil:
 
-  bool PrintString(const FstClass &,
+  bool StringPrint(const FstClass &,
                    string *,
-                   StringTokenType,
+                   TokenType,
                    const SymbolTable *)
 

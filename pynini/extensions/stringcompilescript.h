@@ -23,26 +23,26 @@
 namespace fst {
 namespace script {
 
-using CompileStringInnerArgs =
-    std::tuple<const std::string &, MutableFstClass *, StringTokenType,
+using StringCompileInnerArgs =
+    std::tuple<const std::string &, MutableFstClass *, TokenType,
                const SymbolTable *, const WeightClass &>;
 
-using CompileStringArgs = WithReturnValue<bool, CompileStringInnerArgs>;
+using StringCompileArgs = WithReturnValue<bool, StringCompileInnerArgs>;
 
 template <class Arc>
-void CompileString(CompileStringArgs *args) {
+void StringCompile(StringCompileArgs *args) {
   MutableFst<Arc> *fst = std::get<1>(args->args)->GetMutableFst<Arc>();
   const typename Arc::Weight weight =
       *(std::get<4>(args->args).GetWeight<typename Arc::Weight>());
   args->retval =
-      CompileString(std::get<0>(args->args), fst, std::get<2>(args->args),
+      StringCompile(std::get<0>(args->args), fst, std::get<2>(args->args),
                     std::get<3>(args->args), weight);
 }
 
 // As is sometimes the case, there are fewer default arguments for the scripting
 // API variant because we can't infer the underlying weight type.
-bool CompileString(const std::string &str, MutableFstClass *fst,
-                   StringTokenType ttype, const SymbolTable *syms,
+bool StringCompile(const std::string &str, MutableFstClass *fst,
+                   TokenType token_type, const SymbolTable *symbols,
                    const WeightClass &weight);
 
 }  // namespace script

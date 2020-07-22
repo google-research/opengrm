@@ -6,5 +6,5 @@ include NEWS
 include extensions/*
 include pynini/*
 include pywrapfst/*
-include pynini_test.py
-include testdata/*
+include tests/*
+include tests/testdata/*

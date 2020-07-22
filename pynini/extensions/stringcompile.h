@@ -16,17 +16,18 @@
 #ifndef PYNINI_STRINGCOMPILE_H_
 #define PYNINI_STRINGCOMPILE_H_
 
-#include <algorithm>
-#include <memory>
+#include <iterator>
+#include <map>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include <fst/types.h>
-#include <fst/fst-decl.h>
 #include <fst/icu.h>
+#include <fst/mutable-fst.h>
 #include <fst/properties.h>
 #include <fst/string.h>
+#include <fst/symbol-table.h>
 
 #include "gtl.h"
 
@@ -44,10 +45,9 @@
 //
 // Both the BYTE and UTF8 modes treat strings enclosed in square brackets as
 // "generated symbols". Generated symbols are stored within the compiler
-// object in a hash map. They are assigned unique integral indices. These
-// begin at 0xF0000, so if they are viewed as Unicode codepoints, they
-// reside in the roughly 130,000 private code points in planes 15-16
-// reserved for private use.
+// singleton. They are assigned unique integral indices, beginning at 0xF0000.
+// Therefore so if they are viewed as Unicode codepoints, they reside in the
+// roughly 130,000 code points in planes 15-16 reserved for private use.
 //
 // The user can optionally attach a final weight to the resulting FST.
 //
@@ -56,7 +56,6 @@
 
 namespace fst {
 
-constexpr char kGeneratedSymbolsName[] = "**Generated symbols";
 constexpr char kEpsilonString[] = "<epsilon>";
 
 // Special handling for BOS and EOS markers in CDRewrite.
@@ -70,104 +69,131 @@ namespace internal {
 // String compiler used by Pynini; used as a singleton.
 class StringCompiler {
  public:
-  static StringCompiler *Get() {
-    static auto *kInstance = [] { return new StringCompiler(); }();
-    return kInstance;
-  }
+  static StringCompiler *Get();
 
-  // Extracts a list of labels from an string. If ttype = SYMBOL, then the
-  // user must pass a symbol table used to label the string.
+  // Extracts a list of labels from an string. If token_type =
+  // TokenType::SYMBOL, then the user must pass a symbol table used to label the
+  // string.
   template <class Label>
   bool StringToLabels(const std::string &str, std::vector<Label> *labels,
-                      StringTokenType ttype = BYTE,
-                      const SymbolTable *syms = nullptr) {
-    if (ttype == BYTE || ttype == UTF8) {
-      bool inside_brackets = false;
-      std::string chunk;
-      for (auto it = str.begin(); it != str.end(); ++it) {
-        char ch = *it;
-        if (*it == '[') {
-          if (inside_brackets) {
-            LOG(ERROR) << "StringToLabels: Unmatched [";
-            return false;
-          }
-          if (!ProcessUnbracketedSpan(chunk, labels, ttype == BYTE)) {
-            return false;
-          }
-          chunk.clear();
-          inside_brackets = true;
-        } else if (ch == ']') {
-          if (!inside_brackets) {
-            LOG(ERROR) << "StringToLabels: Unmatched ]";
-            return false;
-          }
-          if (!ProcessBracketedSpan(chunk, labels)) return false;
-          chunk.clear();
-          inside_brackets = false;
-        } else {
-          if (ch == '\\') {
-            if (++it == str.end()) {
-              LOG(ERROR) << "StringToLabels: Unterminated escape";
+                      TokenType token_type = TokenType::BYTE,
+                      const SymbolTable *symbols = nullptr) {
+    switch (token_type) {
+      case TokenType::BYTE:
+      case TokenType::UTF8: {
+        bool inside_brackets = false;
+        std::string chunk;
+        for (auto it = str.begin(); it != str.end(); ++it) {
+          char ch = *it;
+          if (ch == '[') {
+            if (inside_brackets) {
+              LOG(ERROR) << "StringToLabels: Unmatched [";
               return false;
-            } else {
-              ch = *it;
             }
-            switch (ch) {
-              case 'n': {
-                ch = '\n';
-                break;
-              }
-              case 'r': {
-                ch = '\r';
-                break;
-              }
-              case 't': {
-                ch = '\t';
-                break;
+            if (!ProcessUnbracketedSpan(chunk, labels,
+                                        token_type == TokenType::BYTE)) {
+              return false;
+            }
+            chunk.clear();
+            inside_brackets = true;
+          } else if (ch == ']') {
+            if (!inside_brackets) {
+              LOG(ERROR) << "StringToLabels: Unmatched ]";
+              return false;
+            }
+            if (!ProcessBracketedSpan(chunk, labels)) return false;
+            chunk.clear();
+            inside_brackets = false;
+          } else {
+            if (ch == '\\') {
+              // Final single and double backslash both compile to the same.
+              if (it != std::prev(str.end())) ch = *(++it);
+              switch (ch) {
+                case 'n': {
+                  ch = '\n';
+                  break;
+                }
+                case 'r': {
+                  ch = '\r';
+                  break;
+                }
+                case 't': {
+                  ch = '\t';
+                  break;
+                }
+                case '[':
+                case ']':
+                case '\\': {
+                  // Keeps these escaped character values the same (while
+                  // dropping the backslash).
+                  break;
+                }
+                default: {
+                  chunk += '\\';
+                }
               }
             }
+            chunk += ch;
           }
-          chunk += ch;
         }
-      }
-      if (inside_brackets) {
-        LOG(ERROR) << "StringToLabels: Unmatched [";
-        return false;
-      }
-      return ProcessUnbracketedSpan(chunk, labels, ttype == BYTE);
-    } else {  // ttype == SYMBOL
-      for (const auto token : strings::Split(str, ' ')) {
-        const Label label = syms->Find(token);
-        if (label == kNoSymbol) {
-          LOG(ERROR) << "SymbolStringToLabels: Symbol \"" << token << "\" "
-                     << "is not mapped to any integer label in symbol table "
-                     << syms->Name();
+        if (inside_brackets) {
+          LOG(ERROR) << "StringToLabels: Unmatched [";
           return false;
         }
-        labels->emplace_back(label);
+        return ProcessUnbracketedSpan(chunk, labels,
+                                      token_type == TokenType::BYTE);
+      }
+      case TokenType::SYMBOL: {
+        // The empty string is valid.
+        if (str.empty()) return true;
+        for (const auto token : strings::Split(str, ' ')) {
+          const Label label = symbols->Find(token);
+          if (label == kNoSymbol) {
+            LOG(ERROR) << "SymbolStringToLabels: Symbol \"" << token << "\" "
+                       << "is not mapped to any integer label in symbol table "
+                       << symbols->Name();
+            return false;
+          }
+          labels->emplace_back(label);
+        }
+        return true;
       }
     }
-    return true;
+    return false;  // Unreachable.
   }
 
   // This method combines parsing strings into labels (StringToLabels) and
   // compilation of labels into a string FST (LabelsToFst).
   //
-  // If ttype = SYMBOL, then the user must pass a symbol table used to label
-  // the string.
+  // If token_type = TokenType::SYMBOL, then the user must pass a symbol table
+  // used to label the string.
   template <class Arc>
   bool Compile(const std::string &str, MutableFst<Arc> *fst,
-               StringTokenType ttype = BYTE, const SymbolTable *syms = nullptr,
+               TokenType token_type = TokenType::BYTE,
+               const SymbolTable *symbols = nullptr,
                typename Arc::Weight weight = Arc::Weight::One()) {
     std::vector<typename Arc::Label> labels;
-    if (!StringToLabels(str, &labels, ttype, syms)) return false;
+    if (!StringToLabels(str, &labels, token_type, symbols)) {
+      LOG(ERROR) << "Failed to compile string `" << str << "`"
+                 << ", with token_type: " << token_type;
+      return false;
+    }
     LabelsToFst(labels, fst, weight);
     return true;
   }
 
-  // Returns a symbol table populated with the generated symbols. The caller
-  // owns the pointer.
-  SymbolTable *GeneratedSymbols() const;
+  // Returns a symbol table populated with the generated symbols.
+  const SymbolTable &GeneratedSymbols() const { return generated_; }
+
+  // Merges an existing `SymbolTable` of generated symbols (potentially from
+  // another thread or from a file read on disk) and merges its generated
+  // symbols into the generated symbols. This avoids conflicts between the two
+  // for future symbol generation. A remapping for FSTs labeled using the given
+  // generated SymbolTable will be populated during this run.
+  bool MergeIntoGeneratedSymbols(const SymbolTable &symtab,
+                                 std::map<int64, int64> *remap);
+  // Resets `StringCompiler` to its state at construction.
+  void Reset();
 
  private:
   // Standard constructor is private; other constructors are deleted. This
@@ -234,34 +260,43 @@ class StringCompiler {
     fst->SetProperties(props, props);
   }
 
-  // Map from generated symbols to labels.
-  std::unordered_map<std::string, int64> gensyms_;
+  SymbolTable generated_;
   // The highest-numbered generated symbol currently present.
-  int64 max_gensym_;
+  int64 max_generated_;
 };
 
 }  // namespace internal
 
-// The caller takes ownership.
-SymbolTable *GeneratedSymbols();
-
 // Convenience methods, to eliminate the need to call Get on the singleton.
 
+const SymbolTable &GeneratedSymbols();
+
+namespace thrax_internal {
+
+bool MergeIntoGeneratedSymbols(const SymbolTable &symtab,
+                               std::map<int64, int64> *remap);
+
+void ResetGeneratedSymbols();
+
+}  // namespace thrax_internal
+
 template <class Label>
-bool StringToLabels(const std::string &str, std::vector<Label> *labels,
-                    StringTokenType ttype = BYTE,
-                    const SymbolTable *syms = nullptr) {
+bool StringToLabels(const std::string &str,
+                                         std::vector<Label> *labels,
+                                         TokenType token_type = TokenType::BYTE,
+                                         const SymbolTable *symbols = nullptr) {
   static auto *compiler = internal::StringCompiler::Get();
-  return compiler->StringToLabels(str, labels, ttype, syms);
+  return compiler->StringToLabels(str, labels, token_type, symbols);
 }
 
 template <class Arc>
-bool CompileString(const std::string &str, MutableFst<Arc> *fst,
-                   StringTokenType ttype = BYTE,
-                   const SymbolTable *syms = nullptr,
-                   typename Arc::Weight weight = Arc::Weight::One()) {
+bool StringCompile(
+    const std::string &str, MutableFst<Arc> *fst,
+    TokenType token_type = TokenType::BYTE,
+    const SymbolTable *symbols = nullptr,
+    typename Arc::Weight weight = Arc::Weight::One()) {
   static auto *compiler = internal::StringCompiler::Get();
-  return compiler->Compile(str, fst, ttype, syms, weight);
+  return compiler->Compile(str, fst, token_type, symbols, weight);
 }
 
 }  // namespace fst

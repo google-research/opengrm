@@ -18,14 +18,16 @@
 
 from io import open
 from os import path
+from setuptools import Extension
+from setuptools import find_packages
+from setuptools import setup
 from sys import platform
 
 from Cython.Build import cythonize
-from setuptools import Extension, setup
 
 
 COMPILE_ARGS = [
-    "-std=c++17",
+    "-std=c++11",
     "-Wno-register",
     "-Wno-unused-function",
     "-Wno-unused-local-typedefs",
@@ -46,7 +48,6 @@ pywrapfst = Extension(
     libraries=LIBRARIES,
     sources=["extensions/_pywrapfst.pyx"],
 )
-
 pynini = Extension(
     name="_pynini",
     language="c++",
@@ -56,7 +57,8 @@ pynini = Extension(
         "extensions/_pynini.pyx",
         "extensions/cdrewritescript.cc",
         "extensions/concatrangescript.cc",
-        "extensions/crossproductscript.cc",
+        "extensions/crossscript.cc",
+        "extensions/defaults.cc",
         "extensions/getters.cc",
         "extensions/gtl.cc",
         "extensions/lenientlycomposescript.cc",
@@ -67,15 +69,17 @@ pynini = Extension(
         "extensions/stringfile.cc",
         "extensions/stringmapscript.cc",
         "extensions/stringprintscript.cc",
-        "extensions/stripcomment.cc",
+        "extensions/stringutil.cc",
     ],
 )
+
 
 this_directory = path.abspath(path.dirname(__file__))
 with open(path.join(this_directory, "README.md"), encoding="utf8") as source:
   long_description = source.read()
 
-__version__ = "2.1.1"
+
+__version__ = "2.1.2"
 
 
 def main() -> None:
@@ -94,7 +98,6 @@ def main() -> None:
           "machine learning",
       ],
       classifiers=[
-          "Programming Language :: Python :: 2.7",
           "Programming Language :: Python :: 3.6",
           "Programming Language :: Python :: 3.7",
           "Development Status :: 5 - Production/Stable",
@@ -111,10 +114,11 @@ def main() -> None:
       license="Apache 2.0",
       install_requires=["Cython >= 0.29"],
       ext_modules=cythonize([pywrapfst, pynini]),
-      packages=["pywrapfst", "pynini"],
+      packages=find_packages(exclude=["tests"]),
       package_data={
           "pywrapfst": ["__init__.pyi", "py.typed"],
-          "pynini": ["__init__.pyi", "py.typed"]
+          "pynini": ["__init__.pyi", "py.typed"],
+          "pynini.lib": ["py.typed"],
       },
       zip_safe=False,
   )

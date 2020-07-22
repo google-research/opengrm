@@ -42,19 +42,6 @@ bool GetCDRewriteMode(const std::string &str, CDRewriteMode *rm) {
   return true;
 }
 
-bool GetStringTokenType(const std::string &str, StringTokenType *ttype) {
-  if (str == "byte") {
-    *ttype = BYTE;
-  } else if (str == "utf8") {
-    *ttype = UTF8;
-  } else if (str == "symbol") {
-    *ttype = SYMBOL;
-  } else {
-    return false;
-  }
-  return true;
-}
-
 }  // namespace script
 }  // namespace fst
 

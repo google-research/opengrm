@@ -13,8 +13,8 @@
 // Copyright 2016 and onwards Google, Inc.
 //
 
-#ifndef PYNINI_CROSSPRODUCT_H_
-#define PYNINI_CROSSPRODUCT_H_
+#ifndef PYNINI_CROSS_H_
+#define PYNINI_CROSS_H_
 
 #include <fst/arc-map.h>
 #include <fst/compose.h>
@@ -32,27 +32,14 @@ namespace fst {
 // for the second argument (the lower language), it will act as if it had
 // already been projected onto its output.
 template <class Arc>
-void CrossProduct(
-    const Fst<Arc> &ifst1, const Fst<Arc> &ifst2, MutableFst<Arc> *ofst,
-    const typename Arc::Weight &final_weight = Arc::Weight::One()) {
-  using Weight = typename Arc::Weight;
-  // Composes the mapped lower language into the output FST.
+void Cross(const Fst<Arc> &ifst1, const Fst<Arc> &ifst2,
+           MutableFst<Arc> *ofst) {
   static const ComposeOptions opts(/*connect=*/true,
                                    /*filter_type=*/MATCH_FILTER);
-  Compose(RmEpsilonFst<Arc>(MakeArcMapFst(ifst1, OutputEpsilonMapper<Arc>())),
-          RmEpsilonFst<Arc>(MakeArcMapFst(ifst2, InputEpsilonMapper<Arc>())),
-          ofst, opts);
-  // If a specific final weight is requested, apply it to all final states.
-  if (final_weight != Weight::One()) {
-    for (StateIterator<MutableFst<Arc>> siter(*ofst); !siter.Done();
-         siter.Next()) {
-      const auto state = siter.Value();
-      const auto &old_final_weight = ofst->Final(state);
-      if (old_final_weight != Weight::Zero()) {
-        ofst->SetFinal(state, Times(old_final_weight, final_weight));
-      }
-    }
-  }
+  static const OutputEpsilonMapper<Arc> oeps;
+  static const InputEpsilonMapper<Arc> ieps;
+  Compose(RmEpsilonFst<Arc>(MakeArcMapFst(ifst1, oeps)),
+          RmEpsilonFst<Arc>(MakeArcMapFst(ifst2, ieps)), ofst, opts);
   // Copies symbol tables (if present).
   ofst->SetInputSymbols(ifst1.InputSymbols());
   ofst->SetOutputSymbols(ifst2.OutputSymbols());
@@ -60,5 +47,5 @@ void CrossProduct(
 
 }  // namespace fst
 
-#endif  // PYNINI_CROSSPRODUCT_H_
+#endif  // PYNINI_CROSS_H_
 

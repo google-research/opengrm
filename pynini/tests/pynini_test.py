@@ -14,8 +14,6 @@
 #
 # For general information on the Pynini grammar compilation library, see
 # pynini.opengrm.org.
-
-
 """Tests for the Pynini grammar compilation module."""
 
 import collections
@@ -26,7 +24,6 @@ import pickle
 import string
 import tempfile
 import unittest
-
 
 # This module is designed to be import-safe.
 from pynini import *
@@ -51,12 +48,12 @@ class CDRewriteTest(unittest.TestCase):
 
   # A -> B / C __ D.
   def testAGoesToBInTheContextOfCAndD(self):
-    a_to_b = cdrewrite(transducer("A", "B"), "C", "D", self.sigstar)
+    a_to_b = cdrewrite(cross("A", "B"), "C", "D", self.sigstar)
     self.TestRule(a_to_b, "CADCAD", "CBDCBD")
 
   # A -> B / C __ #.
   def testAGoesToBInTheContextOfCAndHash(self):
-    a_to_b = cdrewrite(transducer("A", "B"), "C", "[EOS]", self.sigstar)
+    a_to_b = cdrewrite(cross("A", "B"), "C", "[EOS]", self.sigstar)
     self.TestRule(a_to_b, "CA", "CB")
     self.TestRule(a_to_b, "CAB", "CAB")
 
@@ -64,25 +61,25 @@ class CDRewriteTest(unittest.TestCase):
   # s > r / V __ V.
   def testRhotacism(self):
     vowel = union("A", "E", "I", "O", "V")
-    rhotacism = cdrewrite(transducer("S", "R"), vowel, vowel, self.sigstar)
+    rhotacism = cdrewrite(cross("S", "R"), vowel, vowel, self.sigstar)
     self.TestRule(rhotacism, "LASES", "LARES")
 
   # Classical-Latin "Pre-s deletion":
   # [+cor] -> 0 / __ [+str] (condition: LTR)
   def testPreSDeletion(self):
-    pre_s_deletion = cdrewrite(transducer(self.coronal, ""), "", "S[EOS]",
-                               self.sigstar)
+    pre_s_deletion = cdrewrite(
+        cross(self.coronal, ""), "", "S[EOS]", self.sigstar)
     pre_s_deletion.optimize()
     self.TestRule(pre_s_deletion, "CONCORDS", "CONCORS")
-    self.TestRule(pre_s_deletion, "PVLTS", "PVLS")        # cf. gen.sg. PVLTIS
-    self.TestRule(pre_s_deletion, "HONORS", "HONOS")      # cf. gen.sg. HONORIS
+    self.TestRule(pre_s_deletion, "PVLTS", "PVLS")  # cf. gen.sg. PVLTIS
+    self.TestRule(pre_s_deletion, "HONORS", "HONOS")  # cf. gen.sg. HONORIS
     # cf. gen.sg. SANGVINIS
     self.TestRule(pre_s_deletion, "SANGVINS", "SANGVIS")
 
   # The same, but incorrectly applied RTL.
   def testPreSDeletionRTL(self):
-    pre_s_deletion_wrong = cdrewrite(transducer(self.coronal, ""), "",
-                                     "S[EOS]", self.sigstar, direction="rtl")
+    pre_s_deletion_wrong = cdrewrite(
+        cross(self.coronal, ""), "", "S[EOS]", self.sigstar, direction="rtl")
     # Should be CONCORS.
     self.TestRule(pre_s_deletion_wrong, "CONCORDS", "CONCOS")
 
@@ -90,8 +87,8 @@ class CDRewriteTest(unittest.TestCase):
   # 0 -> i / # __ [+str] [-cor, +con]
   def testProthesis(self):
     non_coronal_consonant = union("M", "P", "B", "K", "G")
-    prothesis = cdrewrite(transducer("", "I"), "[BOS]",
-                          "S" + non_coronal_consonant, self.sigstar)
+    prothesis = cdrewrite(
+        cross("", "I"), "[BOS]", "S" + non_coronal_consonant, self.sigstar)
     self.TestRule(prothesis, "SKUUL", "ISKUUL")  # "school"
 
   # TD-deletion in English:
@@ -99,31 +96,35 @@ class CDRewriteTest(unittest.TestCase):
   def testTDDeletion(self):
     cons = union("M", "P", "B", "F", "V", "N", "S", "Z", "T", "D", "L", "K",
                  "G")  # etc.
-    td_deletion = cdrewrite(transducer(union("T", "D"), ""), cons, "[EOS]",
-                            self.sigstar, direction="ltr", mode="opt")
+    td_deletion = cdrewrite(
+        cross(union("T", "D"), ""),
+        cons,
+        "[EOS]",
+        self.sigstar,
+        direction="ltr",
+        mode="opt")
     # Asserts that both are possible.
-    self.assertEqual(optimize(project("FIST" @ td_deletion, True)),
-                     optimize(union("FIS", "FIST")))
+    self.assertEqual(
+        optimize(project("FIST" @ td_deletion, "output")),
+        optimize(union("FIS", "FIST")))
 
   def testLambdaTransducerRaisesFstOpError(self):
     with self.assertRaises(FstOpError):
-      unused_f = cdrewrite(
-          transducer("A", "B"), transducer("C", "D"), "E", self.sigstar)
+      unused_f = cdrewrite(cross("A", "B"), cross("C", "D"), "E", self.sigstar)
 
   def testRhoTransducerRaisesFstOpError(self):
     with self.assertRaises(FstOpError):
-      unused_f = cdrewrite(
-          transducer("A", "B"), "C", transducer("D", "E"), self.sigstar)
+      unused_f = cdrewrite(cross("A", "B"), "C", cross("D", "E"), self.sigstar)
 
   def testWeightedLambdaRaisesFstOpError(self):
     with self.assertRaises(FstOpError):
       unused_f = cdrewrite(
-          transducer("A", "B"), acceptor("C", weight=2), "D", self.sigstar)
+          cross("A", "B"), acceptor("C", weight=2), "D", self.sigstar)
 
   def testWeightedRhoRaisesFstOpError(self):
     with self.assertRaises(FstOpError):
       unused_f = cdrewrite(
-          transducer("A", "B"), "C", acceptor("D", weight=2), self.sigstar)
+          cross("A", "B"), "C", acceptor("D", weight=2), self.sigstar)
 
 
 class ClosureTest(unittest.TestCase):
@@ -194,7 +195,7 @@ class ExceptionsTest(unittest.TestCase):
 
   @classmethod
   def setUpClass(cls):
-    cls.exchange = transducer("Liptauer", "No")
+    cls.exchange = cross("Liptauer", "No")
     cls.f = Fst()
     cls.s = SymbolTable()
     cls.map_file = "testdata/str.map"
@@ -296,34 +297,35 @@ class ExceptionsTest(unittest.TestCase):
     f.set_start(s)
     f.set_final(s)
     with self.assertRaises(FstOpError):
-      f.add_arc(s, Arc(0, 0, Weight.One("log"), 0))
+      f.add_arc(s, Arc(0, 0, Weight.one("log"), 0))
 
   def testWrongWeightTypeDeterminizeRaisesFstOpError(self):
     with self.assertRaises(FstOpError):
-      unused_f = determinize(self.f, weight=Weight.One("log"))
+      unused_f = determinize(self.f, weight=Weight.one("log"))
 
   def testWrongWeightTypeDisambiguateRaisesFstOpError(self):
     with self.assertRaises(FstOpError):
-      unused_f = disambiguate(self.f, weight=Weight.One("log"))
+      unused_f = disambiguate(self.f, weight=Weight.one("log"))
 
   def testWrongWeightTypePruneRaisesFstOpError(self):
     with self.assertRaises(FstOpError):
-      unused_f = prune(self.f, weight=Weight.One("log"))
+      unused_f = prune(self.f, weight=Weight.one("log"))
 
   def testWrongWeightTypeRmepsilonRaisesFstOpError(self):
     with self.assertRaises(FstOpError):
-      unused_f = rmepsilon(self.f, weight=Weight.One("log"))
+      unused_f = rmepsilon(self.f, weight=Weight.one("log"))
 
   def testWrongWeightTypeSetFinalRaisesFstOpError(self):
     f = self.f.copy()
     s = f.add_state()
     f.set_start(s)
     with self.assertRaises(FstOpError):
-      f.set_final(s, Weight.One("log"))
+      f.set_final(s, Weight.one("log"))
 
   def testGarbageWeightTypeRaisesFstArgError(self):
     with self.assertRaises(FstArgError):
       unused_w = Weight("nonexistent", 1)
+
 
 class GeneratedSymbolsTest(unittest.TestCase):
 
@@ -353,7 +355,6 @@ class GeneratedSymbolsTest(unittest.TestCase):
     unused_f = acceptor(f"[{cheese}]")
     syms = generated_symbols()
     self.assertTrue(syms.member(cheese))
-
 
 
 class IOTest(unittest.TestCase):
@@ -395,52 +396,31 @@ class LenientlyComposeTest(unittest.TestCase):
   @classmethod
   def setUpClass(cls):
     cls.sigstar = union(*string.ascii_letters + " ").closure().optimize()
-    cls.cheese_geography = string_map((("Red Leicester", "England"),
-                                       ("Tilsit", "Russia"),
-                                       ("Caerphilly", "Wales"),
-                                       ("Bel Paese", "Italy"),
-                                       ("Red Windsor", "England"),
-                                       ("Stilton", "England"),
-                                       ("Emmental", "Switzerland"),
-                                       ("Norwegian Jarlsberg", "Norway"),
-                                       ("Liptauer", "Germany"),
-                                       ("Lancashire", "England"),
-                                       ("White Stilton", "England"),
-                                       ("Danish Blue", "Denmark"),
-                                       ("Double Gloucester", "England"),
-                                       ("Cheshire", "England"),
-                                       ("Dorset Blue Vinney", "England"),
-                                       ("Brie", "France"),
-                                       ("Roquefort", "France"),
-                                       ("Port Salut", "France")))
+    cls.cheese_geography = string_map(
+        (("Red Leicester", "England"), ("Tilsit", "Russia"), ("Caerphilly",
+                                                              "Wales"),
+         ("Bel Paese", "Italy"), ("Red Windsor", "England"), ("Stilton",
+                                                              "England"),
+         ("Emmental", "Switzerland"), ("Norwegian Jarlsberg", "Norway"),
+         ("Liptauer", "Germany"), ("Lancashire", "England"), ("White Stilton",
+                                                              "England"),
+         ("Danish Blue", "Denmark"), ("Double Gloucester", "England"),
+         ("Cheshire", "England"), ("Dorset Blue Vinney", "England"),
+         ("Brie", "France"), ("Roquefort", "France"), ("Port Salut", "France")))
 
   def testLenientCompositionOfOutOfDomainStringWithTransducerIsIdentity(self):
     cheese = "Wisconsin Cheddar"
-    self.assertEqual(leniently_compose(cheese, self.cheese_geography,
-                                       self.sigstar), cheese)
+    self.assertEqual(
+        leniently_compose(cheese, self.cheese_geography, self.sigstar), cheese)
 
   def testLenientCompositionOfInDomainStringWithTransducerIsTransduced(self):
     cheese = "Lancashire"
-    self.assertEqual(leniently_compose(cheese, self.cheese_geography,
-                                       self.sigstar).project(True).optimize(),
-                     "England")
-
-
-class MatchesTest(unittest.TestCase):
-
-  def testMatches(self):
-    m1 = "abc123"
-    m2 = union("a", "b", "c", "1", "2", "3").closure()
-    self.assertTrue(matches(m1, m2))
-
-  def testNotMatch(self):
-    m1 = "abc123"
-    m2 = union("a", "b", "c").closure()
-    self.assertFalse(matches(m1, m2))
+    self.assertEqual(
+        leniently_compose(cheese, self.cheese_geography,
+                          self.sigstar).project("output").optimize(), "England")
 
 
 class StringTest(unittest.TestCase):
-
   """Tests string compilation and stringification."""
 
   @classmethod
@@ -448,59 +428,58 @@ class StringTest(unittest.TestCase):
     cls.cheese = "Red Leicester"
     cls.reply = "I'm afraid we're fresh out of Red Leicester sir"
     cls.imported_cheese = "Pont l'Evêque"
-    cls.acceptor_props = (ACCEPTOR | I_DETERMINISTIC | O_DETERMINISTIC |
-                          I_LABEL_SORTED | O_LABEL_SORTED | UNWEIGHTED |
-                          ACYCLIC | INITIAL_ACYCLIC | TOP_SORTED | ACCESSIBLE |
-                          COACCESSIBLE | STRING | UNWEIGHTED_CYCLES)
+    cls.acceptor_props = (
+        ACCEPTOR | I_DETERMINISTIC | O_DETERMINISTIC | I_LABEL_SORTED
+        | O_LABEL_SORTED | UNWEIGHTED | ACYCLIC | INITIAL_ACYCLIC | TOP_SORTED
+        | ACCESSIBLE | COACCESSIBLE | STRING | UNWEIGHTED_CYCLES)
 
   def testUnbracketedBytestringUnweightedAcceptorCompilation(self):
     cheese = acceptor(self.cheese)
     self.assertEqual(cheese, self.cheese)
-    self.assertEqual(cheese.properties(self.acceptor_props, True),
-                     self.acceptor_props)
+    self.assertEqual(
+        cheese.properties(self.acceptor_props, True), self.acceptor_props)
 
   def testUnbracketedBytestringUnweightedTransducerCompilation(self):
-    exchange = transducer(self.cheese, self.reply)
-    exchange.project()
+    exchange = cross(self.cheese, self.reply)
+    exchange.project("input")
     exchange.rmepsilon()
     self.assertEqual(exchange, self.cheese)
 
   def testUnbracketedBytestringWeightedAcceptorCompilation(self):
-    cheese = acceptor(self.cheese, weight=Weight.One("tropical"))
+    cheese = acceptor(self.cheese, weight=Weight.one("tropical"))
     self.assertEqual(cheese, self.cheese)
-    self.assertEqual(cheese.properties(self.acceptor_props, True),
-                     self.acceptor_props)
+    self.assertEqual(
+        cheese.properties(self.acceptor_props, True), self.acceptor_props)
 
   def testUnbracketedBytestringWeightedTransducerCompilation(self):
-    exchange = transducer(self.cheese, self.reply,
-                          weight=Weight.One("tropical"))
-    exchange.project()
+    exchange = cross(self.cheese, self.reply)
+    exchange.project("input")
     exchange.rmepsilon()
     self.assertEqual(exchange, self.cheese)
 
   def testUnbracketedBytestringCastingWeightedAcceptorCompilation(self):
     cheese = acceptor(self.cheese, weight=0)
     self.assertEqual(cheese, self.cheese)
-    self.assertEqual(cheese.properties(self.acceptor_props, True),
-                     self.acceptor_props)
+    self.assertEqual(
+        cheese.properties(self.acceptor_props, True), self.acceptor_props)
 
   def testBracketedCharsBytestringAcceptorCompilation(self):
     cheese = acceptor("".join("[{:d}]".format(ord(ch)) for ch in self.cheese))
     self.assertEqual(cheese, self.cheese)
-    self.assertEqual(cheese.properties(self.acceptor_props, True),
-                     self.acceptor_props)
+    self.assertEqual(
+        cheese.properties(self.acceptor_props, True), self.acceptor_props)
 
   def testUnicodeBytestringAcceptorCompilation(self):
     cheese = acceptor(self.imported_cheese)
     self.assertEqual(cheese, self.imported_cheese)
-    self.assertEqual(cheese.properties(self.acceptor_props, True),
-                     self.acceptor_props)
+    self.assertEqual(
+        cheese.properties(self.acceptor_props, True), self.acceptor_props)
 
   def testAsciiUtf8AcceptorCompilation(self):
     cheese = acceptor(self.cheese, token_type="utf8")
     self.assertEqual(cheese, self.cheese)
-    self.assertEqual(cheese.properties(self.acceptor_props, True),
-                     self.acceptor_props)
+    self.assertEqual(
+        cheese.properties(self.acceptor_props, True), self.acceptor_props)
 
   def testEscapedBracketsBytestringAcceptorCompilation(self):
     ac = acceptor(r"[\[Camembert\] is a]\[cheese\]")
@@ -512,17 +491,9 @@ class StringTest(unittest.TestCase):
     with self.assertRaises(FstBadWeightError):
       unused_ac = acceptor(self.cheese, weight="nonexistent")
 
-  def testGarbageWeightTransducerRaisesFstBadWeightError(self):
-    with self.assertRaises(FstBadWeightError):
-      unused_tr = transducer(self.cheese, self.reply, weight="nonexistent")
-
   def testGarbageArcTypeAcceptorRaisesFstArgError(self):
     with self.assertRaises(FstArgError):
       unused_ac = acceptor(self.cheese, arc_type="nonexistent")
-
-  def testGarbageArcTypeTransducerRaisesFstArgError(self):
-    with self.assertRaises(FstArgError):
-      unused_tr = transducer(self.cheese, self.reply, arc_type="nonexistent")
 
   def testUnbalancedBracketsAcceptorRaisesFstStringCompilationError(self):
     with self.assertRaises(FstStringCompilationError):
@@ -530,13 +501,13 @@ class StringTest(unittest.TestCase):
 
   def testUnbalancedBracketsTransducerRaisesFstStringCompilationError(self):
     with self.assertRaises(FstStringCompilationError):
-      unused_tr = transducer(self.cheese, "[" + self.reply)
+      unused_tr = cross(self.cheese, "[" + self.reply)
 
   def testCrossProductTransducerCompilation(self):
     cheese = acceptor(self.cheese)
     reply = acceptor(self.reply)
-    exchange = transducer(cheese, reply)
-    exchange.project()
+    exchange = cross(cheese, reply)
+    exchange.project("input")
     exchange.rmepsilon()
     self.assertEqual(exchange, self.cheese)
 
@@ -544,8 +515,8 @@ class StringTest(unittest.TestCase):
     self.assertEqual(acceptor(self.cheese).string(), self.cheese)
 
   def testAsciiUtf8Stringify(self):
-    self.assertEqual(acceptor(self.cheese, token_type="utf8").string("utf8"),
-                     self.cheese)
+    self.assertEqual(
+        acceptor(self.cheese, token_type="utf8").string("utf8"), self.cheese)
 
   def testUtf8ByteStringify(self):
     self.assertEqual(
@@ -597,12 +568,12 @@ class StringTest(unittest.TestCase):
 
   def testLogWeightToStandardAcceptorRaisesFstStringCompilationError(self):
     with self.assertRaises(FstOpError):
-      unused_ac = acceptor("Sage Derby", weight=Weight.One("log"))
+      unused_ac = acceptor("Sage Derby", weight=Weight.one("log"))
 
   def testLog64WeightToLogAcceptorRaisesFstStringCompilationError(self):
     with self.assertRaises(FstOpError):
-      unused_ac = acceptor("Wensleydale", arc_type="log",
-                           weight=Weight.One("log64"))
+      unused_ac = acceptor(
+          "Wensleydale", arc_type="log", weight=Weight.one("log64"))
 
 
 class StringFileTest(unittest.TestCase):
@@ -612,8 +583,10 @@ class StringFileTest(unittest.TestCase):
     cls.map_file = "testdata/str.map"
 
   def ContainsMapping(self, istring, mapper, ostring):
-    lattice = compose(istring, mapper).project(True)
-    self.assertTrue(matches(lattice, ostring))
+    lattice = compose(istring, mapper, compose_filter="alt_sequence")
+    lattice.project("output").rmepsilon().arcsort("olabel")
+    lattice = compose(mapper, ostring, compose_filter="sequence")
+    self.assertNotEqual(lattice.start(), NO_STATE_ID)
 
   def testByteToByteStringFile(self):
     mapper = string_file(self.map_file)
@@ -632,9 +605,8 @@ class StringFileTest(unittest.TestCase):
 
   def testUtf8ToUtf8StringFile(self):
     utf8 = functools.partial(acceptor, token_type="utf8")
-    mapper = string_file(self.map_file,
-                         input_token_type="utf8",
-                         output_token_type="utf8")
+    mapper = string_file(
+        self.map_file, input_token_type="utf8", output_token_type="utf8")
     self.ContainsMapping(utf8("[Bel Paese]"), mapper, utf8("Sorry"))
     self.ContainsMapping(utf8("Pont-l'Évêque"), mapper, utf8("Camembert"))
 
@@ -656,14 +628,15 @@ class StringMapTest(unittest.TestCase):
   @classmethod
   def setUpClass(cls):
     # In-Python version of str.map.
-    cls.lines = (("[Bel Paese]", "Sorry",),
-                 ("Cheddar",),
-                 ("Caithness", "Pont-l'Évêque", ".666",),
-                 ("Pont-l'Évêque", "Camembert",))
+    cls.lines = [("[Bel Paese]", "Sorry"), "Cheddar",
+                 ("Caithness", "Pont-l'Évêque", ".666"),
+                 ("Pont-l'Évêque", "Camembert")]
 
   def ContainsMapping(self, istring, mapper, ostring):
-    lattice = compose(istring, mapper).project(True)
-    self.assertTrue(matches(lattice, ostring))
+    lattice = compose(istring, mapper, compose_filter="alt_sequence")
+    lattice.project("output").rmepsilon().arcsort("olabel")
+    lattice = compose(mapper, ostring, compose_filter="sequence")
+    self.assertNotEqual(lattice.start(), NO_STATE_ID)
 
   def testByteToByteStringMap(self):
     mapper = string_map(self.lines)
@@ -671,12 +644,6 @@ class StringMapTest(unittest.TestCase):
     self.ContainsMapping("Cheddar", mapper, "Cheddar")
     self.ContainsMapping("Caithness", mapper, "Pont-l'Évêque")
     self.ContainsMapping("Pont-l'Évêque", mapper, "Camembert")
-
-  def testDictionaryStringMap(self):
-    mydict = {self.lines[0][0]: self.lines[0][1],
-              self.lines[1][0]: self.lines[1][0]}
-    mapper = string_map(mydict)
-    self.ContainsMapping("[Bel Paese]", mapper, "Sorry")
 
   def testByteToUtf8StringMap(self):
     mapper = string_map(self.lines, output_token_type="utf8")
@@ -687,8 +654,8 @@ class StringMapTest(unittest.TestCase):
     self.ContainsMapping("Pont-l'Évêque", mapper, utf8("Camembert"))
 
   def testUtf8ToUtf8StringMap(self):
-    mapper = string_map(self.lines, input_token_type="utf8",
-                        output_token_type="utf8")
+    mapper = string_map(
+        self.lines, input_token_type="utf8", output_token_type="utf8")
     utf8 = functools.partial(acceptor, token_type="utf8")
     self.ContainsMapping(utf8("[Bel Paese]"), mapper, utf8("Sorry"))
     self.ContainsMapping(utf8("Pont-l'Évêque"), mapper, utf8("Camembert"))
@@ -715,16 +682,15 @@ class StringPathIteratorTest(unittest.TestCase):
 
   @classmethod
   def setUpClass(cls):
-    cls.triples = (("Bel Paese", "Sorry", Weight("tropical", 4.)),
+    cls.triples = [("Bel Paese", "Sorry", "4"),
                    ("Red Windsor",
-                    "Normally, sir, yes, but today the van broke down.",
-                    Weight("tropical", 3.)),
-                   ("Stilton", "Sorry", Weight("tropical", 2.)))
-    cls.f = union(*(transducer(*triple) for triple in cls.triples))
+                    "Normally, sir, yes, but today the van broke down.", "3"),
+                   ("Stilton", "Sorry", "2")]
+    cls.f = string_map(cls.triples)
 
   def testStringPathIteratorIStrings(self):
     self.assertCountEqual(self.f.paths().istrings(),
-                         (t[0] for t in self.triples))
+                          (t[0] for t in self.triples))
 
   def testStringPathsIStrings(self):
     self.assertCountEqual(self.f.paths().istrings(),
@@ -770,24 +736,16 @@ class TransducerTest(unittest.TestCase):
   def testPrecompiledLogCrossProduct(self):
     upper = acceptor("Smoked Austrian", arc_type="log")
     lower = acceptor("No", arc_type="log")
-    tr = transducer(upper, lower)
+    tr = cross(upper, lower)
     self.assertEqual(tr.arc_type(), "log")
 
   def testImplicitLeftLogCrossProducts(self):
-    tr = transducer("Smoked Austrian", acceptor("No", arc_type="log"))
+    tr = cross("Smoked Austrian", acceptor("No", arc_type="log"))
     self.assertEqual(tr.arc_type(), "log")
 
   def testImplicitRightLogCrossProducts(self):
-    tr = transducer(acceptor("Smoked Austrian", arc_type="log"), "No")
+    tr = cross(acceptor("Smoked Austrian", arc_type="log"), "No")
     self.assertEqual(tr.arc_type(), "log")
-
-  def testTropicalWeightToLog64TransducerRaisesFstOpError(self):
-    with self.assertRaises(FstOpError):
-      unused_tr = transducer(
-          "Venezuelan Beaver Cheese",
-          "Not today sir, no",
-          arc_type="log64",
-          weight=Weight.One("tropical"))
 
 
 class WeightTest(unittest.TestCase):
@@ -798,17 +756,17 @@ class WeightTest(unittest.TestCase):
     one_half = -math.log(1.5)
     two = -math.log(2)
     cls.delta = 1. / 1024.
-    cls.tropical_zero = Weight.Zero("tropical")
+    cls.tropical_zero = Weight.zero("tropical")
     cls.tropical_half = Weight("tropical", half)
-    cls.tropical_one = Weight.One("tropical")
-    cls.log_zero = Weight.Zero("log")
+    cls.tropical_one = Weight.one("tropical")
+    cls.log_zero = Weight.zero("log")
     cls.log_half = Weight("log", half)
-    cls.log_one = Weight.One("log")
+    cls.log_one = Weight.one("log")
     cls.log_one_half = Weight("log", one_half)
     cls.log_two = Weight("log", two)
-    cls.log64_zero = Weight.Zero("log64")
+    cls.log64_zero = Weight.zero("log64")
     cls.log64_half = Weight("log64", half)
-    cls.log64_one = Weight.One("log64")
+    cls.log64_one = Weight.one("log64")
     cls.log64_one_half = Weight("log64", one_half)
     cls.log64_two = Weight("log64", two)
 
@@ -1039,11 +997,11 @@ class WorkedExampleTest(unittest.TestCase):
     self.downcaser = invert(self.upcaser)
     awords = "You do have some cheese do you".lower().split()
     for aword in awords:
-      result = (aword @ self.upcaser).project(True).optimize()
+      result = (aword @ self.upcaser).project("output").optimize()
       self.assertEqual(result, aword.upper())
     cheese = "Parmesan".lower()
-    cascade = (cheese @ self.upcaser @ self.downcaser @
-               self.upcaser @ self.downcaser)
+    cascade = (
+        cheese @ self.upcaser @ self.downcaser @ self.upcaser @ self.downcaser)
     self.assertEqual(cascade.string(), cheese)
 
 

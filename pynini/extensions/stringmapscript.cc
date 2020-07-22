@@ -21,9 +21,12 @@ namespace fst {
 namespace script {
 
 bool StringFileCompile(const std::string &source, MutableFstClass *fst,
-                       StringTokenType itype, StringTokenType otype,
-                       const SymbolTable *isyms, const SymbolTable *osyms) {
-  StringFileCompileInnerArgs iargs(source, fst, itype, otype, isyms, osyms);
+                       TokenType input_token_type, TokenType output_token_type,
+                       const SymbolTable *input_symbols,
+                       const SymbolTable *output_symbols) {
+  StringFileCompileInnerArgs iargs(source, fst, input_token_type,
+                                   output_token_type, input_symbols,
+                                   output_symbols);
   StringFileCompileArgs args(iargs);
   Apply<Operation<StringFileCompileArgs>>("StringFileCompile", fst->ArcType(),
                                           &args);
@@ -33,10 +36,13 @@ bool StringFileCompile(const std::string &source, MutableFstClass *fst,
 REGISTER_FST_OPERATION_3ARCS(StringFileCompile, StringFileCompileArgs);
 
 bool StringMapCompile(const std::vector<std::vector<std::string>> &lines,
-                      MutableFstClass *fst, StringTokenType itype,
-                      StringTokenType otype, const SymbolTable *isyms,
-                      const SymbolTable *osyms) {
-  StringMapCompileInnerArgs1 iargs(lines, fst, itype, otype, isyms, osyms);
+                      MutableFstClass *fst, TokenType input_token_type,
+                      TokenType output_token_type,
+                      const SymbolTable *input_symbols,
+                      const SymbolTable *output_symbols) {
+  StringMapCompileInnerArgs1 iargs(lines, fst, input_token_type,
+                                   output_token_type, input_symbols,
+                                   output_symbols);
   StringMapCompileArgs1 args(iargs);
   Apply<Operation<StringMapCompileArgs1>>("StringMapCompile", fst->ArcType(),
                                           &args);
@@ -47,9 +53,12 @@ REGISTER_FST_OPERATION_3ARCS(StringMapCompile, StringMapCompileArgs1);
 
 bool StringMapCompile(
     const std::vector<std::tuple<std::string, std::string, WeightClass>> &lines,
-    MutableFstClass *fst, StringTokenType itype, StringTokenType otype,
-    const SymbolTable *isyms, const SymbolTable *osyms) {
-  StringMapCompileInnerArgs2 iargs(lines, fst, itype, otype, isyms, osyms);
+    MutableFstClass *fst, TokenType input_token_type,
+    TokenType output_token_type, const SymbolTable *input_symbols,
+    const SymbolTable *output_symbols) {
+  StringMapCompileInnerArgs2 iargs(lines, fst, input_token_type,
+                                   output_token_type, input_symbols,
+                                   output_symbols);
   StringMapCompileArgs2 args(iargs);
   Apply<Operation<StringMapCompileArgs2>>("StringMapCompile", fst->ArcType(),
                                           &args);

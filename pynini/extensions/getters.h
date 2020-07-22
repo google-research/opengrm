@@ -28,8 +28,6 @@ bool GetCDRewriteDirection(const std::string &str, CDRewriteDirection *rd);
 
 bool GetCDRewriteMode(const std::string &str, CDRewriteMode *rm);
 
-bool GetStringTokenType(const std::string &str, StringTokenType *ttype);
-
 }  // namespace script
 }  // namespace fst
 

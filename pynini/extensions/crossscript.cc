@@ -13,7 +13,7 @@
 // Copyright 2016 and onwards Google, Inc.
 //
 
-#include "pathsscript.h"
+#include "crossscript.h"
 
 #include <fst/script/fst-class.h>
 #include <fst/script/script-impl.h>
@@ -21,19 +21,18 @@
 namespace fst {
 namespace script {
 
-StringPathIteratorClass::StringPathIteratorClass(
-    const FstClass &fst, TokenType input_token_type,
-    TokenType output_token_type, const SymbolTable *input_symbols,
-    const SymbolTable *output_symbols)
-    : impl_(nullptr) {
-  InitStringPathIteratorClassArgs args(fst, input_token_type, output_token_type,
-                                       input_symbols, output_symbols, this);
-  Apply<Operation<InitStringPathIteratorClassArgs>>(
-      "InitStringPathIteratorClass", fst.ArcType(), &args);
+void Cross(const FstClass &ifst1, const FstClass &ifst2,
+           MutableFstClass *ofst) {
+  if (!internal::ArcTypesMatch(ifst1, ifst2, "Cross") ||
+      !internal::ArcTypesMatch(ifst2, *ofst, "Cross")) {
+    ofst->SetProperties(kError, kError);
+    return;
+  }
+  CrossArgs args(ifst1, ifst2, ofst);
+  Apply<Operation<CrossArgs>>("Cross", ofst->ArcType(), &args);
 }
 
-REGISTER_FST_OPERATION_3ARCS(InitStringPathIteratorClass,
-                             InitStringPathIteratorClassArgs);
+REGISTER_FST_OPERATION_3ARCS(Cross, CrossArgs);
 
 }  // namespace script
 }  // namespace fst

@@ -24,21 +24,21 @@
 namespace fst {
 namespace script {
 
-using PrintStringInnerArgs = std::tuple<const FstClass &, std::string *,
-                                        StringTokenType, const SymbolTable *>;
+using StringPrintInnerArgs =
+    std::tuple<const FstClass &, std::string *, TokenType, const SymbolTable *>;
 
-using PrintStringArgs = WithReturnValue<bool, PrintStringInnerArgs>;
+using StringPrintArgs = WithReturnValue<bool, StringPrintInnerArgs>;
 
 template <class Arc>
-void PrintString(PrintStringArgs *args) {
+void StringPrint(StringPrintArgs *args) {
   const Fst<Arc> &fst = *(std::get<0>(args->args).GetFst<Arc>());
-  args->retval = PrintString(fst, std::get<1>(args->args),
+  args->retval = StringPrint(fst, std::get<1>(args->args),
                              std::get<2>(args->args), std::get<3>(args->args));
 }
 
-bool PrintString(const FstClass &fst, std::string *str,
-                 StringTokenType ttype = BYTE,
-                 const SymbolTable *syms = nullptr);
+bool StringPrint(const FstClass &fst, std::string *str,
+                 TokenType token_type = TokenType::BYTE,
+                 const SymbolTable *symbols = nullptr);
 
 }  // namespace script
 }  // namespace fst

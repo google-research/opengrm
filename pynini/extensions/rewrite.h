@@ -53,12 +53,12 @@ namespace internal {
 template <class Arc>
 inline bool CheckNonEmptyAndCleanup(MutableFst<Arc> *lattice) {
   if (lattice->Start() == kNoStateId) return false;
-  // Project on the output side if not already known to be an acceptor.
-  if (!lattice->Properties(kAcceptor, /*test*/ false)) {
-    Project(lattice, PROJECT_OUTPUT);
+  // Projects output side if not already known to be an acceptor.
+  if (lattice->Properties(kAcceptor, /*test=*/false) != kAcceptor) {
+    Project(lattice, ProjectType::OUTPUT);
   }
-  // RmEpsilon if not already known to be epsilon-free.
-  if (!lattice->Properties(kNoEpsilons, /*test*/ false)) {
+  // Removes epsilons if not already known to be epsilon-free.
+  if (lattice->Properties(kNoEpsilons, /*test=*/false) != kNoEpsilons) {
     RmEpsilon(lattice);
   }
   return true;
@@ -145,11 +145,11 @@ void LatticeToShortest(MutableFst<Arc> *lattice, int32 nshortest = 1) {
 // semiring with the path property.
 template <class Arc>
 bool LatticeToTopString(const Fst<Arc> &lattice, std::string *output,
-                        StringTokenType ttype = BYTE,
+                        TokenType ttype = TokenType::BYTE,
                         const SymbolTable *syms = nullptr) {
   VectorFst<Arc> ofst;
   ShortestPath(lattice, &ofst);
-  return PrintString(ofst, output, ttype, syms);
+  return StringPrint(ofst, output, ttype, syms);
 }
 
 // Attempts to extract a single top rewrite from a optimized DFA, logging a
@@ -157,7 +157,7 @@ bool LatticeToTopString(const Fst<Arc> &lattice, std::string *output,
 // semiring with the path property.
 template <class Arc>
 bool LatticeToOneTopString(const Fst<Arc> &lattice, std::string *output,
-                           StringTokenType ttype = BYTE,
+                           TokenType ttype = TokenType::BYTE,
                            const SymbolTable *syms = nullptr) {
   StringPathIterator<Arc> paths(lattice, ttype, syms, /*check_acyclic=*/false);
   if (paths.Error() || paths.Done()) return false;
@@ -186,7 +186,7 @@ bool LatticeToLabels(const Fst<Arc> &lattice,
 // Clears vector and writes lattice strings to it.
 template <class Arc>
 bool LatticeToStrings(const Fst<Arc> &lattice, std::vector<std::string> *output,
-                      StringTokenType ttype = BYTE,
+                      TokenType ttype = TokenType::BYTE,
                       const SymbolTable *syms = nullptr) {
   output->clear();
   // We have to do this check manually since StringPathIterator's check is
@@ -209,7 +209,7 @@ bool LatticeToStrings(const Fst<Arc> &lattice, std::vector<std::string> *output,
 // Top rewrite.
 template <class Arc>
 bool TopRewrite(const Fst<Arc> &input, const Fst<Arc> &rule,
-                std::string *output, StringTokenType ttype = BYTE,
+                std::string *output, TokenType ttype = TokenType::BYTE,
                 const SymbolTable *syms = nullptr) {
   VectorFst<Arc> lattice;
   return RewriteLattice(input, rule, &lattice) &&
@@ -219,7 +219,7 @@ bool TopRewrite(const Fst<Arc> &input, const Fst<Arc> &rule,
 // Top rewrite, returning false and logging if there's a tie.
 template <class Arc>
 bool OneTopRewrite(const Fst<Arc> &input, const Fst<Arc> &rule,
-                   std::string *output, StringTokenType ttype = BYTE,
+                   std::string *output, TokenType ttype = TokenType::BYTE,
                    const SymbolTable *syms = nullptr,
                    typename Arc::StateId state_multiplier = 4) {
   VectorFst<Arc> lattice;
@@ -231,7 +231,8 @@ bool OneTopRewrite(const Fst<Arc> &input, const Fst<Arc> &rule,
 // All rewrites.
 template <class Arc>
 bool Rewrites(const Fst<Arc> &input, const Fst<Arc> &rule,
-              std::vector<std::string> *output, StringTokenType ttype = BYTE,
+              std::vector<std::string> *output,
+              TokenType ttype = TokenType::BYTE,
               const SymbolTable *syms = nullptr,
               typename Arc::StateId state_multiplier = 4) {
   VectorFst<Arc> lattice;
@@ -244,7 +245,8 @@ bool Rewrites(const Fst<Arc> &input, const Fst<Arc> &rule,
 // All optimal rewrites.
 template <class Arc>
 bool TopRewrites(const Fst<Arc> &input, const Fst<Arc> &rule,
-                 std::vector<std::string> *output, StringTokenType ttype = BYTE,
+                 std::vector<std::string> *output,
+                 TokenType ttype = TokenType::BYTE,
                  const SymbolTable *syms = nullptr,
                  typename Arc::StateId state_multiplier = 4) {
   VectorFst<Arc> lattice;
@@ -257,7 +259,8 @@ bool TopRewrites(const Fst<Arc> &input, const Fst<Arc> &rule,
 // The top n rewrites.
 template <class Arc>
 bool TopRewrites(const Fst<Arc> &input, const Fst<Arc> &rule, int32 nshortest,
-                 std::vector<std::string> *output, StringTokenType ttype = BYTE,
+                 std::vector<std::string> *output,
+                 TokenType ttype = TokenType::BYTE,
                  const SymbolTable *syms = nullptr) {
   VectorFst<Arc> lattice;
   if (!RewriteLattice(input, rule, &lattice)) return false;
@@ -266,23 +269,17 @@ bool TopRewrites(const Fst<Arc> &input, const Fst<Arc> &rule, int32 nshortest,
 }
 
 // The same, but with repeated string fields.
-// Determines whether a lattice contains an output.
-template <class Arc>
-bool Matches(const Fst<Arc> &lattice, const Fst<Arc> &output) {
-  VectorFst<Arc> intersection;
-  static const IntersectOptions opts(true, ALT_SEQUENCE_FILTER);
-  Intersect(lattice, output, &intersection, opts);
-  return intersection.Start() != kNoStateId;
-}
-
 // Determines whether a rule allows an input/output pair.
 template <class Arc>
 bool Matches(const Fst<Arc> &input, const Fst<Arc> &output,
              const Fst<Arc> &rule) {
   VectorFst<Arc> lattice;
   if (!RewriteLattice(input, rule, &lattice)) return false;
-  ArcSort(&lattice, OLabelCompare<Arc>());
-  return Matches(lattice, output);
+  static const OLabelCompare<Arc> ocomp;
+  ArcSort(&lattice, ocomp);
+  static const IntersectOptions opts(true, SEQUENCE_FILTER);
+  Intersect(lattice, output, &lattice, opts);
+  return lattice.Start() != kNoStateId;
 }
 
 }  // namespace fst

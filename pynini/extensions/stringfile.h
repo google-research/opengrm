@@ -71,7 +71,7 @@ class ColumnStringFile {
   bool Done() const { return sf_.Done(); }
 
   // Access to the underlying row vector.
-  const std::vector<std::string> Row() const { return row_; }
+  const std::vector<std::string> &Row() const { return row_; }
 
   size_t LineNumber() const { return sf_.LineNumber(); }
 

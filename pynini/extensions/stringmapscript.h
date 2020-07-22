@@ -31,8 +31,8 @@ namespace fst {
 namespace script {
 
 using StringFileCompileInnerArgs =
-    std::tuple<const std::string &, MutableFstClass *, StringTokenType,
-               StringTokenType, const SymbolTable *, const SymbolTable *>;
+    std::tuple<const std::string &, MutableFstClass *, TokenType, TokenType,
+               const SymbolTable *, const SymbolTable *>;
 
 using StringFileCompileArgs = WithReturnValue<bool, StringFileCompileInnerArgs>;
 
@@ -46,15 +46,14 @@ void StringFileCompile(StringFileCompileArgs *args) {
 }
 
 bool StringFileCompile(const std::string &source, MutableFstClass *fst,
-                       StringTokenType itype = BYTE,
-                       StringTokenType otype = BYTE,
-                       const SymbolTable *isyms = nullptr,
-                       const SymbolTable *osyms = nullptr);
+                       TokenType input_token_type = TokenType::BYTE,
+                       TokenType output_token_type = TokenType::BYTE,
+                       const SymbolTable *input_symbols = nullptr,
+                       const SymbolTable *output_symbols = nullptr);
 
 using StringMapCompileInnerArgs1 =
     std::tuple<const std::vector<std::vector<std::string>> &, MutableFstClass *,
-               StringTokenType, StringTokenType, const SymbolTable *,
-               const SymbolTable *>;
+               TokenType, TokenType, const SymbolTable *, const SymbolTable *>;
 
 using StringMapCompileArgs1 = WithReturnValue<bool, StringMapCompileInnerArgs1>;
 
@@ -69,7 +68,7 @@ void StringMapCompile(StringMapCompileArgs1 *args) {
 
 using StringMapCompileInnerArgs2 = std::tuple<
     const std::vector<std::tuple<std::string, std::string, WeightClass>> &,
-    MutableFstClass *, StringTokenType, StringTokenType, const SymbolTable *,
+    MutableFstClass *, TokenType, TokenType, const SymbolTable *,
     const SymbolTable *>;
 
 using StringMapCompileArgs2 = WithReturnValue<bool, StringMapCompileInnerArgs2>;
@@ -93,16 +92,18 @@ void StringMapCompile(StringMapCompileArgs2 *args) {
 }
 
 bool StringMapCompile(const std::vector<std::vector<std::string>> &lines,
-                      MutableFstClass *fst, StringTokenType itype = BYTE,
-                      StringTokenType otype = BYTE,
-                      const SymbolTable *isyms = nullptr,
-                      const SymbolTable *osyms = nullptr);
+                      MutableFstClass *fst,
+                      TokenType input_token_type = TokenType::BYTE,
+                      TokenType output_token_type = TokenType::BYTE,
+                      const SymbolTable *input_symbols = nullptr,
+                      const SymbolTable *output_symbols = nullptr);
 
 bool StringMapCompile(
     const std::vector<std::tuple<std::string, std::string, WeightClass>> &lines,
-    MutableFstClass *fst, StringTokenType itype = BYTE,
-    StringTokenType otype = BYTE, const SymbolTable *isyms = nullptr,
-    const SymbolTable *osyms = nullptr);
+    MutableFstClass *fst, TokenType input_token_type = TokenType::BYTE,
+    TokenType output_token_type = TokenType::BYTE,
+    const SymbolTable *input_symbols = nullptr,
+    const SymbolTable *output_symbols = nullptr);
 
 }  // namespace script
 }  // namespace fst

@@ -13,7 +13,7 @@
 // Copyright 2016 and onwards Google, Inc.
 //
 
-#include "stripcomment.h"
+#include "stringutil.h"
 
 
 #include "gtl.h"
@@ -35,13 +35,28 @@ std::string StripComment(const std::string &line) {
 }
 
 std::string RemoveEscape(const std::string &line) {
-  return strings::StringReplace(StripComment(line), "\\#", "#", true);
+  return strings::StringReplace(line, "\\#", "#", true);
 }
 
 }  // namespace
 
 std::string StripCommentAndRemoveEscape(const std::string &line) {
   return RemoveEscape(StripComment(line));
+}
+
+std::string Escape(const std::string &str) {
+  std::string result;
+  result.reserve(str.size());
+  for (char ch : str) {
+    switch (ch) {
+      case '[':
+      case ']':
+      case '\\':
+        result.push_back('\\');
+    }
+    result.push_back(ch);
+  }
+  return result;
 }
 
 }  // namespace fst

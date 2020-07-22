@@ -42,7 +42,7 @@ class ByteViewer {
     return Arc(ch, ch, byte_offset + 1);
   }
 
-  static constexpr StringTokenType TokenType() { return StringTokenType::BYTE; }
+  static constexpr TokenType TokenType() { return TokenType::BYTE; }
 };
 
 template <class Arc>
@@ -66,7 +66,7 @@ class UTF8Viewer {
                byte_offset + label_size.second);
   }
 
-  static constexpr StringTokenType TokenType() { return StringTokenType::UTF8; }
+  static constexpr TokenType TokenType() { return TokenType::UTF8; }
 
  private:
   static std::pair<Label, StateId> GetLabelAndSize(absl::string_view view,
@@ -171,10 +171,11 @@ class StringViewFstImpl : public FstImpl<A> {
   absl::string_view view() const { return view_; }
 
  private:
-  static constexpr uint64 kStaticProperties = kAcceptor | kExpanded |
-      kIDeterministic | kODeterministic | kILabelSorted | kOLabelSorted |
-      kUnweighted | kUnweightedCycles | kAcyclic | kInitialAcyclic |
-      kTopSorted | (Viewer::TokenType() == StringTokenType::BYTE ? kString : 0);
+  static constexpr uint64 kStaticProperties =
+      kAcceptor | kExpanded | kIDeterministic | kODeterministic |
+      kILabelSorted | kOLabelSorted | kUnweighted | kUnweightedCycles |
+      kAcyclic | kInitialAcyclic | kTopSorted |
+      (Viewer::TokenType() == TokenType::BYTE ? kString : 0);
 
   bool IsFinal(StateId s) const { return s == view_.size(); }
 

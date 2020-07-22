@@ -52,11 +52,13 @@ class StringPathIteratorImpl : public StringPathIteratorImplBase {
   using Label = typename Arc::Label;
 
   explicit StringPathIteratorImpl(const Fst<Arc> &fst,
-                                  StringTokenType itype = BYTE,
-                                  StringTokenType otype = BYTE,
-                                  const SymbolTable *isyms = nullptr,
-                                  const SymbolTable *osyms = nullptr)
-      : impl_(new StringPathIterator<Arc>(fst, itype, otype, isyms, osyms)) {}
+                                  TokenType input_token_type = TokenType::BYTE,
+                                  TokenType output_token_type = TokenType::BYTE,
+                                  const SymbolTable *input_symbols = nullptr,
+                                  const SymbolTable *output_symbols = nullptr)
+      : impl_(new StringPathIterator<Arc>(fst, input_token_type,
+                                          output_token_type, input_symbols,
+                                          output_symbols)) {}
 
   bool Done() const override { return impl_->Done(); }
 
@@ -109,24 +111,23 @@ class StringPathIteratorImpl : public StringPathIteratorImplBase {
 class StringPathIteratorClass;
 
 using InitStringPathIteratorClassArgs =
-    std::tuple<const FstClass &, StringTokenType, StringTokenType,
-               const SymbolTable *, const SymbolTable *,
-               StringPathIteratorClass *>;
+    std::tuple<const FstClass &, TokenType, TokenType, const SymbolTable *,
+               const SymbolTable *, StringPathIteratorClass *>;
 
 // Untemplated user-facing class holding templated pimpl.
 class StringPathIteratorClass {
  public:
-  explicit StringPathIteratorClass(const FstClass &fst,
-                                   StringTokenType itype = BYTE,
-                                   StringTokenType otype = BYTE,
-                                   const SymbolTable *isyms = nullptr,
-                                   const SymbolTable *osyms = nullptr);
+  explicit StringPathIteratorClass(
+      const FstClass &fst, TokenType input_token_type = TokenType::BYTE,
+      TokenType output_token_type = TokenType::BYTE,
+      const SymbolTable *input_symbols = nullptr,
+      const SymbolTable *output_symbols = nullptr);
 
   // Same as above, but applies the same string token type and symbol table
   // to both tapes.
-  StringPathIteratorClass(const FstClass &fst, StringTokenType type,
-                          const SymbolTable *syms = nullptr)
-      : StringPathIteratorClass(fst, type, type, syms, syms) {}
+  StringPathIteratorClass(const FstClass &fst, TokenType type,
+                          const SymbolTable *symbols = nullptr)
+      : StringPathIteratorClass(fst, type, type, symbols, symbols) {}
 
   bool Done() const { return impl_->Done(); }
 

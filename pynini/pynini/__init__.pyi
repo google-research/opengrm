@@ -16,40 +16,61 @@
 # pynini.opengrm.org.
 
 from _pywrapfst import Fst as _Fst
-from _pywrapfst import MutableFst as _MutableFst
 from _pywrapfst import VectorFst as _VectorFst
-from _pywrapfst import Weight as _Weight
-from _pywrapfst import SymbolTable as _SymbolTable
-from _pywrapfst import SymbolTableView as _SymbolTableView
+from _pywrapfst import Weight
+from _pywrapfst import SymbolTable
+from _pywrapfst import SymbolTableView
 
 from _pywrapfst import FstArgError
 from _pywrapfst import FstIOError
 from _pywrapfst import FstOpError
 
 ## Typing imports.
-from _pywrapfst import _FarFileModeFlag
 from _pywrapfst import _ArcTypeFlag
-from _pywrapfst import _FarTypeFlag
 from _pywrapfst import _Filename
-from _pywrapfst import WeightLike
 from _pywrapfst import _Label
 from _pywrapfst import _StateId
-from _pywrapfst import _SortTypeFlag
-from _pywrapfst import _QueueType
-from _pywrapfst import _ComposeFilterFlag
+from _pywrapfst import ArcMapType
+from _pywrapfst import ComposeFilter
+from _pywrapfst import DeterminizeType
+from _pywrapfst import FarType
+from _pywrapfst import ProjectType
+from _pywrapfst import QueueType
+from _pywrapfst import RandArcSelection
+from _pywrapfst import ReplaceLabelType
+from _pywrapfst import SortType
+from _pywrapfst import StateMapType
+from _pywrapfst import WeightLike
 
-from typing import Type, TypeVar, Union, Tuple, Any, Optional, List, Iterable, Iterator, Mapping
+from typing import Type, TypeVar, Union, Tuple, Any, Optional, List, Iterable, Iterator, ContextManager, Callable
 
 # Custom exceptions.
 class FstStringCompilationError(FstArgError, ValueError): ...
 
 # Custom types
 
+# TODO(wolfsonkin): Drop version check once Python 3.8 is our minimum version.
+import sys
+if sys.version_info >= (3, 8):
+    from typing import Literal
+else:
+    from typing_extensions import Literal
+
+_TokenTypeFlag = Literal["byte", "utf8"]
+CDRewriteDirection = Literal["ltr", "rtl", "sim"]
+CDRewriteMode = Literal["obl", "opt"]
+FarFileMode = Literal["r", "w"]
+
 FstLike = Union[Fst, str]
-# TODO(wolfsonkin): Change to use a typing.Literal once Python 3.8 hits.
-TokenType = Union[_SymbolTableView, str]
+TokenType = Union[SymbolTableView, _TokenTypeFlag]
 
 # Helper functions.
+
+_GenericCallable = TypeVar('_GenericCallable', bound=Callable[..., Any])
+class _ContextDecoratorNone(ContextManager[None]):
+  def __call__(self, func: _GenericCallable) -> _GenericCallable: ...
+
+def default_token_type(token_type: TokenType) -> _ContextDecoratorNone: ...
 
 T = TypeVar("T", bound="Fst")
 class Fst(_VectorFst):
@@ -62,9 +83,10 @@ class Fst(_VectorFst):
   def read_from_string(cls: Type[T], state: bytes) -> T: ...
   def __reduce__(self) -> Union[str, Tuple[Any, ...]]: ...
   def paths(self,
-            input_token_type: TokenType = ...,
-            output_token_type: TokenType = ...) -> StringPathIterator: ...
-  def string(self, token_type: TokenType = ...) -> str: ...
+            input_token_type: Optional[TokenType] = ...,
+            output_token_type: Optional[TokenType] = ...
+  ) -> StringPathIterator: ...
+  def string(self, token_type: Optional[TokenType] = ...) -> str: ...
   # The following all override their definition in MutableFst.
   def copy(self: T) -> T: ...
   def closure(self: T, lower: int = ..., upper: int = ...) -> T: ...
@@ -82,6 +104,8 @@ class Fst(_VectorFst):
   def __ne__(self, other: FstLike) -> bool: ...
   def __add__(self, other: FstLike) -> Fst: ...
   def __sub__(self, other: FstLike) -> Fst: ...
+  def __pow__(self,
+              other: Union[int, Tuple[int, Union[int, ellipsis]]]) -> Fst: ...
   def __matmul__(self, other: FstLike) -> Fst: ...
   def __or__(self, other: FstLike) -> Fst: ...
   # NOTE: Cython automatically generates the reversed overloads.
@@ -92,47 +116,40 @@ class Fst(_VectorFst):
   def __rmatmul__(self, other: FstLike) -> Fst: ...
   def __ror__(self, other: FstLike) -> Fst: ...
 
-# Functions for FST compilation.
+# Utility functions
+def escape(string: str) -> str: ...
+
+# Core functions for FST creation.
 
 def acceptor(astring: str,
              weight: Optional[WeightLike] = ...,
              arc_type: _ArcTypeFlag = ...,
-             token_type: TokenType = ...) -> Fst: ...
-def transducer(fst1: FstLike,
-               fst2: FstLike,
-               weight: Optional[WeightLike] = ...,
-               arc_type: _ArcTypeFlag = ...,
-               token_type: TokenType = ...) -> Fst: ...
+             token_type: Optional[TokenType] = ...) -> Fst: ...
+def cross(fst1: FstLike,
+          fst2: FstLike,
+          weight: Optional[WeightLike] = ...) -> Fst: ...
 def cdrewrite(
     tau: FstLike,
     lambda_: FstLike,
     rho: FstLike,
     sigma: FstLike,
-    # TODO(wolfsonkin): Use typing.Literal when Python 3.8 hits.
-    direction: str = ...,
-    # TODO(wolfsonkin): Use typing.Literal when Python 3.8 hits.
-    mode: str = ...
+    direction: CDRewriteDirection = ...,
+    mode: CDRewriteMode = ...
 ) -> Fst: ...
-# TODO(wolfsonkin): Use typing.Literal when Python 3.8 hits.
 def leniently_compose(fst1: FstLike,
                       fst2: FstLike,
                       sigma: FstLike,
-                      compose_filter: _ComposeFilterFlag = ...,
+                      compose_filter: ComposeFilter = ...,
                       connect: bool = ...) -> Fst: ...
-# TODO(wolfsonkin): Use typing.Literal when Python 3.8 hits.
-def matches(fst1: FstLike,
-            fst2: FstLike,
-            compose_filter: _ComposeFilterFlag = ...) -> bool: ...
 def string_file(filename: _Filename,
                 arc_type: _ArcTypeFlag = ...,
-                input_token_type: TokenType = ...,
-                output_token_type: TokenType = ...) -> Fst: ...
-def string_map(lines: Union[Mapping[str, str],
-                            Iterable[Iterable[str]]],
+                input_token_type: Optional[TokenType] = ...,
+                output_token_type: Optional[TokenType] = ...) -> Fst: ...
+def string_map(lines: Iterable[Union[str, Iterable[str]]],
                arc_type: _ArcTypeFlag = ...,
-               input_token_type: TokenType = ...,
-               output_token_type: TokenType = ...) -> Fst: ...
-def generated_symbols() -> SymbolTable: ...
+               input_token_type: Optional[TokenType] = ...,
+               output_token_type: Optional[TokenType] = ...) -> Fst: ...
+def generated_symbols() -> SymbolTableView: ...
 
 
 # # Decorator for one-argument constructive FST operations.
@@ -144,15 +161,13 @@ def generated_symbols() -> SymbolTable: ...
 def arcmap(
     ifst: FstLike,
     delta: float = ...,
-    # TODO(wolfsonkin): Use typing.Literal when Python 3.8 hits.
-    map_type: str = ...,
+    map_type: ArcMapType = ...,
     power: float = ...,
     weight: Optional[WeightLike] = ...) -> Fst: ...
 def determinize(
     ifst: FstLike,
     delta: float = ...,
-    # TODO(wolfsonkin): Use typing.Literal when Python 3.8 hits.
-    det_type: str = ...,
+    det_type: DeterminizeType = ...,
     nstate: _StateId = ...,
     subsequential_label: _Label = ...,
     weight: Optional[WeightLike] = ...,
@@ -177,8 +192,7 @@ def push(ifst: FstLike,
 def randgen(
     ifst: FstLike,
     npath: int = ...,
-    # TODO(wolfsonkin): Use typing.Literal when Python 3.8 hits.
-    select: str = ...,
+    select: RandArcSelection = ...,
     max_length: int = ...,
     weighted: bool = ...,
     remove_total_weight: bool = ...,
@@ -189,11 +203,10 @@ def shortestpath(
     delta: float = ...,
     nshortest: int = ...,
     nstate: _StateId = ...,
-    queue_type: _QueueType = ...,
+    queue_type: QueueType = ...,
     unique: bool = ...,
     weight: Optional[WeightLike] = ...) -> Fst: ...
-# TODO(wolfsonkin): Use typing.Literal when Python 3.8 hits.
-def statemap(ifst: FstLike, map_type: str) -> Fst: ...
+def statemap(ifst: FstLike, map_type: StateMapType) -> Fst: ...
 def synchronize(ifst: FstLike) -> Fst: ...
 
 # NOTE: This are copy-pasta from _pywrapfst.pyx but with
@@ -203,7 +216,7 @@ def shortestdistance(
     ifst: FstLike,
     delta: float = ...,
     nstate: _StateId = ...,
-    queue_type: _QueueType = ...,
+    queue_type: QueueType = ...,
     reverse: bool = ...) -> List[Weight]: ...
 
 # # Two-argument constructive FST operations. If just one of the two FST
@@ -217,11 +230,11 @@ def shortestdistance(
 def compose(
     fst1: FstLike,
     fst2: FstLike,
-    compose_filter: _ComposeFilterFlag = ...,
+    compose_filter: ComposeFilter = ...,
     connect: bool = ...) -> Fst: ...
 def intersect(fst1: FstLike,
               fst2: FstLike,
-              compose_filter: _ComposeFilterFlag = ...,
+              compose_filter: ComposeFilter = ...,
               connect: bool = ...) -> Fst: ...
 # NOTE: This is copy-pasta from _pywrapfst.pyx but with
 # `s/ifst(\d): Fst/fst\1: FstLike/` and `s/-> MutableFst/-> Fst/`.
@@ -230,7 +243,7 @@ def intersect(fst1: FstLike,
 def difference(
     fst1: FstLike,
     fst2: FstLike,
-    compose_filter: _ComposeFilterFlag = ...,
+    compose_filter: ComposeFilter = ...,
     connect: bool = ...) -> Fst: ...
 # # Simple comparison operations.
 
@@ -245,8 +258,7 @@ def randequivalent(
     fst2: FstLike,
     npath: int = ...,
     delta: float = ...,
-    # TODO(wolfsonkin): Use typing.Literal when Python 3.8 hits.
-    select: str = ...,
+    select: RandArcSelection = ...,
     max_length: int = ...,
     seed: int = ...) -> bool: ...
 ############################################################
@@ -254,10 +266,8 @@ def randequivalent(
 def concat(fst1: FstLike, fst2: FstLike) -> Fst: ...
 def replace(
     pairs: Iterable[Tuple[int, Fst]],
-    # TODO(wolfsonkin): Use typing.Literal when Python 3.8 hits.
-    call_arc_labeling: str = ...,
-    # TODO(wolfsonkin): Use typing.Literal when Python 3.8 hits.
-    return_arc_labeling: str = ...,
+    call_arc_labeling: ReplaceLabelType = ...,
+    return_arc_labeling: ReplaceLabelType = ...,
     epsilon_on_replace: bool = ...,
     return_label: _Label = ...) -> Fst: ...
 def union(*fsts: FstLike) -> Fst: ...
@@ -276,7 +286,7 @@ class PdtParentheses:
 def pdt_compose(fst1: FstLike,
                 fst2: FstLike,
                 parens: PdtParentheses,
-                compose_filter: _ComposeFilterFlag = ...,
+                compose_filter: ComposeFilter = ...,
                 left_pdt: bool = ...) -> Fst: ...
 def pdt_expand(fst: FstLike,
                parens: PdtParentheses,
@@ -292,12 +302,12 @@ def pdt_replace(
 def pdt_reverse(fst: FstLike, parens: PdtParentheses) -> Fst: ...
 def pdt_shortestpath(fst: FstLike,
                      parens: PdtParentheses,
-                     queue_type: _QueueType = ...,
+                     queue_type: QueueType = ...,
                      keep_parentheses: bool = ...,
                      path_gc: bool = ...) -> Fst: ...
 
 # Multi-pushdown transducer classes and operations.
-class MPdtParentheses(object):
+class MPdtParentheses:
   def __repr__(self) -> str: ...
   def __len__(self) -> int: ...
   def __iter__(self) -> Iterator[Tuple[_Label, _Label, _Label]]: ...
@@ -310,7 +320,7 @@ class MPdtParentheses(object):
 def mpdt_compose(fst1: FstLike,
                  fst2: FstLike,
                  parens: MPdtParentheses,
-                 compose_filter: _ComposeFilterFlag = ...,
+                 compose_filter: ComposeFilter = ...,
                  left_mpdt: bool = ...) -> Fst: ...
 def mpdt_expand(fst: FstLike,
                 parens: MPdtParentheses,
@@ -323,8 +333,8 @@ class StringPathIterator:
   def __repr__(self) -> str: ...
   def __init__(self,
                fst: FstLike,
-               input_token_type: TokenType = ...,
-               output_token_type: TokenType = ...) -> None: ...
+               input_token_type: Optional[TokenType] = ...,
+               output_token_type: Optional[TokenType] = ...) -> None: ...
   def done(self) -> bool: ...
   def error(self) -> bool: ...
   def ilabels(self) -> List[_Label]: ...
@@ -339,12 +349,12 @@ class StringPathIterator:
   def weight(self) -> Weight: ...
   def weights(self) -> Iterator[Weight]: ...
 
-class Far(object):
+class Far:
   def __init__(self,
                filename: _Filename,
-               mode: _FarFileModeFlag = ...,
+               mode: FarFileMode = ...,
                arc_type: _ArcTypeFlag = ...,
-               far_type: _FarTypeFlag = ...) -> None: ...
+               far_type: FarType = ...) -> None: ...
   def error(self) -> bool: ...
   # TODO(wolfsonkin): Maybe just return string.
   def arc_type(self) -> _ArcTypeFlag: ...
@@ -352,8 +362,8 @@ class Far(object):
   # TODO(wolfsonkin): Maybe just return string.
   # TODO(wolfsonkin): If we switch to typing.Literal, take into account that
   # this can return the literal "closed".
-  def far_type(self) -> _FarTypeFlag: ...
-  def mode(self) -> _FarFileModeFlag: ...
+  def far_type(self) -> FarType: ...
+  def mode(self) -> FarFileMode: ...
   def name(self) -> str: ...
   def done(self) -> bool: ...
   def find(self, key: str) -> bool: ...
@@ -362,8 +372,10 @@ class Far(object):
   def next(self) -> None: ...
   def reset(self) -> None: ...
   def __getitem__(self, key: str) -> Fst: ...
+  def __next__(self) -> Tuple[str, Fst]: ...
+  def __iter__(self) -> Far: ...
   def add(self, key: str, fst: Fst) -> None: ...
-  # TODO(wolfsonkin): Make this support FstLikeing.
+  # TODO(wolfsonkin): Make this support FstLike.
   def __setitem__(self, key: str, fst: Fst) -> None: ...
   def close(self) -> None: ...
   # Adds support for use as a PEP-343 context manager.
@@ -412,20 +424,18 @@ from _pywrapfst import ERROR
 from _pywrapfst import EXPANDED
 from _pywrapfst import EXTRINSIC_PROPERTIES
 from _pywrapfst import FST_PROPERTIES
+from _pywrapfst import FstProperties
+from _pywrapfst import INITIAL_ACYCLIC
+from _pywrapfst import INITIAL_CYCLIC
+from _pywrapfst import INTRINSIC_PROPERTIES
 from _pywrapfst import I_DETERMINISTIC
 from _pywrapfst import I_EPSILONS
 from _pywrapfst import I_LABEL_INVARIANT_PROPERTIES
 from _pywrapfst import I_LABEL_SORTED
-from _pywrapfst import INITIAL_ACYCLIC
-from _pywrapfst import INITIAL_CYCLIC
-from _pywrapfst import INTRINSIC_PROPERTIES
 from _pywrapfst import MUTABLE
 from _pywrapfst import NEG_TRINARY_PROPERTIES
-from _pywrapfst import NO_EPSILONS
-from _pywrapfst import NO_I_EPSILONS
 from _pywrapfst import NON_I_DETERMINISTIC
 from _pywrapfst import NON_O_DETERMINISTIC
-from _pywrapfst import NO_O_EPSILONS
 from _pywrapfst import NOT_ACCEPTOR
 from _pywrapfst import NOT_ACCESSIBLE
 from _pywrapfst import NOT_COACCESSIBLE
@@ -433,6 +443,9 @@ from _pywrapfst import NOT_I_LABEL_SORTED
 from _pywrapfst import NOT_O_LABEL_SORTED
 from _pywrapfst import NOT_STRING
 from _pywrapfst import NOT_TOP_SORTED
+from _pywrapfst import NO_EPSILONS
+from _pywrapfst import NO_I_EPSILONS
+from _pywrapfst import NO_O_EPSILONS
 from _pywrapfst import NULL_PROPERTIES
 from _pywrapfst import O_DETERMINISTIC
 from _pywrapfst import O_EPSILONS
@@ -470,7 +483,7 @@ from _pywrapfst import ENCODE_WEIGHTS
 # NOTE: The following are copy-pasta from _pywrapfst.pyx but with
 # `s/self: T/fst: FstLike/` and `s/-> T/-> Fst/`.
 
-def arcsort(fst: FstLike, sort_type: _SortTypeFlag = ...) -> Fst: ...
+def arcsort(fst: FstLike, sort_type: SortType = ...) -> Fst: ...
 def closure(fst: FstLike, lower: int = ..., upper: int = ...) -> Fst: ...
 def connect(fst: FstLike) -> Fst: ...
 def decode(fst: FstLike, mapper: EncodeMapper) -> Fst: ...
@@ -480,25 +493,25 @@ def minimize(fst: FstLike,
              delta: float = ...,
              allow_nondet: bool = ...) -> Fst: ...
 def optimize(fst: FstLike, compute_props: bool = ...) -> Fst: ...
-def project(fst: FstLike, project_output: bool = ...) -> Fst: ...
+def project(fst: FstLike, project_type: ProjectType) -> Fst: ...
 def relabel_pairs(
     fst: FstLike,
     ipairs: Optional[Iterable[Tuple[_Label, _Label]]] = ...,
     opairs: Optional[Iterable[Tuple[_Label, _Label]]] = ...) -> Fst: ...
 def relabel_tables(fst: FstLike,
-                   old_isymbols: Optional[_SymbolTableView] = ...,
-                   new_isymbols: Optional[_SymbolTableView] = ...,
+                   old_isymbols: Optional[SymbolTableView] = ...,
+                   new_isymbols: Optional[SymbolTableView] = ...,
                    unknown_isymbol: str = ...,
                    attach_new_isymbols: bool = ...,
-                   old_osymbols: Optional[_SymbolTableView] = ...,
-                   new_osymbols: Optional[_SymbolTableView] = ...,
+                   old_osymbols: Optional[SymbolTableView] = ...,
+                   new_osymbols: Optional[SymbolTableView] = ...,
                    unknown_osymbol: str = ...,
                    attach_new_osymbols: bool = ...) -> Fst: ...
 def reweight(fst: FstLike,
              potentials: Iterable[WeightLike],
              to_final: bool = ...) -> Fst: ...
 def rmepsilon(fst: FstLike,
-              queue_type: _QueueType = ...,
+              queue_type: QueueType = ...,
               connect: bool = ...,
               weight: Optional[WeightLike] = ...,
               nstate: _StateId = ...,
@@ -513,10 +526,4 @@ from _pywrapfst import divide
 from _pywrapfst import power
 from _pywrapfst import plus
 from _pywrapfst import times
-
-# Single-char aliases for the biggest three functions.
-
-a = acceptor
-t = transducer
-u = union
 

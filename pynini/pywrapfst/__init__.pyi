@@ -15,6 +15,7 @@
 # See www.openfst.org for extensive documentation on this weighted
 # finite-state transducer library.
 
+import enum
 import os
 from typing import Optional, Union, overload, TypeVar, Tuple, Any, Type, Iterable, Iterator, List
 
@@ -22,25 +23,53 @@ from typing import Optional, Union, overload, TypeVar, Tuple, Any, Type, Iterabl
 class FstError(Exception): ...
 class FstArgError(FstError, ValueError): ...
 class FstBadWeightError(FstError, ValueError): ...
-class FstDeletedConstructorError(FstError, RuntimeError): ...
 class FstIndexError(FstError, IndexError): ...
 class FstIOError(FstError, IOError): ...
 class FstOpError(FstError, RuntimeError): ...
 
 # Custom Types
 _Filename = Union[os.PathLike, str]
-_FarFileModeFlag = str
-_ArcTypeFlag = str
-_FarTypeFlag = str
 _Symbol = str
 _Label = int
 _StateId = int
+_ArcIteratorPropertiesType = int
+_EncodeMapperPropertiesType = int
+
+
+# TODO(wolfsonkin): Drop version check once Python 3.8 is our minimum version.
+import sys
+if sys.version_info >= (3, 8):
+    from typing import Literal
+else:
+    from typing_extensions import Literal
+
+ArcMapType = Literal["identity", "input_epsilon", "invert",
+                     "output_epsilon", "plus", "power", "quantize",
+                     "rmweight", "superfinal", "times", "to_log",
+                     # NOTE: Both spellings of "to_std"
+                     "to_log64", "to_std", "to_standard"]
+# NOTE: At runtime, any number of arc types could be linked in, even though a
+# few are the most common, so no strong type checking.
+_ArcTypeFlag = str
+# NOTE: At runtime, any number of FST types could be linked in, even though a
+# few are the most common, so no strong type checking.
 _FstTypeFlag = str
-_SortTypeFlag = str
-# TODO(wolfsonkin): Replace with a typing.Literal[] once Python 3.8 hits.
-_QueueType = str
-# TODO(wolfsonkin): Replace with a typing.Literal[] once Python 3.8 hits.
-_ComposeFilterFlag = str
+ComposeFilter = Literal["alt_sequence", "auto", "match", "no_match",
+                        "null", "sequence", "trivial"]
+DeterminizeType = Literal["functional", "nonfunctional", "disambiguate"]
+DrawFloatFormat = Literal["e", "f", "g"]
+FarType = Literal[
+  "fst",
+  "stlist",
+  "sttable",
+  "default"
+]
+ProjectType = Literal["input", "output"]
+QueueType = Literal["auto", "fifo", "lifo", "shortest", "state", "top"]
+RandArcSelection = Literal["uniform", "log_prob", "fast_log_prob"]
+ReplaceLabelType = Literal["neither", "input", "output", "both"]
+SortType = Literal["ilabel", "olabel"]
+StateMapType = Literal["arc_sum", "arc_unique", "identity"]
 
 ## Weight and helpers.
 
@@ -55,15 +84,15 @@ class Weight:
   def __init__(self, weight_type: _WeightType, weight: _WeightStr) -> None: ...
   def copy(self) -> Weight: ...
   @classmethod
-  def Zero(cls, weight_type: _WeightType) -> Weight: ...
+  def zero(cls, weight_type: _WeightType) -> Weight: ...
   @classmethod
-  def One(cls, weight_type: _WeightType) -> Weight: ...
+  def one(cls, weight_type: _WeightType) -> Weight: ...
   @classmethod
-  def NoWeight(cls, weight_type: _WeightType) -> Weight: ...
+  def no_weight(cls, weight_type: _WeightType) -> Weight: ...
   def __eq__(w1: Weight, w2: Weight) -> bool: ...
   def __ne__(w1: Weight, w2: Weight) -> bool: ...
   def to_string(self) -> str: ...
-  def type(self) -> str: ...
+  def type(self) -> _WeightType: ...
   def member(self) -> bool: ...
 
 # TODO(wolfsonkin): Look into converting these to operator overloading instead.
@@ -86,7 +115,6 @@ class SymbolTableView:
   def get_nth_key(self, pos: int) -> _Label: ...
   def labeled_checksum(self) -> bytes: ...
   def member(self, key: Union[_Symbol, _Label]) -> bool: ...
-  def __contains__(self, key: Union[_Symbol, _Label]) -> bool: ...
   def name(self) -> str: ...
   def num_symbols(self) -> int: ...
   def write(self, source: _Filename) -> None: ...
@@ -145,8 +173,8 @@ class EncodeMapper:
   def __reduce__(self) -> Union[str, Tuple[Any, ...]]: ...
   def arc_type(self) -> _ArcTypeFlag: ...
   def weight_type(self) -> _WeightType: ...
-  def flags(self) -> int: ...
-  def properties(self, mask: int) -> int: ...
+  def flags(self) -> _EncodeMapperPropertiesType: ...
+  def properties(self, mask: FstProperties) -> FstProperties: ...
   @classmethod
   def read(cls, source: _Filename) -> EncodeMapper: ...
   @staticmethod
@@ -187,8 +215,7 @@ class Fst:
       nodesep: float = ...,
       fontsize: int = ...,
       precision: int = ...,
-      # TODO(wolfsonkin): Replace this with typing.Literal when Python 3.8 hits.
-      float_format: str = ...,
+      float_format: DrawFloatFormat = ...,
       show_weight_one: bool = ...) -> None: ...
   def final(self, state: _StateId) -> Weight: ...
   def fst_type(self) -> _FstTypeFlag: ...
@@ -204,20 +231,13 @@ class Fst:
             acceptor: bool = ...,
             show_weight_one: bool = ...,
             missing_sym: _Symbol = ...) -> str: ...
-  def properties(self, mask: int, test: bool) -> int: ...
+  def properties(self, mask: FstProperties, test: bool) -> FstProperties: ...
   @classmethod
   def read(cls: Type[U], source: _Filename) -> U: ...
   @classmethod
   def read_from_string(cls: Type[U], state: bytes) -> U: ...
   def start(self) -> _StateId: ...
   def states(self) -> StateIterator: ...
-  def text(self,
-           isymbols: Optional[SymbolTableView] = ...,
-           osymbols: Optional[SymbolTableView] = ...,
-           ssymbols: Optional[SymbolTableView] = ...,
-           acceptor: bool = ...,
-           show_weight_one: bool = ...,
-           missing_sym: _Symbol = ...) -> str: ...
   def verify(self) -> bool: ...
   def weight_type(self) -> _WeightType: ...
   def write(self, source: _Filename) -> None: ...
@@ -228,7 +248,7 @@ class MutableFst(Fst):
   def add_arc(self: T, state: _StateId, arc: Arc) -> T: ...
   def add_state(self) -> _StateId: ...
   def add_states(self, n: int) -> None: ...
-  def arcsort(self: T, sort_type: _SortTypeFlag = ...) -> T: ...
+  def arcsort(self: T, sort_type: SortType = ...) -> T: ...
   def closure(self: T, closure_plus: bool = ...) -> T: ...
   def concat(self: T, fst2: Fst) -> T: ...
   def connect(self: T) -> T: ...
@@ -242,7 +262,7 @@ class MutableFst(Fst):
   def mutable_input_symbols(self) -> _MutableFstSymbolTableView: ...
   def mutable_output_symbols(self) -> _MutableFstSymbolTableView: ...
   def num_states(self) -> _StateId: ...
-  def project(self: T, project_output: bool = ...) -> T: ...
+  def project(self: T, project_type: ProjectType) -> T: ...
   def prune(self: T,
             delta: float = ...,
             nstate: _StateId = ...,
@@ -270,7 +290,7 @@ class MutableFst(Fst):
                potentials: Iterable[WeightLike],
                to_final: bool = ...) -> T: ...
   def rmepsilon(self: T,
-                queue_type: _QueueType = ...,
+                queue_type: QueueType = ...,
                 connect: bool = ...,
                 weight: Optional[WeightLike] = ...,
                 nstate: _StateId = ...,
@@ -280,7 +300,9 @@ class MutableFst(Fst):
                 weight: Optional[WeightLike] = ...) -> T: ...
   def set_input_symbols(self: T, syms: Optional[SymbolTableView]) -> T: ...
   def set_output_symbols(self: T, syms: Optional[SymbolTableView]) -> T: ...
-  def set_properties(self: T, props: int, mask: int) -> T: ...
+  def set_properties(self: T,
+                     props: FstProperties,
+                     mask: FstProperties) -> T: ...
   def set_start(self: T, state: _StateId) -> T: ...
   def topsort(self: T) -> T: ...
   def union(self: T, *fsts2: Fst) -> T: ...
@@ -292,84 +314,146 @@ def _read_Fst(source: _Filename) -> Fst: ...
 def _read_Fst_from_string(state: str) -> Fst: ...
 NO_LABEL: _Label
 NO_STATE_ID: _StateId
-NO_SYMBOL: _Symbol
+# TODO(wolfosnkin): Extremely confusingly, `NO_SYMBOL` is a `_Label` rather than
+# a `_Symbol`. Consider changing that down in the C++ layer.
+NO_SYMBOL: _Label
 
 ## FST properties.
 
-EXPANDED: int
-MUTABLE: int
-ERROR: int
-ACCEPTOR: int
-NOT_ACCEPTOR: int
-I_DETERMINISTIC: int
-NON_I_DETERMINISTIC: int
-O_DETERMINISTIC: int
-NON_O_DETERMINISTIC: int
-EPSILONS: int
-NO_EPSILONS: int
-I_EPSILONS: int
-NO_I_EPSILONS: int
-O_EPSILONS: int
-NO_O_EPSILONS: int
-I_LABEL_SORTED: int
-NOT_I_LABEL_SORTED: int
-O_LABEL_SORTED: int
-NOT_O_LABEL_SORTED: int
-WEIGHTED: int
-UNWEIGHTED: int
-CYCLIC: int
-ACYCLIC: int
-INITIAL_CYCLIC: int
-INITIAL_ACYCLIC: int
-TOP_SORTED: int
-NOT_TOP_SORTED: int
-ACCESSIBLE: int
-NOT_ACCESSIBLE: int
-COACCESSIBLE: int
-NOT_COACCESSIBLE: int
-STRING: int
-NOT_STRING: int
-WEIGHTED_CYCLES: int
-UNWEIGHTED_CYCLES: int
-NULL_PROPERTIES: int
-COPY_PROPERTIES: int
-INTRINSIC_PROPERTIES: int
-EXTRINSIC_PROPERTIES: int
-SET_START_PROPERTIES: int
-SET_FINAL_PROPERTIES: int
-ADD_STATE_PROPERTIES: int
-ADD_ARC_PROPERTIES: int
-SET_ARC_PROPERTIES: int
-DELETE_STATE_PROPERTIES: int
-DELETE_ARC_PROPERTIES: int
-STATE_SORT_PROPERTIES: int
-ARC_SORT_PROPERTIES: int
-I_LABEL_INVARIANT_PROPERTIES: int
-O_LABEL_INVARIANT_PROPERTIES: int
-WEIGHT_INVARIANT_PROPERTIES: int
-ADD_SUPERFINAL_PROPERTIES: int
-RM_SUPERFINAL_PROPERTIES: int
-BINARY_PROPERTIES: int
-TRINARY_PROPERTIES: int
-POS_TRINARY_PROPERTIES: int
-NEG_TRINARY_PROPERTIES: int
-FST_PROPERTIES: int
+class FstProperties(enum.Flag):
+  EXPANDED: int
+  MUTABLE: int
+  ERROR: int
+  ACCEPTOR: int
+  NOT_ACCEPTOR: int
+  I_DETERMINISTIC: int
+  NON_I_DETERMINISTIC: int
+  O_DETERMINISTIC: int
+  NON_O_DETERMINISTIC: int
+  EPSILONS: int
+  NO_EPSILONS: int
+  I_EPSILONS: int
+  NO_I_EPSILONS: int
+  O_EPSILONS: int
+  NO_O_EPSILONS: int
+  I_LABEL_SORTED: int
+  NOT_I_LABEL_SORTED: int
+  O_LABEL_SORTED: int
+  NOT_O_LABEL_SORTED: int
+  WEIGHTED: int
+  UNWEIGHTED: int
+  CYCLIC: int
+  ACYCLIC: int
+  INITIAL_CYCLIC: int
+  INITIAL_ACYCLIC: int
+  TOP_SORTED: int
+  NOT_TOP_SORTED: int
+  ACCESSIBLE: int
+  NOT_ACCESSIBLE: int
+  COACCESSIBLE: int
+  NOT_COACCESSIBLE: int
+  STRING: int
+  NOT_STRING: int
+  WEIGHTED_CYCLES: int
+  UNWEIGHTED_CYCLES: int
+  NULL_PROPERTIES: int
+  COPY_PROPERTIES: int
+  INTRINSIC_PROPERTIES: int
+  EXTRINSIC_PROPERTIES: int
+  SET_START_PROPERTIES: int
+  SET_FINAL_PROPERTIES: int
+  ADD_STATE_PROPERTIES: int
+  ADD_ARC_PROPERTIES: int
+  SET_ARC_PROPERTIES: int
+  DELETE_STATE_PROPERTIES: int
+  DELETE_ARC_PROPERTIES: int
+  STATE_SORT_PROPERTIES: int
+  ARC_SORT_PROPERTIES: int
+  I_LABEL_INVARIANT_PROPERTIES: int
+  O_LABEL_INVARIANT_PROPERTIES: int
+  WEIGHT_INVARIANT_PROPERTIES: int
+  ADD_SUPERFINAL_PROPERTIES: int
+  RM_SUPERFINAL_PROPERTIES: int
+  BINARY_PROPERTIES: int
+  TRINARY_PROPERTIES: int
+  POS_TRINARY_PROPERTIES: int
+  NEG_TRINARY_PROPERTIES: int
+  FST_PROPERTIES: int
+
+EXPANDED: FstProperties
+MUTABLE: FstProperties
+ERROR: FstProperties
+ACCEPTOR: FstProperties
+NOT_ACCEPTOR: FstProperties
+I_DETERMINISTIC: FstProperties
+NON_I_DETERMINISTIC: FstProperties
+O_DETERMINISTIC: FstProperties
+NON_O_DETERMINISTIC: FstProperties
+EPSILONS: FstProperties
+NO_EPSILONS: FstProperties
+I_EPSILONS: FstProperties
+NO_I_EPSILONS: FstProperties
+O_EPSILONS: FstProperties
+NO_O_EPSILONS: FstProperties
+I_LABEL_SORTED: FstProperties
+NOT_I_LABEL_SORTED: FstProperties
+O_LABEL_SORTED: FstProperties
+NOT_O_LABEL_SORTED: FstProperties
+WEIGHTED: FstProperties
+UNWEIGHTED: FstProperties
+CYCLIC: FstProperties
+ACYCLIC: FstProperties
+INITIAL_CYCLIC: FstProperties
+INITIAL_ACYCLIC: FstProperties
+TOP_SORTED: FstProperties
+NOT_TOP_SORTED: FstProperties
+ACCESSIBLE: FstProperties
+NOT_ACCESSIBLE: FstProperties
+COACCESSIBLE: FstProperties
+NOT_COACCESSIBLE: FstProperties
+STRING: FstProperties
+NOT_STRING: FstProperties
+WEIGHTED_CYCLES: FstProperties
+UNWEIGHTED_CYCLES: FstProperties
+NULL_PROPERTIES: FstProperties
+COPY_PROPERTIES: FstProperties
+INTRINSIC_PROPERTIES: FstProperties
+EXTRINSIC_PROPERTIES: FstProperties
+SET_START_PROPERTIES: FstProperties
+SET_FINAL_PROPERTIES: FstProperties
+ADD_STATE_PROPERTIES: FstProperties
+ADD_ARC_PROPERTIES: FstProperties
+SET_ARC_PROPERTIES: FstProperties
+DELETE_STATE_PROPERTIES: FstProperties
+DELETE_ARC_PROPERTIES: FstProperties
+STATE_SORT_PROPERTIES: FstProperties
+ARC_SORT_PROPERTIES: FstProperties
+I_LABEL_INVARIANT_PROPERTIES: FstProperties
+O_LABEL_INVARIANT_PROPERTIES: FstProperties
+WEIGHT_INVARIANT_PROPERTIES: FstProperties
+ADD_SUPERFINAL_PROPERTIES: FstProperties
+RM_SUPERFINAL_PROPERTIES: FstProperties
+BINARY_PROPERTIES: FstProperties
+TRINARY_PROPERTIES: FstProperties
+POS_TRINARY_PROPERTIES: FstProperties
+NEG_TRINARY_PROPERTIES: FstProperties
+FST_PROPERTIES: FstProperties
 
 ## Arc iterator properties.
 
-ARC_I_LABEL_VALUE: int
-ARC_O_LABEL_VALUE: int
-ARC_WEIGHT_VALUE: int
-ARC_NEXT_STATE_VALUE: int
-ARC_NO_CACHE: int
-ARC_VALUE_FLAGS: int
-ARC_FLAGS: int
+ARC_I_LABEL_VALUE: _ArcIteratorPropertiesType
+ARC_O_LABEL_VALUE: _ArcIteratorPropertiesType
+ARC_WEIGHT_VALUE: _ArcIteratorPropertiesType
+ARC_NEXT_STATE_VALUE: _ArcIteratorPropertiesType
+ARC_NO_CACHE: _ArcIteratorPropertiesType
+ARC_VALUE_FLAGS: _ArcIteratorPropertiesType
+ARC_FLAGS: _ArcIteratorPropertiesType
 
 ## EncodeMapper properties.
 
-ENCODE_LABELS: int
-ENCODE_WEIGHTS: int
-ENCODE_FLAGS: int
+ENCODE_LABELS: _EncodeMapperPropertiesType
+ENCODE_WEIGHTS: _EncodeMapperPropertiesType
+ENCODE_FLAGS: _EncodeMapperPropertiesType
 
 ## Arc, ArcIterator, and MutableArcIterator.
 
@@ -402,12 +486,14 @@ class ArcIterator:
   def __iter__(self) -> ArcIterator: ...
   def __next__(self) -> Arc: ...
   def done(self) -> bool: ...
-  def flags(self) -> int: ...
+  def flags(self) -> _ArcIteratorPropertiesType: ...
   def next(self) -> None: ...
   def position(self) -> int: ...
   def reset(self) -> None: ...
   def seek(self, a: int) -> None: ...
-  def set_flags(self, flags: int, mask: int) -> None: ...
+  def set_flags(self,
+                flags: _ArcIteratorPropertiesType,
+                mask: _ArcIteratorPropertiesType) -> None: ...
   def value(self) -> Arc: ...
 
 class MutableArcIterator:
@@ -416,12 +502,14 @@ class MutableArcIterator:
   def __init__(self, ifst: MutableFst, state: _StateId) -> None: ...
   def __iter__(self) -> Iterator[Arc]: ...
   def done(self) -> bool: ...
-  def flags(self) -> int: ...
+  def flags(self) -> _ArcIteratorPropertiesType: ...
   def next(self) -> None: ...
   def position(self) -> int: ...
   def reset(self) -> None: ...
   def seek(self, a: int) -> None: ...
-  def set_flags(self, flags: int, mask: int) -> None: ...
+  def set_flags(self,
+                flags: _ArcIteratorPropertiesType,
+                mask: _ArcIteratorPropertiesType) -> None: ...
   def set_value(self, arc: Arc) -> None: ...
   def value(self) -> Arc: ...
 
@@ -429,10 +517,10 @@ class MutableArcIterator:
 
 class StateIterator:
   def __repr__(self) -> str: ...
-  # TODO(wolfsonkin): Consider making this _FstOrStr instead.
+  # TODO(wolfsonkin): Consider making this `FstLike` instead.
   def __init__(self, ifst: Fst) -> None: ...
-  def __iter__(self) -> ArcIterator: ...
-  def __next__(self) -> Arc: ...
+  def __iter__(self) -> StateIterator: ...
+  def __next__(self) -> _StateId: ...
   def done(self) -> bool: ...
   def next(self) -> None: ...
   def reset(self) -> None: ...
@@ -444,21 +532,19 @@ class StateIterator:
 def arcmap(
     ifst: Fst,
     delta: float = ...,
-    # TODO(wolfsonkin): Use typing.Literal when Python 3.8 hits.
-    map_type: str = ...,
+    map_type: ArcMapType = ...,
     power: float = ...,
     weight: Optional[WeightLike] = ...) -> Fst: ...
 def compose(
     ifst1: Fst,
     ifst2: Fst,
-    compose_filter: _ComposeFilterFlag = ...,
+    compose_filter: ComposeFilter = ...,
     connect: bool = ...) -> MutableFst: ...
 def convert(ifst: Fst, fst_type: _FstTypeFlag = ...) -> Fst: ...
 def determinize(
     ifst: Fst,
     delta: float = ...,
-    # TODO(wolfsonkin): Use typing.Literal when Python 3.8 hits.
-    det_type: str = ...,
+    det_type: DeterminizeType = ...,
     nstate: _StateId = ...,
     subsequential_label: _Label = ...,
     weight: Optional[WeightLike] = ...,
@@ -466,7 +552,7 @@ def determinize(
 def difference(
     ifst1: Fst,
     ifst2: Fst,
-    compose_filter: _ComposeFilterFlag = ...,
+    compose_filter: ComposeFilter = ...,
     connect: bool = ...) -> MutableFst: ...
 def disambiguate(ifst: Fst,
                  delta: float = ...,
@@ -478,7 +564,7 @@ def equal(ifst1: Fst, ifst2: Fst, delta: float = ...) -> bool: ...
 def equivalent(ifst1: Fst, ifst2: Fst, delta: float = ...) -> bool: ...
 def intersect(ifst1: Fst,
               ifst2: Fst,
-              compose_filter: _ComposeFilterFlag = ...,
+              compose_filter: ComposeFilter = ...,
               connect: bool = ...) -> MutableFst: ...
 def isomorphic(ifst1: Fst, ifst2: Fst, delta: float = ...) -> bool: ...
 def prune(ifst: Fst,
@@ -497,25 +583,21 @@ def randequivalent(
     ifst2: Fst,
     npath: int = ...,
     delta: float = ...,
-    # TODO(wolfsonkin): Use typing.Literal when Python 3.8 hits.
-    select: str = ...,
+    select: RandArcSelection = ...,
     max_length: int = ...,
     seed: int = ...) -> bool: ...
 def randgen(
     ifst: Fst,
     npath: int = ...,
-    # TODO(wolfsonkin): Use typing.Literal when Python 3.8 hits.
-    select: str = ...,
+    select: RandArcSelection = ...,
     max_length: int = ...,
     weighted: bool = ...,
     remove_total_weight: bool = ...,
     seed: int = ...) -> MutableFst: ...
 def replace(
     pairs: Iterable[Tuple[int, Fst]],
-    # TODO(wolfsonkin): Use typing.Literal when Python 3.8 hits.
-    call_arc_labeling: str = ...,
-    # TODO(wolfsonkin): Use typing.Literal when Python 3.8 hits.
-    return_arc_labeling: str = ...,
+    call_arc_labeling: ReplaceLabelType = ...,
+    return_arc_labeling: ReplaceLabelType = ...,
     epsilon_on_replace: bool = ...,
     return_label: _Label = ...) -> MutableFst: ...
 def reverse(ifst: Fst, require_superinitial: bool = ...) -> MutableFst: ...
@@ -523,18 +605,17 @@ def shortestdistance(
     ifst: Fst,
     delta: float = ...,
     nstate: _StateId = ...,
-    queue_type: _QueueType = ...,
+    queue_type: QueueType = ...,
     reverse: bool = ...) -> List[Weight]: ...
 def shortestpath(
     ifst: Fst,
     delta: float = ...,
     nshortest: int = ...,
     nstate: _StateId = ...,
-    queue_type: _QueueType = ...,
+    queue_type: QueueType = ...,
     unique: bool = ...,
     weight: Optional[WeightLike] = ...) -> MutableFst: ...
-# TODO(wolfsonkin): Use typing.Literal when Python 3.8 hits.
-def statemap(ifst: Fst, map_type: str) -> Fst: ...
+def statemap(ifst: Fst, map_type: StateMapType) -> Fst: ...
 def synchronize(ifst: Fst) -> MutableFst: ...
 ## Compiler.
 
@@ -567,13 +648,15 @@ class FarReader:
   def arc_type(self) -> _ArcTypeFlag: ...
   def done(self) -> bool: ...
   def error(self) -> bool: ...
-  def far_type(self) -> _FarTypeFlag: ...
+  def far_type(self) -> FarType: ...
   def find(self, key: str) -> bool: ...
   def get_fst(self) -> Fst: ...
   def get_key(self) -> str: ...
   def next(self) -> None: ...
   def reset(self) -> None: ...
   def __getitem__(self, key: str) -> Fst: ...
+  def __next__(self) -> Tuple[str, Fst]: ...
+  def __iter__(self) -> FarReader: ...
 
 class FarWriter:
   def __init__(self) -> None: ...
@@ -582,10 +665,10 @@ class FarWriter:
   def create(cls,
              source: _Filename,
              arc_type: _ArcTypeFlag = ...,
-             far_type: _FarTypeFlag = ...) -> FarWriter: ...
+             far_type: FarType = ...) -> FarWriter: ...
   def add(self, key: str, ifst: Fst) -> None: ...
   def arc_type(self) -> _ArcTypeFlag: ...
   def error(self) -> bool: ...
-  def far_type(self) -> _FarTypeFlag: ...
+  def far_type(self) -> FarType: ...
   def __setitem__(self, key: str, fst: Fst) -> None: ...
 

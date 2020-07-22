@@ -23,12 +23,10 @@
 #include "base/init_google.h"
 #include <fst/log.h>
 #include "base/logging_extensions.h"
-#include "crossproductscript.h"
+#include "crossscript.h"
 
 
-DECLARE_string(final_weight);
-
-int fstcrossproduct_main(int argc, char **argv) {
+int fstcross_main(int argc, char **argv) {
   namespace s = nlp_fst::script;
   using nlp_fst::script::FstClass;
   using nlp_fst::script::VectorFstClass;
@@ -64,12 +62,7 @@ int fstcrossproduct_main(int argc, char **argv) {
   if (!ifst2) return 1;
 
   VectorFstClass ofst(ifst1->ArcType());
-
-  const WeightClass final_weight = FLAGS_final_weight.empty() ?
-      WeightClass::One(ofst.WeightType()) :
-      WeightClass(ofst.WeightType(), FLAGS_final_weight);
-
-  s::CrossProduct(*ifst1, *ifst2, &ofst, final_weight);
+  s::Cross(*ifst1, *ifst2, &ofst);
 
   return !ofst.Write(out_name);
 }

@@ -13,10 +13,12 @@
 // Copyright 2016 and onwards Google, Inc.
 //
 
-#ifndef PYNINI_STRIPCOMMENT_H_
-#define PYNINI_STRIPCOMMENT_H_
+#ifndef PYNINI_STRINGUTIL_H_
+#define PYNINI_STRINGUTIL_H_
 
 #include <string>
+
+namespace fst {
 
 // Defines comment syntax for string files.
 //
@@ -25,14 +27,13 @@
 //
 // To use the '#' literal (i.e., to ensure it is not interpreted as the start of
 // a comment) escape it with '\'; the escaping '\' in "\#" also removed.
-//
-// TODO(rws,kbg): Merge stringfile functionality across Pynini and Thrax.
-
-namespace fst {
-
 std::string StripCommentAndRemoveEscape(const std::string &line);
+
+// Escapes characters (namely, backslash and square brackets) used to indicate
+// generated symbols.
+std::string Escape(const std::string &str);
 
 }  // namespace fst
 
-#endif  // PYNINI_STRIPCOMMENT_H_
+#endif  // PYNINI_STRINGUTIL_H_
 

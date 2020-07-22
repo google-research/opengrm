@@ -13,39 +13,32 @@
 // Copyright 2016 and onwards Google, Inc.
 //
 
-#ifndef PYNINI_CROSSPRODUCTSCRIPT_H_
-#define PYNINI_CROSSPRODUCTSCRIPT_H_
+#ifndef PYNINI_CROSSSCRIPT_H_
+#define PYNINI_CROSSSCRIPT_H_
 
 #include <utility>
 
 #include <fst/script/fst-class.h>
-#include "crossproduct.h"
+#include "cross.h"
 
 namespace fst {
 namespace script {
 
-using CrossProductArgs = std::tuple<const FstClass &, const FstClass &,
-                                    MutableFstClass *, const WeightClass &>;
+using CrossArgs =
+    std::tuple<const FstClass &, const FstClass &, MutableFstClass *>;
 
 template <class Arc>
-void CrossProduct(CrossProductArgs *args) {
+void Cross(CrossArgs *args) {
   const Fst<Arc> &ifst1 = *(std::get<0>(*args).GetFst<Arc>());
   const Fst<Arc> &ifst2 = *(std::get<1>(*args).GetFst<Arc>());
   MutableFst<Arc> *ofst = std::get<2>(*args)->GetMutableFst<Arc>();
-  const typename Arc::Weight &final_weight =
-      *(std::get<3>(*args).GetWeight<typename Arc::Weight>());
-  CrossProduct(ifst1, ifst2, ofst, final_weight);
+  Cross(ifst1, ifst2, ofst);
 }
 
-void CrossProduct(const FstClass &ifst1, const FstClass &ifst2,
-                  MutableFstClass *ofst, const WeightClass &final_weight);
-
-// Defaults final weight to semiring One.
-void CrossProduct(const FstClass &ifst1, const FstClass &ifst2,
-                  MutableFstClass *ofst);
+void Cross(const FstClass &ifst1, const FstClass &ifst2, MutableFstClass *ofst);
 
 }  // namespace script
 }  // namespace fst
 
-#endif  // PYNINI_CROSSPRODUCTSCRIPT_H_
+#endif  // PYNINI_CROSSSCRIPT_H_
 

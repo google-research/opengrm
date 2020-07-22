@@ -28,25 +28,31 @@
 #include <fstream>
 #include <fst/mutable-fst.h>
 #include <fst/string.h>
+#include <fst/symbol-table.h>
 #include "prefix_tree.h"
 #include "stringcompile.h"
 #include "stringfile.h"
+
+#include "gtl.h"
 
 namespace fst {
 namespace internal {
 
 // Helper class for constructing string maps.
-template <class Arc>
+template <class Arc, class PTree>
 class StringMapCompiler {
  public:
   using Label = typename Arc::Label;
   using Weight = typename Arc::Weight;
 
-  explicit StringMapCompiler(StringTokenType itype = BYTE,
-                             StringTokenType otype = BYTE,
-                             const SymbolTable *isyms = nullptr,
-                             const SymbolTable *osyms = nullptr)
-      : itype_(itype), otype_(otype), isyms_(isyms), osyms_(osyms) {}
+  explicit StringMapCompiler(TokenType input_token_type = TokenType::BYTE,
+                             TokenType output_token_type = TokenType::BYTE,
+                             const SymbolTable *input_symbols = nullptr,
+                             const SymbolTable *output_symbols = nullptr)
+      : input_token_type_(input_token_type),
+        output_token_type_(output_token_type),
+        input_symbols_(input_symbols),
+        output_symbols_(output_symbols) {}
 
   // One-string version.
   bool Add(const std::string &iostring) {
@@ -57,9 +63,11 @@ class StringMapCompiler {
   bool Add(const std::string &istring, const std::string &ostring,
            Weight weight = Weight::One()) {
     std::vector<Label> ilabels;
-    if (!StringToLabels(istring, &ilabels, itype_, isyms_)) return false;
+    if (!StringToLabels(istring, &ilabels, input_token_type_, input_symbols_))
+      return false;
     std::vector<Label> olabels;
-    if (!StringToLabels(ostring, &olabels, otype_, osyms_)) return false;
+    if (!StringToLabels(ostring, &olabels, output_token_type_, output_symbols_))
+      return false;
     ptree_.Add(ilabels, olabels, std::move(weight));
     return true;
   }
@@ -80,49 +88,123 @@ class StringMapCompiler {
   void Compile(MutableFst<Arc> *fst) const { ptree_.ToFst(fst); }
 
  private:
-  const StringTokenType itype_;
-  const StringTokenType otype_;
-  const SymbolTable *isyms_;
-  const SymbolTable *osyms_;
-  PrefixTree<Arc> ptree_;
+  const TokenType input_token_type_;
+  const TokenType output_token_type_;
+  const SymbolTable *input_symbols_;
+  const SymbolTable *output_symbols_;
+  PTree ptree_;
 };
 
-}  // namespace internal
+template <class StringType>
+bool StringMapLineIsAcceptor(std::vector<StringType> line) {
+  switch (line.size()) {
+    case 1:
+      return true;
+    case 2:
+    case 3: {
+      return line[0] == line[1];
+    }
+    default:
+      return false;
+  }
+}
 
-// Compiles deterministic FST representing the union of the cross-product of
-// pairs of weighted string cross-products from a TSV file of string triples.
-template <class Arc>
-bool StringFileCompile(const std::string &source, MutableFst<Arc> *fst,
-                       StringTokenType itype = BYTE,
-                       StringTokenType otype = BYTE,
-                       const SymbolTable *isyms = nullptr,
-                       const SymbolTable *osyms = nullptr) {
-  internal::StringMapCompiler<Arc> compiler(itype, otype, isyms, osyms);
-  internal::ColumnStringFile csf(source);
-  if (csf.Bad()) return false;  // File opening failed.
-  for (; !csf.Done(); csf.Next()) {
-    const auto &line = csf.Row();
+template <class Weight>
+bool StringMapLineIsAcceptor(
+    const std::tuple<std::string, std::string, Weight> &line) {
+  return std::get<0>(line) == std::get<1>(line);
+}
+
+inline bool StringMapSameTokenTypeKernel(TokenType input_token_type,
+                                         TokenType output_token_type,
+                                         const SymbolTable *input_symbols,
+                                         const SymbolTable *output_symbols) {
+  if (input_token_type != output_token_type) return false;
+  switch (input_token_type) {
+    case TokenType::BYTE:
+    case TokenType::UTF8: {
+      return true;
+    }
+    case TokenType::SYMBOL: {
+      // The pointers should either both be nullptr or both be non-nullptr.
+      if ((!input_symbols != !output_symbols)) return false;
+      return CompatSymbols(input_symbols, output_symbols);
+    }
+  }
+  return false;  // Unreachable.
+}
+
+inline bool StringMapCheckRepresentableAsAcceptor(
+    internal::ColumnStringFile *csf, TokenType input_token_type,
+    TokenType output_token_type, const SymbolTable *input_symbols,
+    const SymbolTable *output_symbols) {
+  if (!StringMapSameTokenTypeKernel(input_token_type, output_token_type,
+                                    input_symbols, output_symbols)) {
+    return false;
+  }
+  for (; !csf->Done(); csf->Next()) {
+    const auto &line = csf->Row();
+    if (!StringMapLineIsAcceptor(line)) return false;
+  }
+  return true;
+}
+
+template <class StringType>
+bool StringMapCheckRepresentableAsAcceptor(std::vector<StringType> lines,
+                                           TokenType input_token_type,
+                                           TokenType output_token_type,
+                                           const SymbolTable *input_symbols,
+                                           const SymbolTable *output_symbols) {
+  if (!StringMapSameTokenTypeKernel(input_token_type, output_token_type,
+                                    input_symbols, output_symbols)) {
+    return false;
+  }
+  for (const auto &line : lines) {
+    if (!StringMapLineIsAcceptor(line)) return false;
+  }
+  return true;
+}
+
+template <class PTree, class Arc>
+bool StringMapCompile(internal::ColumnStringFile *csf, MutableFst<Arc> *fst,
+                      TokenType input_token_type, TokenType output_token_type,
+                      const SymbolTable *input_symbols,
+                      const SymbolTable *output_symbols) {
+  internal::StringMapCompiler<Arc, PTree> compiler(
+      input_token_type, output_token_type, input_symbols, output_symbols);
+  for (csf->Reset(); !csf->Done(); csf->Next()) {
+    const auto &line = csf->Row();
+    const auto log_line_compilation_error = [&csf, &line]() {
+      LOG(ERROR) << "StringFileCompile: Ill-formed line " << csf->LineNumber()
+                 << " in file " << csf->Filename() << ": `"
+                 << strings::Join(line, "\t") << "`";
+      return false;
+    };
     switch (line.size()) {
       case 1: {
-        const std::string iostring(line[0]);
-        if (!compiler.Add(std::string(line[0]))) return false;
+        if (!compiler.Add(std::string(line[0]))) {
+          log_line_compilation_error();
+          return false;
+        }
         break;
       }
       case 2: {
-        if (!compiler.Add(std::string(line[0]), std::string(line[1])))
+        if (!compiler.Add(std::string(line[0]), std::string(line[1]))) {
+          log_line_compilation_error();
           return false;
+        }
         break;
       }
       case 3: {
         if (!compiler.Add(std::string(line[0]), std::string(line[1]),
                           std::string(line[2]))) {
+          log_line_compilation_error();
           return false;
         }
         break;
       }
       default: {
-        LOG(ERROR) << "StringFileCompile: Ill-formed line " << csf.LineNumber()
-                   << " in file " << csf.Filename();
+        log_line_compilation_error();
         return false;
       }
     }
@@ -131,31 +213,44 @@ bool StringFileCompile(const std::string &source, MutableFst<Arc> *fst,
   return true;
 }
 
-// Compiles deterministic FST representing the union of the cross-product of
-// pairs of weighted string cross-products from a vector of vector of strings.
-template <class Arc>
+template <class PTree, class Arc>
 bool StringMapCompile(const std::vector<std::vector<std::string>> &lines,
-                      MutableFst<Arc> *fst, StringTokenType itype = BYTE,
-                      StringTokenType otype = BYTE,
-                      const SymbolTable *isyms = nullptr,
-                      const SymbolTable *osyms = nullptr) {
-  internal::StringMapCompiler<Arc> compiler(itype, otype, isyms, osyms);
+                      MutableFst<Arc> *fst, TokenType input_token_type,
+                      TokenType output_token_type,
+                      const SymbolTable *input_symbols,
+                      const SymbolTable *output_symbols) {
+  internal::StringMapCompiler<Arc, PTree> compiler(
+      input_token_type, output_token_type, input_symbols, output_symbols);
   for (const auto &line : lines) {
+    const auto log_line_compilation_error = [&line]() {
+      LOG(ERROR) << "StringMapCompile: Ill-formed line: `"
+                 << strings::Join(line, "\t") << "`";
+      return false;
+    };
     switch (line.size()) {
       case 1: {
-        if (!compiler.Add(line[0])) return false;
+        if (!compiler.Add(line[0])) {
+          log_line_compilation_error();
+          return false;
+        }
         break;
       }
       case 2: {
-        if (!compiler.Add(line[0], line[1])) return false;
+        if (!compiler.Add(line[0], line[1])) {
+          log_line_compilation_error();
+          return false;
+        }
         break;
       }
       case 3: {
-        if (!compiler.Add(line[0], line[1], line[2])) return false;
+        if (!compiler.Add(line[0], line[1], line[2])) {
+          log_line_compilation_error();
+          return false;
+        }
         break;
       }
       default: {
-        LOG(ERROR) << "StringMapCompile: Ill-formed line";
+        log_line_compilation_error();
         return false;
       }
     }
@@ -164,25 +259,104 @@ bool StringMapCompile(const std::vector<std::vector<std::string>> &lines,
   return true;
 }
 
-// Compiles deterministic FST representing the union of the cross-product of
-// pairs of weighted string cross-products from a vector of tuples of
-// (istring, ostring, weight).
-template <class Arc>
+template <class PTree, class Arc>
 bool StringMapCompile(
     const std::vector<
         std::tuple<std::string, std::string, typename Arc::Weight>> &lines,
-    MutableFst<Arc> *fst, StringTokenType itype = BYTE,
-    StringTokenType otype = BYTE, const SymbolTable *isyms = nullptr,
-    const SymbolTable *osyms = nullptr) {
-  internal::StringMapCompiler<Arc> compiler(itype, otype, isyms, osyms);
+    MutableFst<Arc> *fst, TokenType input_token_type = TokenType::BYTE,
+    TokenType output_token_type = TokenType::BYTE,
+    const SymbolTable *input_symbols = nullptr,
+    const SymbolTable *output_symbols = nullptr) {
+  internal::StringMapCompiler<Arc, PTree> compiler(
+      input_token_type, output_token_type, input_symbols, output_symbols);
   for (const auto &line : lines) {
     const auto &istring = std::get<0>(line);
     const auto &ostring = std::get<1>(line);
     const auto &weight = std::get<2>(line);
-    if (!compiler.Add(istring, ostring, weight)) return false;
+    if (!compiler.Add(istring, ostring, weight)) {
+      LOG(ERROR) << "StringMapCompile: Ill-formed line: `(" << istring << ", "
+                 << ostring << ", " << weight << ")`";
+      return false;
+    }
   }
   compiler.Compile(fst);
   return true;
+}
+
+template <class Arc, class Container>
+bool StringMapCompileWithAcceptorCheck(
+    Container container, MutableFst<Arc> *fst,
+    TokenType input_token_type = TokenType::BYTE,
+    TokenType output_token_type = TokenType::BYTE,
+    const SymbolTable *input_symbols = nullptr,
+    const SymbolTable *output_symbols = nullptr) {
+  const bool representable_as_acceptor =
+      internal::StringMapCheckRepresentableAsAcceptor(
+          container, input_token_type, output_token_type, input_symbols,
+          output_symbols);
+  if (representable_as_acceptor) {
+    return internal::StringMapCompile<AcceptorPrefixTree<Arc>>(
+        container, fst, input_token_type, output_token_type, input_symbols,
+        output_symbols);
+  } else {
+    return internal::StringMapCompile<TransducerPrefixTree<Arc>>(
+        container, fst, input_token_type, output_token_type, input_symbols,
+        output_symbols);
+  }
+}
+
+}  // namespace internal
+
+// Compiles deterministic FST representing the union of the cross-product of
+// pairs of weighted string cross-products from a TSV file of string triples.
+// It will be an acceptor if all lines represent the same istring and ostring
+// and also the (token_type, symbols) is the same for input and output.
+template <class Arc>
+bool StringFileCompile(
+    const std::string &source, MutableFst<Arc> *fst,
+    TokenType input_token_type = TokenType::BYTE,
+    TokenType output_token_type = TokenType::BYTE,
+    const SymbolTable *input_symbols = nullptr,
+    const SymbolTable *output_symbols = nullptr) {
+  internal::ColumnStringFile csf(source);
+  if (csf.Bad()) return false;  // File opening failed.
+  return internal::StringMapCompileWithAcceptorCheck(
+      &csf, fst, input_token_type, output_token_type, input_symbols,
+      output_symbols);
+}
+
+// Compiles deterministic FST representing the union of the cross-product of
+// pairs of weighted string cross-products from a vector of vector of strings.
+// It will be an acceptor if all lines represent the same istring and ostring
+// and also the (token_type, symbols) is the same for input and output.
+template <class Arc>
+bool StringMapCompile(
+    const std::vector<std::vector<std::string>> &lines, MutableFst<Arc> *fst,
+    TokenType input_token_type = TokenType::BYTE,
+    TokenType output_token_type = TokenType::BYTE,
+    const SymbolTable *input_symbols = nullptr,
+    const SymbolTable *output_symbols = nullptr) {
+  return internal::StringMapCompileWithAcceptorCheck(
+      lines, fst, input_token_type, output_token_type, input_symbols,
+      output_symbols);
+}
+
+// Compiles deterministic FST representing the union of the cross-product of
+// pairs of weighted string cross-products from a vector of tuples of
+// (istring, ostring, weight). It will be an acceptor if all lines represent the
+// same istring and ostring and also the (token_type, symbols) is the same for
+// input and output.
+template <class Arc>
+bool StringMapCompile(
+    const std::vector<
+        std::tuple<std::string, std::string, typename Arc::Weight>> &lines,
+    MutableFst<Arc> *fst, TokenType input_token_type = TokenType::BYTE,
+    TokenType output_token_type = TokenType::BYTE,
+    const SymbolTable *input_symbols = nullptr,
+    const SymbolTable *output_symbols = nullptr) {
+  return internal::StringMapCompileWithAcceptorCheck(
+      lines, fst, input_token_type, output_token_type, input_symbols,
+      output_symbols);
 }
 
 }  // namespace fst

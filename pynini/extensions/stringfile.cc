@@ -15,7 +15,7 @@
 
 #include "stringfile.h"
 
-#include "stripcomment.h"
+#include "stringutil.h"
 
 namespace fst {
 namespace internal {
@@ -37,7 +37,7 @@ void StringFile::Next() {
 
 void ColumnStringFile::Reset() {
   sf_.Reset();
-  Next();
+  Parse();
 }
 
 void ColumnStringFile::Next() {

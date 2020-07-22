@@ -20,20 +20,20 @@
 namespace fst {
 namespace script {
 
-bool CompileString(const std::string &str, MutableFstClass *fst,
-                   StringTokenType ttype, const SymbolTable *syms,
+bool StringCompile(const std::string &str, MutableFstClass *fst,
+                   TokenType token_type, const SymbolTable *symbols,
                    const WeightClass &weight) {
   if (!fst->WeightTypesMatch(weight, "CompileSymbolString")) {
     fst->SetProperties(kError, kError);
     return false;
   }
-  CompileStringInnerArgs iargs(str, fst, ttype, syms, weight);
-  CompileStringArgs args(iargs);
-  Apply<Operation<CompileStringArgs>>("CompileString", fst->ArcType(), &args);
+  StringCompileInnerArgs iargs(str, fst, token_type, symbols, weight);
+  StringCompileArgs args(iargs);
+  Apply<Operation<StringCompileArgs>>("StringCompile", fst->ArcType(), &args);
   return args.retval;
 }
 
-REGISTER_FST_OPERATION_3ARCS(CompileString, CompileStringArgs);
+REGISTER_FST_OPERATION_3ARCS(StringCompile, StringCompileArgs);
 
 }  // namespace script
 }  // namespace fst
