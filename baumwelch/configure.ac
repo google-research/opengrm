@@ -1,4 +1,4 @@
-AC_INIT([BaumWelch], [0.3.3], [kbg@google.com])
+AC_INIT([BaumWelch], [0.3.4], [kbg@google.com])
 AM_INIT_AUTOMAKE([foreign nostdinc -Wall -Werror])
 AM_PROG_AR
 

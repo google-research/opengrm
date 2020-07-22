@@ -6,5 +6,5 @@ lib_LTLIBRARIES  = libbaumwelchscript.la
 libbaumwelchscript_la_SOURCES = decodescript.cc \
                                 randomizescript.cc \
 								trainscript.cc
-libbaumwelchscript_la_LDFLAGS  = -version-info 33:0:0
+libbaumwelchscript_la_LDFLAGS  = -version-info 34:0:0
 endif
