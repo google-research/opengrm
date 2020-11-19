@@ -1,9 +1,9 @@
 include AUTHORS
 include CHEATSHEET
 include CONTRIBUTING
+include extensions/*
 include LICENSE
 include NEWS
-include extensions/*
 include pynini/*
 include pywrapfst/*
 include tests/*
