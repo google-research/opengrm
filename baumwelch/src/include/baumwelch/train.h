@@ -62,53 +62,14 @@ struct TrainBaumWelchOptions {
 
 namespace internal {
 
-// Computes alpha and beta for idempotent semirings, using A* search during the
-// alpha computation. If a state is not visited during search the estimate is
-// taken to be semiring zero. This estimate of alpha for a state has the true
-// value as an upper bound, since some states not visited during the search will
-// have true non-zero values because search terminates once the shortest path
-// is found (due to the first_path=true).
-template <class Arc, typename std::enable_if<IsIdempotent<
-                         typename Arc::Weight>::value>::type * = nullptr>
-void ComputeAlphaAndBeta(const ComposeFst<Arc> &ico,
-                         std::vector<typename Arc::Weight> *alpha,
-                         std::vector<typename Arc::Weight> *beta) {
-  // Computes beta.
-  ShortestDistance(ico, beta, /*reverse=*/true);
-  // Computes alpha using an A* approximation.
-  using StateId = typename Arc::StateId;
-  using Weight = typename Arc::Weight;
-  using MyEstimate = NaturalAStarEstimate<StateId, Weight>;
-  using MyQueue = NaturalAStarQueue<StateId, Weight, MyEstimate>;
-  using MyArcFilter = AnyArcFilter<Arc>;
-  using MyShortestDistanceOptions =
-      ShortestDistanceOptions<Arc, MyQueue, MyArcFilter>;
-  const MyEstimate estimate(*beta);
-  MyQueue queue(*alpha, estimate);
-  static constexpr MyArcFilter arc_filter;
-  const MyShortestDistanceOptions opts(
-      &queue, arc_filter,
-      /*source=*/kNoStateId,     // Default.
-      /*delta=*/kShortestDelta,  // Default.
-      /*first_path=*/true);      // Heuristic is admissible.
-  ShortestDistance(ico, alpha, opts);
-  VLOG(1) << ExploredStates<Weight>(*alpha) << " alpha states explored";
-}
-
-// Computes alpha and beta for non-idempotent semirings, which requires full
-// search.
-template <class Arc, typename std::enable_if<!IsIdempotent<
-                         typename Arc::Weight>::value>::type * = nullptr>
-void ComputeAlphaAndBeta(const ComposeFst<Arc> &ico,
-                         std::vector<typename Arc::Weight> *alpha,
-                         std::vector<typename Arc::Weight> *beta) {
-  // Computes beta.
-  ShortestDistance(ico, beta, /*reverse=*/true);
-  // Computes alpha.
-  ShortestDistance(ico, alpha, /*reverse=*/false);
-}
-
 // Class storing forward and backwards weights
+//
+// For idempotent semirings, this uses A* search during the alpha computation.
+// If a state is not visited during search the estimate is taken to be
+// semiring zero. This estimate of alpha for a state has the true value as an
+// upper bound, since some states not visited during the search will have true
+// non-zero values because search terminates once the shortest path is found
+// (due to first_path=true).
 template <class Arc>
 class ForwardBackward {
  public:
@@ -116,7 +77,29 @@ class ForwardBackward {
   using Weight = typename Arc::Weight;
 
   explicit ForwardBackward(const ComposeFst<Arc> &ico) {
-    ComputeAlphaAndBeta(ico, &alpha_, &beta_);
+    ShortestDistance(ico, &beta_, /*reverse=*/true);
+    if constexpr (IsIdempotent<typename Arc::Weight>::value) {
+      // Computes alpha using an A* approximation.
+      using StateId = typename Arc::StateId;
+      using Weight = typename Arc::Weight;
+      using MyEstimate = NaturalAStarEstimate<StateId, Weight>;
+      using MyQueue = NaturalAStarQueue<StateId, Weight, MyEstimate>;
+      using MyArcFilter = AnyArcFilter<Arc>;
+      using MyShortestDistanceOptions =
+          ShortestDistanceOptions<Arc, MyQueue, MyArcFilter>;
+      const MyEstimate estimate(beta_);
+      MyQueue queue(alpha_, estimate);
+      static constexpr MyArcFilter arc_filter;
+      const MyShortestDistanceOptions opts(
+          &queue, arc_filter,
+          /*source=*/kNoStateId,     // Default.
+          /*delta=*/kShortestDelta,  // Default.
+          /*first_path=*/true);      // Heuristic is admissible.
+      ShortestDistance(ico, &alpha_, opts);
+      VLOG(1) << ExploredStates<Weight>(alpha_) << " alpha states explored";
+    } else {
+      ShortestDistance(ico, &alpha_, /*reverse=*/false);
+    }
   }
 
   const Weight &Alpha(StateId s) const {
@@ -207,7 +190,7 @@ class StepwiseBaumWelchTrainer {
       VLOG(1) << "Empty lattice";
       return false;
     }
-    const internal::ForwardBackward<Arc> fb(ico);
+    const ForwardBackward<Arc> fb(ico);
     const auto &likelihood = fb.Beta(start);
     if (likelihood == Weight::Zero()) {
       VLOG(1) << "Start state not coaccessible";

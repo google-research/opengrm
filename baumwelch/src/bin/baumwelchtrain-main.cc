@@ -74,13 +74,14 @@ int baumwelchtrain_main(int argc, char **argv) {
       MutableFstClass::Read(model_name));
   if (!model) return 1;
 
-  const TrainBaumWelchOptions opts(/*max_iters=*/FLAGS_max_iters,
-                                   /*lr=*/FLAGS_lr,
-                                   /*batch_size=*/FLAGS_batch_size,
-                                   /*delta=*/FLAGS_delta);
+  const TrainBaumWelchOptions opts(
+      /*max_iters=*/FLAGS_max_iters,
+      /*lr=*/FLAGS_lr,
+      /*batch_size=*/FLAGS_batch_size,
+      /*delta=*/FLAGS_delta);
 
-  TrainBaumWelch(input.get(), output.get(), model.get(), FLAGS_normalize_ilabel,
-                 opts);
+  TrainBaumWelch(input.get(), output.get(), model.get(),
+                 FLAGS_normalize_ilabel, opts);
 
   return !model->Write(out_name);
 }

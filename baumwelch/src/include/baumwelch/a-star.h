@@ -35,11 +35,11 @@ namespace fst {
 // * Cast back into the input semiring.
 //
 // Due to limitations of determinization, this only works for acceptors.
-template <class Arc,
-          typename std::enable_if<!IsPath<typename Arc::Weight>::value>::type
-              * = nullptr>
+template <class Arc>
 void AStarSingleShortestPath(const Fst<Arc> &ifst, MutableFst<Arc> *ofst,
                              float delta = kShortestDelta) {
+  static_assert(!IsPath<typename Arc::Weight>::value,
+                "This procedure is only valid for non-path semirings");
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
   using PathWeight = TropicalWeightTpl<typename Weight::ValueType>;

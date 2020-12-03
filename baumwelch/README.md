@@ -10,7 +10,7 @@ This library is primarily developed by [Kyle Gorman](mailto:kbg@google.com).
 
 This library depends on:
 
-*   A standards-compliant C++ 11 compiler (GCC \>= 4.8 or Clang \>= 700)
+*   A standards-compliant C++17 compiler (GCC \>= 7 or Clang \>= 700)
 *   The most recent version of [OpenFst](http://openfst.org) built with the
     `far` and `script` extensions (i.e., built with `./configure --enable-grm`
     or `./configure --enable-far`) and headers

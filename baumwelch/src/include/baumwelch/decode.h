@@ -24,7 +24,6 @@
 #include <algorithm>
 #include <memory>
 #include <numeric>
-#include <type_traits>
 #include <vector>
 
 #include <fst/extensions/far/far.h>
@@ -53,7 +52,7 @@ void MakeString(MutableFst<Arc> *fst) {
   ArcMap(fst, rmweight);
 }
 
-// Pair decoding for semirings with the path property.
+// Pair decoding.
 template <class Arc>
 CompactUnweightedFst<Arc> DecodePair(const Fst<Arc> &ifst) {
   VectorFst<Arc> ofst;
@@ -62,29 +61,18 @@ CompactUnweightedFst<Arc> DecodePair(const Fst<Arc> &ifst) {
   return CompactUnweightedFst<Arc>(ofst);
 }
 
-// Decipherment decoding for semirings with the path property.
-template <class Arc, typename std::enable_if<
-                         IsPath<typename Arc::Weight>::value>::type * = nullptr>
+// Decipherment decoding.
+template <class Arc>
 CompactStringFst<Arc> DecodeDecipherment(const Fst<Arc> &ifst) {
   VectorFst<Arc> lattice;
   Project(ifst, &lattice, ProjectType::INPUT);
   RmEpsilon(&lattice);
   VectorFst<Arc> ofst;
-  ShortestPath(lattice, &ofst);
-  MakeString(&ofst);
-  return CompactStringFst<Arc>(ofst);
-}
-
-// Decipherment decoding for semirings without the path property.
-template <class Arc,
-          typename std::enable_if<!IsPath<typename Arc::Weight>::value>::type
-              * = nullptr>
-CompactStringFst<Arc> DecodeDecipherment(const Fst<Arc> &ifst) {
-  VectorFst<Arc> lattice;
-  Project(ifst, &lattice, ProjectType::INPUT);
-  RmEpsilon(&lattice);
-  VectorFst<Arc> ofst;
-  AStarSingleShortestPath(lattice, &ofst);
+  if constexpr (IsPath<typename Arc::Weight>::value) {
+    ShortestPath(lattice, &ofst);
+  } else {
+    AStarSingleShortestPath(lattice, &ofst);
+  }
   MakeString(&ofst);
   return CompactStringFst<Arc>(ofst);
 }

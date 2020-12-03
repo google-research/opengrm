@@ -1,6 +1,8 @@
 v. 0.3
 ======
 
+* Compatibility with OpenFst 1.8.0 (0.3.5)
+* Uses `constexpr-if` in place of SFINAE (0.3.5)
 * Compatibility with OpenFst 1.7.9 (0.3.4)
 * Automatically configures decipherment mode using input type (0.3.4)
 * Adds minibatch support via `--batch_size` (0.3.3)
