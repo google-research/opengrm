@@ -1,3 +1,17 @@
+// Copyright 2005-2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
 // This is the main compiler class that takes in a source file and calls the
 // parser to produce an AST and then walks that AST to generate the desired
 // FSTs. These FSTs are then loaded into a GrmManagerSpec.
@@ -6,11 +20,13 @@
 #define NLP_GRM_LANGUAGE_GRM_COMPILER_H_
 
 #include <iostream> // NOLINT
+#include <memory>
 #include <string>
 #include <vector>
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
+#include <thrax/compat/utils.h>
 #include <fst/arc.h>
 #include <thrax/node.h>
 #include <thrax/grm-manager.h>
@@ -18,7 +34,6 @@
 #include <thrax/evaluator.h>
 #include <thrax/identifier-counter.h>
 #include <thrax/printer.h>
-#include <thrax/compat/stlfunctions.h>
 
 DECLARE_bool(print_ast);
 DECLARE_bool(line_numbers_in_ast);
@@ -36,7 +51,7 @@ class GrmCompilerParserInterface {
  public:
   virtual ~GrmCompilerParserInterface() {}
 
-  virtual void SetAst(Node* root) = 0;
+  virtual void SetAst(std::unique_ptr<Node> root) = 0;
 
   virtual Lexer* GetLexer() = 0;
 
@@ -49,7 +64,7 @@ class GrmCompilerSpec : public GrmCompilerParserInterface {
  public:
   GrmCompilerSpec();
 
-  ~GrmCompilerSpec();
+  ~GrmCompilerSpec() = default;
 
   // ***************************************************************************
   // COMPILATION: These functions load up data into the GrmCompilerSpec.
@@ -89,9 +104,12 @@ class GrmCompilerSpec : public GrmCompilerParserInterface {
 
   Lexer* GetLexer() { return &lexer_; }
 
-  void SetAst(Node* root) override;  // Adds a new AST for this compiler.
+  void SetAst(std::unique_ptr<Node> root)
+      override;  // Adds a new AST for this compiler.
 
-  Node* GetAst() { return root_; }  // Gets the most recently AST.
+  Node* GetAst() {
+    return !asts_.empty() ? asts_.back().get() : nullptr;
+  }  // Gets the most recently AST.
 
   // Returns a pointer to the grammar manager so that we can perform rewrites
   // (or exports, or whatever). This pointer remains owned by this class,
@@ -109,8 +127,8 @@ class GrmCompilerSpec : public GrmCompilerParserInterface {
  private:
   Lexer lexer_;
 
-  std::vector<Node*> asts_;  // The list of actual ASTs owned by this compiler.
-  Node* root_;          // A pointer to the most recent AST.
+  std::vector<std::unique_ptr<Node>>
+      asts_;            // The list of actual ASTs owned by this compiler.
 
   GrmManagerSpec<Arc> grm_manager_;  // The manager that holds all of the FSTs.
 
@@ -123,32 +141,26 @@ class GrmCompilerSpec : public GrmCompilerParserInterface {
 };
 
 template <typename Arc>
-GrmCompilerSpec<Arc>::GrmCompilerSpec() : root_(nullptr) {}
+GrmCompilerSpec<Arc>::GrmCompilerSpec() {}
 
 template <typename Arc>
-GrmCompilerSpec<Arc>::~GrmCompilerSpec() {
-  STLDeleteContainerPointers(asts_.begin(), asts_.end());
-}
-
-template <typename Arc>
-void GrmCompilerSpec<Arc>::SetAst(Node* root) {
-  asts_.push_back(root);
-  root_ = root;
+void GrmCompilerSpec<Arc>::SetAst(std::unique_ptr<Node> root) {
+  asts_.push_back(std::move(root));
 }
 
 template <typename Arc>
 bool GrmCompilerSpec<Arc>::PrintAst(bool include_line_numbers) {
-  if (!success_ || !root_) return false;
+  if (!success_ || !GetAst()) return false;
   AstPrinter printer;
   printer.include_line_numbers = include_line_numbers;
-  root_->Accept(&printer);
+  GetAst()->Accept(&printer);
   return true;
 }
 
 template <typename Arc>
 bool GrmCompilerSpec<Arc>::EvaluateAstWithEnvironment(Namespace* env,
                                                       bool top_level) {
-  if (!success_ || !root_) {
+  if (!success_ || !GetAst()) {
     int line_number = GetLexer()->line_number();
     std::cout << "****************************************\n";
     if (line_number == -1) {
@@ -164,23 +176,23 @@ bool GrmCompilerSpec<Arc>::EvaluateAstWithEnvironment(Namespace* env,
     PrintAst(FLAGS_line_numbers_in_ast);
   }
   VLOG(1) << "Commencing main compilation (AST evaluation).";
-  AstEvaluator<Arc>* evaluator;
+  std::unique_ptr<AstEvaluator<Arc>> evaluator;
   if (env) {
     // If we have an environment, then we pass it to the Evaluator so that it
     // knows that we only want the includes.
-    evaluator = new AstEvaluator<Arc>(env);
+    evaluator = std::make_unique<AstEvaluator<Arc>>(env);
   } else {
     // We want to get a count of the identifiers so that we can free their
     // memory when the time comes.
-    auto* id_counter = new AstIdentifierCounter();
-    root_->Accept(id_counter);
+    auto id_counter = std::make_unique<AstIdentifierCounter>();
+    GetAst()->Accept(id_counter.get());
     // If we don't have an environment, then we're doing the top level version,
     // where we execute the body.
-    evaluator = new AstEvaluator<Arc>();
-    evaluator->SetIdCounter(id_counter);
+    evaluator = std::make_unique<AstEvaluator<Arc>>();
+    evaluator->SetIdCounter(std::move(id_counter));
   }
   evaluator->set_file(file_);
-  root_->Accept(evaluator);
+  GetAst()->Accept(evaluator.get());
   if (evaluator->Success()) {
     // We can always retrieve the FSTs. If there are none (ex., since we're
     // only importing the file), this operation is still safe/fast.
@@ -191,7 +203,6 @@ bool GrmCompilerSpec<Arc>::EvaluateAstWithEnvironment(Namespace* env,
     std::cout << "Compilation failed." << std::endl;
     success_ = false;
   }
-  delete evaluator;
   return success_;
 }
 

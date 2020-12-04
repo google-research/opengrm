@@ -1,13 +1,28 @@
+// Copyright 2005-2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
 // Projects the FST onto the input or output dimension.
 
 #ifndef THRAX_PROJECT_H_
 #define THRAX_PROJECT_H_
 
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
 
-#include <fst/fstlib.h>
+#include <fst/project.h>
 #include <thrax/datatype.h>
 #include <thrax/function.h>
 
@@ -23,8 +38,9 @@ class Project : public UnaryFstFunction<Arc> {
   ~Project() final {}
 
  protected:
-  Transducer* UnaryFstExecute(const Transducer& fst,
-                              const std::vector<DataType*>& args) final {
+  std::unique_ptr<Transducer> UnaryFstExecute(
+      const Transducer& fst,
+      const std::vector<std::unique_ptr<DataType>>& args) final {
     if (args.size() != 2) {
       std::cout << "Project: Expected 2 arguments but received " << args.size()
                 << std::endl;
@@ -36,10 +52,11 @@ class Project : public UnaryFstFunction<Arc> {
     }
     const auto& project = *args[1]->get<std::string>();
     if (project == "input") {
-      return new ::fst::ProjectFst<Arc>(fst, ::fst::ProjectType::INPUT);
+      return std::make_unique<::fst::ProjectFst<Arc>>(
+          fst, ::fst::ProjectType::INPUT);
     } else if (project == "output") {
-      return new ::fst::ProjectFst<Arc>(fst,
-                                            ::fst::ProjectType::OUTPUT);
+      return std::make_unique<::fst::ProjectFst<Arc>>(
+          fst, ::fst::ProjectType::OUTPUT);
     } else {
       std::cout << "Project: Invalid projection parameter: " << project
                 << " (should be 'input' or 'output')" << std::endl;

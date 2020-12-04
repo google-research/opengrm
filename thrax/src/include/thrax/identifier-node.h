@@ -1,3 +1,17 @@
+// Copyright 2005-2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
 // An identifier is a variable name, essentially. This node parses module
 // namespaces, splitting on the dots and provides iteration capabilities over
 // the identifier.
@@ -22,7 +36,7 @@ class IdentifierNode : public Node {
 
   IdentifierNode(const std::string& name, int begin_pos);
 
-  virtual ~IdentifierNode();
+  ~IdentifierNode() override;
 
   // Return the entire identifier as originally used in the source.
   const std::string& Get() const;
@@ -51,7 +65,7 @@ class IdentifierNode : public Node {
   //     and numbers are allowed).
   bool IsValid() const;
 
-  virtual void Accept(AstWalker* walker);
+  void Accept(AstWalker* walker) override;
 
  private:
   bool CalculateValidity();

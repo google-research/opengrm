@@ -1,3 +1,17 @@
+// Copyright 2005-2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
 // Various functions for building and maintaining inflectional paradigms, which
 // are equivalence classes of words that share morphological behavior. Examples
 // of paradigms are the declensions of nouns and adjectives in Latin, which fall
@@ -35,16 +49,17 @@
 #ifndef THRAX_PARADIGM_H_
 #define THRAX_PARADIGM_H_
 
+#include <memory>
 #include <vector>
 
-#include <fst/fstlib.h>
-#include <fst/string.h>
-#include <thrax/fst-node.h>
+#include <fst/determinize.h>
+#include <fst/difference.h>
+#include <fst/project.h>
+#include <fst/rmepsilon.h>
+#include <fst/union.h>
 #include <thrax/datatype.h>
 #include <thrax/function.h>
 #include <thrax/optimize.h>
-#include <thrax/stringfst.h>
-#include <thrax/symbols.h>
 
 DECLARE_bool(save_symbols);  // From util/flags.cc.
 
@@ -81,33 +96,33 @@ class Analyzer : public Function<Arc> {
   ~Analyzer() final {}
 
  protected:
-  DataType* Execute(const std::vector<DataType*>& args) final {
+  std::unique_ptr<DataType> Execute(
+      const std::vector<std::unique_ptr<DataType>>& args) final {
     CHECK_EQ(args.size(), 4);
     MutableTransducer paradigm(**args[0]->get<Transducer*>());
     MutableTransducer stems(**args[1]->get<Transducer*>());
     MutableTransducer stemmer(**args[2]->get<Transducer*>());
     MutableTransducer deleter(**args[3]->get<Transducer*>());
-    auto* analyzer = BuildAnalyzer(&paradigm, &stems, &stemmer, &deleter);
-    auto* optimized_analyzer = Optimize<Arc>::ActuallyOptimize(*analyzer);
-    delete analyzer;
-    auto* final_analyzer = new MutableTransducer(*optimized_analyzer);
+    auto analyzer = BuildAnalyzer(paradigm, stems, stemmer, deleter);
+    auto optimized_analyzer = Optimize<Arc>::ActuallyOptimize(*analyzer);
+    auto final_analyzer =
+        std::make_unique<MutableTransducer>(*optimized_analyzer);
     if (FLAGS_save_symbols) {
       final_analyzer->SetInputSymbols(paradigm.InputSymbols());
       final_analyzer->SetOutputSymbols(paradigm.OutputSymbols());
     }
-    return new DataType(final_analyzer);
+    return std::make_unique<DataType>(std::move(final_analyzer));
   }
 
  public:
-  static MutableTransducer* BuildAnalyzer(MutableTransducer* paradigm,
-                                          MutableTransducer* stems,
-                                          MutableTransducer* stemmer,
-                                          MutableTransducer* deleter) {
+  static std::unique_ptr<MutableTransducer> BuildAnalyzer(
+      const MutableTransducer& paradigm, const MutableTransducer& stems,
+      const MutableTransducer& stemmer, const MutableTransducer& deleter) {
     MutableTransducer mapper;
     // Construct a mapper from all possible analyzed forms to a stemmed version,
     // where "stemmer" defines what "stemmed" means. For example, this might map
     // from "long+us[cas=nom,num=sg]" to "long[cas=nom,num=sg]"
-    ::fst::Compose(*paradigm, *stemmer, &mapper);
+    ::fst::Compose(paradigm, stemmer, &mapper);
     // Invert to map the other way.
     ::fst::Invert(&mapper);
     MutableTransducer inflected;
@@ -115,17 +130,17 @@ class Analyzer : public Function<Arc> {
     // analyzed inflected forms.
     static const ::fst::ILabelCompare<Arc> icomp;
     ::fst::ArcSort(&mapper, icomp);
-    ::fst::Compose(*stems, mapper, &inflected);
+    ::fst::Compose(stems, mapper, &inflected);
     // We only want the second dimension, namely analyzed inflected forms.
     ::fst::Project(&inflected, ::fst::ProjectType::OUTPUT);
-    MutableTransducer result;
+    auto result = std::make_unique<MutableTransducer>();
     // Compose the specific set of analyzed forms with the deleter, which should
     // get rid of features, morph boundaries and other annotations to yield
     // actual surface forms.
-    ::fst::Compose(inflected, *deleter, &result);
+    ::fst::Compose(inflected, deleter, result.get());
     // Invert to map from surface inflected forms to their analyses.
-    ::fst::Invert(&result);
-    return new MutableTransducer(result);
+    ::fst::Invert(result.get());
+    return result;
   }
 
  private:
@@ -159,31 +174,29 @@ class Tagger : public Function<Arc> {
 
   Tagger() : Function<Arc>() {}
 
-  virtual ~Tagger() {}
+  ~Tagger() override {}
 
  protected:
-  DataType* Execute(const std::vector<DataType*>& args) final {
+  std::unique_ptr<DataType> Execute(
+      const std::vector<std::unique_ptr<DataType>>& args) final {
     CHECK_EQ(args.size(), 5);
     MutableTransducer paradigm(**args[0]->get<Transducer*>());
     MutableTransducer stems(**args[1]->get<Transducer*>());
     MutableTransducer stemmer(**args[2]->get<Transducer*>());
     MutableTransducer deleter(**args[3]->get<Transducer*>());
     MutableTransducer boundary_deleter(**args[4]->get<Transducer*>());
-    MutableTransducer* analyzer = Analyzer<Arc>::BuildAnalyzer(&paradigm,
-                                                               &stems,
-                                                               &stemmer,
-                                                               &deleter);
+    auto analyzer =
+        Analyzer<Arc>::BuildAnalyzer(paradigm, stems, stemmer, deleter);
     MutableTransducer tagger;
     // See above on "boundary_deleter"
     ::fst::Compose(*analyzer, boundary_deleter, &tagger);
-    auto* optimized_tagger = Optimize<Arc>::ActuallyOptimize(tagger);
-    delete analyzer;
-    auto* final_tagger = new MutableTransducer(*optimized_tagger);
+    auto optimized_tagger = Optimize<Arc>::ActuallyOptimize(tagger);
+    auto final_tagger = std::make_unique<MutableTransducer>(*optimized_tagger);
     if (FLAGS_save_symbols) {
       final_tagger->SetInputSymbols(paradigm.InputSymbols());
       final_tagger->SetOutputSymbols(paradigm.OutputSymbols());
     }
-    return new DataType(final_tagger);
+    return std::make_unique<DataType>(std::move(final_tagger));
   }
 
  private:
@@ -218,7 +231,8 @@ class ParadigmReplace : public Function<Arc> {
   ~ParadigmReplace() final {}
 
  protected:
-  DataType* Execute(const std::vector<DataType*>& args) final {
+  std::unique_ptr<DataType> Execute(
+      const std::vector<std::unique_ptr<DataType>>& args) final {
     CHECK_EQ(args.size(), 3);
     MutableTransducer paradigm(**args[0]->get<Transducer*>());
     MutableTransducer old_forms(**args[1]->get<Transducer*>());
@@ -231,14 +245,14 @@ class ParadigmReplace : public Function<Arc> {
     ::fst::Difference(paradigm, det_old_forms, &difference);
     // Then add in the new forms.
     ::fst::Union(&difference, new_forms);
-    Transducer* optimized_paradigm =
-        Optimize<Arc>::ActuallyOptimize(difference);
-    auto* final_paradigm = new MutableTransducer(*optimized_paradigm);
+    auto optimized_paradigm = Optimize<Arc>::ActuallyOptimize(difference);
+    auto final_paradigm =
+        std::make_unique<MutableTransducer>(*optimized_paradigm);
     if (FLAGS_save_symbols) {
       final_paradigm->SetInputSymbols(paradigm.InputSymbols());
       final_paradigm->SetOutputSymbols(paradigm.OutputSymbols());
     }
-    return new DataType(final_paradigm);
+    return std::make_unique<DataType>(std::move(final_paradigm));
   }
 
  private:

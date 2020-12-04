@@ -1,3 +1,17 @@
+// Copyright 2005-2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
 #ifndef THRAX_EVALUATOR_H_
 #define THRAX_EVALUATOR_H_
 
@@ -5,6 +19,7 @@
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <set>
 #include <sstream>
 #include <string>
@@ -14,8 +29,8 @@
 #include <thrax/compat/compat.h>
 #include <thrax/compat/utils.h>
 #include <fst/extensions/far/far.h>
-#include <fst/concat.h>
 #include <fst/arc.h>
+#include <fst/concat.h>
 #include <fst/fst.h>
 #include <fst/topsort.h>
 #include <fst/vector-fst.h>
@@ -41,6 +56,7 @@
 #include <thrax/symbols.h>
 #include <thrax/namespace.h>
 #include <thrax/walker.h>
+#include <unordered_set>
 #include <thrax/compat/stlfunctions.h>
 
 DECLARE_bool(always_export);
@@ -108,7 +124,7 @@ class AstEvaluator : public AstWalker {
         success_(true),
         optimize_embedding_(-1) {}
 
-  virtual ~AstEvaluator() {
+  ~AstEvaluator() override {
     // We only own the environment if we ran all of the nodes. Similarly, if we
     // run all of the nodes then we should've created one layer of local
     // variable space. Finally, the top-level grammar should own all of the
@@ -118,7 +134,6 @@ class AstEvaluator : public AstWalker {
       delete env_;
       STLDeleteElements(&loaded_grammars_);
     }
-    delete id_counter_;
   }
 
   // Three functions to control error handling in the case of bad input
@@ -135,13 +150,15 @@ class AstEvaluator : public AstWalker {
     success_ = false;
   }
 
-  void SetIdCounter(AstIdentifierCounter* counter) { id_counter_ = counter; }
+  void SetIdCounter(std::unique_ptr<AstIdentifierCounter> counter) {
+    id_counter_ = std::move(counter);
+  }
 
-  virtual void Visit(CollectionNode* node) {
+  void Visit(CollectionNode* node) override {
     LOG(FATAL) << "CollectionNode should not be visited; use the parent node.";
   }
 
-  virtual void Visit(FunctionNode* node) {
+  void Visit(FunctionNode* node) override {
     VLOG(2) << "Visiting Function";
     if (!Success()) return;
     const std::string& name = node->GetName()->Get();
@@ -162,7 +179,7 @@ class AstEvaluator : public AstWalker {
     }
   }
 
-  virtual void Visit(GrammarNode* node) {
+  void Visit(GrammarNode* node) override {
     VLOG(2) << "Visiting GrammarNode";
     if (!Success()) return;
     CollectionNode* imports = node->GetImports();
@@ -172,7 +189,7 @@ class AstEvaluator : public AstWalker {
     if (run_all_) {
       CollectionNode* statements = node->GetStatements();
       for (int i = 0; i < statements->Size(); ++i) {
-        StatementNode* stmt = static_cast<StatementNode*>((*statements)[i]);
+        StatementNode* stmt = fst::down_cast<StatementNode*>((*statements)[i]);
         if (stmt->GetType() == StatementNode::RETURN_STATEMENTNODE) {
           Error(*stmt, "Cannot return from main body");
           return;
@@ -182,11 +199,11 @@ class AstEvaluator : public AstWalker {
     }
   }
 
-  virtual void Visit(IdentifierNode* node) {
+  void Visit(IdentifierNode* node) override {
     LOG(FATAL) << "IdentifierNode should not be visited. Use Get() instead.";
   }
 
-  virtual void Visit(ImportNode* node) {
+  void Visit(ImportNode* node) override {
     if (!Success()) return;
     // Gets (and checks) the path of the actual source and FAR.
     const auto& path = JoinPath(FLAGS_indir, node->GetPath()->Get());
@@ -201,13 +218,13 @@ class AstEvaluator : public AstWalker {
       Error(*node, thrax::StringCat("Invalid import alias identifier: ", alias));
       return;
     }
-    Namespace* prev_env_ = env_;
+    Namespace* prev_env = env_;
     env_ = env_->AddSubNamespace(path, alias);
     // Loads up the function source into the local environment.
     VLOG(2) << "Opening (and parsing) imported source file: " << path;
     if (!Readable(path)) {
       Error(*node, thrax::StringCat("Unable to open grm source file: ", path));
-      env_ = prev_env_;
+      env_ = prev_env;
       return;
     }
     auto* grammar = new GrmCompilerSpec<Arc>();
@@ -215,14 +232,15 @@ class AstEvaluator : public AstWalker {
         !grammar->EvaluateAstWithEnvironment(env_, false)) {
       Error(*node,
             thrax::StringCat("Errors while importing grm source file: ", path));
-      env_ = prev_env_;
+      env_ = prev_env;
       return;
     }
     loaded_grammars_.push_back(grammar);
     // Loads up the exported FSTs.
     std::string far_path = path.substr(0, path.length() - 3) + "far";
     VLOG(2) << "Opening (and loading FSTs from) companion far: " << far_path;
-    auto* far_reader = ::fst::STTableFarReader<Arc>::Open(far_path);
+    auto far_reader =
+        fst::WrapUnique(::fst::STTableFarReader<Arc>::Open(far_path));
     if (!far_reader) {
       Error(*node, thrax::StringCat("Unable to open far archive: ", far_path));
       // We don't need to return or cleanup, as the next code will check for
@@ -259,42 +277,43 @@ class AstEvaluator : public AstWalker {
           MutableTransducer tmpfst(*(far_reader->GetFst()));
           RemapGeneratedLabels(&tmpfst);
           ReassignSymbols(&tmpfst);
-          Transducer* fst = tmpfst.Copy();
-          bool new_add = env_->Insert(key, new DataType(fst));
-          if (!new_add)
+          auto fst = fst::WrapUnique(tmpfst.Copy());
+          bool new_add =
+              env_->Insert(key, std::make_unique<DataType>(std::move(fst)));
+          if (!new_add) {
             LOG(FATAL) << "While loading " << path << " (aliased " << alias
-                       << ") from file " << prev_env_->GetFilename()
-                       << ", FST " << key << " was clobbered.";
+                       << ") from file " << prev_env->GetFilename() << ", FST "
+                       << key << " was clobbered.";
+          }
         }
       }
     }
 
-    // Restores the previous namespace and kill the FAR reader.
-    env_ = prev_env_;
-    delete far_reader;  // On error, this'll be nullptr but the delete is safe.
+    // Restores the previous namespace.
+    env_ = prev_env;
   }
 
   // Sets the return_value_ pointer to the FST described by the FstNode.
-  virtual void Visit(FstNode* node) {
+  void Visit(FstNode* node) override {
     VLOG(2) << "Visiting FstNode";
     if (!Success()) return;
     CHECK(return_value_ == nullptr);
     return_value_ = MakeFst(node);
   }
 
-  virtual void Visit(RepetitionFstNode* node) {
-    Visit(static_cast<FstNode*>(node));
+  void Visit(RepetitionFstNode* node) override {
+    Visit(fst::implicit_cast<FstNode*>(node));
   }
 
   // This is pretty much a pass through that creates and binds the FST specified
   // in the ReturnNode.
-  virtual void Visit(ReturnNode* node) {
+  void Visit(ReturnNode* node) override {
     VLOG(2) << "Visiting ReturnNode";
     if (!Success()) return;
     node->Get()->Accept(this);
   }
 
-  virtual void Visit(RuleNode* node) {
+  void Visit(RuleNode* node) override {
     VLOG(2) << "Visiting RuleNode";
     if (!Success()) return;
     IdentifierNode* identifier = node->GetName();
@@ -309,9 +328,9 @@ class AstEvaluator : public AstWalker {
     }
     const std::string& name = identifier->GetIdentifier();
     node->Get()->Accept(this);
-    DataType* thing = GetReturnValue();
+    std::unique_ptr<DataType> thing = GetReturnValue();
     // Inserts the new variable, dying if it clobbers a pre-existing object.
-    if (!env_->InsertLocal(name, thing)) {
+    if (!env_->InsertLocal(name, std::move(thing))) {
       Error(*identifier,
             thrax::StringCat("Cannot clobber existing variable: ", name));
       return;
@@ -331,22 +350,22 @@ class AstEvaluator : public AstWalker {
 
   // Visiting a StatementNode simply passes on the Accept() request to the
   // underlying node.
-  virtual void Visit(StatementNode* node) {
+  void Visit(StatementNode* node) override {
     VLOG(2) << "Visiting StatementNode";
     if (!Success()) return;
     node->Get()->Accept(this);
   }
 
-  virtual void Visit(StringFstNode* node) {
-    Visit(static_cast<FstNode*>(node));
+  void Visit(StringFstNode* node) override {
+    Visit(fst::implicit_cast<FstNode*>(node));
   }
 
   // Sets the return_value_ with the value of the string.
-  virtual void Visit(StringNode* node) {
+  void Visit(StringNode* node) override {
     VLOG(2) << "Visiting StringNode";
     if (!Success()) return;
     CHECK(return_value_ == nullptr);
-    return_value_ = new DataType(node->Get());
+    return_value_ = std::make_unique<DataType>(node->Get());
   }
 
   // Inserts the exported FSTs from this file into the provided map.
@@ -363,36 +382,35 @@ class AstEvaluator : public AstWalker {
     // add it to a unique FST called kStringFstSymtabFst.
     if (auto generated_labels =
             function::StringFst<Arc>::GetLabelSymbolTable(top_level)) {
-      auto label_fst = fst::make_unique<MutableTransducer>();
+      auto label_fst = std::make_unique<MutableTransducer>();
       label_fst->SetInputSymbols(generated_labels.get());
       (*fsts)[kStringFstSymtabFst] = std::move(label_fst);
     }
 
     // Gets the exported FSTs and add them to the map.
-    for (auto fst_i = exported_fsts_.cbegin(); fst_i != exported_fsts_.cend();
-         ++fst_i) {
-      const std::string& name = (*fst_i)->Get();
+    for (const auto* fst_i : exported_fsts_) {
+      const std::string& name = fst_i->Get();
       // If always_export is set, an imported function, which in turn contains a
       // named fst variable, will have that variable exported when the function
       // is expanded in the top-level grammar, but that FST is not really part
       // of the top-level environment, so it fails to find it here and will die.
       // The choices are to try to make the compilation more clever about this
       // in the first place, which is hairy, or catch it here.
-      if (env_->Get<DataType>(**fst_i) == nullptr) {
+      if (env_->Get<DataType>(*fst_i) == nullptr) {
         LOG(WARNING) << "Cannot find exportable fst with name "
                      << name
                      << ": ignoring.";
         continue;
       }
       VLOG(1) << "Expanding FST: " << name;
-      if (!env_->Get<DataType>(**fst_i)->template is<Transducer*>()) {
-        Error(**fst_i, thrax::StringCat("Cannot export non-FST variable: ",
-                                    (*fst_i)->Get()));
+      if (!env_->Get<DataType>(*fst_i)->template is<Transducer*>()) {
+        Error(*fst_i,
+              thrax::StringCat("Cannot export non-FST variable: ", fst_i->Get()));
         return;
       }
       Transducer* fst =
-          *env_->Get<DataType>(**fst_i)->template get<Transducer*>();
-      auto nfst = fst::make_unique<MutableTransducer>(*fst);
+          *env_->Get<DataType>(*fst_i)->template get<Transducer*>();
+      auto nfst = std::make_unique<MutableTransducer>(*fst);
       // If the transducer has input symbols or output symbols, and if those are
       // either the byte symbol table or the utf8 symbol table, then we must
       // reassign those tables, since we may have added generated labels. In the
@@ -413,34 +431,31 @@ class AstEvaluator : public AstWalker {
  private:
   // Extracts and interprets the proper arguments from an FstNode and binds them
   // to the DataType union. On failure, we'll return nullptr.
-  std::vector<DataType*>* GetArgumentsFromFstNode(FstNode* node,
-                                                  int num_arguments) {
-    auto* args = new std::vector<DataType*>();
+  std::unique_ptr<std::vector<std::unique_ptr<DataType>>>
+  GetArgumentsFromFstNode(FstNode* node, int num_arguments) {
+    auto args = std::make_unique<std::vector<std::unique_ptr<DataType>>>();
     for (int i = 0; i < num_arguments; ++i) {
       node->GetArgument(i)->Accept(this);
-      DataType* return_value = GetReturnValue();
+      std::unique_ptr<DataType> return_value = GetReturnValue();
       if (!return_value) {
-        STLDeleteElements(args);
-        delete args;
         return nullptr;
       }
-      args->push_back(return_value);
+      args->push_back(std::move(return_value));
     }
     return args;
   }
 
   // Does the same as above, but using a CollectionNode instead.
-  std::vector<DataType*>* GetArgumentsFromCollectionNode(CollectionNode* node) {
-    auto* args = new std::vector<DataType*>();
+  std::unique_ptr<std::vector<std::unique_ptr<DataType>>>
+  GetArgumentsFromCollectionNode(CollectionNode* node) {
+    auto args = std::make_unique<std::vector<std::unique_ptr<DataType>>>();
     for (int i = 0; i < node->Size(); ++i) {
       node->Get(i)->Accept(this);
-      DataType* return_value = GetReturnValue();
+      std::unique_ptr<DataType> return_value = GetReturnValue();
       if (!return_value) {
-        STLDeleteElements(args);
-        delete args;
         return nullptr;
       }
-      args->push_back(return_value);
+      args->push_back(std::move(return_value));
     }
     return args;
   }
@@ -449,11 +464,11 @@ class AstEvaluator : public AstWalker {
   // arguments (taking ownership of the arguments) and then execute the function
   // AST in the new namespace, returning the output DataType at the end. The
   // provided arguments are owned by this function.
-  DataType* MakeFstFromLocalFunction(FunctionNode* func_node,
-                                     const Node& debug_location_node,
-                                     Namespace* func_namespace,
-                                     std::vector<DataType*>* arguments) {
-    Namespace* prev_env_ = env_;
+  std::unique_ptr<DataType> MakeFstFromLocalFunction(
+      FunctionNode* func_node, const Node& debug_location_node,
+      Namespace* func_namespace,
+      std::unique_ptr<std::vector<std::unique_ptr<DataType>>> arguments) {
+    Namespace* prev_env = env_;
     env_ = func_namespace;
     env_->PushLocalEnvironment();
     // Creates a new layer of environment symbol table and binds the passed
@@ -466,21 +481,21 @@ class AstEvaluator : public AstWalker {
     }
     for (int i = 0; Success() && i < fa_node->Size(); ++i) {
       IdentifierNode* fa_identifier =
-          static_cast<IdentifierNode*>((*fa_node)[i]);
+          fst::down_cast<IdentifierNode*>((*fa_node)[i]);
       if (fa_identifier->HasNamespaces()) {
         Error(*fa_identifier, thrax::StringCat("Invalid function argument: ",
                                            fa_identifier->Get()));
         break;
       }
       const std::string& arg_name = fa_identifier->GetIdentifier();
-      DataType* arg = (*arguments)[i]->Copy();
-      env_->InsertLocal(arg_name, arg);
+      auto arg = (*arguments)[i]->Copy();
+      env_->InsertLocal(arg_name, std::move(arg));
     }
     // Iterates over the statements and runs each.
     CollectionNode* fb_node = func_node->GetBody();
-    DataType* output = nullptr;
+    std::unique_ptr<DataType> output = nullptr;
     for (int i = 0; Success() && i < fb_node->Size(); ++i) {
-      StatementNode* stmt = static_cast<StatementNode*>((*fb_node)[i]);
+      StatementNode* stmt = fst::down_cast<StatementNode*>((*fb_node)[i]);
       stmt->Accept(this);
       if (stmt->GetType() == StatementNode::RETURN_STATEMENTNODE) {
         output = GetReturnValue();
@@ -489,9 +504,7 @@ class AstEvaluator : public AstWalker {
     }
     // Tosses out the function-scope environment.
     env_->PopLocalEnvironment();
-    env_ = prev_env_;
-    STLDeleteElements(arguments);
-    delete arguments;
+    env_ = prev_env;
     return output;
   }
 
@@ -500,77 +513,83 @@ class AstEvaluator : public AstWalker {
   // arguments (via the C++ functions). This returns the new object saved into
   // the output argument. This function returns true if the function was found
   // and false otherwise.
-  bool MakeFstFromCFunction(const std::string& function_name,
-                            const Node& debug_location_node,
-                            std::vector<DataType*>* arguments,
-                            DataType** output) {
+  std::unique_ptr<DataType> MakeFstFromCFunction(
+      const std::string& function_name, const Node& debug_location_node,
+      std::unique_ptr<std::vector<std::unique_ptr<DataType>>> arguments) {
     function::Function<Arc>* func = GetFunction<Arc>(function_name);
     // If we get a nullptr function, then the name was invalid.
-    if (!func) return false;
-    *output = func->Run(arguments);
-    if (!*output) Error(debug_location_node, "C++ function call failed");
-    return true;
+    if (!func) return nullptr;
+    auto output = func->Run(std::move(arguments));
+    if (!output) Error(debug_location_node, "C++ function call failed");
+    return output;
   }
 
   // The main evaluator function---this takes in an FstNode and returns the
   // object specified. Note that this is a misnomer (for historical
   // reasons)---we can actually return things other than an FST (whatever
   // DataType supports).
-  DataType* MakeFst(FstNode* node) {
-    DataType* output;
+  std::unique_ptr<DataType> MakeFst(FstNode* node) {
+    std::unique_ptr<DataType> output;
     switch (node->GetType()) {
       case FstNode::CONCAT_FSTNODE: {
         VLOG(2) << "Concat Fst:";
-        std::vector<DataType*>* args = GetArgumentsFromFstNode(node, 2);
-        CHECK(MakeFstFromCFunction("Concat", *node, args, &output));
+        auto args = GetArgumentsFromFstNode(node, 2);
+        output = MakeFstFromCFunction("Concat", *node, std::move(args));
+        CHECK_NE(output, nullptr);
         break;
       }
       case FstNode::UNION_FSTNODE: {
         VLOG(2) << "Union Fst:";
-        std::vector<DataType*>* args = GetArgumentsFromFstNode(node, 2);
-        CHECK(MakeFstFromCFunction("Union", *node, args, &output));
+        auto args = GetArgumentsFromFstNode(node, 2);
+        output = MakeFstFromCFunction("Union", *node, std::move(args));
+        CHECK_NE(output, nullptr);
         break;
       }
       case FstNode::DIFFERENCE_FSTNODE: {
         VLOG(2) << "Difference Fst:";
-        std::vector<DataType*>* args = GetArgumentsFromFstNode(node, 2);
-        CHECK(MakeFstFromCFunction("Difference", *node, args, &output));
+        auto args = GetArgumentsFromFstNode(node, 2);
+        output = MakeFstFromCFunction("Difference", *node, std::move(args));
+        CHECK_NE(output, nullptr);
         break;
       }
       case FstNode::REWRITE_FSTNODE: {
         VLOG(2) << "Rewrite Fst:";
-        std::vector<DataType*>* args = GetArgumentsFromFstNode(node, 2);
-        CHECK(MakeFstFromCFunction("Rewrite", *node, args, &output));
+        auto args = GetArgumentsFromFstNode(node, 2);
+        output = MakeFstFromCFunction("Rewrite", *node, std::move(args));
+        CHECK_NE(output, nullptr);
         break;
       }
       case FstNode::REPETITION_FSTNODE: {
         VLOG(2) << "Repetition Fst:";
-        std::vector<DataType*>* args = GetArgumentsFromFstNode(node, 1);
-        RepetitionFstNode* rnode = static_cast<RepetitionFstNode*>(node);
-        args->push_back(
-            new DataType(static_cast<int>(rnode->GetRepetitionType())));
+        auto args = GetArgumentsFromFstNode(node, 1);
+        RepetitionFstNode* rnode = fst::down_cast<RepetitionFstNode*>(node);
+        args->push_back(std::make_unique<DataType>(
+            static_cast<int>(rnode->GetRepetitionType())));
         if (rnode->GetRepetitionType() == RepetitionFstNode::RANGE) {
           int min;
           int max;
           rnode->GetRange(&min, &max);
-          args->push_back(new DataType(min));
-          args->push_back(new DataType(max));
+          args->push_back(std::make_unique<DataType>(min));
+          args->push_back(std::make_unique<DataType>(max));
         }
-        CHECK(MakeFstFromCFunction("Closure", *node, args, &output));
+        output = MakeFstFromCFunction("Closure", *node, std::move(args));
+        CHECK_NE(output, nullptr);
         break;
       }
       case FstNode::COMPOSITION_FSTNODE: {
         VLOG(2) << "Composition Fst:";
         if (optimize_embedding_ > -1) optimize_embedding_++;
         if (optimize_embedding_ > 1) node->SetOptimize();
-        std::vector<DataType*>* args = GetArgumentsFromFstNode(node, 2);
-        args->push_back(new DataType("right"));  // ArcSort the right FST.
-        CHECK(MakeFstFromCFunction("Compose", *node, args, &output));
+        auto args = GetArgumentsFromFstNode(node, 2);
+        args->push_back(
+            std::make_unique<DataType>("right"));  // ArcSort the right FST.
+        output = MakeFstFromCFunction("Compose", *node, std::move(args));
+        CHECK_NE(output, nullptr);
         break;
       }
       case FstNode::IDENTIFIER_FSTNODE: {
         IdentifierNode* identifier =
-            static_cast<IdentifierNode*>(node->GetArgument(0));
+            fst::down_cast<IdentifierNode*>(node->GetArgument(0));
         VLOG(2) << "Identifier Fst: " << identifier->Get();
         DataType* original = env_->Get<DataType>(*identifier);
         if (!original) {
@@ -593,32 +612,35 @@ class AstEvaluator : public AstWalker {
         break;
       }
       case FstNode::STRING_FSTNODE: {
-        StringFstNode* snode = static_cast<StringFstNode*>(node);
+        StringFstNode* snode = fst::down_cast<StringFstNode*>(node);
         const std::string& text =
-            static_cast<StringNode*>(node->GetArgument(0))->Get();
+            fst::down_cast<StringNode*>(node->GetArgument(0))->Get();
         VLOG(2) << "String Fst: " << text;
-        std::vector<DataType*>* args = new std::vector<DataType*>(2);
-        (*args)[0] = new DataType(static_cast<int>(snode->GetParseMode()));
-        (*args)[1] = new DataType(text);
+        auto args =
+            std::make_unique<std::vector<std::unique_ptr<DataType>>>(2);
+        (*args)[0] = std::make_unique<DataType>(
+            static_cast<int>(snode->GetParseMode()));
+        (*args)[1] = std::make_unique<DataType>(text);
         if (snode->GetParseMode() == StringFstNode::SYMBOL_TABLE) {
           // In the case of the symbol table, we need to evaluate its node and
           // pick up the actual table. Error checking will be handled by the
           // StringFst function.
           snode->GetArgument(1)->Accept(this);
-          DataType* thing = GetReturnValue();
-          args->push_back(thing);  // args takes ownership of the DataType.
+          std::unique_ptr<DataType> thing = GetReturnValue();
+          args->push_back(std::move(thing));
         }
-        CHECK(MakeFstFromCFunction("StringFst", *node, args, &output));
+        output = MakeFstFromCFunction("StringFst", *node, std::move(args));
+        CHECK_NE(output, nullptr);
         break;
       }
       case FstNode::FUNCTION_FSTNODE: {
         IdentifierNode* func_identifier_node =
-            static_cast<IdentifierNode*>(node->GetArgument(0));
+            fst::down_cast<IdentifierNode*>(node->GetArgument(0));
         const std::string& name = func_identifier_node->Get();
         VLOG(2) << "Function Call Fst: " << name;
         if (name == "Optimize") optimize_embedding_ = 0;
-        std::vector<DataType*>* args = GetArgumentsFromCollectionNode(
-            static_cast<CollectionNode*>(node->GetArgument(1)));
+        auto args = GetArgumentsFromCollectionNode(
+            fst::down_cast<CollectionNode*>(node->GetArgument(1)));
         if (!Success() || !args) {
           Error(*func_identifier_node,
                 thrax::StringCat("Unable to bind all arguments for function call: ",
@@ -635,18 +657,16 @@ class AstEvaluator : public AstWalker {
           // function.
           CHECK_EQ(func_node->GetName()->Get(),
                     func_identifier_node->GetIdentifier());
-          output = MakeFstFromLocalFunction(
-              func_node, *func_identifier_node, func_namespace, args);
+          output = MakeFstFromLocalFunction(func_node, *func_identifier_node,
+                                            func_namespace, std::move(args));
           function_found = true;
         } else if (!func_identifier_node->HasNamespaces()) {
           // If we didn't find a natural function with that name, then we might
           // have a C++ function, provided that the identifier has no
           // namespaces.
-          if (MakeFstFromCFunction(func_identifier_node->GetIdentifier(),
-                                   *func_identifier_node,
-                                   args,
-                                   &output))
-            function_found = true;
+          output = MakeFstFromCFunction(func_identifier_node->GetIdentifier(),
+                                        *func_identifier_node, std::move(args));
+          if (output) function_found = true;
         }
         if (!function_found) {
           Error(*func_identifier_node,
@@ -669,19 +689,16 @@ class AstEvaluator : public AstWalker {
       // First, we can attach the weight if appropriate.
       if (node->HasWeight()) {
         Transducer* unweighted_fst = *output->get<Transducer*>();
-        Transducer* weighted_fst =
-            AttachWeight(*unweighted_fst, node->GetWeight());
-        delete output;
-        output = new DataType(weighted_fst);
+        auto weighted_fst = AttachWeight(*unweighted_fst, node->GetWeight());
+        output = std::make_unique<DataType>(std::move(weighted_fst));
       }
       // Now, we might wish to always optimize the FSTs, or the node is slated
       // to be optimized (e.g. a composition node within an Optimize
       // FUNCTION_FSTNODE).
       if (FLAGS_optimize_all_fsts || node->ShouldOptimize()) {
-        Transducer* optimized_fst = function::Optimize<Arc>::ActuallyOptimize(
+        auto optimized_fst = function::Optimize<Arc>::ActuallyOptimize(
             **output->get<Transducer*>());
-        delete output;
-        output = new DataType(optimized_fst);
+        output = std::make_unique<DataType>(std::move(optimized_fst));
         // This is the interesting case to be able to keep track of.
         if (node->ShouldOptimize())
           VLOG(2) << "Optimizing at line " << node->getline();
@@ -691,16 +708,14 @@ class AstEvaluator : public AstWalker {
   }
 
   // Releasess control of the return_value_ and returns it.
-  DataType* GetReturnValue() {
-    DataType* ret = return_value_;
-    return_value_ = nullptr;
-    return ret;
+  std::unique_ptr<DataType> GetReturnValue() {
+    return std::move(return_value_);
   }
 
   // Given an FST, we'll create a new one with the weight tacked on as a final
   // state.
-  static Transducer* AttachWeight(const Transducer& input_fst,
-                                  const std::string& weight_str) {
+  static std::unique_ptr<Transducer> AttachWeight(
+      const Transducer& input_fst, const std::string& weight_str) {
     // Generates the appropriate weight.
     auto weight = Arc::Weight::One();
     std::istringstream iss(weight_str);
@@ -718,7 +733,7 @@ class AstEvaluator : public AstWalker {
     }
     // Glues the actual input FST to the front; this will automatically set the
     // weight properly.
-    return new ::fst::ConcatFst<Arc>(input_fst, weight_fst);
+    return std::make_unique<::fst::ConcatFst<Arc>>(input_fst, weight_fst);
   }
 
   // If FLAGS_save_symbols is set for the system the imported FSTs will have
@@ -771,9 +786,9 @@ class AstEvaluator : public AstWalker {
     }
   }
 
-  Namespace* env_;
-  AstIdentifierCounter* id_counter_;
-  bool run_all_;
+  Namespace* env_;  // Only owned if `run_all_` is true.
+  std::unique_ptr<AstIdentifierCounter> id_counter_;
+  const bool run_all_;
 
   // A list of the names of the FSTs we want exported at the end. We'll find
   // these FSTs from the local environment. Note that these pointers are owned
@@ -787,7 +802,7 @@ class AstEvaluator : public AstWalker {
   // just that.
   static std::vector<GrmCompilerSpec<Arc>*> loaded_grammars_;
   // This is the "return" datatype that is returned by a number of nodes.
-  DataType* return_value_;
+  std::unique_ptr<DataType> return_value_;
   AstPrinter printer_;
   // Whether the compilation (evaluation) was a success.
   bool success_;

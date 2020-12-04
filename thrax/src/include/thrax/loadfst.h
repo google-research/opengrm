@@ -1,9 +1,24 @@
+// Copyright 2005-2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
 // Loads an FST from the provided filename.
 
 #ifndef THRAX_LOADFST_H_
 #define THRAX_LOADFST_H_
 
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -29,7 +44,8 @@ class LoadFst : public Function<Arc> {
   ~LoadFst() final {}
 
  protected:
-  DataType* Execute(const std::vector<DataType*>& args) final {
+  std::unique_ptr<DataType> Execute(
+      const std::vector<std::unique_ptr<DataType>>& args) final {
     if (args.size() != 1) {
       std::cout << "LoadFst: Expected 1 argument but got " << args.size()
                 << std::endl;
@@ -43,7 +59,7 @@ class LoadFst : public Function<Arc> {
     const auto& file =
         JoinPath(FLAGS_indir, *args[0]->get<std::string>());
     VLOG(2) << "Loading FST: " << file;
-    auto* fst = Transducer::Read(file);
+    auto fst = fst::WrapUnique(Transducer::Read(file));
     if (!fst) {
       std::cout << "LoadFst: Failed to load FST from file: " << file
                 << std::endl;
@@ -59,7 +75,7 @@ class LoadFst : public Function<Arc> {
                      << "but fst has no output symbols";
       }
     }
-    return new DataType(fst);
+    return std::make_unique<DataType>(std::move(fst));
   }
 
  private:

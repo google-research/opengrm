@@ -1,3 +1,17 @@
+// Copyright 2005-2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
 // Loads an FST from a single FAR archive.
 
 #ifndef THRAX_LOADFSTFROMFAR_H_
@@ -12,7 +26,7 @@
 #include <thrax/compat/compat.h>
 #include <thrax/compat/utils.h>
 #include <fst/extensions/far/far.h>
-#include <fst/fst.h>
+#include <fst/vector-fst.h>
 #include <thrax/datatype.h>
 #include <thrax/function.h>
 
@@ -31,7 +45,8 @@ class LoadFstFromFar : public Function<Arc> {
   ~LoadFstFromFar() final {}
 
  protected:
-  DataType* Execute(const std::vector<DataType*>& args) final {
+  std::unique_ptr<DataType> Execute(
+      const std::vector<std::unique_ptr<DataType>>& args) final {
     if (args.size() != 2) {
       std::cout << "LoadFstFromFar: Expected 2 arguments but got "
                 << args.size() << std::endl;
@@ -64,7 +79,7 @@ class LoadFstFromFar : public Function<Arc> {
                 << std::endl;
       return nullptr;
     }
-    auto* fst = new MutableTransducer(*(reader->GetFst()));
+    auto fst = std::make_unique<MutableTransducer>(*(reader->GetFst()));
     if (FLAGS_save_symbols) {
       if (!fst->InputSymbols()) {
         LOG(WARNING) << "LoadFstFromFar: FLAGS_save_symbols is set "
@@ -75,7 +90,7 @@ class LoadFstFromFar : public Function<Arc> {
                      << "but fst has no output symbols";
       }
     }
-    return new DataType(fst);
+    return std::make_unique<DataType>(std::move(fst));
   }
 
  private:

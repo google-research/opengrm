@@ -1,3 +1,17 @@
+// Copyright 2005-2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
 // Represents features, categories (bundles of features), and feature vectors
 // (particular instantiations of categories) as FSTs. While one could do all of
 // this without this module, it makes it easier since once one has defined
@@ -86,13 +100,20 @@
 #ifndef THRAX_FEATURES_H_
 #define THRAX_FEATURES_H_
 
+#include <stddef.h>
+
+#include <algorithm>
+#include <iostream>
+#include <map>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
-#include <fst/fstlib.h>
+#include <fst/concat.h>
+#include <fst/rmepsilon.h>
 #include <fst/string.h>
 #include <thrax/fst-node.h>
 #include <thrax/datatype.h>
@@ -126,7 +147,8 @@ class Feature : public Function<Arc> {
   ~Feature() final {}
 
  protected:
-  DataType* Execute(const std::vector<DataType*>& args) final {
+  std::unique_ptr<DataType> Execute(
+      const std::vector<std::unique_ptr<DataType>>& args) final {
     CHECK_GE(args.size(), 2);
     enum ::fst::TokenType mode = ::fst::TokenType::BYTE;
     const ::fst::SymbolTable* symtab = nullptr;
@@ -178,7 +200,7 @@ class Feature : public Function<Arc> {
       std::cout << "Feature: final argument must be string or symbol table"
                 << std::endl;
     }
-    MutableTransducer* fst(new MutableTransducer());
+    auto fst = std::make_unique<MutableTransducer>();
     // Feature acceptors have two states, with 0 the initial, 1, the final, and
     // all arcs going from 0 to 1.
     auto s0 = fst->AddState();
@@ -196,7 +218,6 @@ class Feature : public Function<Arc> {
               feature_value_pair, &label)) {
         std::cout << "Failed to generate label for " << feature_value_pair
                   << std::endl;
-        delete fst;
         return nullptr;
       }
       fst->EmplaceArc(s0, label, label, s1);
@@ -213,7 +234,7 @@ class Feature : public Function<Arc> {
         fst->SetOutputSymbols(GetByteSymbolTable());
       }
     }
-    return new DataType(fst);
+    return std::make_unique<DataType>(std::move(fst));
   }
 
  public:
@@ -328,10 +349,11 @@ class Feature : public Function<Arc> {
     // label set (stringfst.h)
     std::string bracketed_feature_value_pair = "[" + feature_value_pair + "]";
     StringFst<Arc> func;
-    std::vector<DataType*>* args = new std::vector<DataType*>();
-    args->push_back(new DataType(static_cast<int>(StringFstNode::BYTE)));
-    args->push_back(new DataType(bracketed_feature_value_pair));
-    delete func.Run(args);
+    auto args = std::make_unique<std::vector<std::unique_ptr<DataType>>>();
+    args->push_back(
+        std::make_unique<DataType>(static_cast<int>(StringFstNode::BYTE)));
+    args->push_back(std::make_unique<DataType>(bracketed_feature_value_pair));
+    func.Run(std::move(args));
   }
 
   Feature<Arc>(const Feature<Arc>&) = delete;
@@ -350,40 +372,40 @@ class Category : public Function<Arc> {
   ~Category() final {}
 
  protected:
-  DataType* Execute(const std::vector<DataType*>& args) final {
+  std::unique_ptr<DataType> Execute(
+      const std::vector<std::unique_ptr<DataType>>& args) final {
     CHECK_GE(args.size(), 1);
-    std::vector<std::pair<std::string, Transducer*>> features;
+    std::vector<std::pair<std::string, std::unique_ptr<Transducer>>> features;
     for (int i = 0; i < args.size(); ++i) {
       if (!args[i]->is<Transducer*>()) {
         std::cout << "Category: All arguments must be Feature fsts (arg "
                   << i + 1 << ")" << std::endl;
         return nullptr;
       }
-      MutableTransducer* feature_fst =
-          new MutableTransducer(**args[i]->get<Transducer*>());
+      auto feature_fst =
+          std::make_unique<MutableTransducer>(**args[i]->get<Transducer*>());
       std::string feature_name;
-      CHECK(Feature<Arc>::ValidateFeatureFst(feature_fst, &feature_name));
-      features.emplace_back(feature_name, feature_fst);
+      CHECK(Feature<Arc>::ValidateFeatureFst(feature_fst.get(), &feature_name));
+      features.emplace_back(feature_name, std::move(feature_fst));
     }
     // Features in a category are kept sorted by the byte sort order of the
     // feature name.
     std::sort(features.begin(), features.end());
-    auto* fst = new MutableTransducer;
+    auto fst = std::make_unique<MutableTransducer>();
     const auto s0 = fst->AddState();
     fst->SetStart(s0);
     fst->SetFinal(s0);
     // Then concatenate each transducer in the sorted order of the associated
     // feature name.
     for (int i = 0; i < features.size(); ++i) {
-      ::fst::Concat(fst, *(features[i].second));
-      delete features[i].second;
+      ::fst::Concat(fst.get(), *(features[i].second));
     }
-    ::fst::RmEpsilon(fst);
+    ::fst::RmEpsilon(fst.get());
     if (FLAGS_save_symbols) {
       fst->SetInputSymbols(features[0].second->InputSymbols());
       fst->SetOutputSymbols(features[0].second->OutputSymbols());
     }
-    return new DataType(fst);
+    return std::make_unique<DataType>(std::move(fst));
   }
 
  public:
@@ -409,10 +431,11 @@ class FeatureVector : public Function<Arc> {
   using Transducer = ::fst::Fst<Arc>;
 
   FeatureVector() : Function<Arc>() {}
-  virtual ~FeatureVector() {}
+  ~FeatureVector() override {}
 
  protected:
-  DataType* Execute(const std::vector<DataType*>& args) final {
+  std::unique_ptr<DataType> Execute(
+      const std::vector<std::unique_ptr<DataType>>& args) final {
     // In the minimal case, there are no specifications in this FeatureVector,
     // in which case we just get back an acceptor equivalent to the Category.
     CHECK_GE(args.size(), 1);
@@ -422,7 +445,7 @@ class FeatureVector : public Function<Arc> {
       return nullptr;
     }
     auto* category_fst =
-        static_cast<MutableTransducer*>(*args[0]->get<Transducer*>());
+        fst::down_cast<MutableTransducer*>(*args[0]->get<Transducer*>());
     std::vector<std::pair<typename Arc::StateId, std::string>> features;
     if (!Category<Arc>::ValidateFeatureSequenceFst(category_fst,
                                                    &features)) {
@@ -468,7 +491,7 @@ class FeatureVector : public Function<Arc> {
         return nullptr;
       }
     }
-    auto* fst = new MutableTransducer;
+    auto fst = std::make_unique<MutableTransducer>();
     auto s = fst->AddState();
     // We now craft the FST by looking at each feature-value pair, and making a
     // single arc in the sequence for that, but if a feature has no
@@ -499,7 +522,7 @@ class FeatureVector : public Function<Arc> {
       fst->SetInputSymbols(category_fst->InputSymbols());
       fst->SetOutputSymbols(category_fst->OutputSymbols());
     }
-    return new DataType(fst);
+    return std::make_unique<DataType>(std::move(fst));
   }
 
  private:

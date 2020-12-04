@@ -1,3 +1,17 @@
+// Copyright 2005-2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
 #ifndef FST_UTIL_OPERATORS_CONCATRANGE_H_
 #define FST_UTIL_OPERATORS_CONCATRANGE_H_
 
@@ -47,7 +61,7 @@ void SetStartFinal(MutableFst<Arc> *fst) {
 // these act as upper and lower bounds, respectively, for the number of cycles
 // through the original FST one is permitted to take in the modified FST. So,
 // ConcatRange(A, 0, 1) is mutates A so it transduces between empty strings with
-// weight One and // transduces strings x to y with weight w, similar to the ?
+// weight One and transduces strings x to y with weight w, similar to the ?
 // quantifier in PCRE. And, ConcatRange(A, 2, 5) mutates A so that it behaves
 // like the concatenation of between 2 and 5 A's.
 //

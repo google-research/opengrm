@@ -1,3 +1,17 @@
+// Copyright 2005-2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
 // The AbstractGrmManager holds a set of FSTs in memory and performs rewrites
 // via composition. The class is parametrized by the FST arc type.
 // AbstractGrmManager is thread-compatible.
@@ -143,7 +157,7 @@ bool AbstractGrmManager<Arc>::LoadArchive(FarReader *reader) {
   fsts_.clear();
   for (reader->Reset(); !reader->Done(); reader->Next()) {
     const auto& name = reader->GetKey();
-    fsts_[name] = fst::make_unique<MutableTransducer>(*reader->GetFst());
+    fsts_[name] = std::make_unique<MutableTransducer>(*reader->GetFst());
   }
   SortRuleInputLabels();
   return true;
@@ -165,7 +179,7 @@ void AbstractGrmManager<Arc>::SortRuleInputLabels() {
     // Arc-sorts if the FST is not known to be input-sorted.
     if (fst.Properties(::fst::kILabelSorted, false) !=
         ::fst::kILabelSorted) {
-      auto sorted_fst = fst::make_unique<MutableTransducer>(fst);
+      auto sorted_fst = std::make_unique<MutableTransducer>(fst);
       static const ::fst::ILabelCompare<Arc> icomp;
       ::fst::ArcSort(sorted_fst.get(), icomp);
       pair.second = std::move(sorted_fst);
@@ -184,7 +198,7 @@ template <typename Arc>
 std::unique_ptr<typename AbstractGrmManager<Arc>::Transducer>
 AbstractGrmManager<Arc>::GetFstSafe(const std::string& name) const {
   const auto* fst = GetFst(name);
-  return WrapUnique(fst ? fst->Copy(true) : nullptr);
+  return fst::WrapUnique(fst ? fst->Copy(true) : nullptr);
 }
 
 template <typename Arc>
@@ -192,7 +206,7 @@ bool AbstractGrmManager<Arc>::SetFst(const std::string& name,
                                      const Transducer& input) {
   auto it = fsts_.find(name);
   if (it != fsts_.end()) {
-    it->second = WrapUnique(input.Copy(true));
+    it->second = fst::WrapUnique(input.Copy(true));
     return true;
   }
   return false;
@@ -272,7 +286,7 @@ bool AbstractGrmManager<Arc>::Rewrite(
     MutableTransducer mut_pdt_parens_fst(*pdt_parens_fst);
     std::vector<std::pair<Label, Label>> pdt_parens;
     MakeParensPairVector(mut_pdt_parens_fst, &pdt_parens);
-    // EXPAND_FILTER removes the parentheses, allowing for subsequent
+    // PdtComposeFilter::EXPAND removes the parentheses, allowing for subsequent
     // application of PDTs. At the end (in StringifyFst() we use ordinary
     // ShortestPath().
     if (mpdt_assignments_fst) {
@@ -280,13 +294,13 @@ bool AbstractGrmManager<Arc>::Rewrite(
       std::vector<Label> mpdt_assignments;
       MakeAssignmentsVector(mut_mpdt_assignments_fst, pdt_parens,
                             &mpdt_assignments);
-      static const ::fst::MPdtComposeOptions opts(true,
-                                                      ::fst::EXPAND_FILTER);
+      static const ::fst::MPdtComposeOptions opts(
+          true, ::fst::PdtComposeFilter::EXPAND);
       ::fst::Compose(input, *rule_fst, pdt_parens, mpdt_assignments, output,
                          opts);
     } else {
-      static const ::fst::PdtComposeOptions opts(true,
-                                                     ::fst::EXPAND_FILTER);
+      static const ::fst::PdtComposeOptions opts(
+          true, ::fst::PdtComposeFilter::EXPAND);
       ::fst::Compose(input, *rule_fst, pdt_parens, output, opts);
     }
   } else {

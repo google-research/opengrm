@@ -1,3 +1,17 @@
+// Copyright 2005-2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
 #ifndef FST_UTIL_STRING_PREFIX_TREE_H_
 #define FST_UTIL_STRING_PREFIX_TREE_H_
 
@@ -19,7 +33,7 @@ template <class Label, class StateId, class Node>
 Node *LookupOrInsertChild(std::map<Label, std::unique_ptr<Node>> *children,
                           Label label, StateId *num_states) {
   std::unique_ptr<Node> &value = (*children)[label];
-  if (!value) value = fst::make_unique<Node>((*num_states)++);
+  if (!value) value = std::make_unique<Node>((*num_states)++);
   return value.get();
 }
 
@@ -97,7 +111,7 @@ struct PrefixTreeTransducerPolicy {
 
     void InsertONode(StateId *num_states) {
       using Base = BaseINode<StateId, ONode>;
-      Base::onode_ = fst::make_unique<ONode>((*num_states)++);
+      Base::onode_ = std::make_unique<ONode>((*num_states)++);
     }
 
    private:
@@ -159,7 +173,7 @@ struct PrefixTreeAcceptorPolicy {
       using Base = BaseINode<StateId, ONode>;
       // Make the ONode copy the INode's StateId, and not increment external
       // `num_states`.
-      Base::onode_ = fst::make_unique<ONode>(Base::state_);
+      Base::onode_ = std::make_unique<ONode>(Base::state_);
     }
 
    private:
@@ -200,7 +214,7 @@ class PrefixTree {
            T &&weight) {
     if (!root_) {
       CHECK_EQ(0, num_states_);
-      root_ = fst::make_unique<INode>(num_states_++);
+      root_ = std::make_unique<INode>(num_states_++);
     }
     INode *inode = root_.get();
     for (Label ilabel : fst::make_range(it1, end1)) {

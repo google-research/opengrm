@@ -1,25 +1,34 @@
+// Copyright 2005-2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
 #ifndef THRAX_NAMESPACE_H_
 #define THRAX_NAMESPACE_H_
 
 #include <map>
+#include <memory>
+#include <stack>
 #include <string>
-#include <vector>
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
 #include <thrax/identifier-node.h>
-#include <thrax/algo/resource-map.h>
-
-namespace thrax {
-
-class ResourceMap;
-
-}  // namespace thrax
+#include <thrax/resource-map.h>
 
 namespace thrax {
 
 // A namespace manager for the tree evaluator. This handles nested levels of
-// identifiers. Essentially, this is a manager/wrapper for ResourceMap,
+// identifiers. Essentially, this is a manager/wrapper for `ResourceMap`,
 // collecting shared resources into a single map and allowing local variables to
 // live in a hierarchical stack of maps.
 class Namespace {
@@ -50,9 +59,9 @@ class Namespace {
   // second version inserts the object without taking over ownership of the
   // pointer.
   template <typename T>
-  bool Insert(const std::string& identifier_name, T* resource) {
+  bool Insert(const std::string& identifier_name, std::unique_ptr<T> resource) {
     const std::string& name = ConstructMapName(identifier_name);
-    return resources_->Insert(name, resource);
+    return resources_->Insert(name, std::move(resource));
   }
 
   template <typename T>
@@ -64,15 +73,16 @@ class Namespace {
   // The same as the above, but this time, we insert into the local namespace
   // instead of the globally shared one.
   template <typename T>
-  bool InsertLocal(const std::string& identifier_name, T* resource) {
-    return local_env_.back()->Insert(identifier_name, resource);
+  bool InsertLocal(const std::string& identifier_name,
+                   std::unique_ptr<T> resource) {
+    return local_env_.top()->Insert(identifier_name, std::move(resource));
   }
 
   template <typename T>
   bool InsertLocalWithoutDelete(const std::string& identifier_name,
                                 T* resource) {
-    return local_env_.back()->InsertWithDeleter(identifier_name, resource,
-                                                nullptr);
+    return local_env_.top()->InsertWithDeleter(identifier_name, resource,
+                                               nullptr);
   }
 
   // Returns the resource associated with this namespace (and nullptr if the
@@ -85,9 +95,9 @@ class Namespace {
     // local variables first if possible.
     if (!identifier.HasNamespaces() && !local_env_.empty()) {
       const std::string& name = identifier.GetIdentifier();
-      if (local_env_.back()->ContainsType<T>(name)) {
+      if (local_env_.top()->ContainsType<T>(name)) {
         if (where) *where = this;
-        return local_env_.back()->Get<T>(name);
+        return local_env_.top()->Get<T>(name);
       }
     }
 
@@ -148,7 +158,7 @@ class Namespace {
   // Provides a mapping from a single-component alias to the next Namespace
   // object. This map is expected to be reasonably small, so we'll use a normal
   // map instead of a hash_map.
-  std::map<std::string, Namespace*> alias_namespace_map_;
+  std::map<std::string, std::unique_ptr<Namespace>> alias_namespace_map_;
   // The actual map of string to global resources. This resource map will likely
   // be shared across this namespace and all sub-namespaces. Keys are those
   // provided by ConstructMapName().
@@ -156,9 +166,8 @@ class Namespace {
   bool owns_resources_;
   // We still, however, need a list of local variables on a per-namespace basis.
   // This will be for function calls primarily and other non-globally-exported
-  // stuff. The front of the list is the bottom of the stack; the back will be
-  // the newest scope.
-  std::vector<ResourceMap*> local_env_;
+  // stuff.
+  std::stack<std::unique_ptr<ResourceMap>> local_env_;
 
   Namespace(const Namespace&) = delete;
   Namespace& operator=(const Namespace&) = delete;

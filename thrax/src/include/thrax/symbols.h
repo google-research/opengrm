@@ -1,19 +1,33 @@
+// Copyright 2005-2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
 // Builds the symbol tables needed for byte and utf8 if FLAGS_save_symbols is
 // set
 
 #ifndef THRAX_SYMBOLS_H_
 #define THRAX_SYMBOLS_H_
 
+#include <memory>
 #include <string>
 
-#include <fst/fstlib.h>
+#include <fst/symbol-table.h>
 
 namespace thrax {
 namespace function {
 
-// Defined in loader.cc.
-::fst::SymbolTable* GetByteSymbolTable();
-::fst::SymbolTable* GetUtf8SymbolTable();
+const ::fst::SymbolTable* GetByteSymbolTable();
+const ::fst::SymbolTable* GetUtf8SymbolTable();
 
 void AddToByteSymbolTable(std::string symbol, int64 label);
 void AddToUtf8SymbolTable(std::string symbol, int64 label);
@@ -25,10 +39,8 @@ class SymbolTableBuilder {
  public:
   SymbolTableBuilder();
 
-  ~SymbolTableBuilder();
-
-  ::fst::SymbolTable* GetByteSymbolTable();
-  ::fst::SymbolTable* GetUtf8SymbolTable();
+  const ::fst::SymbolTable* GetByteSymbolTable();
+  const ::fst::SymbolTable* GetUtf8SymbolTable();
 
   void AddToByteSymbolTable(std::string symbol, int64 label);
 
@@ -40,11 +52,8 @@ class SymbolTableBuilder {
   inline void GenerateUtf8SymbolTable();
 
   ::fst::Mutex map_mutex_;
-  ::fst::SymbolTable* byte_symbols_;
-  ::fst::SymbolTable* utf8_symbols_;
-
-  SymbolTableBuilder(const SymbolTableBuilder&) = delete;
-  SymbolTableBuilder& operator=(const SymbolTableBuilder&) = delete;
+  std::unique_ptr<::fst::SymbolTable> byte_symbols_;
+  std::unique_ptr<::fst::SymbolTable> utf8_symbols_;
 };
 
 }  // namespace function

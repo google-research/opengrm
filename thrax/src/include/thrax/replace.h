@@ -1,13 +1,29 @@
+// Copyright 2005-2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
 // Interface to Fst Replace(). See under Execute() for implementation details.
 
 #ifndef THRAX_REPLACE_H_
 #define THRAX_REPLACE_H_
 
 #include <iostream>
-#include <set>
+#include <memory>
+#include <utility>
 #include <vector>
 
-#include <fst/fstlib.h>
+#include <fst/replace.h>
+#include <fst/rmepsilon.h>
 #include <thrax/datatype.h>
 #include <thrax/function.h>
 
@@ -33,7 +49,8 @@ class Replace : public Function<Arc> {
   ~Replace() final {}
 
  protected:
-  DataType* Execute(const std::vector<DataType*>& args) final {
+  std::unique_ptr<DataType> Execute(
+      const std::vector<std::unique_ptr<DataType>>& args) final {
     if (args.size() < 3) {
       std::cout << "Replace: Expected at least 3 arguments but got "
                 << args.size() << std::endl;
@@ -82,9 +99,9 @@ class Replace : public Function<Arc> {
       std::cout << "Replace: Cyclic dependencies detected; cannot expand";
       return nullptr;
     }
-    auto* output = new MutableTransducer();
+    auto output = std::make_unique<MutableTransducer>();
     *output = replace;  // Expansion.
-    return new DataType(output);
+    return std::make_unique<DataType>(std::move(output));
   }
 
  private:

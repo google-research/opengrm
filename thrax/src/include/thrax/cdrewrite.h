@@ -1,3 +1,17 @@
+// Copyright 2005-2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
 // Wrapper for the context dependent rewriter.  Arguments should be, in order,
 // 1.) The rewrite transducer (tau).
 // 2.) The unweighted left context acceptor (lambda).
@@ -13,13 +27,13 @@
 #define THRAX_CDREWRITE_H_
 
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
 #include <fst/fst.h>
-#include <fst/symbol-table.h>
 #include <fst/vector-fst.h>
 #include <thrax/algo/cdrewrite.h>
 #include <thrax/algo/stringcompile.h>
@@ -41,7 +55,8 @@ class CDRewrite : public Function<Arc> {
   CDRewrite() {}
   ~CDRewrite() final {}
 
-  DataType* Execute(const std::vector<DataType*>& args) final {
+  std::unique_ptr<DataType> Execute(
+      const std::vector<std::unique_ptr<DataType>>& args) final {
     if (args.size() != 4 && args.size() != 6) {
       std::cout << "CDRewrite: Expected 4 or 6 arguments but received "
                 << args.size() << std::endl;
@@ -158,14 +173,15 @@ class CDRewrite : public Function<Arc> {
         return nullptr;
       }
     }
-    auto* output = new MutableTransducer();
-    ::fst::CDRewriteCompile(tau, lambda, rho, sigma, output, dir, mode,
-                                ::fst::kBosIndex, ::fst::kEosIndex);
+    auto output = std::make_unique<MutableTransducer>();
+    ::fst::CDRewriteCompile(tau, lambda, rho, sigma, output.get(), dir,
+                                mode, ::fst::kBosIndex,
+                                ::fst::kEosIndex);
     if (FLAGS_save_symbols) {
       output->SetInputSymbols(symbols);
       output->SetOutputSymbols(symbols);
     }
-    return new DataType(output);
+    return std::make_unique<DataType>(std::move(output));
   }
 
  private:

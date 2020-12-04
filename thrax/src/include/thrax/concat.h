@@ -1,3 +1,17 @@
+// Copyright 2005-2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
 // Wrapper for the concatenation function, which expands the second argument and
 // concatenates into there (destructive-mode) or just uses ConcatFst
 // (delayed-mode).
@@ -6,14 +20,12 @@
 #define THRAX_CONCAT_H_
 
 #include <iostream>
+#include <memory>
 #include <vector>
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
 #include <fst/concat.h>
-#include <fst/fst.h>
-#include <fst/symbol-table.h>
-#include <fst/vector-fst.h>
 #include <thrax/datatype.h>
 #include <thrax/function.h>
 
@@ -32,8 +44,9 @@ class Concat : public BinaryFstFunction<Arc> {
   ~Concat() final {}
 
  protected:
-  Transducer* BinaryFstExecute(const Transducer& left, const Transducer& right,
-                               const std::vector<DataType*>& args) final {
+  std::unique_ptr<Transducer> BinaryFstExecute(
+      const Transducer& left, const Transducer& right,
+      const std::vector<std::unique_ptr<DataType>>& args) final {
     if (args.size() != 2) {
       std::cout << "Concat: Expected 2 arguments but got " << args.size()
                 << std::endl;
@@ -55,8 +68,8 @@ class Concat : public BinaryFstFunction<Arc> {
         return nullptr;
       }
     }
-    auto* mutable_right = new MutableTransducer(right);
-    ::fst::Concat(left, mutable_right);
+    auto mutable_right = std::make_unique<MutableTransducer>(right);
+    ::fst::Concat(left, mutable_right.get());
     return mutable_right;
   }
 
@@ -71,11 +84,12 @@ class ConcatDelayed : public BinaryFstFunction<Arc> {
   using Transducer = ::fst::Fst<Arc>;
 
   ConcatDelayed() {}
-  virtual ~ConcatDelayed() {}
+  ~ConcatDelayed() override {}
 
  protected:
-  Transducer* BinaryFstExecute(const Transducer& left, const Transducer& right,
-                               const std::vector<DataType*>& args) final {
+  std::unique_ptr<Transducer> BinaryFstExecute(
+      const Transducer& left, const Transducer& right,
+      const std::vector<std::unique_ptr<DataType>>& args) final {
     if (args.size() != 2) {
       std::cout << "ConcatDelayed: Expected 2 arguments but got " << args.size()
                 << std::endl;
@@ -97,7 +111,7 @@ class ConcatDelayed : public BinaryFstFunction<Arc> {
         return nullptr;
       }
     }
-    return new ::fst::ConcatFst<Arc>(left, right);
+    return std::make_unique<::fst::ConcatFst<Arc>>(left, right);
   }
 
  private:

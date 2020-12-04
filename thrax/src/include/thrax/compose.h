@@ -1,3 +1,17 @@
+// Copyright 2005-2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
 // Composes two FSTs together. This function leaves its arguments unexpanded
 // (if they weren't expanded to begin with) and creates an on-the-fly
 // ComposeFst.
@@ -13,12 +27,13 @@
 #define THRAX_COMPOSE_H_
 
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
-#include <fst/fstlib.h>
+#include <fst/compose.h>
 #include <thrax/datatype.h>
 #include <thrax/function.h>
 
@@ -36,7 +51,8 @@ class Compose : public Function<Arc> {
   ~Compose() final {}
 
  protected:
-  DataType* Execute(const std::vector<DataType*>& args) final {
+  std::unique_ptr<DataType> Execute(
+      const std::vector<std::unique_ptr<DataType>>& args) final {
     if (args.size() != 2 && args.size() != 3) {
       std::cout << "Compose: Expected 2 or 3 arguments but got " << args.size()
                 << std::endl;
@@ -83,10 +99,10 @@ class Compose : public Function<Arc> {
         delete_right = true;
       }
     }
-    auto* output = new ::fst::ComposeFst<Arc>(*left, *right);
+    auto output = std::make_unique<::fst::ComposeFst<Arc>>(*left, *right);
     if (delete_left) delete left;
     if (delete_right) delete right;
-    return new DataType(output);
+    return std::make_unique<DataType>(std::move(output));
   }
 
  private:

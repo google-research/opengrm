@@ -1,3 +1,17 @@
+// Copyright 2005-2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
 // Provides (Kleene) closure operations for the provided FST. This expands the
 // provided FST and then modifies it in place.
 
@@ -5,11 +19,12 @@
 #define THRAX_CLOSURE_H_
 
 #include <iostream>
+#include <memory>
 #include <vector>
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
-#include <fst/fstlib.h>
+#include <fst/closure.h>
 #include <thrax/algo/concatrange.h>
 #include <thrax/fst-node.h>
 #include <thrax/datatype.h>
@@ -30,8 +45,9 @@ class Closure : public UnaryFstFunction<Arc> {
   ~Closure() final {}
 
  protected:
-  Transducer* UnaryFstExecute(const Transducer& fst,
-                              const std::vector<DataType*>& args) final {
+  std::unique_ptr<Transducer> UnaryFstExecute(
+      const Transducer& fst,
+      const std::vector<std::unique_ptr<DataType>>& args) final {
     if (args.size() < 2) {
       std::cout << "Closure: Expected 2 or 4 arguments" << std::endl;
       return nullptr;
@@ -42,7 +58,7 @@ class Closure : public UnaryFstFunction<Arc> {
     }
     const auto type = static_cast<RepetitionFstNode::RepetitionFstNodeType>(
         *args[1]->get<int>());
-    auto* output = new MutableTransducer(fst);
+    auto output = std::make_unique<MutableTransducer>(fst);
     switch (type) {
       case RepetitionFstNode::STAR: {
         if (args.size() != 2) {
@@ -50,7 +66,7 @@ class Closure : public UnaryFstFunction<Arc> {
                     << std::endl;
           return nullptr;
         }
-        ::fst::Closure(output, fst::CLOSURE_STAR);
+        ::fst::Closure(output.get(), fst::CLOSURE_STAR);
         break;
       }
       case RepetitionFstNode::PLUS: {
@@ -59,7 +75,7 @@ class Closure : public UnaryFstFunction<Arc> {
                     << std::endl;
           return nullptr;
         }
-        ::fst::Closure(output, fst::CLOSURE_PLUS);
+        ::fst::Closure(output.get(), fst::CLOSURE_PLUS);
         break;
       }
       case RepetitionFstNode::QUESTION: {
@@ -68,7 +84,7 @@ class Closure : public UnaryFstFunction<Arc> {
                     << std::endl;
           return nullptr;
         }
-        ::fst::ConcatRange(output, 0, 1);
+        ::fst::ConcatRange(output.get(), 0, 1);
         break;
       }
       case RepetitionFstNode::RANGE: {
@@ -87,7 +103,7 @@ class Closure : public UnaryFstFunction<Arc> {
         }
         const auto min = *args[2]->get<int>();
         const auto max = *args[3]->get<int>();
-        ::fst::ConcatRange(output, min, max);
+        ::fst::ConcatRange(output.get(), min, max);
         break;
       }
       default: {

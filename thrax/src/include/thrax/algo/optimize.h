@@ -1,3 +1,17 @@
+// Copyright 2005-2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
 #ifndef FST_UTIL_OPERATORS_OPTIMIZE_H_
 #define FST_UTIL_OPERATORS_OPTIMIZE_H_
 
@@ -9,8 +23,6 @@
 // Allauzen, C., Mohri, M., Riley, M., and Roark, B. 2004. A generalized
 // construction of integrated speech recognition transducers. In Proc. ICASSP,
 // pages 761-764.
-
-#include <type_traits>
 
 #include <fst/arcsort.h>
 #include <fst/determinize.h>
@@ -61,19 +73,25 @@ void OptimizeAs(MutableFst<Arc> *fst, uint8 flags) {
 }
 
 // Generic FST optimization function to be used when the FST is known to be an
-// acceptor. Version for FSTs with non-idempotent weights, limiting
-// optimization possibilities.
-template <class Arc,
-          typename std::enable_if<(Arc::Weight::Properties() & kIdempotent) !=
-                                  kIdempotent>::type * = nullptr>
+// acceptor.
+template <class Arc>
 void OptimizeAcceptor(MutableFst<Arc> *fst, bool compute_props = false) {
   // If the FST is not (known to be) epsilon-free, perform epsilon-removal.
   MaybeRmEpsilon(fst, compute_props);
-  // The FST has non-idempotent weights; limiting optimization possibilities.
   if (fst->Properties(kIDeterministic, compute_props) != kIDeterministic) {
-    // But "any acyclic weighted automaton over a zero-sum-free semiring has
-    // the twins property and is determinizable" (Mohri 2006).
-    if (fst->Properties(kAcyclic, compute_props) == kAcyclic) {
+    if ((Arc::Weight::Properties() & kIdempotent) == kIdempotent) {
+      // If the FST is not known to have no weighted cycles, it is encoded
+      // before determinization and minimization.
+      if (!fst->Properties(kDoNotEncodeWeights, compute_props)) {
+        OptimizeAs(fst, kEncodeWeights);
+        // Combines any remaining muti-arcs.
+        StateMap(fst, ArcSumMapper<Arc>(*fst));
+      } else {
+        DeterminizeAndMinimize(fst);
+      }
+    } else if (fst->Properties(kAcyclic, compute_props) == kAcyclic) {
+      // "Any acyclic weighted automaton over a zero-sum-free semiring has
+      // the twins property and is determinizable" (Mohri 2006).
       DeterminizeAndMinimize(fst);
     }
   } else {
@@ -81,66 +99,26 @@ void OptimizeAcceptor(MutableFst<Arc> *fst, bool compute_props = false) {
   }
 }
 
-template <class Arc,
-          typename std::enable_if<(Arc::Weight::Properties() & kIdempotent) ==
-                                  kIdempotent>::type * = nullptr>
-void OptimizeAcceptor(MutableFst<Arc> *fst, bool compute_props = false) {
-  // If the FST is not (known to be) epsilon-free, perform epsilon-removal.
-  MaybeRmEpsilon(fst, compute_props);
-  // If the FST is not (known to be) deterministic, determinize it.
-  if (fst->Properties(kIDeterministic, compute_props) != kIDeterministic) {
-    // If the FST is not known to have no weighted cycles, it is encoded
-    // before determinization and minimization.
-    if (!fst->Properties(kDoNotEncodeWeights, compute_props)) {
-      OptimizeAs(fst, kEncodeWeights);
-      // Combines any remaining muti-arcs.
-      StateMap(fst, ArcSumMapper<Arc>(*fst));
-    } else {
-      DeterminizeAndMinimize(fst);
-    }
-  } else {
-    Minimize(fst);
-  }
-}
-
-// Generic FST optimization function to be used when the FST is (may be) a
-// transducer. Version for FSTs with non-idempotent weights, limiting
-// optimization possibilities.
-template <class Arc,
-          typename std::enable_if<(Arc::Weight::Properties() & kIdempotent) !=
-                                  kIdempotent>::type * = nullptr>
+// Generic FST optimization function to be used when the FST may be a
+// transducer.
+template <class Arc>
 void OptimizeTransducer(MutableFst<Arc> *fst, bool compute_props = false) {
   // If the FST is not (known to be) epsilon-free, perform epsilon-removal.
   MaybeRmEpsilon(fst, compute_props);
-  // The FST has non-idempotent weights; limiting optimization possibilities.
   if (fst->Properties(kIDeterministic, compute_props) != kIDeterministic) {
-    // But "any acyclic weighted automaton over a zero-sum-free semiring has
-    // the twins property and is determinizable" (Mohri 2006). We just have to
-    // encode labels.
-    if (fst->Properties(kAcyclic, compute_props)) {
-      OptimizeAs(fst, kEncodeLabels);
-    }
-  } else {
-    Minimize(fst);
-  }
-}
-
-template <class Arc,
-          typename std::enable_if<(Arc::Weight::Properties() & kIdempotent) ==
-                                  kIdempotent>::type * = nullptr>
-void OptimizeTransducer(MutableFst<Arc> *fst, bool compute_props = false) {
-  // If the FST is not (known to be) epsilon-free, perform epsilon-removal.
-  MaybeRmEpsilon(fst, compute_props);
-  // If the FST is not (known to be) deterministic, determinize it.
-  if (fst->Properties(kIDeterministic, compute_props) != kIDeterministic) {
-    // FST labels are always encoded before determinization and minimization.
-    // If the FST is not known to have no weighted cycles, its weights are
-    // also encoded before determinization and minimization.
-    if (!fst->Properties(kDoNotEncodeWeights, compute_props)) {
-      OptimizeAs(fst, kEncodeLabels | kEncodeWeights);
-      // Combines any remaining muti-arcs.
-      StateMap(fst, ArcSumMapper<Arc>(*fst));
-    } else {
+    if ((Arc::Weight::Properties() & kIdempotent) == kIdempotent) {
+      // If the FST is not known to have no weighted cycles, it is encoded
+      // before determinization and minimization.
+      if (!fst->Properties(kDoNotEncodeWeights, compute_props)) {
+        OptimizeAs(fst, kEncodeLabels | kEncodeWeights);
+        // Combines any remaining muti-arcs.
+        StateMap(fst, ArcSumMapper<Arc>(*fst));
+      } else {
+        OptimizeAs(fst, kEncodeLabels);
+      }
+    } else if (fst->Properties(kAcyclic, compute_props) == kAcyclic) {
+      // "Any acyclic weighted automaton over a zero-sum-free semiring has
+      // the twins property and is determinizable" (Mohri 2006).
       OptimizeAs(fst, kEncodeLabels);
     }
   } else {
@@ -152,8 +130,6 @@ void OptimizeTransducer(MutableFst<Arc> *fst, bool compute_props = false) {
 
 // Generic FST optimization function; use the more-specialized forms below if
 // the FST is known to be an acceptor or a transducer.
-
-// Destructive signature.
 template <class Arc>
 void Optimize(MutableFst<Arc> *fst, bool compute_props = false) {
   if (fst->Properties(kAcceptor, compute_props) != kAcceptor) {

@@ -114,7 +114,7 @@ grammar:
     { GrammarNode* node = new GrammarNode($1, $2->funcs_, $2->stmts_);
       delete $2;
       $$ = node;
-      parm->SetAst(static_cast<Node*>($$)); }
+      parm->SetAst(fst::WrapUnique(fst::implicit_cast<Node*>($$))); }
 | error
     { parm->Error("Generic parsing error.");
       $$ = NULL; }
@@ -404,7 +404,7 @@ fst_with_weight:
   fst_with_output weight
     // TODO: Figure out how to limit outselves to just getting a known FstNode
     // instead of a generic Node.  The current implementation is dangerous.
-    { if (!static_cast<FstNode*>($1)->SetWeight($2))
+    { if (!fst::down_cast<FstNode*>($1)->SetWeight($2))
         parm->Error("Rules may have only one weight.");
       $$ = $1; }
 | fst_with_output

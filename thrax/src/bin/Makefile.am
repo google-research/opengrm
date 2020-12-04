@@ -20,7 +20,7 @@ thraxrewrite_tester_SOURCES = rewrite-tester.cc rewrite-tester-utils.cc rewrite-
 thraxrandom_generator_SOURCES = random-generator.cc utildefs.cc utildefs.h
 endif
 
-EXTRA_DIST = thraxmakedep
+EXTRA_DIST = thraxmakedep regression_test.cc
 
 install-exec-local: $(EXTRA_DIST)
 	-mkdir -p -m 755 $(DESTDIR)$(bindir)

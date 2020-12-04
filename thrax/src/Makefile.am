@@ -1,1 +1,1 @@
-SUBDIRS = include lib bin grammars utils
+SUBDIRS = bazel include lib bin grammars utils

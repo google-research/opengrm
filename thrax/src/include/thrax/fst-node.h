@@ -1,3 +1,17 @@
+// Copyright 2005-2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
 // This node represents basic (primitive) types in the language. This name is
 // currently misleading. The held type can be anything represented in a
 // DataType essentially: FST, symbol table, or string.
@@ -36,7 +50,7 @@ class FstNode : public Node {
 
   explicit FstNode(FstNodeType type);
 
-  virtual ~FstNode();
+  ~FstNode() override;
 
   void AddArgument(Node* arg);
 
@@ -56,7 +70,7 @@ class FstNode : public Node {
 
   void SetOptimize();
 
-  virtual void Accept(AstWalker* walker);
+  void Accept(AstWalker* walker) override;
 
  protected:
   FstNodeType type_;
@@ -82,11 +96,11 @@ class StringFstNode : public FstNode {
 
   explicit StringFstNode(ParseMode parse_mode);
 
-  virtual ~StringFstNode();
+  ~StringFstNode() override;
 
   ParseMode GetParseMode() const;
 
-  virtual void Accept(AstWalker* walker);
+  void Accept(AstWalker* walker) override;
 
  private:
   ParseMode parse_mode_;
@@ -108,7 +122,7 @@ class RepetitionFstNode : public FstNode {
 
   explicit RepetitionFstNode(RepetitionFstNodeType type);
 
-  virtual ~RepetitionFstNode();
+  ~RepetitionFstNode() override;
 
   RepetitionFstNodeType GetRepetitionType() const;
 
@@ -116,7 +130,7 @@ class RepetitionFstNode : public FstNode {
 
   void GetRange(int* min, int* max) const;
 
-  virtual void Accept(AstWalker* walker);
+  void Accept(AstWalker* walker) override;
 
  private:
   RepetitionFstNodeType repetition_type_;

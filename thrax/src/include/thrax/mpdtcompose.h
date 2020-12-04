@@ -1,3 +1,17 @@
+// Copyright 2005-2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
 // Composes two FSTs together, where one is a multistack pushdown transducer
 // (nlp/fst/extensions/mpdt). The MPDT may be either be the first or second
 // transducer, as controlled by the fourth (string) argument to the
@@ -36,13 +50,13 @@
 #define THRAX_MPDTCOMPOSE_H_
 
 #include <iostream>
-#include <set>
+#include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <fst/extensions/mpdt/compose.h>
-#include <fst/extensions/mpdt/mpdt.h>
-#include <fst/fstlib.h>
+#include <fst/arcsort.h>
 #include <thrax/datatype.h>
 #include <thrax/function.h>
 #include <thrax/make-parens-pair-vector.h>
@@ -63,7 +77,8 @@ class MPdtCompose : public Function<Arc> {
   ~MPdtCompose() final {}
 
  protected:
-  DataType* Execute(const std::vector<DataType*>& args) final {
+  std::unique_ptr<DataType> Execute(
+      const std::vector<std::unique_ptr<DataType>>& args) final {
     if (args.size() < 4 || args.size() > 6) {
       std::cout << "MPdtCompose: Expected 4-6 arguments but got " << args.size()
                 << std::endl;
@@ -138,17 +153,19 @@ class MPdtCompose : public Function<Arc> {
         delete_right = true;
       }
     }
-    auto* output = new MutableTransducer();
+    auto output = std::make_unique<MutableTransducer>();
     auto opts = ::fst::MPdtComposeOptions();
     opts.connect = false;
     if (left_mpdt) {
-      ::fst::Compose(*left, parens, assignments, *right, output, opts);
+      ::fst::Compose(*left, parens, assignments, *right, output.get(),
+                         opts);
     } else {
-      ::fst::Compose(*left, *right, parens, assignments, output, opts);
+      ::fst::Compose(*left, *right, parens, assignments, output.get(),
+                         opts);
     }
     if (delete_left) delete left;
     if (delete_right) delete right;
-    return new DataType(output);
+    return std::make_unique<DataType>(std::move(output));
   }
 
  private:

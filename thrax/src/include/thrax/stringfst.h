@@ -1,3 +1,17 @@
+// Copyright 2005-2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
 // Creates a string FST given the string text.
 //
 // Note that error checking in this function may be harsher or missing, as this
@@ -17,8 +31,6 @@
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
 #include <fst/string.h>
-#include <fst/symbol-table.h>
-#include <fst/vector-fst.h>
 #include <thrax/algo/stringcompile.h>
 #include <thrax/fst-node.h>
 #include <thrax/datatype.h>
@@ -40,7 +52,8 @@ class StringFst : public Function<Arc> {
   ~StringFst() final {}
 
  protected:
-  DataType* Execute(const std::vector<DataType*>& args) final {
+  std::unique_ptr<DataType> Execute(
+      const std::vector<std::unique_ptr<DataType>>& args) final {
     CHECK_GE(args.size(), 2);
     // Find the mode (and maybe the symbol table).
     auto mode = ::fst::TokenType::BYTE;
@@ -75,7 +88,7 @@ class StringFst : public Function<Arc> {
     // Go through the actual text and process each block, escaping the
     // backslashed characters and generating labels if necessary.
     const auto& text = *args[1]->get<std::string>();
-    auto fst = fst::make_unique<MutableTransducer>();
+    auto fst = std::make_unique<MutableTransducer>();
     if (!::fst::StringCompile(text, fst.get(), mode, symtab)) {
       std::cout << "StringFst: Failed to compile string: " << text << std::endl;
       return nullptr;
@@ -98,7 +111,7 @@ class StringFst : public Function<Arc> {
       fst->SetInputSymbols(syms_to_attach);
       fst->SetOutputSymbols(syms_to_attach);
     }
-    return new DataType(fst.release());
+    return std::make_unique<DataType>(std::move(fst));
   }
 
  public:
@@ -117,11 +130,12 @@ class StringFst : public Function<Arc> {
     // TODO(wolfsonkin): Don't copy the generated symbols, though note that this
     // isn't dangerous as all users of this function don't hold on to the symbol
     // table and expect it to not be current forever. Instead, give a const ref.
-    auto symtab = WrapUnique(::fst::GeneratedSymbols().Copy());
+    auto symtab = fst::WrapUnique(::fst::GeneratedSymbols().Copy());
 
-    // QUESTION: Should we return a nullptr if the generated symbol table has
-    // never had anything added to it outside its defaults, as this impl did
-    // with:
+    // NB: We return a nullptr if the generated symbol table has never had
+    // anything added to it outside its defaults, as consumers of this function
+    // use that as an indicator of whether to save the SymbolTable into the
+    // created FAR.
     if (symtab->AvailableKey() <= 1) return nullptr;
     if (FLAGS_save_symbols && top_level) {
       for (const auto& item : *symtab) {

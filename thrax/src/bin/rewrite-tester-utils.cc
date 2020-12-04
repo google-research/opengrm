@@ -1,3 +1,17 @@
+// Copyright 2005-2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
 #include <../bin/rewrite-tester-utils.h>
 
 #include <iostream>
@@ -70,8 +84,7 @@ bool RewriteTesterUtils::ReadInput(std::string* s) {
   char* input = readline("Input string: ");
   if (!input) return false;
   s->assign(input);
-  if (!FLAGS_history_file.empty())
-    add_history(input);
+  if (!FLAGS_history_file.empty()) add_history(input);
   free(input);
   if (!FLAGS_history_file.empty())
     write_history(FLAGS_history_file.c_str());
@@ -194,8 +207,8 @@ const std::string RewriteTesterUtils::ProcessInput(const std::string& input,
                      triple.pdt_parens_rule, triple.mpdt_assignments_rule)) {
       if (FLAGS_show_details && rules_.size() > 1) {
         std::vector<std::pair<std::string, float>> tmp;
-        FstToStrings(output_fst, &tmp, generated_symtab_, type_,
-                     output_symtab_, FLAGS_noutput);
+        FstToStrings(output_fst, &tmp, generated_symtab_, type_, output_symtab_,
+                     FLAGS_noutput);
         for (const auto& one_result : tmp) {
           sstrm << "output of rule[" << triple.main_rule
                 << "] is: " << one_result.first << '\n';
@@ -209,8 +222,7 @@ const std::string RewriteTesterUtils::ProcessInput(const std::string& input,
   }
   std::vector<std::pair<std::string, float>> strings;
   std::set<std::string> seen;
-  if (succeeded && FstToStrings(output_fst, &strings,
-                                generated_symtab_, type_,
+  if (succeeded && FstToStrings(output_fst, &strings, generated_symtab_, type_,
                                 output_symtab_, FLAGS_noutput)) {
     for (auto it = strings.cbegin(); it != strings.cend(); ++it) {
       const auto sx = seen.find(it->first);

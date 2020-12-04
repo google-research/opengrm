@@ -1,3 +1,17 @@
+// Copyright 2005-2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
 // Assert the equality of the first and second argument, issuing a warning if
 // the two are not the same and returning the value of the first. More
 // specifically, the first argument is assumed to be a transducer whose *output*
@@ -23,11 +37,13 @@
 #include <thrax/compat/compat.h>
 #include <fst/arc-map.h>
 #include <fst/determinize.h>
+#include <fst/fst.h>
 #include <fst/intersect.h>
 #include <fst/project.h>
-#include <fst/prune.h>
 #include <fst/rmepsilon.h>
+#include <fst/shortest-path.h>
 #include <fst/string.h>
+#include <fst/vector-fst.h>
 #include <thrax/datatype.h>
 #include <thrax/function.h>
 
@@ -50,8 +66,9 @@ class AssertEqual : public BinaryFstFunction<Arc> {
   ~AssertEqual() final {}
 
  protected:
-  Transducer* BinaryFstExecute(const Transducer& left, const Transducer& right,
-                               const std::vector<DataType*>& args) final {
+  std::unique_ptr<Transducer> BinaryFstExecute(
+      const Transducer& left, const Transducer& right,
+      const std::vector<std::unique_ptr<DataType>>& args) final {
     if (args.size() < 2 || args.size() > 3) {
       std::cout << "AssertEqual: Expected 2 or 3 arguments but got "
                 << args.size() << std::endl;
@@ -91,8 +108,7 @@ class AssertEqual : public BinaryFstFunction<Arc> {
         return nullptr;
       }
     }
-    std::unique_ptr<MutableTransducer> mutable_left(
-        new MutableTransducer(left));
+    auto mutable_left = std::make_unique<MutableTransducer>(left);
     ::fst::Project(mutable_left.get(), ::fst::ProjectType::OUTPUT);
     ::fst::RmEpsilon(mutable_left.get());
     MutableTransducer determinized_left;
@@ -142,7 +158,7 @@ class AssertEqual : public BinaryFstFunction<Arc> {
                 << std::endl;
       return nullptr;
     }
-    return mutable_left.release();
+    return mutable_left;
   }
 
  private:

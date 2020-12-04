@@ -1,3 +1,17 @@
+// Copyright 2005-2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
 #include <thrax/algo/stringcompile.h>
 
 namespace fst {
@@ -40,13 +54,14 @@ int64 StringCompiler::NumericalOrStringSymbolToLabel(const std::string &token) {
 
 // We store generated symbol numbering in the private areas in planes 15-16.
 // There are roughly 130,000 such code points in this area.
-StringCompiler::StringCompiler() : max_generated_(0xF0000) {
+StringCompiler::StringCompiler()
+    : generated_(kGeneratedSymbolsName), max_generated_(0xF0000) {
   generated_.AddSymbol(kEpsilonString);
 }
 
 void StringCompiler::Reset() {
   // This is duplicated from the above constructor.
-  generated_ = SymbolTable();
+  generated_ = SymbolTable(kGeneratedSymbolsName);
   generated_.AddSymbol(kEpsilonString);
   max_generated_ = 0xF0000;
 }
