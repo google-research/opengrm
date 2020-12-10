@@ -1,4 +1,6 @@
-
+// Copyright 2005-2013 Brian Roark
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -11,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2016 Brian Roark and Google, Inc.
 // NGram model class for shrinking or pruning the model.
 
 #ifndef NGRAM_NGRAM_SHRINK_H_
@@ -410,7 +411,9 @@ NGramShrink<Arc>::NGramShrink(MutableFst<Arc> *infst, int shrink_opt,
                               double tot_uni, Label backoff_label,
                               double norm_eps, bool check_consistency,
                               bool norm)
-    : NGramMutableModel<Arc>(infst, backoff_label, norm_eps, check_consistency),
+    : NGramMutableModel<Arc>(infst, backoff_label, norm_eps,
+                             /* state_ngrams= */check_consistency,
+                             /* infinite_backoff= */false),
       normalized_(CheckNormalization()),
       norm_(norm),
       shrink_opt_(shrink_opt),

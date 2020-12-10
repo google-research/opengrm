@@ -1,4 +1,6 @@
-
+// Copyright 2005-2013 Brian Roark
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -11,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2016 Brian Roark and Google, Inc.
 // Generates random sentences from an LM or more generally paths through any
 // FST where epsilons are treated as failure transitions.
 
@@ -22,6 +23,7 @@
 #include <string>
 #include <vector>
 
+#include <fst/flags.h>
 #include <fst/extensions/far/far.h>
 #include <fst/fst.h>
 #include <fst/randgen.h>
@@ -135,8 +137,8 @@ int ngramrandgen_main(int argc, char **argv) {
   ngram::NGramArcSelector<fst::StdArc> selector(
       FLAGS_seed ? FLAGS_seed : time(nullptr));
   fst::RandGenOptions<ngram::NGramArcSelector<fst::StdArc>> opts(
-      selector, FLAGS_max_length, FLAGS_max_sents, FLAGS_weighted,
-      FLAGS_remove_total_weight);
+      selector, FLAGS_max_length, FLAGS_max_sents,
+      FLAGS_weighted, FLAGS_remove_total_weight);
   fst::RandGen(*ifst, &ofst, opts);
   ofst.SetInputSymbols(ifst->InputSymbols());  // takes model symbol tables
   ofst.SetOutputSymbols(ifst->OutputSymbols());

@@ -1,4 +1,6 @@
-
+// Copyright 2005-2013 Brian Roark
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -11,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2016 Brian Roark and Google, Inc.
 // Counts n-grams from an input fst archive (FAR) file.
 
 #include <fstream>
@@ -20,6 +21,7 @@
 #include <string>
 #include <vector>
 
+#include <fst/flags.h>
 #include <fst/log.h>
 #include <fst/extensions/far/far.h>
 #include <fst/fst.h>
@@ -79,15 +81,18 @@ int ngramcount_main(int argc, char **argv) {
     if (FLAGS_output_fst) {
       fst::StdVectorFst fst;
       ngrams_counted = ngram::GetNGramCounts(
-          far_reader.get(), &fst, FLAGS_order, FLAGS_require_symbols,
-          FLAGS_epsilon_as_backoff, FLAGS_round_to_int,
+          far_reader.get(), &fst, FLAGS_order,
+          FLAGS_require_symbols,
+          FLAGS_epsilon_as_backoff,
+          FLAGS_round_to_int,
           FLAGS_add_to_symbol_unigram_count);
       if (ngrams_counted) fst.Write(out_name);
     } else {
       std::vector<std::string> ngram_counts;
       ngrams_counted = ngram::GetNGramCounts(
           far_reader.get(), &ngram_counts, FLAGS_order,
-          FLAGS_epsilon_as_backoff, FLAGS_add_to_symbol_unigram_count);
+          FLAGS_epsilon_as_backoff,
+          FLAGS_add_to_symbol_unigram_count);
       std::ofstream ofstrm;
       if (!out_name.empty()) {
         ofstrm.open(out_name);
@@ -109,9 +114,11 @@ int ngramcount_main(int argc, char **argv) {
     }
     fst::VectorFst<fst::HistogramArc> fst;
     ngrams_counted = ngram::GetNGramHistograms(
-        far_reader.get(), &fst, FLAGS_order, FLAGS_epsilon_as_backoff,
-        FLAGS_backoff_label, FLAGS_norm_eps, FLAGS_check_consistency,
-        FLAGS_normalize, FLAGS_alpha, FLAGS_beta);
+        far_reader.get(), &fst, FLAGS_order,
+        FLAGS_epsilon_as_backoff,
+        FLAGS_backoff_label, FLAGS_norm_eps,
+        FLAGS_check_consistency, FLAGS_normalize,
+        FLAGS_alpha, FLAGS_beta);
     if (ngrams_counted) fst.Write(out_name);
   } else if (FLAGS_method == "count_of_counts" ||
              FLAGS_method == "count_of_histograms") {
@@ -121,8 +128,8 @@ int ngramcount_main(int argc, char **argv) {
       std::unique_ptr<fst::StdVectorFst> fst(
           fst::StdVectorFst::Read(in_name));
       if (!fst) return 1;
-      ngram::GetNGramCountOfCounts<fst::StdArc>(*fst, &ccfst, FLAGS_order,
-                                                    FLAGS_context_pattern);
+      ngram::GetNGramCountOfCounts<fst::StdArc>(
+          *fst, &ccfst, FLAGS_order, FLAGS_context_pattern);
     } else {
       std::unique_ptr<fst::VectorFst<fst::HistogramArc>> fst(
           fst::VectorFst<fst::HistogramArc>::Read(in_name));

@@ -1,4 +1,6 @@
-
+// Copyright 2005-2013 Brian Roark
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -11,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2016 Brian Roark and Google, Inc.
 // NGram base model class for merging n-gram FSTs.
 
 #ifndef NGRAM_NGRAM_MERGE_H_
@@ -65,7 +66,8 @@ class NGramMerge : public NGramMutableModel<Arc> {
                       double norm_eps = kNormEps,
                       bool check_consistency = false)
       : NGramMutableModel<Arc>(infst1, backoff_label, norm_eps,
-                               check_consistency),
+                               /* state_ngrams= */check_consistency,
+                               /* infinite_backoff= */false),
         check_consistency_(check_consistency) {
     // set switch if inf backoff costs
     NGramMutableModel<Arc>::SetAllowInfiniteBO();
@@ -173,7 +175,8 @@ class NGramMerge : public NGramMutableModel<Arc> {
 
     std::unique_ptr<NGramMutableModel<Arc>> mutable_ngram2(
         new NGramMutableModel<Arc>(fst2_.get(), BackoffLabel(), NormEps(),
-                                   check_consistency_));
+                                   /* state_ngrams= */check_consistency_,
+                                   /* infinite_backoff= */false));
 
     std::map<int64, int64> symbol_map;  // mapping symbols in symbol lists
     symbol_map[mutable_ngram2->BackoffLabel()] = BackoffLabel();

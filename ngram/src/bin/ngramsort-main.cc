@@ -1,4 +1,6 @@
-
+// Copyright 2005-2013 Brian Roark
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -11,12 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2016 Brian Roark and Google, Inc.
 // Sorts an ngram LM in lexicographic state context order.
 
 #include <memory>
 #include <string>
 
+#include <fst/flags.h>
 #include <ngram/ngram-mutable-model.h>
 
 DECLARE_bool(check_consistency);
@@ -44,8 +46,10 @@ int ngramsort_main(int argc, char **argv) {
       fst::StdMutableFst::Read(in_name, true));
   if (!fst) return 1;
 
-  ngram::NGramMutableModel<fst::StdArc> ngramlm(fst.get(),
-      FLAGS_backoff_label, FLAGS_norm_eps, true);
+  ngram::NGramMutableModel<fst::StdArc> ngramlm(
+      fst.get(), FLAGS_backoff_label,
+      FLAGS_norm_eps,
+      /* state_ngrams= */ true, /* infinite_backoff= */ false);
   ngramlm.SortStates();
   ngramlm.InitModel();
   ngramlm.GetFst().Write(out_name);

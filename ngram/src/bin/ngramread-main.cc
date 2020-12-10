@@ -1,4 +1,6 @@
-
+// Copyright 2005-2013 Brian Roark
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -11,13 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2016 Brian Roark and Google, Inc.
 // Reads textual model representations and produces n-gram model FST.
 
 #include <fstream>
 #include <iostream>
 #include <string>
 
+#include <fst/flags.h>
 #include <ngram/ngram-input.h>
 
 DECLARE_bool(ARPA);
@@ -63,6 +65,7 @@ int ngramread_main(int argc, char **argv) {
   ngram::NGramInput input(istrm, ostrm, FLAGS_symbols, FLAGS_epsilon_symbol,
                           FLAGS_OOV_symbol, FLAGS_start_symbol,
                           FLAGS_end_symbol);
-  return !input.ReadInput(FLAGS_ARPA, /*symbols=*/false, /*output=*/true,
+  return !input.ReadInput(FLAGS_ARPA, /*symbols=*/false,
+                          /*output=*/true,
                           FLAGS_renormalize_arpa);
 }

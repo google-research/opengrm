@@ -1,4 +1,6 @@
-
+// Copyright 2005-2013 Brian Roark
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -11,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2016 Brian Roark and Google, Inc.
 // Prints out various information about n-gram language models.
 
 #include <fstream>
@@ -21,6 +22,7 @@
 #include <sstream>
 #include <string>
 
+#include <fst/flags.h>
 #include <fst/vector-fst.h>
 #include <ngram/ngram-model.h>
 #include <ngram/util.h>
@@ -113,8 +115,9 @@ int ngraminfo_main(int argc, char **argv) {
     }
   }
   std::ostream &ostrm = ofstrm.is_open() ? ofstrm : std::cout;
-  ngram::NGramModel<fst::StdArc> ngram(*fst, 0, FLAGS_norm_eps,
-                                           FLAGS_check_consistency);
+  ngram::NGramModel<fst::StdArc> ngram(
+      *fst, 0, FLAGS_norm_eps,
+      FLAGS_check_consistency);
   if (FLAGS_check_consistency && !ngram.CheckTopology()) {
     NGRAMERROR() << "Bad ngram model topology";
     return 1;

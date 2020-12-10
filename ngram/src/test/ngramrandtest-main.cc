@@ -1,4 +1,6 @@
-
+// Copyright 2005-2013 Brian Roark
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -11,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2016 Brian Roark and Google, Inc.
 // Generates random sentences from an LM or more generally paths through any
 // FST where epsilons are treated as failure transitions.
 
@@ -217,9 +218,11 @@ int ngramrandtest_main(int argc, char **argv) {
   std::ostream &varstrm = varfstrm.is_open() ? varfstrm : std::cout;
 
   varstrm << "SEED=" << FLAGS_seed << std::endl;
-  VLOG(0) << "Random Test Seed = " << FLAGS_seed;  // Always show the seed
+  VLOG(0) << "Random Test Seed = "
+          << FLAGS_seed;  // Always show the seed
   // set output directory and seed-based file names
-  std::string directory = directory_label(FLAGS_seed, FLAGS_directory);
+  std::string directory =
+      directory_label(FLAGS_seed, FLAGS_directory);
   std::ofstream cntxfstrm;
   cntxfstrm.open(directory + "cntxs");
   if (!cntxfstrm) {
@@ -236,22 +239,23 @@ int ngramrandtest_main(int argc, char **argv) {
   for (int i = 0; i < 10; i++) rand();  // NOLINT
 
   fst::StdVectorFst unigram;  // initial random unigram model
-  BuildRandomUnigram(&unigram, FLAGS_vocabulary_max, FLAGS_mean_length,
-                     cntxstrm);
+  BuildRandomUnigram(&unigram, FLAGS_vocabulary_max,
+                     FLAGS_mean_length, cntxstrm);
   fst::StdVectorFst countfst1;  // n-gram counts from random corpus
   double num_samples =
       FLAGS_sample_max * (rand() / (RAND_MAX + 1.0));  // NOLINT
   int num_strings = ceil(num_samples);
-  int far_cnt = CountFromRandGen(&unigram, &countfst1, &selector, num_strings,
-                                 far_writer.get(), 0, FLAGS_max_length,
-                                 FLAGS_ngram_max, directory, 1, varstrm);
+  int far_cnt =
+      CountFromRandGen(&unigram, &countfst1, &selector, num_strings,
+                       far_writer.get(), 0, FLAGS_max_length,
+                       FLAGS_ngram_max, directory, 1, varstrm);
   // copy first count file, since making model modifies input counts
   fst::StdMutableFst *modfst1 =
       RandomMake(&countfst1);  // model from counts
 
   fst::StdVectorFst countfst2;  // n-gram counts from 2nd random corpus
   CountFromRandGen(modfst1, &countfst2, &selector, num_strings,
-                   far_writer.get(), far_cnt, FLAGS_max_length, FLAGS_ngram_max,
-                   directory, 0, varstrm);
+                   far_writer.get(), far_cnt, FLAGS_max_length,
+                   FLAGS_ngram_max, directory, 0, varstrm);
   return 0;
 }

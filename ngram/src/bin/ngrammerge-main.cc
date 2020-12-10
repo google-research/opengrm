@@ -1,4 +1,6 @@
-
+// Copyright 2005-2013 Brian Roark
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -11,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2016 Brian Roark and Google, Inc.
 // Merges two input n-gram models into a single model.
 
 #include <cmath>
@@ -19,6 +20,7 @@
 #include <string>
 #include <vector>
 
+#include <fst/flags.h>
 #include <ngram/ngram-bayes-model-merge.h>
 #include <ngram/ngram-complete.h>
 #include <ngram/ngram-context-merge.h>
@@ -56,7 +58,8 @@ template <class Arc>
 bool ReadFst(const char *file, std::unique_ptr<fst::VectorFst<Arc>> *fst) {
   std::string in_name = (strcmp(file, "-") != 0) ? file : "";
   fst->reset(fst::VectorFst<Arc>::Read(file));
-  if (!*fst || (FLAGS_complete && !ngram::NGramComplete(fst->get())))
+  if (!*fst ||
+      (FLAGS_complete && !ngram::NGramComplete(fst->get())))
     return false;
   return true;
 }
@@ -112,8 +115,9 @@ int ngrammerge_main(int argc, char **argv) {
     return 1;
   }
 
-  std::string out_name =
-      FLAGS_ofile.empty() ? (argc > 3 ? argv[3] : "") : FLAGS_ofile;
+  std::string out_name = FLAGS_ofile.empty()
+                             ? (argc > 3 ? argv[3] : "")
+                             : FLAGS_ofile;
 
   int in_count = FLAGS_ofile.empty() ? 2 : argc - 1;
   if (in_count < 2) {
@@ -132,32 +136,41 @@ int ngrammerge_main(int argc, char **argv) {
     if (!ReadFst<fst::StdArc>(argv[1], &fst1)) return 1;
     std::unique_ptr<fst::StdVectorFst> fst2;
     if (FLAGS_method == "count_merge") {
-      ngram::NGramCountMerge ngramrg(fst1.get(), FLAGS_backoff_label,
-                                     FLAGS_norm_eps, FLAGS_check_consistency);
+      ngram::NGramCountMerge ngramrg(fst1.get(),
+                                     FLAGS_backoff_label,
+                                     FLAGS_norm_eps,
+                                     FLAGS_check_consistency);
       for (int i = 2; i <= in_count; ++i) {
         if (!ReadFst<fst::StdArc>(argv[i], &fst2)) return 1;
         bool norm = FLAGS_normalize && i == in_count;
-        ngramrg.MergeNGramModels(*fst2, FLAGS_alpha, FLAGS_beta, norm);
+        ngramrg.MergeNGramModels(*fst2, FLAGS_alpha,
+                                 FLAGS_beta, norm);
         if (ngramrg.Error()) return 1;
-        if (FLAGS_round_to_int) RoundCountsToInt(ngramrg.GetMutableFst());
+        if (FLAGS_round_to_int)
+          RoundCountsToInt(ngramrg.GetMutableFst());
       }
       ngramrg.GetFst().Write(out_name);
     } else if (FLAGS_method == "model_merge") {
-      ngram::NGramModelMerge ngramrg(fst1.get(), FLAGS_backoff_label,
-                                     FLAGS_norm_eps, FLAGS_check_consistency);
+      ngram::NGramModelMerge ngramrg(fst1.get(),
+                                     FLAGS_backoff_label,
+                                     FLAGS_norm_eps,
+                                     FLAGS_check_consistency);
       for (int i = 2; i <= in_count; ++i) {
         if (!ReadFst<fst::StdArc>(argv[i], &fst2)) return 1;
-        ngramrg.MergeNGramModels(*fst2, FLAGS_alpha, FLAGS_beta,
+        ngramrg.MergeNGramModels(*fst2, FLAGS_alpha,
+                                 FLAGS_beta,
                                  FLAGS_normalize);
         if (ngramrg.Error()) return 1;
       }
       ngramrg.GetFst().Write(out_name);
     } else if (FLAGS_method == "bayes_model_merge") {
-      ngram::NGramBayesModelMerge ngramrg(fst1.get(), FLAGS_backoff_label,
+      ngram::NGramBayesModelMerge ngramrg(fst1.get(),
+                                          FLAGS_backoff_label,
                                           FLAGS_norm_eps);
       for (int i = 2; i <= in_count; ++i) {
         if (!ReadFst<fst::StdArc>(argv[i], &fst2)) return 1;
-        ngramrg.MergeNGramModels(*fst2, FLAGS_alpha, FLAGS_beta);
+        ngramrg.MergeNGramModels(*fst2, FLAGS_alpha,
+                                 FLAGS_beta);
         if (ngramrg.Error()) return 1;
       }
       ngramrg.GetFst().Write(out_name);
@@ -166,15 +179,19 @@ int ngrammerge_main(int argc, char **argv) {
         LOG(ERROR) << argv[0] << "Only 2 models allowed for replace merge";
         return 1;
       }
-      ngram::NGramReplaceMerge ngramrg(fst1.get(), FLAGS_backoff_label,
+      ngram::NGramReplaceMerge ngramrg(fst1.get(),
+                                       FLAGS_backoff_label,
                                        FLAGS_norm_eps);
       if (!ReadFst<fst::StdArc>(argv[2], &fst2)) return 1;
-      ngramrg.MergeNGramModels(*fst2, FLAGS_max_replace_order, FLAGS_normalize);
+      ngramrg.MergeNGramModels(*fst2, FLAGS_max_replace_order,
+                               FLAGS_normalize);
       if (ngramrg.Error()) return 1;
       ngramrg.GetFst().Write(out_name);
     } else if (FLAGS_method == "context_merge") {
-      ngram::NGramContextMerge ngramrg(fst1.get(), FLAGS_backoff_label,
-                                       FLAGS_norm_eps, FLAGS_check_consistency);
+      ngram::NGramContextMerge ngramrg(fst1.get(),
+                                       FLAGS_backoff_label,
+                                       FLAGS_norm_eps,
+                                       FLAGS_check_consistency);
       std::vector<std::string> contexts;
       if (!GetContexts(in_count, &contexts)) return 1;
       for (int i = 2; i <= in_count; ++i) {
@@ -188,12 +205,14 @@ int ngrammerge_main(int argc, char **argv) {
   } else {
     std::unique_ptr<fst::VectorFst<ngram::HistogramArc>> hist_fst1;
     if (!ReadFst<ngram::HistogramArc>(argv[1], &hist_fst1)) return 1;
-    ngram::NGramHistMerge ngramrg(hist_fst1.get(), FLAGS_backoff_label,
-                                  FLAGS_norm_eps, FLAGS_check_consistency);
+    ngram::NGramHistMerge ngramrg(
+        hist_fst1.get(), FLAGS_backoff_label,
+        FLAGS_norm_eps, FLAGS_check_consistency);
     for (int i = 2; i <= in_count; ++i) {
       std::unique_ptr<fst::VectorFst<ngram::HistogramArc>> hist_fst2;
       if (!ReadFst<ngram::HistogramArc>(argv[i], &hist_fst2)) return 1;
-      ngramrg.MergeNGramModels(*hist_fst2, FLAGS_alpha, FLAGS_beta,
+      ngramrg.MergeNGramModels(*hist_fst2, FLAGS_alpha,
+                               FLAGS_beta,
                                FLAGS_normalize);
       if (ngramrg.Error()) return 1;
     }

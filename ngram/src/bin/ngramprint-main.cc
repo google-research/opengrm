@@ -1,4 +1,6 @@
-
+// Copyright 2005-2013 Brian Roark
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -11,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2016 Brian Roark and Google, Inc.
 // Prints a given n-gram model to various kinds of textual formats.
 
 #include <fstream>
@@ -19,6 +20,7 @@
 #include <ostream>
 #include <string>
 
+#include <fst/flags.h>
 #include <ngram/ngram-output.h>
 
 DECLARE_bool(ARPA);
@@ -72,7 +74,8 @@ int ngramprint_main(int argc, char **argv) {
   std::ostream &ostrm = ofstrm.is_open() ? ofstrm : std::cout;
 
   ngram::NGramOutput ngram(fst.get(), ostrm, FLAGS_backoff_label,
-                           FLAGS_check_consistency, FLAGS_context_pattern,
+                           FLAGS_check_consistency,
+                           FLAGS_context_pattern,
                            FLAGS_include_all_suffixes);
 
   // Parse --backoff and --backoff_inline flags, where --backoff takes precedent
@@ -84,7 +87,8 @@ int ngramprint_main(int argc, char **argv) {
       show_backoff = ngram::NGramOutput::ShowBackoff::INLINE;
   }
 
-  ngram.ShowNGramModel(show_backoff, FLAGS_negativelogs, FLAGS_integers,
+  ngram.ShowNGramModel(show_backoff, FLAGS_negativelogs,
+                       FLAGS_integers,
                        FLAGS_ARPA);
   return 0;
 }

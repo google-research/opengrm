@@ -1,4 +1,6 @@
-
+// Copyright 2005-2013 Brian Roark
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -11,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2016 Brian Roark and Google, Inc.
 // NGram model class for marginalizing the model.
 
 #ifndef NGRAM_NGRAM_MARGINALIZE_H_
@@ -33,7 +34,8 @@ class NGramMarginal : public NGramMutableModel<StdArc> {
                          double norm_eps = kNormEps, int max_bo_updates = 10,
                          bool check_consistency = false)
       : NGramMutableModel<StdArc>(infst, backoff_label, norm_eps,
-                                  check_consistency),
+                                  /* state_ngrams= */check_consistency,
+                                  /* infinite_backoff= */false),
         max_bo_updates_(max_bo_updates) {
     ns_ = infst->NumStates();
     for (StateId st = 0; st < ns_; ++st)

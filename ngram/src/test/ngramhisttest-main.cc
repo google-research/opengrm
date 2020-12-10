@@ -1,4 +1,6 @@
-
+// Copyright 2005-2013 Brian Roark
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -11,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2016 Brian Roark and Google, Inc.
 // Compiles and tests equality of HistogramArc models during unit tests.
 // Avoid complex shared object issues for equivalent FST library functions.
 
@@ -37,12 +38,15 @@ int ngramhisttest_main(int argc, char **argv) {
   usage += " [--options]\n";
   std::set_new_handler(FailedNewHandler);
   SET_FLAGS(usage.c_str(), &argc, &argv, true);
-  if (FLAGS_ifile.empty() || (FLAGS_syms.empty() && FLAGS_cfile.empty())) {
+  if (FLAGS_ifile.empty() ||
+      (FLAGS_syms.empty() &&
+       FLAGS_cfile.empty())) {
     LOG(ERROR)
         << "The --ifile option and one of --syms and --cfile must be non-empty";
     return 1;
   }
-  if (!FLAGS_syms.empty() && !FLAGS_cfile.empty()) {
+  if (!FLAGS_syms.empty() &&
+      !FLAGS_cfile.empty()) {
     LOG(ERROR) << "Both --syms and --cfile cannot be provided.  Give --syms to "
                   "compile the --ifile; give --cfile to compare with --ifile.";
     return 1;
@@ -54,7 +58,8 @@ int ngramhisttest_main(int argc, char **argv) {
     std::unique_ptr<FstClass> ifst2(FstClass::Read(FLAGS_cfile));
     if (!ifst2) return 1;
 
-    bool result = fst::script::Equal(*ifst1, *ifst2, FLAGS_delta);
+    bool result =
+        fst::script::Equal(*ifst1, *ifst2, FLAGS_delta);
     if (!result) VLOG(1) << "FSTs are not equal.";
 
     return result ? 0 : 2;

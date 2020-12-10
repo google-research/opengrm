@@ -1,4 +1,6 @@
-
+// Copyright 2005-2013 Brian Roark
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -11,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2016 Brian Roark and Google, Inc.
 // NGram model class.
 
 #ifndef NGRAM_NGRAM_MODEL_H_
@@ -113,8 +114,8 @@ class NGramModel {
   // this class explicitly finds, checks the consistency of and stores
   // the ngram that must be read to reach each state (normally false
   // to save some time and space).
-  explicit NGramModel(const Fst<Arc> &infst, Label backoff_label = 0,
-                      double norm_eps = kNormEps, bool state_ngrams = false)
+  NGramModel(const Fst<Arc> &infst, Label backoff_label, double norm_eps,
+             bool state_ngrams)
       : fst_(infst),
         backoff_label_(backoff_label),
         norm_eps_(norm_eps),
@@ -122,6 +123,27 @@ class NGramModel {
         error_(false) {
     InitModel();
   }
+
+  // Same as above, but requires the FST and the backoff label.
+  NGramModel(const Fst<Arc> &infst, Label backoff_label)
+      : fst_(infst),
+        backoff_label_(backoff_label),
+        norm_eps_(kNormEps),
+        have_state_ngrams_(false),
+        error_(false) {
+    InitModel();
+  }
+
+  // Same as above, but uses defaults for most of the parameters.
+  NGramModel(const Fst<Arc> &infst)
+      : fst_(infst),
+        backoff_label_(0),
+        norm_eps_(kNormEps),
+        have_state_ngrams_(false),
+        error_(false) {
+    InitModel();
+  }
+
   virtual ~NGramModel() = default;
 
   // Number of states in the LM fst
@@ -444,7 +466,7 @@ class NGramModel {
   void UpdateState(StateId st, int order, bool unigram_state,
                    const std::vector<Label> *ngram = 0) {
     if (have_state_ngrams_ && !ngram) {
-      NGRAMERROR() << "NGramModel::UpdateState: no ngram provides";
+      NGRAMERROR() << "NGramModel::UpdateState: no ngram provided";
       SetError();
       return;
     }

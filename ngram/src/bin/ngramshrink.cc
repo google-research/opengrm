@@ -1,4 +1,6 @@
-
+// Copyright 2005-2013 Brian Roark
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -11,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2016 Brian Roark and Google, Inc.
 #include <fst/flags.h>
 #include <ngram/ngram-model.h>
 
@@ -32,6 +33,10 @@ DEFINE_int32(shrink_opt, 0,
 DEFINE_int64(backoff_label, 0, "Backoff label");
 DEFINE_double(norm_eps, ngram::kNormEps, "Normalization check epsilon");
 DEFINE_bool(check_consistency, false, "Check model consistency");
+DEFINE_bool(
+    retry_downcase, false,
+    "If a pruned symbol is not found in the FST, automatically tries the "
+    "lower-cased variant of this symbol. Only useful in list_prune mode.");
 
 int ngramshrink_main(int argc, char** argv);
 int main(int argc, char** argv) {

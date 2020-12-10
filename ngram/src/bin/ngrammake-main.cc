@@ -1,4 +1,6 @@
-
+// Copyright 2005-2013 Brian Roark
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -11,12 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2016 Brian Roark and Google, Inc.
 // Makes a normalized n-gram model from an input FST with raw counts.
 
 #include <memory>
 #include <string>
 
+#include <fst/flags.h>
 #include <ngram/hist-arc.h>
 #include <ngram/ngram-make.h>
 
@@ -60,7 +62,8 @@ int ngrammake_main(int argc, char **argv) {
       fst.reset(new fst::StdVectorFst());
       model_made = ngram::NGramMakeHistModel(
           hist_fst.get(), fst.get(), FLAGS_method, ccfst.get(),
-          FLAGS_interpolate, FLAGS_bins, FLAGS_backoff_label, FLAGS_norm_eps,
+          FLAGS_interpolate, FLAGS_bins,
+          FLAGS_backoff_label, FLAGS_norm_eps,
           FLAGS_check_consistency);
     }
   } else {
@@ -68,8 +71,10 @@ int ngrammake_main(int argc, char **argv) {
     if (fst) {
       model_made = ngram::NGramMakeModel(
           fst.get(), FLAGS_method, ccfst.get(), FLAGS_backoff,
-          FLAGS_interpolate, FLAGS_bins, FLAGS_witten_bell_k, FLAGS_discount_D,
-          FLAGS_backoff_label, FLAGS_norm_eps, FLAGS_check_consistency);
+          FLAGS_interpolate, FLAGS_bins,
+          FLAGS_witten_bell_k, FLAGS_discount_D,
+          FLAGS_backoff_label, FLAGS_norm_eps,
+          FLAGS_check_consistency);
     }
   }
   if (model_made) {

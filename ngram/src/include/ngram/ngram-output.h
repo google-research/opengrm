@@ -1,4 +1,6 @@
-
+// Copyright 2005-2013 Brian Roark
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -11,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2016 Brian Roark and Google, Inc.
 // NGram model class for outputting a model or outputting perplexity of text.
 
 #ifndef NGRAM_NGRAM_OUTPUT_H_
@@ -50,7 +51,9 @@ class NGramOutput : public NGramMutableModel<StdArc> {
                        const std::string &context_pattern = "",
                        bool include_all_suffixes = false)
       : NGramMutableModel<StdArc>(infst, backoff_label, kNormEps,
-                                  !context_pattern.empty()),
+                                  /* state_ngrams= */!context_pattern.empty() ||
+                                                     check_consistency,
+                                  /* infinite_backoff= */false),
         ostrm_(ostrm),
         include_all_suffixes_(include_all_suffixes),
         context_(context_pattern, HiOrder()) {
@@ -127,7 +130,7 @@ class NGramOutput : public NGramMutableModel<StdArc> {
   bool InContext(StateId st) const;
   bool InContext(const std::vector<Label> &ngram) const;
 
- private:
+ protected:
   // Convert to a new log base for printing (ARPA)
   double ShowLogNewBase(double neglogcost, double base) const {
     return -neglogcost / log(base);

@@ -1,4 +1,6 @@
-
+// Copyright 2005-2013 Brian Roark
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -11,13 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2016 Brian Roark and Google, Inc.
 // Transfers n-grams from a source model(s) to a destination model.
 
 #include <memory>
 #include <string>
 #include <vector>
 
+#include <fst/flags.h>
 #include <ngram/hist-arc.h>
 #include <ngram/ngram-complete.h>
 #include <ngram/ngram-transfer.h>
@@ -39,7 +41,8 @@ template <class Arc>
 bool ReadFst(const char *file, std::unique_ptr<fst::VectorFst<Arc>> *fst) {
   std::string in_name = (strcmp(file, "-") != 0) ? file : "";
   fst->reset(fst::VectorFst<Arc>::Read(file));
-  if (!*fst || (FLAGS_complete && !ngram::NGramComplete(fst->get())))
+  if (!*fst ||
+      (FLAGS_complete && !ngram::NGramComplete(fst->get())))
     return false;
   return true;
 }
@@ -66,13 +69,15 @@ bool GetContexts(int in_count, std::vector<std::string> *contexts) {
 template <class Arc>
 bool Transfer(std::string out_name_prefix, int in_count, char **argv) {
   std::unique_ptr<fst::VectorFst<Arc>> index_fst;
-  if (!ReadFst<Arc>(argv[FLAGS_index + 1], &index_fst)) return false;
+  if (!ReadFst<Arc>(argv[FLAGS_index + 1], &index_fst))
+    return false;
 
   std::vector<std::string> contexts;
   if (!GetContexts(in_count, &contexts)) return false;
 
   if (FLAGS_transfer_from) {
-    ngram::NGramTransfer<Arc> transfer(index_fst.get(), contexts[FLAGS_index],
+    ngram::NGramTransfer<Arc> transfer(index_fst.get(),
+                                       contexts[FLAGS_index],
                                        FLAGS_backoff_label);
     for (int src = 0; src < in_count; ++src) {
       if (src == FLAGS_index) continue;
@@ -91,7 +96,8 @@ bool Transfer(std::string out_name_prefix, int in_count, char **argv) {
     }
     index_fst->Write(out_name_prefix);  // no suffix in this case
   } else {
-    ngram::NGramTransfer<Arc> transfer(*index_fst, contexts[FLAGS_index],
+    ngram::NGramTransfer<Arc> transfer(*index_fst,
+                                       contexts[FLAGS_index],
                                        FLAGS_backoff_label);
     for (int dest = 0; dest < in_count; ++dest) {
       if (dest == FLAGS_index) continue;
@@ -126,12 +132,14 @@ int ngramtransfer_main(int argc, char **argv) {
     return 1;
   }
 
-  std::string out_name_prefix =
-      FLAGS_ofile.empty() ? (argc > 3 ? argv[3] : "") : FLAGS_ofile;
+  std::string out_name_prefix = FLAGS_ofile.empty()
+                                    ? (argc > 3 ? argv[3] : "")
+                                    : FLAGS_ofile;
 
   int in_count = FLAGS_ofile.empty() ? 2 : argc - 1;
 
-  if (FLAGS_index < 0 || FLAGS_index >= in_count) {
+  if (FLAGS_index < 0 ||
+      FLAGS_index >= in_count) {
     LOG(ERROR) << "Bad FST index: " << FLAGS_index;
     return 1;
   }

@@ -1,4 +1,6 @@
-
+// Copyright 2005-2013 Brian Roark
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -11,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2016 Brian Roark and Google, Inc.
 // Model shrinking derived class for a list of n-grams to be pruned.
 
 #ifndef NGRAM_NGRAM_LIST_PRUNE_H_
@@ -207,7 +208,8 @@ class NGramListPrune : public NGramShrink<StdArc> {
 void GetNGramListToPrune(
     const std::vector<std::string> &ngrams_to_prune,
     const fst::SymbolTable *syms,
-    std::set<std::vector<fst::StdArc::Label>> *ngram_list);
+    std::set<std::vector<fst::StdArc::Label>> *ngram_list,
+    bool retry_downcase = false);
 
 }  // namespace ngram
 

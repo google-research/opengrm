@@ -1,4 +1,6 @@
-
+// Copyright 2005-2013 Brian Roark
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -11,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2016 Brian Roark and Google, Inc.
 #include <ngram/ngram-list-prune.h>
 
 #include <ngram/ngram-input.h>
@@ -21,7 +22,8 @@ namespace ngram {
 void GetNGramListToPrune(
     const std::vector<std::string> &ngrams_to_prune,
     const fst::SymbolTable *syms,
-    std::set<std::vector<fst::StdArc::Label>> *ngram_list) {
+    std::set<std::vector<fst::StdArc::Label>> *ngram_list,
+    bool retry_downcase) {
   if (syms == nullptr) {
     LOG(WARNING) << "empty symbol table, no means for compiling ngram list.";
     return;
@@ -38,6 +40,9 @@ void GetNGramListToPrune(
         bool all_found = true;
         for (int i = 0; i < ngram_words.size(); ++i) {
           ngram_labels[i] = syms->Find(ngram_words[i]);
+          if (ngram_labels[i] < 0 && retry_downcase) {
+            ngram_labels[i] = syms->Find(ngram_words[i]);
+          }
           if (ngram_labels[i] < 0) {
             all_found = false;
             LOG(WARNING) << "word not in symbol table, ngram not added: "

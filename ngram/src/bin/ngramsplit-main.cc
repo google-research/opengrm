@@ -1,4 +1,6 @@
-
+// Copyright 2005-2013 Brian Roark
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -11,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2016 Brian Roark and Google, Inc.
 // Splits an n-gram model based on given context patterns.
 
 #include <memory>
@@ -19,6 +20,7 @@
 #include <string>
 #include <vector>
 
+#include <fst/flags.h>
 #include <fst/extensions/far/far.h>
 #include <fst/extensions/far/getters.h>
 #include <ngram/ngram-complete.h>
@@ -37,7 +39,8 @@ template <class Arc>
 bool SplitToFsts(fst::VectorFst<Arc> *fst,
                  const std::vector<std::string> &context_patterns,
                  const std::string &out_name_prefix) {
-  ngram::NGramSplit<Arc> split(*fst, context_patterns, FLAGS_backoff_label,
+  ngram::NGramSplit<Arc> split(*fst, context_patterns,
+                               FLAGS_backoff_label,
                                FLAGS_norm_eps);
   for (int i = 0; !split.Done(); ++i) {
     fst::VectorFst<Arc> ofst;
@@ -78,7 +81,8 @@ bool SplitToFar(fst::VectorFst<Arc> *fst,
   GetSortedPatterns(context_patterns, &sorted_full_patterns,
                     &sorted_context_patterns);
   ngram::NGramSplit<Arc> split(*fst, sorted_context_patterns,
-                               FLAGS_backoff_label, FLAGS_norm_eps);
+                               FLAGS_backoff_label,
+                               FLAGS_norm_eps);
   std::unique_ptr<fst::FarWriter<Arc>> far_writer(
       fst::FarWriter<Arc>::Create(out_name_prefix + "split_fsts.far",
                                       input_far_type));
@@ -103,7 +107,8 @@ bool CountOrHistogramSplit(const std::string &in_name,
                            const std::string &input_far_type_str) {
   std::unique_ptr<fst::VectorFst<Arc>> fst(
       fst::VectorFst<Arc>::Read(in_name));
-  if (!fst || (FLAGS_complete && !ngram::NGramComplete(fst.get()))) {
+  if (!fst ||
+      (FLAGS_complete && !ngram::NGramComplete(fst.get()))) {
     return true;
   }
   if (input_far_type_str.empty()) {

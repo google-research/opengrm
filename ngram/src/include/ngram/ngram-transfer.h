@@ -1,4 +1,6 @@
-
+// Copyright 2005-2013 Brian Roark
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -11,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2016 Brian Roark and Google, Inc.
 // Class for transferring n-grams across multiple parts split by context.
 
 #ifndef NGRAM_NGRAM_TRANSFER_H_
@@ -115,7 +116,9 @@ class NGramTransfer {
                 Label backoff_label, double norm_eps) {
     dest_fst_ = fst;
     dest_model_.reset(
-        new NGramMutableModel<Arc>(dest_fst_, backoff_label, norm_eps));
+        new NGramMutableModel<Arc>(dest_fst_, backoff_label, norm_eps,
+                                   /* state_ngrams= */false,
+                                   /* infinite_backoff= */false));
     dest_context_.reset(
         new NGramContext(context_pattern, dest_model_->HiOrder()));
     if (dest_model_->Error()) SetError();

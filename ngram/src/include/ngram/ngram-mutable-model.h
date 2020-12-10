@@ -1,4 +1,6 @@
-
+// Copyright 2005-2013 Brian Roark
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -11,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2016 Brian Roark and Google, Inc.
 // NGram mutable model class.
 
 #ifndef NGRAM_NGRAM_MUTABLE_MODEL_H_
@@ -60,12 +61,22 @@ class NGramMutableModel : public NGramModel<Arc> {
   // Constructs an NGramMutableModel object, derived from NGramModel,
   // that adds mutable methods such as backoff normalization.
   // Ownership of the FST is retained by the caller.
-  explicit NGramMutableModel(MutableFst<Arc> *infst, Label backoff_label = 0,
-                             double norm_eps = kNormEps,
-                             bool state_ngrams = false,
+  explicit NGramMutableModel(MutableFst<Arc> *infst, Label backoff_label,
+                             double norm_eps, bool state_ngrams,
                              bool infinite_backoff = false)
       : NGramModel<Arc>(*infst, backoff_label, norm_eps, state_ngrams),
         infinite_backoff_(infinite_backoff),
+        mutable_fst_(infst) {}
+
+  // Same as above, but requires the FST and the backoff label.
+  NGramMutableModel(MutableFst<Arc> *infst, Label backoff_label)
+      : NGramModel<Arc>(*infst, backoff_label), infinite_backoff_(false),
+        mutable_fst_(infst) {}
+
+  // Same as above, but uses default parameters where possible.
+  explicit NGramMutableModel(MutableFst<Arc> *infst)
+      : NGramModel<Arc>(*infst),
+        infinite_backoff_(false),
         mutable_fst_(infst) {}
 
   // ExpandedFst const reference

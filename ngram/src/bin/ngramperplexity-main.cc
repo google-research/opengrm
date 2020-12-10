@@ -1,4 +1,6 @@
-
+// Copyright 2005-2013 Brian Roark
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -11,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2016 Brian Roark and Google, Inc.
 // Calculates perplexity of an input FST archive using the given model.
 
 #include <fstream>
@@ -86,6 +87,7 @@ int ngramperplexity_main(int argc, char **argv) {
   }
 
   return !ngram.PerplexityNGramModel(
-      infsts, FLAGS_v, FLAGS_use_phimatcher, &FLAGS_OOV_symbol,
-      FLAGS_OOV_class_size, FLAGS_OOV_probability);
+      infsts, FLAGS_v, FLAGS_use_phimatcher,
+      &FLAGS_OOV_symbol, FLAGS_OOV_class_size,
+      FLAGS_OOV_probability);
 }
