@@ -35,46 +35,6 @@ namespace thrax {
 
 // Operations on strings.
 
-class StringOrInt {
- public:
-  StringOrInt(const std::string &s) : str_(s) {}  // NOLINT
-
-  StringOrInt(const char *s) : str_(std::string(s)) {}  // NOLINT
-
-  StringOrInt(int i) {  // NOLINT
-    char buf[1024];
-    sprintf(buf, "%d", i);
-    str_ = std::string(buf);
-  }
-
-  const std::string &Get() const { return str_; }
-
- private:
-  std::string str_;
-};
-
-// TODO(kbg): Make this work with variadic template, maybe.
-
-inline std::string StringCat(const StringOrInt &s1, const StringOrInt &s2) {
-  return s1.Get() + s2.Get();
-}
-
-inline std::string StringCat(const StringOrInt &s1, const StringOrInt &s2,
-                             const StringOrInt &s3) {
-  return s1.Get() + StringCat(s2, s3);
-}
-
-inline std::string StringCat(const StringOrInt &s1, const StringOrInt &s2,
-                             const StringOrInt &s3, const StringOrInt &s4) {
-  return s1.Get() + StringCat(s2, s3, s4);
-}
-
-inline std::string StringCat(const StringOrInt &s1, const StringOrInt &s2,
-                             const StringOrInt &s3, const StringOrInt &s4,
-                             const StringOrInt &s5) {
-  return s1.Get() + StringCat(s2, s3, s4, s5);
-}
-
 inline void StringReplace(std::string *full, const std::string &before,
                           const std::string &after) {
   size_t pos = 0;

@@ -52,7 +52,7 @@ class Difference : public BinaryFstFunction<Arc> {
                 << std::endl;
       return nullptr;
     }
-    if (FLAGS_save_symbols) {
+    if (FST_FLAGS_save_symbols) {
       if (!::fst::CompatSymbols(left.InputSymbols(),
                                     right.InputSymbols())) {
         std::cout << "Difference: input symbol table of 1st argument "

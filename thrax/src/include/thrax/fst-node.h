@@ -19,6 +19,7 @@
 #ifndef THRAX_FST_NODE_H_
 #define THRAX_FST_NODE_H_
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -50,10 +51,12 @@ class FstNode : public Node {
 
   explicit FstNode(FstNodeType type);
 
-  ~FstNode() override;
+  ~FstNode() override = default;
 
+  // TODO(wolfsonkin): Make this interface use  std::unique_ptr.
   void AddArgument(Node* arg);
 
+  // TODO(wolfsonkin): Make this interface use  std::unique_ptr.
   bool SetWeight(StringNode* weight);
 
   FstNodeType GetType() const;
@@ -74,8 +77,8 @@ class FstNode : public Node {
 
  protected:
   FstNodeType type_;
-  std::vector<Node*> arguments_;
-  StringNode* weight_;  // nullptr = default weight.
+  std::vector<std::unique_ptr<Node>> arguments_;
+  std::unique_ptr<StringNode> weight_;  // nullptr = default weight.
   bool optimize_;
 
  private:
@@ -96,7 +99,7 @@ class StringFstNode : public FstNode {
 
   explicit StringFstNode(ParseMode parse_mode);
 
-  ~StringFstNode() override;
+  ~StringFstNode() override = default;
 
   ParseMode GetParseMode() const;
 
@@ -122,7 +125,7 @@ class RepetitionFstNode : public FstNode {
 
   explicit RepetitionFstNode(RepetitionFstNodeType type);
 
-  ~RepetitionFstNode() override;
+  ~RepetitionFstNode() override = default;
 
   RepetitionFstNodeType GetRepetitionType() const;
 

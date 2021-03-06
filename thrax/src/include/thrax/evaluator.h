@@ -15,6 +15,7 @@
 #ifndef THRAX_EVALUATOR_H_
 #define THRAX_EVALUATOR_H_
 
+#include <cstdint>
 #include <cstring>
 #include <fstream>
 #include <iostream>
@@ -57,6 +58,7 @@
 #include <thrax/namespace.h>
 #include <thrax/walker.h>
 #include <unordered_set>
+#include <fst/compat.h>
 #include <thrax/compat/stlfunctions.h>
 
 DECLARE_bool(always_export);
@@ -93,7 +95,7 @@ class AstEvaluator : public AstWalker {
  public:
   using Transducer = ::fst::Fst<Arc>;
   using MutableTransducer = ::fst::VectorFst<Arc>;
-  using LabelMapper = std::map<int64, int64>;
+  using LabelMapper = std::map<int64_t, int64_t>;
 
   // This constructor sets up the evaluator to run all nodes using a new
   // environment namespace.
@@ -206,16 +208,17 @@ class AstEvaluator : public AstWalker {
   void Visit(ImportNode* node) override {
     if (!Success()) return;
     // Gets (and checks) the path of the actual source and FAR.
-    const auto& path = JoinPath(FLAGS_indir, node->GetPath()->Get());
+    const auto& path =
+        JoinPath(FST_FLAGS_indir, node->GetPath()->Get());
     if (Suffix(path) != "grm") {
-      Error(*node, thrax::StringCat("Extension for included files should be .grm: ",
+      Error(*node, ::fst::StrCat("Extension for included files should be .grm: ",
                                 path));
       return;
     }
     // Gets (and check) the alias name.
     const std::string& alias = node->GetAlias()->Get();
     if (alias.find('.') != std::string::npos) {
-      Error(*node, thrax::StringCat("Invalid import alias identifier: ", alias));
+      Error(*node, ::fst::StrCat("Invalid import alias identifier: ", alias));
       return;
     }
     Namespace* prev_env = env_;
@@ -223,7 +226,7 @@ class AstEvaluator : public AstWalker {
     // Loads up the function source into the local environment.
     VLOG(2) << "Opening (and parsing) imported source file: " << path;
     if (!Readable(path)) {
-      Error(*node, thrax::StringCat("Unable to open grm source file: ", path));
+      Error(*node, ::fst::StrCat("Unable to open grm source file: ", path));
       env_ = prev_env;
       return;
     }
@@ -231,7 +234,7 @@ class AstEvaluator : public AstWalker {
     if (!grammar->ParseFile(path) ||
         !grammar->EvaluateAstWithEnvironment(env_, false)) {
       Error(*node,
-            thrax::StringCat("Errors while importing grm source file: ", path));
+            ::fst::StrCat("Errors while importing grm source file: ", path));
       env_ = prev_env;
       return;
     }
@@ -242,7 +245,7 @@ class AstEvaluator : public AstWalker {
     auto far_reader =
         fst::WrapUnique(::fst::STTableFarReader<Arc>::Open(far_path));
     if (!far_reader) {
-      Error(*node, thrax::StringCat("Unable to open far archive: ", far_path));
+      Error(*node, ::fst::StrCat("Unable to open far archive: ", far_path));
       // We don't need to return or cleanup, as the next code will check for
       // Success() first, jumping to cleanup on failure.
     }
@@ -317,12 +320,12 @@ class AstEvaluator : public AstWalker {
     VLOG(2) << "Visiting RuleNode";
     if (!Success()) return;
     IdentifierNode* identifier = node->GetName();
-    if (FLAGS_print_rules) {
+    if (FST_FLAGS_print_rules) {
       std::cout << "Evaluating rule: " << identifier->Get() << std::endl;
     }
     if (identifier->HasNamespaces()) {
       Error(*identifier,
-            thrax::StringCat("Cannot assign to an identifier within a namespace: ",
+            ::fst::StrCat("Cannot assign to an identifier within a namespace: ",
                          identifier->Get()));
       return;
     }
@@ -332,15 +335,15 @@ class AstEvaluator : public AstWalker {
     // Inserts the new variable, dying if it clobbers a pre-existing object.
     if (!env_->InsertLocal(name, std::move(thing))) {
       Error(*identifier,
-            thrax::StringCat("Cannot clobber existing variable: ", name));
+            ::fst::StrCat("Cannot clobber existing variable: ", name));
       return;
     }
     if (node->ShouldExport()) {
       if (env_->LocalEnvironmentDepth() == 1) {
         exported_fsts_.insert(identifier);
-      } else if (!FLAGS_always_export) {
+      } else if (!FST_FLAGS_always_export) {
         Error(*identifier,
-              thrax::StringCat("Variables may only be exported from the top-level "
+              ::fst::StrCat("Variables may only be exported from the top-level "
                            "grammar: ",
                            name));
         return;
@@ -405,7 +408,7 @@ class AstEvaluator : public AstWalker {
       VLOG(1) << "Expanding FST: " << name;
       if (!env_->Get<DataType>(*fst_i)->template is<Transducer*>()) {
         Error(*fst_i,
-              thrax::StringCat("Cannot export non-FST variable: ", fst_i->Get()));
+              ::fst::StrCat("Cannot export non-FST variable: ", fst_i->Get()));
         return;
       }
       Transducer* fst =
@@ -476,14 +479,14 @@ class AstEvaluator : public AstWalker {
     CollectionNode* fa_node = func_node->GetArguments();
     if (fa_node->Size() != arguments->size()) {
       Error(debug_location_node,
-            thrax::StringCat("Expected ", fa_node->Size(), " arguments but got ",
+            ::fst::StrCat("Expected ", fa_node->Size(), " arguments but got ",
                          arguments->size()));
     }
     for (int i = 0; Success() && i < fa_node->Size(); ++i) {
       IdentifierNode* fa_identifier =
           fst::down_cast<IdentifierNode*>((*fa_node)[i]);
       if (fa_identifier->HasNamespaces()) {
-        Error(*fa_identifier, thrax::StringCat("Invalid function argument: ",
+        Error(*fa_identifier, ::fst::StrCat("Invalid function argument: ",
                                            fa_identifier->Get()));
         break;
       }
@@ -594,7 +597,7 @@ class AstEvaluator : public AstWalker {
         DataType* original = env_->Get<DataType>(*identifier);
         if (!original) {
           Error(*identifier,
-                thrax::StringCat("Undefined symbol: ", identifier->Get()));
+                ::fst::StrCat("Undefined symbol: ", identifier->Get()));
           return nullptr;
         }
         output = original->Copy();
@@ -643,7 +646,7 @@ class AstEvaluator : public AstWalker {
             fst::down_cast<CollectionNode*>(node->GetArgument(1)));
         if (!Success() || !args) {
           Error(*func_identifier_node,
-                thrax::StringCat("Unable to bind all arguments for function call: ",
+                ::fst::StrCat("Unable to bind all arguments for function call: ",
                              func_identifier_node->Get()));
           return nullptr;
         }
@@ -670,7 +673,7 @@ class AstEvaluator : public AstWalker {
         }
         if (!function_found) {
           Error(*func_identifier_node,
-                thrax::StringCat("Undefined function identifier: ",
+                ::fst::StrCat("Undefined function identifier: ",
                              func_identifier_node->Get()));
           return nullptr;
         }
@@ -695,7 +698,7 @@ class AstEvaluator : public AstWalker {
       // Now, we might wish to always optimize the FSTs, or the node is slated
       // to be optimized (e.g. a composition node within an Optimize
       // FUNCTION_FSTNODE).
-      if (FLAGS_optimize_all_fsts || node->ShouldOptimize()) {
+      if (FST_FLAGS_optimize_all_fsts || node->ShouldOptimize()) {
         auto optimized_fst = function::Optimize<Arc>::ActuallyOptimize(
             **output->get<Transducer*>());
         output = std::make_unique<DataType>(std::move(optimized_fst));
@@ -727,7 +730,7 @@ class AstEvaluator : public AstWalker {
     weight_fst.SetFinal(state, weight);
     // If we are saving symbols then we have to add the symbol tables of our
     // input FST to this new single state FST.
-    if (FLAGS_save_symbols) {
+    if (FST_FLAGS_save_symbols) {
       weight_fst.SetInputSymbols(input_fst.InputSymbols());
       weight_fst.SetOutputSymbols(input_fst.OutputSymbols());
     }
@@ -736,7 +739,7 @@ class AstEvaluator : public AstWalker {
     return std::make_unique<::fst::ConcatFst<Arc>>(input_fst, weight_fst);
   }
 
-  // If FLAGS_save_symbols is set for the system the imported FSTs will have
+  // If FST_FLAGS_save_symbols is set for the system the imported FSTs will have
   // symbol tables. If these are either the byte symbol table or the utf8 symbol
   // table, they may have additional generated labels associated with them.
   // These generated labels will cause the symbol tables to potentially be in
@@ -777,7 +780,7 @@ class AstEvaluator : public AstWalker {
                fst, siter.Value());
            !aiter.Done(); aiter.Next()) {
         auto arc = aiter.Value();
-        int64 label = function::StringFst<Arc>::FindRemapLabel(arc.ilabel);
+        int64_t label = function::StringFst<Arc>::FindRemapLabel(arc.ilabel);
         if (label != ::fst::kNoLabel) arc.ilabel = label;
         label = function::StringFst<Arc>::FindRemapLabel(arc.olabel);
         if (label != ::fst::kNoLabel) arc.olabel = label;

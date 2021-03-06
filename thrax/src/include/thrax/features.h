@@ -93,7 +93,7 @@
 //
 // Feature optionally allows the last argument to be a parse mode ('byte',
 // 'utf8', or a symbol table). The default is 'byte'. This does not affect the
-// parsing of the feature specification, but if you set FLAGS_save_symbols then
+// parsing of the feature specification, but if you set FST_FLAGS_save_symbols then
 // you will need to use this to make sure the feature acceptors have appropriate
 // symbol tables for combining with other fsts.
 
@@ -103,6 +103,7 @@
 #include <stddef.h>
 
 #include <algorithm>
+#include <cstdint>
 #include <iostream>
 #include <map>
 #include <memory>
@@ -176,7 +177,7 @@ class Feature : public Function<Arc> {
     // Feature['case', mysyms];
     //
     // Note that this does not affect the parsing, but if one specifies
-    // FLAGS_save_symbols, and one wishes to combine this Feature, or derived
+    // FST_FLAGS_save_symbols, and one wishes to combine this Feature, or derived
     // Categories or FeatureVectors, with FSTs that are compiled with something
     // other than byte mode, then one must specify 'utf8' or a user-provided
     // symbol table so that the symbol tables will match.
@@ -189,10 +190,10 @@ class Feature : public Function<Arc> {
       const auto& arg = *args[i]->get<std::string>();
       if (arg == "utf8") {
         mode = ::fst::TokenType::UTF8;
-        if (FLAGS_save_symbols) symtab = GetUtf8SymbolTable();
+        if (FST_FLAGS_save_symbols) symtab = GetUtf8SymbolTable();
       } else if (arg == "byte") {
         mode = ::fst::TokenType::BYTE;
-        if (FLAGS_save_symbols) symtab = GetByteSymbolTable();
+        if (FST_FLAGS_save_symbols) symtab = GetByteSymbolTable();
       } else {
         feature_values.push_back(arg);
       }
@@ -213,7 +214,7 @@ class Feature : public Function<Arc> {
       // Adds feature value pair of the form "x=y" to the generated labels
       // (stringfst.h)
       AddLabelForFeatureValuePair(feature_value_pair);
-      int64 label;
+      int64_t label;
       if (!StringFst<Arc>::SymbolToGeneratedLabel(
               feature_value_pair, &label)) {
         std::cout << "Failed to generate label for " << feature_value_pair
@@ -222,7 +223,7 @@ class Feature : public Function<Arc> {
       }
       fst->EmplaceArc(s0, label, label, s1);
     }
-    if (FLAGS_save_symbols) {
+    if (FST_FLAGS_save_symbols) {
       if (symtab) {
         fst->SetInputSymbols(symtab);
         fst->SetOutputSymbols(symtab);
@@ -401,7 +402,7 @@ class Category : public Function<Arc> {
       ::fst::Concat(fst.get(), *(features[i].second));
     }
     ::fst::RmEpsilon(fst.get());
-    if (FLAGS_save_symbols) {
+    if (FST_FLAGS_save_symbols) {
       fst->SetInputSymbols(features[0].second->InputSymbols());
       fst->SetOutputSymbols(features[0].second->OutputSymbols());
     }
@@ -463,7 +464,7 @@ class FeatureVector : public Function<Arc> {
     }
     std::unique_ptr<::fst::SymbolTable> generated_symbols(
         StringFst<Arc>::GetLabelSymbolTable(false));
-    std::map<std::string, int64> feature_label_pairs;
+    std::map<std::string, int64_t> feature_label_pairs;
     for (int i = 1; i < args.size(); ++i) {
       if (!args[i]->is<std::string>()) {
         std::cout << "Feature/value pairs must strings be of the form x=y"
@@ -477,7 +478,7 @@ class FeatureVector : public Function<Arc> {
                   << featval << std::endl;
         return nullptr;
       }
-      const int64 label = generated_symbols->Find(featval);
+      const int64_t label = generated_symbols->Find(featval);
       if (label == ::fst::kNoSymbol) {
         std::cout << "Feature/value pair " << featval << " is not defined."
                   << std::endl;
@@ -518,7 +519,7 @@ class FeatureVector : public Function<Arc> {
       s = next;
     }
     fst->SetFinal(s);
-    if (FLAGS_save_symbols) {
+    if (FST_FLAGS_save_symbols) {
       fst->SetInputSymbols(category_fst->InputSymbols());
       fst->SetOutputSymbols(category_fst->OutputSymbols());
     }

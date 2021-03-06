@@ -77,15 +77,12 @@ class ResourceMap {
   bool InsertWithDeleter(const std::string& name, T* thing,
                          std::function<void()> deleter) {
     ::fst::MutexLock lock(&mutex_);
-    // Searches the map for the correct hash position of the new insert. We'll
-    // use a nullptr as the value for now since we'll create it from scratch in
-    // the future, after the potential deletion of the pre-existing object.
-    auto ret = map_.emplace(name, nullptr);
+    // Searches the map for the correct hash position of the new insert.
     // Creates a new Resource container to hold the pointer as well as a deleter
     // functor, which we create now since we only are sure of the type at this
     // moment.
-    ret.first->second = std::make_unique<Resource>(
-        static_cast<const void*>(thing), typeid(thing), std::move(deleter));
+    auto ret = map_.insert_or_assign(name, std::make_unique<Resource>(
+        static_cast<const void*>(thing), typeid(thing), std::move(deleter)));
     return ret.second;
   }
 

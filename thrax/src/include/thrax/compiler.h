@@ -29,7 +29,8 @@ bool CompileGrammar(const std::string& input_grammar,
                     const std::string& output_far, bool emit_ast_only,
                     bool line_numbers_in_ast) {
   GrmCompilerSpec<Arc> grammar;
-  if (!grammar.ParseFile(JoinPath(FLAGS_indir, input_grammar))) {
+  if (!grammar.ParseFile(
+          JoinPath(FST_FLAGS_indir, input_grammar))) {
     return false;
   }
   if (emit_ast_only) {

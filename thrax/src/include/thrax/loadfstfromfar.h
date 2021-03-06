@@ -57,8 +57,8 @@ class LoadFstFromFar : public Function<Arc> {
                 << std::endl;
       return nullptr;
     }
-    const auto& far_file =
-        JoinPath(FLAGS_indir, *args[0]->get<std::string>());
+    const auto& far_file = JoinPath(FST_FLAGS_indir,
+                                            *args[0]->get<std::string>());
     if (!args[1]->is<std::string>()) {
       std::cout << "LoadFstFromFar: Expected string (FST name) for argument 2"
                 << std::endl;
@@ -80,13 +80,13 @@ class LoadFstFromFar : public Function<Arc> {
       return nullptr;
     }
     auto fst = std::make_unique<MutableTransducer>(*(reader->GetFst()));
-    if (FLAGS_save_symbols) {
+    if (FST_FLAGS_save_symbols) {
       if (!fst->InputSymbols()) {
-        LOG(WARNING) << "LoadFstFromFar: FLAGS_save_symbols is set "
+        LOG(WARNING) << "LoadFstFromFar: FST_FLAGS_save_symbols is set "
                      << "but fst has no input symbols";
       }
       if (!fst->OutputSymbols()) {
-        LOG(WARNING) << "LoadFstFromFar: FLAGS_save_symbols is set "
+        LOG(WARNING) << "LoadFstFromFar: FST_FLAGS_save_symbols is set "
                      << "but fst has no output symbols";
       }
     }

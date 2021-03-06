@@ -85,7 +85,7 @@ class PdtCompose : public Function<Arc> {
     }
     const auto* left = *args[0]->get<Transducer*>();
     const auto* right = *args[1]->get<Transducer*>();
-    if (FLAGS_save_symbols) {
+    if (FST_FLAGS_save_symbols) {
       if (!CompatSymbols(left->OutputSymbols(), right->InputSymbols())) {
         std::cout << "PdtCompose: output symbol table of 1st argument "
                   << "does not match input symbol table of 2nd argument"

@@ -27,7 +27,7 @@ class Node {
  public:
   Node();
 
-  virtual ~Node();
+  virtual ~Node() = default;
 
   virtual void Accept(AstWalker* walker) = 0;
 

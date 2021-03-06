@@ -17,9 +17,10 @@
 #include <ctype.h>
 
 #include <string>
+#include <vector>
 
+#include <thrax/node.h>
 #include <thrax/walker.h>
-#include <thrax/compat/utils.h>
 
 namespace thrax {
 
@@ -28,16 +29,16 @@ static bool ComponentIsValid(const std::string& s) {
   bool found_underscore = false;
   bool found_number = false;
   bool found_alpha = false;
-  for (int i = 0; i < s.length(); ++i) {
-    char c = s[i];
-    if (isalpha(c))
+  for (char c : s) {
+    if (isalpha(c)) {
       found_alpha = true;
-    else if (c == '_')
+    } else if (c == '_') {
       found_underscore = true;
-    else if (isdigit(c))
+    } else if (isdigit(c)) {
       found_number = true;
-    else
+    } else {
       return false;
+    }
   }
   return !isdigit(s[0]) && (found_alpha || (found_underscore && found_number));
 }
@@ -52,8 +53,6 @@ IdentifierNode::IdentifierNode(const std::string& name, int begin_pos)
   namespaces_.pop_back();
   valid_ = CalculateValidity();
 }
-
-IdentifierNode::~IdentifierNode() {}
 
 IdentifierNode::const_iterator IdentifierNode::begin() const {
   return namespaces_.begin();
@@ -76,9 +75,8 @@ bool IdentifierNode::IsValid() const { return valid_; }
 void IdentifierNode::Accept(AstWalker* walker) { walker->Visit(this); }
 
 bool IdentifierNode::CalculateValidity() {
-  for (int i = 0; i < namespaces_.size(); ++i) {
-    if (!ComponentIsValid(namespaces_[i]))
-      return false;
+  for (const auto& ns : namespaces_) {
+    if (!ComponentIsValid(ns)) return false;
   }
   return ComponentIsValid(identifier_);
 }

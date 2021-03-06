@@ -107,7 +107,7 @@ class Analyzer : public Function<Arc> {
     auto optimized_analyzer = Optimize<Arc>::ActuallyOptimize(*analyzer);
     auto final_analyzer =
         std::make_unique<MutableTransducer>(*optimized_analyzer);
-    if (FLAGS_save_symbols) {
+    if (FST_FLAGS_save_symbols) {
       final_analyzer->SetInputSymbols(paradigm.InputSymbols());
       final_analyzer->SetOutputSymbols(paradigm.OutputSymbols());
     }
@@ -192,7 +192,7 @@ class Tagger : public Function<Arc> {
     ::fst::Compose(*analyzer, boundary_deleter, &tagger);
     auto optimized_tagger = Optimize<Arc>::ActuallyOptimize(tagger);
     auto final_tagger = std::make_unique<MutableTransducer>(*optimized_tagger);
-    if (FLAGS_save_symbols) {
+    if (FST_FLAGS_save_symbols) {
       final_tagger->SetInputSymbols(paradigm.InputSymbols());
       final_tagger->SetOutputSymbols(paradigm.OutputSymbols());
     }
@@ -248,7 +248,7 @@ class ParadigmReplace : public Function<Arc> {
     auto optimized_paradigm = Optimize<Arc>::ActuallyOptimize(difference);
     auto final_paradigm =
         std::make_unique<MutableTransducer>(*optimized_paradigm);
-    if (FLAGS_save_symbols) {
+    if (FST_FLAGS_save_symbols) {
       final_paradigm->SetInputSymbols(paradigm.InputSymbols());
       final_paradigm->SetOutputSymbols(paradigm.OutputSymbols());
     }

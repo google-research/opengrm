@@ -172,8 +172,8 @@ bool GrmCompilerSpec<Arc>::EvaluateAstWithEnvironment(Namespace* env,
     }
     return false;
   }
-  if (FLAGS_print_ast) {
-    PrintAst(FLAGS_line_numbers_in_ast);
+  if (FST_FLAGS_print_ast) {
+    PrintAst(FST_FLAGS_line_numbers_in_ast);
   }
   VLOG(1) << "Commencing main compilation (AST evaluation).";
   std::unique_ptr<AstEvaluator<Arc>> evaluator;

@@ -61,6 +61,10 @@ class AssertEqual : public BinaryFstFunction<Arc> {
  public:
   using Transducer = ::fst::Fst<Arc>;
   using MutableTransducer = ::fst::VectorFst<Arc>;
+  using Weight = typename Arc::Weight;
+  // Prune and ShortestPath require the path property.
+  static_assert(::fst::IsPath<Weight>::value,
+                "Weight must have path property.");
 
   AssertEqual() {}
   ~AssertEqual() final {}
@@ -92,7 +96,7 @@ class AssertEqual : public BinaryFstFunction<Arc> {
         return nullptr;
       }
     }
-    if (FLAGS_save_symbols) {
+    if (FST_FLAGS_save_symbols) {
       if (!::fst::CompatSymbols(left.InputSymbols(),
                                     right.InputSymbols())) {
         std::cout << "AssertEqual: input symbol table of 1st argument "

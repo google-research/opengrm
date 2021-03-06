@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Builds the symbol tables needed for byte and utf8 if FLAGS_save_symbols is
+// Builds the symbol tables needed for byte and utf8 if FST_FLAGS_save_symbols is
 // set
 
 #ifndef THRAX_SYMBOLS_H_
 #define THRAX_SYMBOLS_H_
 
+#include <cstdint>
 #include <memory>
 #include <string>
 
@@ -29,8 +30,8 @@ namespace function {
 const ::fst::SymbolTable* GetByteSymbolTable();
 const ::fst::SymbolTable* GetUtf8SymbolTable();
 
-void AddToByteSymbolTable(std::string symbol, int64 label);
-void AddToUtf8SymbolTable(std::string symbol, int64 label);
+void AddToByteSymbolTable(std::string symbol, int64_t label);
+void AddToUtf8SymbolTable(std::string symbol, int64_t label);
 
 static const char kByteSymbolTableName[] = "**Byte symbols";
 static const char kUtf8SymbolTableName[] = "**UTF8 symbols";
@@ -42,9 +43,9 @@ class SymbolTableBuilder {
   const ::fst::SymbolTable* GetByteSymbolTable();
   const ::fst::SymbolTable* GetUtf8SymbolTable();
 
-  void AddToByteSymbolTable(std::string symbol, int64 label);
+  void AddToByteSymbolTable(std::string symbol, int64_t label);
 
-  void AddToUtf8SymbolTable(std::string symbol, int64 label);
+  void AddToUtf8SymbolTable(std::string symbol, int64_t label);
 
  private:
   void GenerateByteSymbolTable();

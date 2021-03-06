@@ -36,7 +36,7 @@ class IdentifierNode : public Node {
 
   IdentifierNode(const std::string& name, int begin_pos);
 
-  ~IdentifierNode() override;
+  ~IdentifierNode() override = default;
 
   // Return the entire identifier as originally used in the source.
   const std::string& Get() const;

@@ -53,8 +53,8 @@ class SymbolTable : public Function<Arc> {
                 << std::endl;
       return nullptr;
     }
-    const auto& file =
-        JoinPath(FLAGS_indir, *args[0]->get<std::string>());
+    const auto& file = JoinPath(FST_FLAGS_indir,
+                                        *args[0]->get<std::string>());
     VLOG(2) << "Loading symbol table: " << file;
     std::unique_ptr<::fst::SymbolTable> symtab(
         ::fst::SymbolTable::ReadText(file));

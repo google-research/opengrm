@@ -14,7 +14,10 @@
 //
 #include <thrax/import-node.h>
 
+#include <memory>
+
 #include <thrax/identifier-node.h>
+#include <thrax/node.h>
 #include <thrax/string-node.h>
 #include <thrax/walker.h>
 
@@ -23,14 +26,9 @@ namespace thrax {
 ImportNode::ImportNode(StringNode* path, IdentifierNode* alias)
     : Node(), path_(path), alias_(alias) {}
 
-ImportNode::~ImportNode() {
-  delete path_;
-  delete alias_;
-}
+StringNode* ImportNode::GetPath() const { return path_.get(); }
 
-StringNode* ImportNode::GetPath() const { return path_; }
-
-IdentifierNode* ImportNode::GetAlias() const { return alias_; }
+IdentifierNode* ImportNode::GetAlias() const { return alias_.get(); }
 
 void ImportNode::Accept(AstWalker* walker) { walker->Visit(this); }
 

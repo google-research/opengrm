@@ -19,7 +19,7 @@
 #include <string>
 
 #include <thrax/identifier-node.h>
-#include <thrax/compat/utils.h>
+#include <fst/compat.h>
 
 namespace thrax {
 
@@ -101,7 +101,7 @@ bool Namespace::IsTopLevel() const { return toplevel_; }
 
 std::string Namespace::ConstructMapName(
     const std::string& identifier_name) const {
-  return thrax::StringCat(filename_, "/", identifier_name);
+  return ::fst::StrCat(filename_, "/", identifier_name);
 }
 
 }  // namespace thrax

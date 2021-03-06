@@ -14,7 +14,10 @@
 //
 #include <thrax/rule-node.h>
 
+#include <memory>
+
 #include <thrax/identifier-node.h>
+#include <thrax/node.h>
 #include <thrax/walker.h>
 
 namespace thrax {
@@ -22,14 +25,9 @@ namespace thrax {
 RuleNode::RuleNode(IdentifierNode* name, Node* rhs, ExportStatus exp)
     : Node(), name_(name), rhs_(rhs), export_(exp) {}
 
-RuleNode::~RuleNode() {
-  delete name_;
-  delete rhs_;
-}
+IdentifierNode* RuleNode::GetName() const { return name_.get(); }
 
-IdentifierNode* RuleNode::GetName() const { return name_; }
-
-Node* RuleNode::Get() const { return rhs_; }
+Node* RuleNode::Get() const { return rhs_.get(); }
 
 bool RuleNode::ShouldExport() const { return export_ == EXPORT; }
 

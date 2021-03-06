@@ -18,6 +18,8 @@
 #ifndef THRAX_GRAMMAR_NODE_H_
 #define THRAX_GRAMMAR_NODE_H_
 
+#include <memory>
+
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
 #include <thrax/node.h>
@@ -29,11 +31,12 @@ class CollectionNode;
 
 class GrammarNode : public Node {
  public:
+  // TODO(wolfsonkin): Make this interface use  std::unique_ptr.
   GrammarNode(CollectionNode* imports,
               CollectionNode* functions,
               CollectionNode* statements);
 
-  ~GrammarNode() override;
+  ~GrammarNode() override = default;
 
   CollectionNode* GetImports() const;
 
@@ -44,9 +47,9 @@ class GrammarNode : public Node {
   void Accept(AstWalker* walker) override;
 
  private:
-  CollectionNode* imports_;
-  CollectionNode* functions_;
-  CollectionNode* statements_;
+  std::unique_ptr<CollectionNode> imports_;
+  std::unique_ptr<CollectionNode> functions_;
+  std::unique_ptr<CollectionNode> statements_;
 
   GrammarNode(const GrammarNode&) = delete;
   GrammarNode& operator=(const GrammarNode&) = delete;

@@ -31,7 +31,7 @@ class StringNode : public Node {
  public:
   explicit StringNode(const std::string& str);
 
-  ~StringNode() override;
+  ~StringNode() override = default;
 
   const std::string& Get() const;
 

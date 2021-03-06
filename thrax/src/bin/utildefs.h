@@ -17,6 +17,7 @@
 #ifndef NLP_GRM_LANGUAGE_UTIL_UTILDEFS_H_
 #define NLP_GRM_LANGUAGE_UTIL_UTILDEFS_H_
 
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -44,8 +45,7 @@ bool FstToStrings(const ::fst::VectorFst<::fst::StdArc> &fst,
                   ::fst::SymbolTable *symtab = nullptr, size_t n = 1);
 
 // Find the generated labels from the grammar.
-
-const ::fst::SymbolTable *GetGeneratedSymbolTable(
+std::unique_ptr<::fst::SymbolTable> GetGeneratedSymbolTable(
     GrmManagerSpec<::fst::StdArc> *grm);
 
 }  // namespace thrax

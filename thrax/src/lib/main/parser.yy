@@ -178,7 +178,7 @@ return_stmt:
 rule_stmt:
   descriptor tEQUALS rule_body tSEMICOLON
     { RuleNode* node = new RuleNode($1, $3,
-                                    FLAGS_always_export ?
+                                    FST_FLAGS_always_export ?
                                     RuleNode::EXPORT :
                                     RuleNode::DO_NOT_EXPORT);
       $$ = node; }

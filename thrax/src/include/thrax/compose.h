@@ -66,7 +66,7 @@ class Compose : public Function<Arc> {
     const auto* right = *args[1]->get<Transducer*>();
     bool delete_left = false;
     bool delete_right = false;
-    if (FLAGS_save_symbols) {
+    if (FST_FLAGS_save_symbols) {
       if (!CompatSymbols(left->OutputSymbols(), right->InputSymbols())) {
         std::cout << "Compose: output symbol table of 1st argument "
                   << "does not match input symbol table of 2nd argument"

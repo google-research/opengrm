@@ -56,8 +56,8 @@ class LoadFst : public Function<Arc> {
                 << std::endl;
       return nullptr;
     }
-    const auto& file =
-        JoinPath(FLAGS_indir, *args[0]->get<std::string>());
+    const auto& file = JoinPath(FST_FLAGS_indir,
+                                        *args[0]->get<std::string>());
     VLOG(2) << "Loading FST: " << file;
     auto fst = fst::WrapUnique(Transducer::Read(file));
     if (!fst) {
@@ -65,13 +65,13 @@ class LoadFst : public Function<Arc> {
                 << std::endl;
       return nullptr;
     }
-    if (FLAGS_save_symbols) {
+    if (FST_FLAGS_save_symbols) {
       if (!fst->InputSymbols()) {
-        LOG(WARNING) << "LoadFst: FLAGS_save_symbols is set "
+        LOG(WARNING) << "LoadFst: FST_FLAGS_save_symbols is set "
                      << "but fst has no input symbols";
       }
       if (!fst->OutputSymbols()) {
-        LOG(WARNING) << "LoadFst: FLAGS_save_symbols is set "
+        LOG(WARNING) << "LoadFst: FST_FLAGS_save_symbols is set "
                      << "but fst has no output symbols";
       }
     }

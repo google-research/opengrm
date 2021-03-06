@@ -19,6 +19,7 @@
 #define THRAX_COLLECTION_NODE_H_
 
 #include <deque>
+#include <memory>
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
@@ -30,13 +31,14 @@ class AstWalker;
 
 class CollectionNode : public Node {
  public:
-  using Collection = std::deque<Node*>;
+  using Collection = std::deque<std::unique_ptr<Node>>;
 
   CollectionNode();
 
-  ~CollectionNode() override;
+  ~CollectionNode() override = default;
 
   // Add a collection to the list.
+  // TODO(wolfsonkin): Make this interface use  std::unique_ptr.
   void AddFront(Node* node);
 
   int Size() const;
@@ -48,7 +50,7 @@ class CollectionNode : public Node {
   void Accept(AstWalker* walker) override;
 
  private:
-  Collection* collection_;
+  std::unique_ptr<Collection> collection_;
 
   CollectionNode(const CollectionNode&) = delete;
   CollectionNode& operator=(const CollectionNode&) = delete;

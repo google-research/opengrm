@@ -84,13 +84,13 @@ class CDRewrite : public Function<Arc> {
     //
     // 1) Change  to add symbol tables to all of the
     //    intermediate filters. This seems messy.
-    // 2) Toggle FLAGS_fst_compat_symbols prior to passing this in. This is not
+    // 2) Toggle FST_FLAGS_fst_compat_symbols prior to passing this in. This is not
     //    thread-safe.
     // 3) Null out the symbol tables of all of the pieces, pass them in and then
     //    put the symbol table on the result when we are done. This seems the
     //    simplest and safest.
     const ::fst::SymbolTable* symbols = nullptr;
-    if (FLAGS_save_symbols) {
+    if (FST_FLAGS_save_symbols) {
       if (!::fst::CompatSymbols(tau.InputSymbols(), tau.OutputSymbols())) {
         std::cout
             << "CDRewrite: input symbols and output symbols must match for tau"
@@ -177,7 +177,7 @@ class CDRewrite : public Function<Arc> {
     ::fst::CDRewriteCompile(tau, lambda, rho, sigma, output.get(), dir,
                                 mode, ::fst::kBosIndex,
                                 ::fst::kEosIndex);
-    if (FLAGS_save_symbols) {
+    if (FST_FLAGS_save_symbols) {
       output->SetInputSymbols(symbols);
       output->SetOutputSymbols(symbols);
     }

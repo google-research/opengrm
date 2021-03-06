@@ -17,14 +17,25 @@
 
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <utility>
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
+#include <fst/arc.h>
 #include <fst/fst.h>
-#include <thrax/compat/oneof.h>
+#include <fst/symbol-table.h>
+#include <fst/vector-fst.h>
+#include <variant>
 
 namespace thrax {
+
+template <typename T>
+struct is_fst_raw_ptr : std::false_type {};
+template <typename Arc>
+struct is_fst_raw_ptr<::fst::Fst<Arc> *> : std::true_type {};
+template <typename T>
+inline constexpr bool is_fst_raw_ptr_v = is_fst_raw_ptr<T>::value;
 
 class DataType {
  public:
@@ -39,56 +50,58 @@ class DataType {
   explicit DataType(int thing) : thing_(thing) {}
 
   std::unique_ptr<DataType> Copy() const {
-    if (is<::fst::Fst<::fst::StdArc> *>()) {
-      return std::make_unique<DataType>(fst::WrapUnique(
-          (*get<::fst::Fst<::fst::StdArc> *>())->Copy()));
-    } else if (is<::fst::Fst<::fst::LogArc> *>()) {
-      return std::make_unique<DataType>(fst::WrapUnique(
-          (*get<::fst::Fst<::fst::LogArc> *>())->Copy()));
-    } else {
-      // NB: We can't directly create a private constructor from `ThingType` for
-      // this purpose since `std::variant` makes its constituent types
-      // implicitly convertible to it, resulting in ambiguous constructors.
-      auto out = fst::WrapUnique(new DataType());
-      out->thing_ = thing_;
-      return out;
-    }
+    // NB: We can't directly create a private constructor from `ThingType` for
+    // this purpose since `std::variant` makes its constituent types implicitly
+    // convertible to it, resulting in ambiguous constructors.
+    auto out = fst::WrapUnique(new DataType());
+    out->thing_ = std::visit(
+        [](auto &&arg) {
+          using T = std::remove_cv_t<std::remove_reference_t<decltype(arg)>>;
+          if constexpr (is_fst_raw_ptr_v<T>)
+            return ThingType{arg->Copy()};
+          else
+            return ThingType{arg};
+        },
+        thing_);
+    return out;
   }
 
   ~DataType() {
-    if (is<::fst::Fst<::fst::StdArc> *>()) {
-      delete *get<::fst::Fst<::fst::StdArc> *>();
-    } else if (is<::fst::Fst<::fst::LogArc> *>()) {
-      delete *get<::fst::Fst<::fst::LogArc> *>();
-    }
+    std::visit(
+        [](auto &&arg) {
+          using T = std::remove_cv_t<std::remove_reference_t<decltype(arg)>>;
+          if constexpr (is_fst_raw_ptr_v<T>) delete arg;
+        },
+        thing_);
   }
 
   template <typename T>
   bool is() const {
-    return thing_.is<T>();
+    return std::holds_alternative<T>(thing_);
   }
 
   template <typename T>
   const T* get() const {
-    return thing_.get<T>();
+    return std::get_if<T>(&thing_);
   }
 
   template <typename T>
   T* get_mutable() {
-    return thing_.get_mutable<T>();
+    return std::get_if<T>(&thing_);
   }
 
  private:
-  using ThingType = thrax::Oneof<::fst::Fst<::fst::StdArc> *,
+  using ThingType = std::variant<::fst::Fst<::fst::StdArc> *,
                                   ::fst::Fst<::fst::LogArc> *,
                                   ::fst::Fst<::fst::Log64Arc> *,
                                   ::fst::SymbolTable, std::string, int>;
 
   ThingType thing_;
-  // TODO(wolfsonkin): Default-initialize `thing_` once we drop `thrax::OneOf`.
-  DataType() : thing_(-1) {}
+  DataType() : thing_() {}
   DataType(const DataType &) = delete;
   DataType &operator=(const DataType &) = delete;
+  DataType(DataType &&) = delete;
+  DataType &operator=(DataType &&) = delete;
 };
 
 }  // namespace thrax

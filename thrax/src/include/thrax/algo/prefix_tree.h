@@ -223,7 +223,7 @@ class PrefixTree {
     }
     if (!inode->Output()) inode->InsertONode(&num_states_);
     ONode *onode = inode->Output();
-    if (!Policy::IsAcceptor()) {
+    if constexpr (!Policy::IsAcceptor()) {
       for (Label olabel : fst::make_range(it2, end2)) {
         if (!olabel) continue;  // Skips over epsilons.
         onode = onode->LookupOrInsertChild(olabel, &num_states_);

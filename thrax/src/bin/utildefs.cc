@@ -18,6 +18,7 @@
 #include <thrax/compat/compat.h>
 #include <../bin/utildefs.h>
 
+#include <memory>
 #include <stack>
 #include <string>
 #include <utility>
@@ -70,7 +71,7 @@ inline bool AppendLabel(Label label, TokenType type,
       }
       // For non-byte, non-UTF8 symbols, one overwhelmingly wants these to be
       // space-separated.
-      if (!path->empty()) *path += FLAGS_field_separator;
+      if (!path->empty()) *path += FST_FLAGS_field_separator;
       *path += sym;
     } else if (type == TokenType::BYTE) {
       path->push_back(label);
@@ -119,9 +120,11 @@ bool FstToStrings(const StdVectorFst &fst,
   return true;
 }
 
-const SymbolTable *GetGeneratedSymbolTable(GrmManagerSpec<StdArc> *grm) {
+std::unique_ptr<SymbolTable> GetGeneratedSymbolTable(
+    GrmManagerSpec<StdArc> *grm) {
   const auto *symbolfst = grm->GetFst("*StringFstSymbolTable");
-  return symbolfst ? symbolfst->InputSymbols()->Copy() : nullptr;
+  return symbolfst ? fst::WrapUnique(symbolfst->InputSymbols()->Copy())
+                   : nullptr;
 }
 
 }  // namespace thrax

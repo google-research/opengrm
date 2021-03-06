@@ -51,7 +51,11 @@ void RegisterFunctions() {
   REGISTER_GRM_FUNCTION(Analyzer);
   REGISTER_GRM_FUNCTION(ArcSort);
   REGISTER_GRM_FUNCTION(AssertEmpty);
-  REGISTER_GRM_FUNCTION(AssertEqual);
+  // Use REGISTER_STDARC_FUNCTION instead of REGISTER_GRM_FUNCTION in order
+  // to register for StdArc only, since LogArc does not have the required
+  // path property.
+  using StdArcAssertEqual = AssertEqual<fst::StdArc>;
+  REGISTER_STDARC_FUNCTION(StdArcAssertEqual);
   REGISTER_GRM_FUNCTION(AssertNull);
   REGISTER_GRM_FUNCTION(Category);
   REGISTER_GRM_FUNCTION(CDRewrite);

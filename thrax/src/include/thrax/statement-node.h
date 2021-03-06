@@ -18,6 +18,8 @@
 #ifndef THRAX_STATEMENT_NODE_H_
 #define THRAX_STATEMENT_NODE_H_
 
+#include <memory>
+
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
 #include <thrax/node.h>
@@ -35,10 +37,11 @@ class StatementNode : public Node {
 
   explicit StatementNode(StatementNodeType type);
 
-  ~StatementNode() override;
+  ~StatementNode() override = default;
 
   StatementNodeType GetType() const;
 
+  // TODO(wolfsonkin): Make this interface use  std::unique_ptr.
   void Set(Node* statement);
 
   Node* Get() const;
@@ -47,7 +50,7 @@ class StatementNode : public Node {
 
  private:
   StatementNodeType type_;
-  Node* statement_;
+  std::unique_ptr<Node> statement_;
 
   StatementNode(const StatementNode&) = delete;
   StatementNode& operator=(const StatementNode&) = delete;

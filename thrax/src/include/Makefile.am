@@ -6,9 +6,8 @@ algo_include_headers = thrax/algo/cdrewrite.h thrax/algo/checkprops.h \
                        thrax/algo/stringmap.h thrax/algo/stringprint.h \
                        thrax/algo/stringutil.h
 
-compat_include_headers = thrax/compat/compat.h thrax/compat/oneof.h \
-                         thrax/compat/registry.h thrax/compat/stlfunctions.h \
-                         thrax/compat/utils.h
+compat_include_headers = thrax/compat/compat.h thrax/compat/registry.h \
+                         thrax/compat/stlfunctions.h thrax/compat/utils.h
 
 grm_include_headers = thrax/arcsort.h thrax/assert-equal.h \
                       thrax/assert-empty.h thrax/assert-null.h \

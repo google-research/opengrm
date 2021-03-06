@@ -18,6 +18,7 @@
 #include <thrax/evaluator.h>
 #include <thrax/function.h>
 #include <thrax/compat/utils.h>
+#include <fst/compat.h>
 #include <thrax/compat/registry.h>
 
 DEFINE_bool(optimize_all_fsts, false,

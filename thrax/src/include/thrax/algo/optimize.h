@@ -41,8 +41,6 @@ namespace internal {
 constexpr uint64 kDoNotEncodeWeights = (kAcyclic | kUnweighted |
                                         kUnweightedCycles);
 
-constexpr uint64 kDifferenceRhsProperties = kUnweighted | kAcceptor;
-
 // Helpers.
 
 // Calls RmEpsilon if the FST is not (known to be) epsilon-free.
@@ -79,7 +77,7 @@ void OptimizeAcceptor(MutableFst<Arc> *fst, bool compute_props = false) {
   // If the FST is not (known to be) epsilon-free, perform epsilon-removal.
   MaybeRmEpsilon(fst, compute_props);
   if (fst->Properties(kIDeterministic, compute_props) != kIDeterministic) {
-    if ((Arc::Weight::Properties() & kIdempotent) == kIdempotent) {
+    if constexpr ((Arc::Weight::Properties() & kIdempotent) == kIdempotent) {
       // If the FST is not known to have no weighted cycles, it is encoded
       // before determinization and minimization.
       if (!fst->Properties(kDoNotEncodeWeights, compute_props)) {
@@ -106,7 +104,7 @@ void OptimizeTransducer(MutableFst<Arc> *fst, bool compute_props = false) {
   // If the FST is not (known to be) epsilon-free, perform epsilon-removal.
   MaybeRmEpsilon(fst, compute_props);
   if (fst->Properties(kIDeterministic, compute_props) != kIDeterministic) {
-    if ((Arc::Weight::Properties() & kIdempotent) == kIdempotent) {
+    if constexpr ((Arc::Weight::Properties() & kIdempotent) == kIdempotent) {
       // If the FST is not known to have no weighted cycles, it is encoded
       // before determinization and minimization.
       if (!fst->Properties(kDoNotEncodeWeights, compute_props)) {

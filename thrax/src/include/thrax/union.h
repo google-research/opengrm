@@ -51,7 +51,7 @@ class Union : public BinaryFstFunction<Arc> {
                 << std::endl;
       return nullptr;
     }
-    if (FLAGS_save_symbols) {
+    if (FST_FLAGS_save_symbols) {
       if (!::fst::CompatSymbols(left.InputSymbols(),
                                     right.InputSymbols())) {
         std::cout << "Union: input symbol table of 1st argument "
@@ -94,7 +94,7 @@ class UnionDelayed : public BinaryFstFunction<Arc> {
                 << std::endl;
       return nullptr;
     }
-    if (FLAGS_save_symbols) {
+    if (FST_FLAGS_save_symbols) {
       if (!::fst::CompatSymbols(left.InputSymbols(),
                                     right.InputSymbols())) {
         std::cout << "UnionDelayed: input symbol table of 1st argument "

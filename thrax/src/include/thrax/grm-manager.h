@@ -72,12 +72,14 @@ bool GrmManagerSpec<Arc>::LoadArchive(const std::string &filename) {
 
 template <typename Arc>
 void GrmManagerSpec<Arc>::ExportFar(const std::string &filename) const {
-  const std::string dir(JoinPath(FLAGS_outdir, StripBasename(filename)));
+  const std::string dir(
+      JoinPath(FST_FLAGS_outdir, StripBasename(filename)));
   VLOG(1) << "Creating output directory: " << dir;
   if (!RecursivelyCreateDir(dir))
     LOG(FATAL) << "Unable to create output directory: " << dir;
 
-  const std::string out_path(JoinPath(FLAGS_outdir, filename));
+  const std::string out_path(
+      JoinPath(FST_FLAGS_outdir, filename));
   std::unique_ptr<::fst::FarWriter<Arc>> writer(
 #ifndef NO_GOOGLE
       ::fst::STTableFarWriter<Arc>::Create(out_path));

@@ -14,6 +14,9 @@
 //
 #include <thrax/statement-node.h>
 
+#include <memory>
+
+#include <thrax/node.h>
 #include <thrax/walker.h>
 
 namespace thrax {
@@ -21,15 +24,15 @@ namespace thrax {
 StatementNode::StatementNode(StatementNodeType type)
     : Node(), type_(type), statement_(nullptr) {}
 
-StatementNode::~StatementNode() { delete statement_; }
-
 StatementNode::StatementNodeType StatementNode::GetType() const {
   return type_;
 }
 
-void StatementNode::Set(Node* statement) { statement_ = statement; }
+void StatementNode::Set(Node* statement) {
+  statement_ = fst::WrapUnique(statement);
+}
 
-Node* StatementNode::Get() const { return statement_; }
+Node* StatementNode::Get() const { return statement_.get(); }
 
 void StatementNode::Accept(AstWalker* walker) { walker->Visit(this); }
 

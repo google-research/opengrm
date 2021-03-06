@@ -16,6 +16,7 @@
 // a given rule. Useful for debugging to see the kinds of things the grammar
 // rule will accept.
 
+#include <cstdint>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -62,39 +63,41 @@ int main(int argc, char** argv) {
   SET_FLAGS(argv[0], &argc, &argv, true);
 
   GrmManagerSpec<StdArc> grm;
-  CHECK(grm.LoadArchive(FLAGS_far));
-  const SymbolTable* generated_symtab = GetGeneratedSymbolTable(&grm);
+  CHECK(grm.LoadArchive(FST_FLAGS_far));
+  std::unique_ptr<SymbolTable> generated_symtab = GetGeneratedSymbolTable(&grm);
   std::unique_ptr<SymbolTable> output_symtab;
   TokenType type;
-  if (FLAGS_output_mode == "byte") {
+  if (FST_FLAGS_output_mode == "byte") {
     type = TokenType::BYTE;
-  } else if (FLAGS_output_mode == "utf8") {
+  } else if (FST_FLAGS_output_mode == "utf8") {
     type = TokenType::UTF8;
   } else {
     type = TokenType::SYMBOL;
-    output_symtab.reset(SymbolTable::ReadText(FLAGS_output_mode));
+    output_symtab.reset(
+        SymbolTable::ReadText(FST_FLAGS_output_mode));
     if (!output_symtab) {
       LOG(FATAL) << "Invalid mode or symbol table path";
     }
   }
   std::unique_ptr<SymbolTable> input_symtab;
-  if (FLAGS_input_mode == "byte") {
+  if (FST_FLAGS_input_mode == "byte") {
     type = TokenType::BYTE;
-  } else if (FLAGS_input_mode == "utf8") {
+  } else if (FST_FLAGS_input_mode == "utf8") {
     type = TokenType::UTF8;
   } else {
     type = TokenType::SYMBOL;
-    input_symtab.reset(SymbolTable::ReadText(FLAGS_input_mode));
+    input_symtab.reset(SymbolTable::ReadText(FST_FLAGS_input_mode));
     if (!input_symtab) {
       LOG(FATAL) << "Invalid mode or symbol table path";
     }
   }
-  if (FLAGS_rule.empty()) {
+  if (FST_FLAGS_rule.empty()) {
     LOG(FATAL) << "--rule must be specified";
   }
-  const auto* fst = grm.GetFst(FLAGS_rule);
+  const auto* fst = grm.GetFst(FST_FLAGS_rule);
   if (!fst) {
-    LOG(FATAL) << "grm.GetFst() must be non nullptr for rule: " << FLAGS_rule;
+    LOG(FATAL) << "grm.GetFst() must be non nullptr for rule: "
+               << FST_FLAGS_rule;
   }
 
   // If the exported rule is not optimized, it may have final Infinite
@@ -107,21 +110,21 @@ int main(int argc, char** argv) {
 
   ::UniformArcSelector<StdArc> uniform_selector;
   const RandGenOptions<UniformArcSelector<StdArc>> opts(
-      uniform_selector, /*max_length=*/std::numeric_limits<int32>::max(),
+      uniform_selector, /*max_length=*/std::numeric_limits<int32_t>::max(),
       /*npath=*/1, true, false);
 
-  for (int i = 0; i < FLAGS_noutput; ++i) {
+  for (int i = 0; i < FST_FLAGS_noutput; ++i) {
     StdVectorFst ofst;
     RandGen(cleaned, &ofst, opts);
     if (ofst.NumStates() == 0) continue;
     StdVectorFst ifst(ofst);
     Project(&ifst, ProjectType::INPUT);
     Project(&ofst, ProjectType::OUTPUT);
-    if (!FstToStrings(ifst, &istrings, generated_symtab, type,
+    if (!FstToStrings(ifst, &istrings, generated_symtab.get(), type,
                       input_symtab.get())) {
       LOG(FATAL) << "Can't generate strings for input side";
     }
-    if (!FstToStrings(ofst, &ostrings, generated_symtab, type,
+    if (!FstToStrings(ofst, &ostrings, generated_symtab.get(), type,
                       output_symtab.get())) {
       LOG(FATAL) << "Can't generate strings for output side";
     }

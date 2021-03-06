@@ -14,24 +14,22 @@
 //
 #include <thrax/fst-node.h>
 
+#include <memory>
 #include <string>
 #include <vector>
 
+#include <thrax/node.h>
 #include <thrax/string-node.h>
 #include <thrax/walker.h>
-#include <thrax/compat/stlfunctions.h>
 
 namespace thrax {
 
 FstNode::FstNode(FstNodeType type)
     : Node(), type_(type), weight_(nullptr), optimize_(false) {}
 
-FstNode::~FstNode() {
-  STLDeleteContainerPointers(arguments_.begin(), arguments_.end());
-  delete weight_;
+void FstNode::AddArgument(Node* arg) {
+  arguments_.push_back(fst::WrapUnique(arg));
 }
-
-void FstNode::AddArgument(Node* arg) { arguments_.push_back(arg); }
 
 bool FstNode::SetWeight(StringNode* weight) {
   if (weight_) {
@@ -39,7 +37,7 @@ bool FstNode::SetWeight(StringNode* weight) {
     delete weight;
     return false;
   }
-  weight_ = weight;
+  weight_ = fst::WrapUnique(weight);
   return true;
 }
 
@@ -47,9 +45,9 @@ FstNode::FstNodeType FstNode::GetType() const { return type_; }
 
 int FstNode::NumArguments() const { return arguments_.size(); }
 
-Node* FstNode::GetArgument(int index) const { return arguments_[index]; }
+Node* FstNode::GetArgument(int index) const { return arguments_[index].get(); }
 
-bool FstNode::HasWeight() const { return weight_; }
+bool FstNode::HasWeight() const { return weight_ != nullptr; }
 
 const std::string& FstNode::GetWeight() const { return weight_->Get(); }
 
@@ -80,8 +78,6 @@ const char* FstNode::FstNodeTypeToString(FstNodeType type) {
 StringFstNode::StringFstNode(ParseMode parse_mode)
     : FstNode(STRING_FSTNODE), parse_mode_(parse_mode) {}
 
-StringFstNode::~StringFstNode() {}
-
 StringFstNode::ParseMode StringFstNode::GetParseMode() const {
   return parse_mode_;
 }
@@ -90,8 +86,6 @@ void StringFstNode::Accept(AstWalker* walker) { walker->Visit(this); }
 
 RepetitionFstNode::RepetitionFstNode(RepetitionFstNodeType type)
     : FstNode(REPETITION_FSTNODE), repetition_type_(type) {}
-
-RepetitionFstNode::~RepetitionFstNode() {}
 
 RepetitionFstNode::RepetitionFstNodeType RepetitionFstNode::GetRepetitionType()
     const {

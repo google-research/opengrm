@@ -36,26 +36,26 @@ int main(int argc, char **argv) {
   SET_FLAGS(argv[0], &argc, &argv, true);
 
   thrax::function::RegisterFunctions();
-  if (FLAGS_arc_type == "standard") {
+  if (FST_FLAGS_arc_type == "standard") {
     if (CompileGrammar<::fst::StdArc>(
-            FLAGS_input_grammar, FLAGS_output_far,
-            FLAGS_emit_ast_only,
-            FLAGS_line_numbers_in_ast))
+            FST_FLAGS_input_grammar, FST_FLAGS_output_far,
+            FST_FLAGS_emit_ast_only,
+            FST_FLAGS_line_numbers_in_ast))
       return 0;
-  } else if (FLAGS_arc_type == "log") {
+  } else if (FST_FLAGS_arc_type == "log") {
     if (CompileGrammar<::fst::LogArc>(
-            FLAGS_input_grammar, FLAGS_output_far,
-            FLAGS_emit_ast_only,
-            FLAGS_line_numbers_in_ast))
+            FST_FLAGS_input_grammar, FST_FLAGS_output_far,
+            FST_FLAGS_emit_ast_only,
+            FST_FLAGS_line_numbers_in_ast))
       return 0;
-  } else if (FLAGS_arc_type == "log64") {
+  } else if (FST_FLAGS_arc_type == "log64") {
     if (CompileGrammar<::fst::Log64Arc>(
-            FLAGS_input_grammar, FLAGS_output_far,
-            FLAGS_emit_ast_only,
-            FLAGS_line_numbers_in_ast))
+            FST_FLAGS_input_grammar, FST_FLAGS_output_far,
+            FST_FLAGS_emit_ast_only,
+            FST_FLAGS_line_numbers_in_ast))
       return 0;
   } else {
-    LOG(FATAL) << "Unsupported arc type: " << FLAGS_arc_type;
+    LOG(FATAL) << "Unsupported arc type: " << FST_FLAGS_arc_type;
   }
   return 1;
 }

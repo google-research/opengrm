@@ -145,7 +145,7 @@ File *Open(const std::string &filename, const std::string &mode) {
   if (mode.find('r') != std::string::npos) m |= std::ios::in;
   if (mode.find('w') != std::string::npos) m |= std::ios::out;
   if (mode.find('a') != std::string::npos) m |= std::ios::app;
-  auto fstrm = ::fst::make_unique<std::fstream>(filename.c_str(), m);
+  auto fstrm = std::make_unique<std::fstream>(filename.c_str(), m);
   return fstrm->fail() ? nullptr : new File(std::move(fstrm));
 }
 

@@ -21,6 +21,7 @@
 #ifndef THRAX_STRINGFST_H_
 #define THRAX_STRINGFST_H_
 
+#include <cstdint>
 #include <iostream>
 #include <map>
 #include <memory>
@@ -93,7 +94,7 @@ class StringFst : public Function<Arc> {
       std::cout << "StringFst: Failed to compile string: " << text << std::endl;
       return nullptr;
     }
-    if (FLAGS_save_symbols) {
+    if (FST_FLAGS_save_symbols) {
       const ::fst::SymbolTable* syms_to_attach = nullptr;
       switch (mode) {
         case ::fst::TokenType::BYTE: {
@@ -119,7 +120,7 @@ class StringFst : public Function<Arc> {
   // in this compilation. This returns nullptr if there were no generated
   // labels.
   //
-  // If FLAGS_save_symbols is set, we also add these labels to the byte and utf8
+  // If FST_FLAGS_save_symbols is set, we also add these labels to the byte and utf8
   // symbol tables, so that these can get reassigned to the transducers as
   // appropriate on write-out. However, we only want to do this is this is a
   // top-level grammar and we are saving out the FARs for this grammar (i.e.,
@@ -137,7 +138,7 @@ class StringFst : public Function<Arc> {
     // use that as an indicator of whether to save the SymbolTable into the
     // created FAR.
     if (symtab->AvailableKey() <= 1) return nullptr;
-    if (FLAGS_save_symbols && top_level) {
+    if (FST_FLAGS_save_symbols && top_level) {
       for (const auto& item : *symtab) {
         const auto& symbol = item.Symbol();
         const auto key = item.Label();
@@ -158,7 +159,7 @@ class StringFst : public Function<Arc> {
   static void ClearRemap() { remap_.clear(); }
 
   // Returns the remap value, or ::fst::kNoLabel
-  static int64 FindRemapLabel(int64 old_label) {
+  static int64_t FindRemapLabel(int64_t old_label) {
     const auto it = remap_.find(old_label);
     return it == remap_.end() ? ::fst::kNoLabel : it->second;
   }
@@ -166,8 +167,9 @@ class StringFst : public Function<Arc> {
   // This stores the assigned label for the provided symbol (from the map) into
   // label and returns true on a successful lookup or false if the symbol isn't
   // found.
-  static bool SymbolToGeneratedLabel(const std::string& symbol, int64* label) {
-    const int64 answer = ::fst::GeneratedSymbols().Find(symbol);
+  static bool SymbolToGeneratedLabel(const std::string& symbol,
+                                     int64_t* label) {
+    const int64_t answer = ::fst::GeneratedSymbols().Find(symbol);
     if (answer == ::fst::kNoSymbol) return false;
     *label = answer;
     return true;
@@ -182,7 +184,7 @@ class StringFst : public Function<Arc> {
     ::fst::thrax_internal::ResetGeneratedSymbols();
   }
 
-  static std::map<int64, int64> remap_;
+  static std::map<int64_t, int64_t> remap_;
 
   friend class CategoryTest;
   friend class FeatureTest;
@@ -194,7 +196,7 @@ class StringFst : public Function<Arc> {
 };
 
 template <typename Arc>
-typename std::map<int64, int64> StringFst<Arc>::remap_;
+typename std::map<int64_t, int64_t> StringFst<Arc>::remap_;
 
 }  // namespace function
 }  // namespace thrax

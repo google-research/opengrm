@@ -18,6 +18,8 @@
 #ifndef THRAX_RULE_NODE_H_
 #define THRAX_RULE_NODE_H_
 
+#include <memory>
+
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
 #include <thrax/node.h>
@@ -34,9 +36,10 @@ class RuleNode : public Node {
     DO_NOT_EXPORT,
   };
 
+  // TODO(wolfsonkin): Make this interface use  std::unique_ptr.
   RuleNode(IdentifierNode* name, Node* rhs, ExportStatus exp);
 
-  ~RuleNode() override;
+  ~RuleNode() override = default;
 
   IdentifierNode* GetName() const;
 
@@ -47,8 +50,8 @@ class RuleNode : public Node {
   void Accept(AstWalker* walker) override;
 
  private:
-  IdentifierNode* name_;
-  Node* rhs_;
+  std::unique_ptr<IdentifierNode> name_;
+  std::unique_ptr<Node> rhs_;
   ExportStatus export_;
 
   RuleNode(const RuleNode&) = delete;

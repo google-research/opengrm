@@ -52,7 +52,7 @@ class Concat : public BinaryFstFunction<Arc> {
                 << std::endl;
       return nullptr;
     }
-    if (FLAGS_save_symbols) {
+    if (FST_FLAGS_save_symbols) {
       if (!::fst::CompatSymbols(left.InputSymbols(),
                                     right.InputSymbols())) {
         std::cout << "Concat: input symbol table of 1st argument "
@@ -95,7 +95,7 @@ class ConcatDelayed : public BinaryFstFunction<Arc> {
                 << std::endl;
       return nullptr;
     }
-    if (FLAGS_save_symbols) {
+    if (FST_FLAGS_save_symbols) {
       if (!::fst::CompatSymbols(left.InputSymbols(),
                                     right.InputSymbols())) {
         std::cout << "ConcatDelayed: input symbol table of 1st argument "

@@ -14,8 +14,11 @@
 //
 #include <thrax/function-node.h>
 
+#include <memory>
+
 #include <thrax/collection-node.h>
 #include <thrax/identifier-node.h>
+#include <thrax/node.h>
 #include <thrax/walker.h>
 
 namespace thrax {
@@ -25,17 +28,11 @@ FunctionNode::FunctionNode(IdentifierNode* name,
                            CollectionNode* body)
     : Node(), name_(name), arguments_(arguments), body_(body) {}
 
-FunctionNode::~FunctionNode() {
-  delete name_;
-  delete arguments_;
-  delete body_;
-}
+IdentifierNode* FunctionNode::GetName() const { return name_.get(); }
 
-IdentifierNode* FunctionNode::GetName() const { return name_; }
+CollectionNode* FunctionNode::GetArguments() const { return arguments_.get(); }
 
-CollectionNode* FunctionNode::GetArguments() const { return arguments_; }
-
-CollectionNode* FunctionNode::GetBody() const { return body_; }
+CollectionNode* FunctionNode::GetBody() const { return body_.get(); }
 
 void FunctionNode::Accept(AstWalker* walker) { walker->Visit(this); }
 

@@ -18,6 +18,8 @@
 #ifndef THRAX_IMPORT_NODE_H_
 #define THRAX_IMPORT_NODE_H_
 
+#include <memory>
+
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
 #include <thrax/node.h>
@@ -30,9 +32,10 @@ class StringNode;
 
 class ImportNode : public Node {
  public:
+  // TODO(wolfsonkin): Make this interface use  std::unique_ptr.
   ImportNode(StringNode* path, IdentifierNode* alias);
 
-  ~ImportNode() override;
+  ~ImportNode() override = default;
 
   StringNode* GetPath() const;
 
@@ -41,8 +44,8 @@ class ImportNode : public Node {
   void Accept(AstWalker* walker) override;
 
  private:
-  StringNode* path_;
-  IdentifierNode* alias_;
+  std::unique_ptr<StringNode> path_;
+  std::unique_ptr<IdentifierNode> alias_;
 
   ImportNode(const ImportNode&) = delete;
   ImportNode& operator=(const ImportNode&) = delete;

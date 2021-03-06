@@ -14,15 +14,16 @@
 //
 #include <thrax/return-node.h>
 
+#include <memory>
+
+#include <thrax/node.h>
 #include <thrax/walker.h>
 
 namespace thrax {
 
 ReturnNode::ReturnNode(Node* node) : Node(), node_(node) {}
 
-ReturnNode::~ReturnNode() { delete node_; }
-
-Node* ReturnNode::Get() const { return node_; }
+Node* ReturnNode::Get() const { return node_.get(); }
 
 void ReturnNode::Accept(AstWalker* walker) { walker->Visit(this); }
 

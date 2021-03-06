@@ -66,18 +66,18 @@ class StringFile : public Function<Arc> {
     const ::fst::SymbolTable *isymbols = nullptr;
     if (args.size() == 1) {
       // If the StringFile call doesn't specify a parse mode, but if
-      // FLAGS_save_symbols is set, we should set the symbol table to byte
+      // FST_FLAGS_save_symbols is set, we should set the symbol table to byte
       // mode.
-      if (FLAGS_save_symbols) isymbols = GetByteSymbolTable();
+      if (FST_FLAGS_save_symbols) isymbols = GetByteSymbolTable();
     } else if (args.size() > 1) {
       if (args[1]->is<std::string>()) {
         if (*args[1]->get<std::string>() == "utf8") {
           imode = ::fst::TokenType::UTF8;
-          if (FLAGS_save_symbols)
+          if (FST_FLAGS_save_symbols)
             isymbols = GetUtf8SymbolTable();
         } else {
           imode = ::fst::TokenType::BYTE;
-          if (FLAGS_save_symbols)
+          if (FST_FLAGS_save_symbols)
             isymbols = GetByteSymbolTable();
         }
       } else if (args[1]->is<::fst::SymbolTable>()) {
@@ -97,11 +97,11 @@ class StringFile : public Function<Arc> {
       if (args[2]->is<std::string>()) {
         if (*args[2]->get<std::string>() == "utf8") {
           omode = ::fst::TokenType::UTF8;
-          if (FLAGS_save_symbols)
+          if (FST_FLAGS_save_symbols)
             osymbols = GetUtf8SymbolTable();
         } else {
           omode = ::fst::TokenType::BYTE;
-          if (FLAGS_save_symbols)
+          if (FST_FLAGS_save_symbols)
             osymbols = GetByteSymbolTable();
         }
       } else if (args[2]->is<::fst::SymbolTable>()) {
@@ -113,8 +113,8 @@ class StringFile : public Function<Arc> {
         return nullptr;
       }
     }
-    const auto filename =
-        JoinPath(FLAGS_indir, *args[0]->get<std::string>());
+    const auto filename = JoinPath(FST_FLAGS_indir,
+                                           *args[0]->get<std::string>());
     auto fst = std::make_unique<MutableTransducer>();
     if (!::fst::StringFileCompile(filename, fst.get(), imode, omode,
                                       isymbols, osymbols)) {
@@ -130,7 +130,7 @@ class StringFile : public Function<Arc> {
     ::fst::RmEpsilon(fst.get());
     static const ::fst::ILabelCompare<Arc> icomp;
     ::fst::ArcSort(fst.get(), icomp);
-    if (FLAGS_save_symbols) {
+    if (FST_FLAGS_save_symbols) {
       fst->SetInputSymbols(isymbols);
       fst->SetOutputSymbols(osymbols);
     }

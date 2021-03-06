@@ -15,6 +15,7 @@
 #ifndef NLP_GRM_LANGUAGE_UTIL_REWRITE_TESTER_UTILS_H_
 #define NLP_GRM_LANGUAGE_UTIL_REWRITE_TESTER_UTILS_H_
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -31,7 +32,7 @@ class RewriteTesterUtils {
  public:
   RewriteTesterUtils();
 
-  ~RewriteTesterUtils();
+  ~RewriteTesterUtils() = default;
 
   void Initialize();
 
@@ -48,13 +49,13 @@ class RewriteTesterUtils {
 
   ::thrax::GrmManagerSpec<::fst::StdArc> grm_;
   std::vector<std::string> rules_;
-  ::fst::StringCompiler<::fst::StdArc>* compiler_;
-  ::fst::SymbolTable* byte_symtab_;
-  ::fst::SymbolTable* utf8_symtab_;
-  const ::fst::SymbolTable* generated_symtab_;
-  ::fst::SymbolTable* input_symtab_;
+  std::unique_ptr<::fst::StringCompiler<::fst::StdArc>> compiler_;
+  std::unique_ptr<::fst::SymbolTable> byte_symtab_;
+  std::unique_ptr<::fst::SymbolTable> utf8_symtab_;
+  std::unique_ptr<::fst::SymbolTable> generated_symtab_;
+  std::unique_ptr<::fst::SymbolTable> input_symtab_;
   ::fst::TokenType type_;
-  ::fst::SymbolTable* output_symtab_;
+  std::unique_ptr<::fst::SymbolTable> output_symtab_;
 
   RewriteTesterUtils(const RewriteTesterUtils&) = delete;
   RewriteTesterUtils& operator=(const RewriteTesterUtils&) = delete;

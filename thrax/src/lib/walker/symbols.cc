@@ -16,6 +16,7 @@
 
 #include <stdio.h>
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -36,11 +37,11 @@ const ::fst::SymbolTable* GetUtf8SymbolTable() {
   return kSymbolTableBuilder.GetUtf8SymbolTable();
 }
 
-void AddToByteSymbolTable(std::string symbol, int64 label) {
+void AddToByteSymbolTable(std::string symbol, int64_t label) {
   kSymbolTableBuilder.AddToByteSymbolTable(symbol, label);
 }
 
-void AddToUtf8SymbolTable(std::string symbol, int64 label) {
+void AddToUtf8SymbolTable(std::string symbol, int64_t label) {
   kSymbolTableBuilder.AddToUtf8SymbolTable(symbol, label);
 }
 
@@ -156,12 +157,14 @@ const ::fst::SymbolTable* SymbolTableBuilder::GetUtf8SymbolTable() {
   return utf8_symbols_.get();
 }
 
-void SymbolTableBuilder::AddToByteSymbolTable(std::string symbol, int64 label) {
+void SymbolTableBuilder::AddToByteSymbolTable(std::string symbol,
+                                              int64_t label) {
   if (!byte_symbols_) return;
   byte_symbols_->AddSymbol(symbol, label);
 }
 
-void SymbolTableBuilder::AddToUtf8SymbolTable(std::string symbol, int64 label) {
+void SymbolTableBuilder::AddToUtf8SymbolTable(std::string symbol,
+                                              int64_t label) {
   if (!utf8_symbols_) return;
   utf8_symbols_->AddSymbol(symbol, label);
 }

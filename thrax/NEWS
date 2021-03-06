@@ -119,3 +119,7 @@ Thrax - Release 1.3.5
 
  * Better internal use of smart pointers
  * Compatibility with OpenFst version 1.8.0
+
+Thrax - Release 1.3.6
+
+  * Compatibility with OpenFst version 1.8.1

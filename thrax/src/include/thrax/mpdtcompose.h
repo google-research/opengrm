@@ -94,7 +94,7 @@ class MPdtCompose : public Function<Arc> {
     }
     const Transducer* left = *args[0]->get<Transducer*>();
     const Transducer* right = *args[1]->get<Transducer*>();
-    if (FLAGS_save_symbols) {
+    if (FST_FLAGS_save_symbols) {
       if (!::fst::CompatSymbols(left->OutputSymbols(),
                                     right->InputSymbols())) {
         std::cout << "MPdtCompose: output symbol table of 1st argument "
