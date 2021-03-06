@@ -1,6 +1,7 @@
 v. 0.3
 ======
 
+* Compatibility with OpenFst 1.8.1 (0.3.6)
 * Compatibility with OpenFst 1.8.0 (0.3.5)
 * Uses `constexpr-if` in place of SFINAE (0.3.5)
 * Compatibility with OpenFst 1.7.9 (0.3.4)

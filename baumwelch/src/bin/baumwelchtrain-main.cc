@@ -75,13 +75,13 @@ int baumwelchtrain_main(int argc, char **argv) {
   if (!model) return 1;
 
   const TrainBaumWelchOptions opts(
-      /*max_iters=*/FLAGS_max_iters,
-      /*lr=*/FLAGS_lr,
-      /*batch_size=*/FLAGS_batch_size,
-      /*delta=*/FLAGS_delta);
+      /*max_iters=*/FST_FLAGS_max_iters,
+      /*lr=*/FST_FLAGS_lr,
+      /*batch_size=*/FST_FLAGS_batch_size,
+      /*delta=*/FST_FLAGS_delta);
 
   TrainBaumWelch(input.get(), output.get(), model.get(),
-                 FLAGS_normalize_ilabel, opts);
+                 FST_FLAGS_normalize_ilabel, opts);
 
   return !model->Write(out_name);
 }

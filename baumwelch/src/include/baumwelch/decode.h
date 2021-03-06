@@ -56,7 +56,11 @@ void MakeString(MutableFst<Arc> *fst) {
 template <class Arc>
 CompactUnweightedFst<Arc> DecodePair(const Fst<Arc> &ifst) {
   VectorFst<Arc> ofst;
-  ShortestPath(ifst, &ofst);
+  if constexpr (IsPath<typename Arc::Weight>::value) {
+    ShortestPath(ifst, &ofst);
+  } else {
+    AStarSingleShortestPath(ifst, &ofst);
+  }
   MakeString(&ofst);
   return CompactUnweightedFst<Arc>(ofst);
 }

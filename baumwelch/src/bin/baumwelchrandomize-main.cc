@@ -48,7 +48,7 @@ int baumwelchrandomize_main(int argc, char **argv) {
   std::unique_ptr<MutableFstClass> fst(MutableFstClass::Read(in_name, true));
   if (!fst) return 1;
 
-  s::RandomizeBaumWelch(fst.get(), FLAGS_seed);
+  s::RandomizeBaumWelch(fst.get(), FST_FLAGS_seed);
 
   return !fst->Write(out_name);
 }
