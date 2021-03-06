@@ -271,6 +271,10 @@ class ExceptionsTest(unittest.TestCase):
     with self.assertRaises(FstArgError):
       unused_f = string_file(self.map_file, output_token_type="nonexistent")
 
+  def testNonexistentStringFileRaisesFstIOError(self):
+    with self.assertRaises(FstIOError):
+      unused_f = string_file("nonexistent")
+
   def testGarbageInputTokenTypeStringMapRaisesFstArgError(self):
     with self.assertRaises(FstArgError):
       unused_f = string_map([], input_token_type="nonexistent")

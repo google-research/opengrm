@@ -1,10 +1,14 @@
 include AUTHORS
 include CHEATSHEET
 include CONTRIBUTING
-include extensions/*
 include LICENSE
 include NEWS
+include extensions/*
 include pynini/*
 include pywrapfst/*
+include scripts/*
 include tests/*
 include tests/testdata/*
+include third_party/bazel/*
+global-include *.bazel
+global-include *.bzl
