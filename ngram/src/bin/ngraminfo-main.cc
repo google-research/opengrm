@@ -116,9 +116,9 @@ int ngraminfo_main(int argc, char **argv) {
   }
   std::ostream &ostrm = ofstrm.is_open() ? ofstrm : std::cout;
   ngram::NGramModel<fst::StdArc> ngram(
-      *fst, 0, FLAGS_norm_eps,
-      FLAGS_check_consistency);
-  if (FLAGS_check_consistency && !ngram.CheckTopology()) {
+      *fst, 0, FST_FLAGS_norm_eps,
+      FST_FLAGS_check_consistency);
+  if (FST_FLAGS_check_consistency && !ngram.CheckTopology()) {
     NGRAMERROR() << "Bad ngram model topology";
     return 1;
   }

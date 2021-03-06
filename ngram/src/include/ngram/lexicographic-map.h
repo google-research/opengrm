@@ -20,12 +20,14 @@
 // 2011, Portland, OR.
 //
 // The conversion back and forth between the W and the
-// Lexicographic<W, W> semiring is handled by a map (fst::Map). Also
+// Lexicographic<W, W> semiring is handled by a map (fst::ArcMap). Also
 // provided is a lightweight class to perform the composition, epsilon
 // removal and determinization required by the method.
 
 #ifndef NGRAM_LEXICOGRAPHIC_MAP_H_
 #define NGRAM_LEXICOGRAPHIC_MAP_H_
+
+#include <cstdint>
 
 #include <fst/arc.h>
 #include <fst/compose.h>
@@ -39,18 +41,18 @@
 
 namespace ngram {
 
-using fst::kNoStateId;
+using fst::ArcMap;
 using fst::Compose;
 using fst::Determinize;
 using fst::Fst;
+using fst::kNoStateId;
 using fst::kWeightInvariantProperties;
 using fst::LexicographicArc;
 using fst::LexicographicWeight;
-using fst::Map;
+using fst::MAP_COPY_SYMBOLS;
+using fst::MAP_NO_SUPERFINAL;
 using fst::MapFinalAction;
 using fst::MapSymbolsAction;
-using fst::MAP_NO_SUPERFINAL;
-using fst::MAP_COPY_SYMBOLS;
 using fst::MutableFst;
 using fst::Power;
 using fst::ProjectProperties;
@@ -66,15 +68,15 @@ using fst::VectorFst;
 // Power is really power and not (as in the Tropical),
 // multiplication.
 
-static const int32 kBackoffPenalty = 2;
+static const int32_t kBackoffPenalty = 2;
 
 template <class A>
 struct ToLexicographicMapper {
-  typedef A FromArc;
-  typedef typename A::Weight W;
+  using FromArc = A;
+  using W = typename A::Weight;
 
-  typedef LexicographicArc<W, W> ToArc;
-  typedef typename ToArc::Weight LW;
+  using ToArc = LexicographicArc<W, W>;
+  using LW = typename ToArc::Weight;
 
   explicit ToLexicographicMapper(NGramModel<StdArc>* in_model)
       : model(in_model) {}
@@ -116,7 +118,7 @@ struct ToLexicographicMapper {
     return fst::MAP_COPY_SYMBOLS;
   }
 
-  uint64 Properties(uint64 props) const {
+  uint64_t Properties(uint64_t props) const {
     return ProjectProperties(props, true) & kWeightInvariantProperties;
   }
 
@@ -125,18 +127,19 @@ struct ToLexicographicMapper {
 
 template <class A>
 struct FromLexicographicMapper {
-  typedef A ToArc;
-  typedef typename A::Weight W;
-  typedef LexicographicArc<W, W> FromArc;
-  typedef typename FromArc::Weight LW;
+  using ToArc = A;
+  using W = typename A::Weight;
+  using FromArc = LexicographicArc<W, W>;
+  using LW = typename FromArc::Weight;
 
   ToArc operator()(const FromArc& arc) const {
     // 'Super-final' arc and 'Super-non-final' arc
-    if (arc.nextstate == kNoStateId)
+    if (arc.nextstate == kNoStateId) {
       return ToArc(0, 0, W(arc.weight.Value2()), kNoStateId);
-    else
+    } else {
       return ToArc(arc.ilabel, arc.olabel, W(arc.weight.Value2()),
                    arc.nextstate);
+    }
   }
 
   fst::MapFinalAction FinalAction() const {
@@ -151,7 +154,7 @@ struct FromLexicographicMapper {
     return fst::MAP_COPY_SYMBOLS;
   }
 
-  uint64 Properties(uint64 props) const {
+  uint64_t Properties(uint64_t props) const {
     return ProjectProperties(props, true) & kWeightInvariantProperties;
   }
 };
@@ -159,17 +162,15 @@ struct FromLexicographicMapper {
 template <class A>
 class LexicographicRescorer {
  public:
-  typedef ToLexicographicMapper<A> ToMapper;
-  typedef FromLexicographicMapper<A> FromMapper;
+  using ToMapper = ToLexicographicMapper<A>;
+  using FromMapper = FromLexicographicMapper<A>;
 
-  typedef typename A::Weight W;
-  typedef typename ToMapper::ToArc ToArc;
+  using W = typename A::Weight;
+  using ToArc = typename ToMapper::ToArc;
 
   LexicographicRescorer(MutableFst<A>* lm, NGramModel<StdArc>* model) {
-    Map(*lm, &lm_, ToMapper(model));
+    ArcMap(*lm, &lm_, ToMapper(model));
   }
-
-  ~LexicographicRescorer() {}
 
   VectorFst<A>* Rescore(MutableFst<A>* lattice);
 
@@ -181,17 +182,17 @@ class LexicographicRescorer {
 template <class A>
 VectorFst<A>* LexicographicRescorer<A>::Rescore(MutableFst<A>* lattice) {
   VectorFst<ToArc> lexlat;
-  Map(*lattice, &lexlat, ToMapper(NULL));
+  ArcMap(*lattice, &lexlat, ToMapper(nullptr));
   VectorFst<ToArc> comp;
   Compose(lexlat, lm_, &comp);
   RmEpsilon(&comp);
   VectorFst<ToArc> det;
   Determinize(comp, &det);
-  Map(det, &result_, FromMapper());
+  ArcMap(det, &result_, FromMapper());
   return &result_;
 }
 
-typedef LexicographicRescorer<StdArc> StdLexicographicRescorer;
+using StdLexicographicRescorer = LexicographicRescorer<StdArc>;
 
 }  // namespace ngram
 

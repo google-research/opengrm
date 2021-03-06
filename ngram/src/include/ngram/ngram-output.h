@@ -18,6 +18,7 @@
 #ifndef NGRAM_NGRAM_OUTPUT_H_
 #define NGRAM_NGRAM_OUTPUT_H_
 
+#include <cstdint>
 #include <ostream>
 #include <string>
 
@@ -76,11 +77,11 @@ class NGramOutput : public NGramMutableModel<StdArc> {
   // Use n-gram model to calculate perplexity of input strings.
   bool PerplexityNGramModel(
       const std::vector<std::unique_ptr<fst::StdVectorFst>> &infsts,
-      int32 v, bool phimatch, std::string *OOV_symbol, double OOV_class_size,
+      int32_t v, bool phimatch, std::string *OOV_symbol, double OOV_class_size,
       double OOV_probability);
 
   // Extract random samples from model and output
-  void SampleStringsFromModel(int64 samples, bool show_backoff) {
+  void SampleStringsFromModel(int64_t samples, bool show_backoff) {
     DeBackoffNGramModel();                  // Convert from backoff
     if (Error()) return;
     RandNGramModel(samples, show_backoff);  // randgen from resulting model
@@ -222,7 +223,7 @@ class NGramOutput : public NGramMutableModel<StdArc> {
                            bool *first_printed, bool show_backoff) const;
 
   // Produce and output random samples from model using rand/srand
-  void RandNGramModel(int64 samples, bool show_backoff) const;
+  void RandNGramModel(int64_t samples, bool show_backoff) const;
 
   // Checks parameterization of perplexity calculation and sets OOV_label
   bool GetOOVLabel(double *OOV_probability, std::string *OOV_symbol,

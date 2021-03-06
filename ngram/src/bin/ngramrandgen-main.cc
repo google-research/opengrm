@@ -116,7 +116,7 @@ int ngramrandgen_main(int argc, char **argv) {
     return 1;
   }
 
-  VLOG(1) << argv[0] << ": Seed = " << FLAGS_seed;
+  VLOG(1) << argv[0] << ": Seed = " << FST_FLAGS_seed;
 
   std::string ifile = (argc > 1 && (strcmp(argv[1], "-") != 0)) ? argv[1] : "";
   std::string ofile = (argc > 2 && (strcmp(argv[2], "-") != 0)) ? argv[2] : "";
@@ -135,23 +135,23 @@ int ngramrandgen_main(int argc, char **argv) {
   fst::StdVectorFst ofst;
 
   ngram::NGramArcSelector<fst::StdArc> selector(
-      FLAGS_seed ? FLAGS_seed : time(nullptr));
+      FST_FLAGS_seed ? FST_FLAGS_seed : time(nullptr));
   fst::RandGenOptions<ngram::NGramArcSelector<fst::StdArc>> opts(
-      selector, FLAGS_max_length, FLAGS_max_sents,
-      FLAGS_weighted, FLAGS_remove_total_weight);
+      selector, FST_FLAGS_max_length, FST_FLAGS_max_sents,
+      FST_FLAGS_weighted, FST_FLAGS_remove_total_weight);
   fst::RandGen(*ifst, &ofst, opts);
   ofst.SetInputSymbols(ifst->InputSymbols());  // takes model symbol tables
   ofst.SetOutputSymbols(ifst->OutputSymbols());
-  if (FLAGS_weighted) {
+  if (FST_FLAGS_weighted) {
     int far_incr = 1;
     int far_len = 1;
     FarWriteFst(far_writer.get(), &ofst, &far_incr, far_len);
   } else {
     int far_cnt = 1;
-    int far_len = CalcExtLen(FLAGS_max_sents, nullptr, 0);
+    int far_len = CalcExtLen(FST_FLAGS_max_sents, nullptr, 0);
     std::vector<int> labels;
     WritePathsToFar(&ofst, ofst.Start(), &labels, far_writer.get(), far_cnt,
-                    far_len, FLAGS_remove_epsilon);
+                    far_len, FST_FLAGS_remove_epsilon);
   }
 
   return 0;

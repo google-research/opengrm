@@ -34,7 +34,7 @@ using fst::StdILabelCompare;
 bool NGramAbsolute::MakeNGramModel() {
   count_of_counts_.CalculateCounts(*this);
   CalculateDiscounts();
-  if (FLAGS_v > 0)
+  if (FST_FLAGS_v > 0)
     count_of_counts_.ShowCounts(discount_, "Absolute discounts");
   return NGramMake::MakeNGramModel();
 }

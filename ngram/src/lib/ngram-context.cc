@@ -110,7 +110,7 @@ bool NGramContext::HasContext(const std::vector<Label> &ngram,
   return !less_begin && less_end;
 }
 
-void NGramContext::ParseContextInterval(const std::string &context_pattern,
+void NGramContext::ParseContextInterval(std::string_view context_pattern,
                                         std::vector<Label> *context_begin,
                                         std::vector<Label> *context_end) {
   context_begin->clear();
@@ -118,20 +118,14 @@ void NGramContext::ParseContextInterval(const std::string &context_pattern,
 
   if (context_pattern.empty()) return;
 
-  const int linelen = 1024;
-  if (context_pattern.size() >= linelen)
-    LOG(FATAL) << "NGramContext::ParseContextInterval: "
-               << "context pattern too long";
-  char line[linelen];
-  std::vector<char *> contexts;
-  std::vector<char *> labels1;
-  std::vector<char *> labels2;
-  strncpy(line, context_pattern.c_str(), linelen);
-  fst::SplitString(line, ":", &contexts, true);
+  std::vector<std::string_view> contexts =
+      fst::SplitString(context_pattern, ":", true);
   if (contexts.size() != 2)
     LOG(FATAL) << "NGramContext: bad context pattern: " << context_pattern;
-  fst::SplitString(contexts[0], " ", &labels1, true);
-  fst::SplitString(contexts[1], " ", &labels2, true);
+  std::vector<std::string_view> labels1 =
+      fst::SplitString(contexts[0], " ", true);
+  std::vector<std::string_view> labels2 =
+      fst::SplitString(contexts[1], " ", true);
   for (int i = 0; i < labels1.size(); ++i) {
     Label label = fst::StrToInt64(labels1[i], "context begin", 1, false);
     context_begin->push_back(label);
@@ -229,11 +223,8 @@ void NGramExtendedContext::ParseContextIntervals(
     const std::string &extended_context_pattern, int hi_order,
     std::vector<NGramContext> *contexts) {
   contexts->clear();
-  int linelen = extended_context_pattern.size() + 1;
-  std::unique_ptr<char[]> line(new char[linelen]);
-  strncpy(line.get(), extended_context_pattern.c_str(), linelen);
-  std::vector<char *> context_patterns;
-  fst::SplitString(line.get(), ",", &context_patterns, true);
+  std::vector<std::string_view> context_patterns =
+      fst::SplitString(extended_context_pattern, ",", true);
 
   for (size_t i = 0; i < context_patterns.size(); ++i)
     contexts->push_back(NGramContext(context_patterns[i], hi_order));

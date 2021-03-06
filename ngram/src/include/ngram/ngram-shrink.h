@@ -18,6 +18,7 @@
 #ifndef NGRAM_NGRAM_SHRINK_H_
 #define NGRAM_NGRAM_SHRINK_H_
 
+#include <cstdint>
 #include <limits>
 #include <sstream>
 
@@ -921,8 +922,8 @@ void NGramShrink<Arc>::PointDeadBackoffArcs() {
 bool NGramShrinkModel(
     fst::StdMutableFst *fst, const std::string &method,
     const std::set<std::vector<fst::StdArc::Label>> &ngram_list,
-    double tot_uni = -1.0, double theta = 0.0, int64 target_num = -1,
-    int32 min_order = 2, const std::string &count_pattern = "",
+    double tot_uni = -1.0, double theta = 0.0, int64_t target_num = -1,
+    int32_t min_order = 2, const std::string &count_pattern = "",
     const std::string &context_pattern = "", int shrink_opt = 0,
     fst::StdArc::Label backoff_label = 0, double norm_eps = kNormEps,
     bool check_consistency = false);
@@ -930,7 +931,7 @@ bool NGramShrinkModel(
 // Makes model from NGram model FST with StdArc counts.
 bool NGramShrinkModel(fst::StdMutableFst *fst, const std::string &method,
                       double tot_uni = -1.0, double theta = 0.0,
-                      int64 target_num = -1, int32 min_order = 2,
+                      int64_t target_num = -1, int32_t min_order = 2,
                       const std::string &count_pattern = "",
                       const std::string &context_pattern = "",
                       int shrink_opt = 0,

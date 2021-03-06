@@ -16,6 +16,7 @@
 // Generates random sentences from an LM or more generally paths through any
 // FST where epsilons are treated as failure transitions.
 
+#include <cstdint>
 #include <fstream>
 #include <ostream>
 #include <sstream>
@@ -105,7 +106,7 @@ void BuildRandomUnigram(fst::StdMutableFst *unigram, int vocabulary_max,
 }
 
 // Sets up filenames for dumping randomly generated counts and models
-std::string directory_label(int32 seed, std::string dir) {
+std::string directory_label(int32_t seed, std::string dir) {
   std::ostringstream seedlabel;
   seedlabel << seed;
   std::string directory = (dir.empty()) ? "" : dir + "/";
@@ -114,7 +115,7 @@ std::string directory_label(int32 seed, std::string dir) {
 }
 
 // Sets up filenames for shard far files
-std::string far_name(int32 far_num) {
+std::string far_name(int32_t far_num) {
   std::ostringstream far_label;
   far_label << far_num;
   std::string far_num_name = "tocount.far." + far_label.str();
@@ -208,21 +209,22 @@ int ngramrandtest_main(int argc, char **argv) {
   SET_FLAGS(usage.c_str(), &argc, &argv, true);
 
   std::ofstream varfstrm;
-  if (!FLAGS_vars.empty()) {
-    varfstrm.open(FLAGS_vars);
+  if (!FST_FLAGS_vars.empty()) {
+    varfstrm.open(FST_FLAGS_vars);
     if (!varfstrm) {
-      LOG(ERROR) << argv[0] << ": Open failed, file = " << FLAGS_vars;
+      LOG(ERROR) << argv[0]
+                 << ": Open failed, file = " << FST_FLAGS_vars;
       return 1;
     }
   }
   std::ostream &varstrm = varfstrm.is_open() ? varfstrm : std::cout;
 
-  varstrm << "SEED=" << FLAGS_seed << std::endl;
+  varstrm << "SEED=" << FST_FLAGS_seed << std::endl;
   VLOG(0) << "Random Test Seed = "
-          << FLAGS_seed;  // Always show the seed
+          << FST_FLAGS_seed;  // Always show the seed
   // set output directory and seed-based file names
-  std::string directory =
-      directory_label(FLAGS_seed, FLAGS_directory);
+  std::string directory = directory_label(FST_FLAGS_seed,
+                                          FST_FLAGS_directory);
   std::ofstream cntxfstrm;
   cntxfstrm.open(directory + "cntxs");
   if (!cntxfstrm) {
@@ -234,28 +236,28 @@ int ngramrandtest_main(int argc, char **argv) {
   std::unique_ptr<fst::FarWriter<fst::StdArc>> far_writer(
       fst::FarWriter<fst::StdArc>::Create(directory + "tocount.far",
                                                   far_type));
-  ngram::NGramArcSelector<fst::StdArc> selector(FLAGS_seed);
+  ngram::NGramArcSelector<fst::StdArc> selector(FST_FLAGS_seed);
   // rand burn in, for improved randomness;
   for (int i = 0; i < 10; i++) rand();  // NOLINT
 
   fst::StdVectorFst unigram;  // initial random unigram model
-  BuildRandomUnigram(&unigram, FLAGS_vocabulary_max,
-                     FLAGS_mean_length, cntxstrm);
+  BuildRandomUnigram(&unigram, FST_FLAGS_vocabulary_max,
+                     FST_FLAGS_mean_length, cntxstrm);
   fst::StdVectorFst countfst1;  // n-gram counts from random corpus
   double num_samples =
-      FLAGS_sample_max * (rand() / (RAND_MAX + 1.0));  // NOLINT
+      FST_FLAGS_sample_max * (rand() / (RAND_MAX + 1.0));  // NOLINT
   int num_strings = ceil(num_samples);
   int far_cnt =
       CountFromRandGen(&unigram, &countfst1, &selector, num_strings,
-                       far_writer.get(), 0, FLAGS_max_length,
-                       FLAGS_ngram_max, directory, 1, varstrm);
+                       far_writer.get(), 0, FST_FLAGS_max_length,
+                       FST_FLAGS_ngram_max, directory, 1, varstrm);
   // copy first count file, since making model modifies input counts
   fst::StdMutableFst *modfst1 =
       RandomMake(&countfst1);  // model from counts
 
   fst::StdVectorFst countfst2;  // n-gram counts from 2nd random corpus
   CountFromRandGen(modfst1, &countfst2, &selector, num_strings,
-                   far_writer.get(), far_cnt, FLAGS_max_length,
-                   FLAGS_ngram_max, directory, 0, varstrm);
+                   far_writer.get(), far_cnt, FST_FLAGS_max_length,
+                   FST_FLAGS_ngram_max, directory, 0, varstrm);
   return 0;
 }

@@ -58,15 +58,15 @@ int ngramshrink_main(int argc, char **argv) {
   if (!fst) return 1;
 
   std::set<std::vector<fst::StdArc::Label>> ngram_list;
-  if (FLAGS_method == "list_prune") {
-    if (FLAGS_list_file.empty()) {
+  if (FST_FLAGS_method == "list_prune") {
+    if (FST_FLAGS_list_file.empty()) {
       LOG(WARNING) << "list_file parameter empty, no n-grams given";
       return 1;
     }
-    std::ifstream ifstrm(FLAGS_list_file);
+    std::ifstream ifstrm(FST_FLAGS_list_file);
     if (!ifstrm) {
-      LOG(WARNING) << "NGramShrink: Can't open " << FLAGS_list_file
-                   << " for reading";
+      LOG(WARNING) << "NGramShrink: Can't open "
+                   << FST_FLAGS_list_file << " for reading";
       return 1;
     }
     std::string line;
@@ -77,16 +77,17 @@ int ngramshrink_main(int argc, char **argv) {
     ifstrm.close();
     ngram::GetNGramListToPrune(ngrams_to_prune, fst->InputSymbols(),
                                &ngram_list,
-                               FLAGS_retry_downcase);
+                               FST_FLAGS_retry_downcase);
   }
   if (!ngram::NGramShrinkModel(
-          fst.get(), FLAGS_method, ngram_list,
-          FLAGS_total_unigram_count, FLAGS_theta,
-          FLAGS_target_number_of_ngrams,
-          FLAGS_min_order_to_prune, FLAGS_count_pattern,
-          FLAGS_context_pattern, FLAGS_shrink_opt,
-          FLAGS_backoff_label, FLAGS_norm_eps,
-          FLAGS_check_consistency))
+          fst.get(), FST_FLAGS_method, ngram_list,
+          FST_FLAGS_total_unigram_count, FST_FLAGS_theta,
+          FST_FLAGS_target_number_of_ngrams,
+          FST_FLAGS_min_order_to_prune,
+          FST_FLAGS_count_pattern,
+          FST_FLAGS_context_pattern, FST_FLAGS_shrink_opt,
+          FST_FLAGS_backoff_label, FST_FLAGS_norm_eps,
+          FST_FLAGS_check_consistency))
     return 1;
 
   fst->Write(out_name);

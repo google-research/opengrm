@@ -64,7 +64,8 @@ int ngramperplexity_main(int argc, char **argv) {
   }
   std::ostream &ostrm = ofstrm.is_open() ? ofstrm : std::cout;
 
-  ngram::NGramOutput ngram(fst.get(), ostrm, 0, false, FLAGS_context_pattern);
+  ngram::NGramOutput ngram(fst.get(), ostrm, 0, false,
+                           FST_FLAGS_context_pattern);
 
   if (in2_name.empty()) {
     if (in1_name.empty()) {
@@ -87,7 +88,7 @@ int ngramperplexity_main(int argc, char **argv) {
   }
 
   return !ngram.PerplexityNGramModel(
-      infsts, FLAGS_v, FLAGS_use_phimatcher,
-      &FLAGS_OOV_symbol, FLAGS_OOV_class_size,
-      FLAGS_OOV_probability);
+      infsts, FST_FLAGS_v, FST_FLAGS_use_phimatcher,
+      &FST_FLAGS_OOV_symbol, FST_FLAGS_OOV_class_size,
+      FST_FLAGS_OOV_probability);
 }

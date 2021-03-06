@@ -17,6 +17,8 @@
 
 #include <ngram/ngram-make.h>
 
+#include <cstdint>
+
 #include <fst/map.h>
 #include <ngram/hist-arc.h>
 #include <ngram/ngram-absolute.h>
@@ -42,7 +44,7 @@ struct ToStdArcMapper {
   MapFinalAction FinalAction() const { return MAP_NO_SUPERFINAL; }
   MapSymbolsAction InputSymbolsAction() const { return MAP_COPY_SYMBOLS; }
   MapSymbolsAction OutputSymbolsAction() const { return MAP_COPY_SYMBOLS; }
-  uint64 Properties(uint64 props) const { return props; }
+  uint64_t Properties(uint64_t props) const { return props; }
 };
 
 }  // namespace fst
@@ -52,8 +54,8 @@ namespace ngram {
 // Makes models from NGram count FSTs with StdArc counts.
 bool NGramMakeModel(fst::StdMutableFst *fst, const std::string &method,
                     const fst::StdFst *ccfst, bool backoff,
-                    bool interpolate, int64 bins, double witten_bell_k,
-                    double discount_D, int64 backoff_label, double norm_eps,
+                    bool interpolate, int64_t bins, double witten_bell_k,
+                    double discount_D, int64_t backoff_label, double norm_eps,
                     bool check_consistency) {
   if (backoff && interpolate) {
     // Checks that these parameters make sense.  If both are false, defaults
@@ -115,8 +117,8 @@ bool NGramMakeModel(fst::StdMutableFst *fst, const std::string &method,
 bool NGramMakeModel(fst::script::MutableFstClass *fst,
                     const std::string &method,
                     const fst::script::FstClass *ccfst, bool backoff,
-                    bool interpolate, int64 bins, double witten_bell_k,
-                    double discount_D, int64 backoff_label, double norm_eps,
+                    bool interpolate, int64_t bins, double witten_bell_k,
+                    double discount_D, int64_t backoff_label, double norm_eps,
                     bool check_consistency) {
   StdMutableFst *typed_fst = fst->GetMutableFst<StdArc>();
   const StdFst *typed_ccfst = ccfst ? ccfst->GetFst<StdArc>() : nullptr;
@@ -129,7 +131,7 @@ bool NGramMakeModel(fst::script::MutableFstClass *fst,
 bool NGramMakeHistModel(fst::MutableFst<ngram::HistogramArc> *hist_fst,
                         fst::StdMutableFst *fst, const std::string &method,
                         const fst::StdFst *ccfst, bool interpolate,
-                        int64 bins, int64 backoff_label, double norm_eps,
+                        int64_t bins, int64_t backoff_label, double norm_eps,
                         bool check_consistency) {
   if (method == "katz_frac") {
     ngram::NGramKatz<ngram::HistogramArc> ngram(hist_fst, !interpolate,

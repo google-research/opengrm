@@ -57,8 +57,9 @@ int ngramsymbols_main(int argc, char **argv) {
   }
   std::ostream &ostrm = ofstrm.is_open() ? ofstrm : std::cout;
 
-  ngram::NGramInput input(istrm, ostrm, /*symbols=*/"", FLAGS_epsilon_symbol,
-                          FLAGS_OOV_symbol,
+  ngram::NGramInput input(istrm, ostrm, /*symbols=*/"",
+                          FST_FLAGS_epsilon_symbol,
+                          FST_FLAGS_OOV_symbol,
                           /*start_symbol=*/"", /*end_symbol=*/"");
   return !input.ReadInput(/*ARPA=*/false, /*symbols=*/true);
 }

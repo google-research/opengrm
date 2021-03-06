@@ -71,28 +71,28 @@ int ngramcount_main(int argc, char **argv) {
       (argc > 2 && (strcmp(argv[2], "-") != 0)) ? argv[2] : "";
 
   bool ngrams_counted = false;
-  if (FLAGS_method == "counts") {
+  if (FST_FLAGS_method == "counts") {
     std::unique_ptr<fst::FarReader<fst::StdArc>> far_reader(
         fst::FarReader<fst::StdArc>::Open(in_name));
     if (!far_reader) {
       LOG(ERROR) << "ngramcount: open of FST archive failed: " << in_name;
       return 1;
     }
-    if (FLAGS_output_fst) {
+    if (FST_FLAGS_output_fst) {
       fst::StdVectorFst fst;
       ngrams_counted = ngram::GetNGramCounts(
-          far_reader.get(), &fst, FLAGS_order,
-          FLAGS_require_symbols,
-          FLAGS_epsilon_as_backoff,
-          FLAGS_round_to_int,
-          FLAGS_add_to_symbol_unigram_count);
+          far_reader.get(), &fst, FST_FLAGS_order,
+          FST_FLAGS_require_symbols,
+          FST_FLAGS_epsilon_as_backoff,
+          FST_FLAGS_round_to_int,
+          FST_FLAGS_add_to_symbol_unigram_count);
       if (ngrams_counted) fst.Write(out_name);
     } else {
       std::vector<std::string> ngram_counts;
       ngrams_counted = ngram::GetNGramCounts(
-          far_reader.get(), &ngram_counts, FLAGS_order,
-          FLAGS_epsilon_as_backoff,
-          FLAGS_add_to_symbol_unigram_count);
+          far_reader.get(), &ngram_counts, FST_FLAGS_order,
+          FST_FLAGS_epsilon_as_backoff,
+          FST_FLAGS_add_to_symbol_unigram_count);
       std::ofstream ofstrm;
       if (!out_name.empty()) {
         ofstrm.open(out_name);
@@ -105,7 +105,7 @@ int ngramcount_main(int argc, char **argv) {
       for (size_t i = 0; i < ngram_counts.size(); ++i)
         ostrm << ngram_counts[i] << std::endl;
     }
-  } else if (FLAGS_method == "histograms") {
+  } else if (FST_FLAGS_method == "histograms") {
     std::unique_ptr<fst::FarReader<fst::StdArc>> far_reader(
         fst::FarReader<fst::StdArc>::Open(in_name));
     if (!far_reader) {
@@ -114,32 +114,35 @@ int ngramcount_main(int argc, char **argv) {
     }
     fst::VectorFst<fst::HistogramArc> fst;
     ngrams_counted = ngram::GetNGramHistograms(
-        far_reader.get(), &fst, FLAGS_order,
-        FLAGS_epsilon_as_backoff,
-        FLAGS_backoff_label, FLAGS_norm_eps,
-        FLAGS_check_consistency, FLAGS_normalize,
-        FLAGS_alpha, FLAGS_beta);
+        far_reader.get(), &fst, FST_FLAGS_order,
+        FST_FLAGS_epsilon_as_backoff,
+        FST_FLAGS_backoff_label, FST_FLAGS_norm_eps,
+        FST_FLAGS_check_consistency, FST_FLAGS_normalize,
+        FST_FLAGS_alpha, FST_FLAGS_beta);
     if (ngrams_counted) fst.Write(out_name);
-  } else if (FLAGS_method == "count_of_counts" ||
-             FLAGS_method == "count_of_histograms") {
+  } else if (FST_FLAGS_method == "count_of_counts" ||
+             FST_FLAGS_method == "count_of_histograms") {
     ngrams_counted = true;
     fst::StdVectorFst ccfst;
-    if (FLAGS_method == "count_of_counts") {
+    if (FST_FLAGS_method == "count_of_counts") {
       std::unique_ptr<fst::StdVectorFst> fst(
           fst::StdVectorFst::Read(in_name));
       if (!fst) return 1;
       ngram::GetNGramCountOfCounts<fst::StdArc>(
-          *fst, &ccfst, FLAGS_order, FLAGS_context_pattern);
+          *fst, &ccfst, FST_FLAGS_order,
+          FST_FLAGS_context_pattern);
     } else {
       std::unique_ptr<fst::VectorFst<fst::HistogramArc>> fst(
           fst::VectorFst<fst::HistogramArc>::Read(in_name));
       if (!fst) return 1;
       ngram::GetNGramCountOfCounts<fst::HistogramArc>(
-          *fst, &ccfst, FLAGS_order, FLAGS_context_pattern);
+          *fst, &ccfst, FST_FLAGS_order,
+          FST_FLAGS_context_pattern);
     }
     ccfst.Write(out_name);
   } else {
-    LOG(ERROR) << argv[0] << ": bad counting method: " << FLAGS_method;
+    LOG(ERROR) << argv[0]
+               << ": bad counting method: " << FST_FLAGS_method;
   }
   return !ngrams_counted;
 }

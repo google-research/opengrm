@@ -47,9 +47,9 @@ int ngramcontext_main(int argc, char **argv) {
 
   ngram::NGramModel<fst::StdArc> ngram(*in_fst, 0, ngram::kNormEps, true);
   std::vector<std::string> contexts;
-  ngram::NGramContext::FindContexts(ngram, FLAGS_contexts,
+  ngram::NGramContext::FindContexts(ngram, FST_FLAGS_contexts,
                                     &contexts,
-                                    FLAGS_bigram_threshold);
+                                    FST_FLAGS_bigram_threshold);
   bool ret = ngram::NGramWriteContexts(out_name, contexts);
 
   return !ret;

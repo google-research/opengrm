@@ -47,8 +47,8 @@ int ngramsort_main(int argc, char **argv) {
   if (!fst) return 1;
 
   ngram::NGramMutableModel<fst::StdArc> ngramlm(
-      fst.get(), FLAGS_backoff_label,
-      FLAGS_norm_eps,
+      fst.get(), FST_FLAGS_backoff_label,
+      FST_FLAGS_norm_eps,
       /* state_ngrams= */ true, /* infinite_backoff= */ false);
   ngramlm.SortStates();
   ngramlm.InitModel();

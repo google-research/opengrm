@@ -18,6 +18,7 @@
 #ifndef NGRAM_NGRAM_MODEL_H_
 #define NGRAM_NGRAM_MODEL_H_
 
+#include <cstdint>
 #include <deque>
 #include <vector>
 
@@ -150,8 +151,8 @@ class NGramModel {
   StateId NumStates() const { return nstates_; }
 
   // Size of ngram model is the sum of the number of states and number of arcs
-  int64 GetSize() const {
-    int64 size = 0;
+  int64_t GetSize() const {
+    int64_t size = 0;
     for (StateId st = 0; st < nstates_; ++st)
       size += fst_.NumArcs(st) + 1;  // number of arcs + 1 state
     return size;
@@ -310,7 +311,7 @@ class NGramModel {
     } else {
       NGramStateProbs(probs);
     }
-    if (FLAGS_v > 1) {
+    if (FST_FLAGS_v > 1) {
       for (size_t st = 0; st < probs->size(); ++st)
         std::cerr << "st: " << st << " log_prob: " << log((*probs)[st])
                   << std::endl;
@@ -331,8 +332,8 @@ class NGramModel {
       SetError();
       return;
     }
-    uint64 need_props = kAcceptor | kIDeterministic | kILabelSorted;
-    uint64 have_props = fst_.Properties(need_props, true);
+    uint64_t need_props = kAcceptor | kIDeterministic | kILabelSorted;
+    uint64_t have_props = fst_.Properties(need_props, true);
     if (!(have_props & kAcceptor)) {
       NGRAMERROR() << "NGramModel: input not an acceptor";
       SetError();

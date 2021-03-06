@@ -69,7 +69,7 @@ class NGramContext {
   // Example: "1 1 1 1 : 1 1 1 5" signifies a begin context vector of
   //   {1,1,1,1} and and end context vector of {1,1,1,5}. See next constructor
   //   for the behavior with these vectors.
-  NGramContext(const std::string &context_pattern, int hi_order)
+  NGramContext(std::string_view context_pattern, int hi_order)
       : hi_order_(hi_order) {
     ParseContextInterval(context_pattern, &context_begin_, &context_end_);
     Init();
@@ -89,7 +89,7 @@ class NGramContext {
 
   // Derives begin and end context vectors from input context pattern
   // string.
-  static void ParseContextInterval(const std::string &context_pattern,
+  static void ParseContextInterval(std::string_view context_pattern,
                                    std::vector<Label> *context_begin,
                                    std::vector<Label> *context_end);
 

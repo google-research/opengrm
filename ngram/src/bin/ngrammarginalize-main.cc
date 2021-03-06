@@ -50,10 +50,10 @@ int ngrammarginalize_main(int argc, char **argv) {
       fst::StdVectorFst::Read(in_name));
   if (!fst) return 1;
 
-  ngram::NGramMarginal ngramarg(fst.get(), FLAGS_backoff_label,
-                                FLAGS_norm_eps,
-                                FLAGS_max_bo_updates,
-                                FLAGS_check_consistency);
+  ngram::NGramMarginal ngramarg(fst.get(), FST_FLAGS_backoff_label,
+                                FST_FLAGS_norm_eps,
+                                FST_FLAGS_max_bo_updates,
+                                FST_FLAGS_check_consistency);
 
   ngramarg.MarginalizeNGramModel();
   if (ngramarg.Error()) return 1;

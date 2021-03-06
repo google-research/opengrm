@@ -55,7 +55,7 @@ class NGramKatz : public NGramMake<Arc> {
   bool MakeNGramModel() override {
     count_of_counts_.CalculateCounts(*this);
     CalculateDiscounts();
-    if (FLAGS_v > 0)
+    if (FST_FLAGS_v > 0)
       count_of_counts_.ShowCounts(discount_, "Katz discounts");
     return NGramMake<Arc>::MakeNGramModel();
   }

@@ -55,9 +55,9 @@ int ngramprint_main(int argc, char **argv) {
       fst::StdMutableFst::Read(in_name, true));
   if (!fst) return 1;
 
-  if (!FLAGS_symbols.empty()) {
+  if (!FST_FLAGS_symbols.empty()) {
     std::unique_ptr<fst::SymbolTable> syms(
-        fst::SymbolTable::ReadText(FLAGS_symbols));
+        fst::SymbolTable::ReadText(FST_FLAGS_symbols));
     if (!syms) return 1;
     fst->SetInputSymbols(syms.get());
     fst->SetOutputSymbols(syms.get());
@@ -73,22 +73,22 @@ int ngramprint_main(int argc, char **argv) {
   }
   std::ostream &ostrm = ofstrm.is_open() ? ofstrm : std::cout;
 
-  ngram::NGramOutput ngram(fst.get(), ostrm, FLAGS_backoff_label,
-                           FLAGS_check_consistency,
-                           FLAGS_context_pattern,
-                           FLAGS_include_all_suffixes);
+  ngram::NGramOutput ngram(fst.get(), ostrm, FST_FLAGS_backoff_label,
+                           FST_FLAGS_check_consistency,
+                           FST_FLAGS_context_pattern,
+                           FST_FLAGS_include_all_suffixes);
 
   // Parse --backoff and --backoff_inline flags, where --backoff takes precedent
   ngram::NGramOutput::ShowBackoff show_backoff =
       ngram::NGramOutput::ShowBackoff::NONE;
-  if (FLAGS_backoff) {
+  if (FST_FLAGS_backoff) {
     show_backoff = ngram::NGramOutput::ShowBackoff::EPSILON;
-    if (FLAGS_backoff_inline)
+    if (FST_FLAGS_backoff_inline)
       show_backoff = ngram::NGramOutput::ShowBackoff::INLINE;
   }
 
-  ngram.ShowNGramModel(show_backoff, FLAGS_negativelogs,
-                       FLAGS_integers,
-                       FLAGS_ARPA);
+  ngram.ShowNGramModel(show_backoff, FST_FLAGS_negativelogs,
+                       FST_FLAGS_integers,
+                       FST_FLAGS_ARPA);
   return 0;
 }

@@ -48,33 +48,34 @@ int ngrammake_main(int argc, char **argv) {
   std::string in_name =
       (argc > 1 && (strcmp(argv[1], "-") != 0)) ? argv[1] : "";
   std::unique_ptr<fst::StdFst> ccfst;
-  if (!FLAGS_count_of_counts.empty()) {
-    ccfst.reset(fst::StdFst::Read(FLAGS_count_of_counts));
+  if (!FST_FLAGS_count_of_counts.empty()) {
+    ccfst.reset(fst::StdFst::Read(FST_FLAGS_count_of_counts));
     if (!ccfst) return 1;
   }
 
   bool model_made = false;
   std::unique_ptr<fst::StdVectorFst> fst;
-  if (FLAGS_method == "katz_frac") {
+  if (FST_FLAGS_method == "katz_frac") {
     std::unique_ptr<fst::VectorFst<ngram::HistogramArc>> hist_fst(
         fst::VectorFst<ngram::HistogramArc>::Read(in_name));
     if (hist_fst) {
       fst.reset(new fst::StdVectorFst());
       model_made = ngram::NGramMakeHistModel(
-          hist_fst.get(), fst.get(), FLAGS_method, ccfst.get(),
-          FLAGS_interpolate, FLAGS_bins,
-          FLAGS_backoff_label, FLAGS_norm_eps,
-          FLAGS_check_consistency);
+          hist_fst.get(), fst.get(), FST_FLAGS_method, ccfst.get(),
+          FST_FLAGS_interpolate, FST_FLAGS_bins,
+          FST_FLAGS_backoff_label, FST_FLAGS_norm_eps,
+          FST_FLAGS_check_consistency);
     }
   } else {
     fst.reset(fst::StdVectorFst::Read(in_name));
     if (fst) {
       model_made = ngram::NGramMakeModel(
-          fst.get(), FLAGS_method, ccfst.get(), FLAGS_backoff,
-          FLAGS_interpolate, FLAGS_bins,
-          FLAGS_witten_bell_k, FLAGS_discount_D,
-          FLAGS_backoff_label, FLAGS_norm_eps,
-          FLAGS_check_consistency);
+          fst.get(), FST_FLAGS_method, ccfst.get(),
+          FST_FLAGS_backoff, FST_FLAGS_interpolate,
+          FST_FLAGS_bins, FST_FLAGS_witten_bell_k,
+          FST_FLAGS_discount_D, FST_FLAGS_backoff_label,
+          FST_FLAGS_norm_eps,
+          FST_FLAGS_check_consistency);
     }
   }
   if (model_made) {

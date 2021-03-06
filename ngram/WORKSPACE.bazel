@@ -35,11 +35,12 @@ http_archive(
 # ------------------------------------------------------------------------------
 # OpenFst:
 # ------------------------------------------------------------------------------
-openfst_version = "1.8.1-rc1"
+openfst_version = "1.8.1"
 
 http_archive(
     name = "org_openfst",
-    urls = ["https://github.com/agutkin/finite_state/raw/main/openfst-%s.tar.gz" % openfst_version],
-    sha256 = "e6e2fa06de302dd72741ffc30e772b88f0b2baec2f6dae780ca6412a3a213d8a",
-    strip_prefix = "openfst-%s" % openfst_version
+    urls = ["http://www.openfst.org/twiki/pub/FST/FstDownload/openfst-%s.tar.gz"
+            % openfst_version],
+    sha256 = "24fb53b72bb687e3fa8ee96c72a31ff2920d99b980a0a8f61dda426fca6713f0",
+    strip_prefix = "openfst-%s" % openfst_version,
 )

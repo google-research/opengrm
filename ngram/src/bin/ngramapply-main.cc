@@ -41,21 +41,22 @@ int ngramapply_main(int argc, char** argv) {
   }
 
   BACKOFF_TYPE type;
-  if (FLAGS_bo_arc_type == "phi") {
+  if (FST_FLAGS_bo_arc_type == "phi") {
     type = PHI;
-  } else if (FLAGS_bo_arc_type == "epsilon") {
+  } else if (FST_FLAGS_bo_arc_type == "epsilon") {
     type = EPS;
-  } else if (FLAGS_bo_arc_type == "lexicographic") {
+  } else if (FST_FLAGS_bo_arc_type == "lexicographic") {
     type = LEX_EPS;
   } else {
-    NGRAMERROR() << "Unknown backoff arc type: " << FLAGS_bo_arc_type;
+    NGRAMERROR() << "Unknown backoff arc type: "
+                 << FST_FLAGS_bo_arc_type;
     return 1;
   }
 
   // TODO(rws): This is temporary to avoid issues having to do with
   // symbol table compatibility. At some point we need to sanitize all
   // of that.
-  FLAGS_fst_compat_symbols = false;
+  FST_FLAGS_fst_compat_symbols = false;
   fst::FstReadOptions opts;
 
   std::string in1_name = strcmp(argv[1], "-") != 0 ? argv[1] : "";
@@ -118,7 +119,7 @@ int ngramapply_main(int argc, char** argv) {
     cfst->SetOutputSymbols(lattice->OutputSymbols());
     far_writer->Add(far_reader->GetKey(), *cfst);
     far_reader->Next();
-    if (FLAGS_v > 0)
+    if (FST_FLAGS_v > 0)
       std::cerr << "Done:\t" << far_reader->GetKey() << '\n';
   }
   return 0;

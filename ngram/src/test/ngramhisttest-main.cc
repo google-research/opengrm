@@ -38,46 +38,48 @@ int ngramhisttest_main(int argc, char **argv) {
   usage += " [--options]\n";
   std::set_new_handler(FailedNewHandler);
   SET_FLAGS(usage.c_str(), &argc, &argv, true);
-  if (FLAGS_ifile.empty() ||
-      (FLAGS_syms.empty() &&
-       FLAGS_cfile.empty())) {
+  if (FST_FLAGS_ifile.empty() ||
+      (FST_FLAGS_syms.empty() &&
+       FST_FLAGS_cfile.empty())) {
     LOG(ERROR)
         << "The --ifile option and one of --syms and --cfile must be non-empty";
     return 1;
   }
-  if (!FLAGS_syms.empty() &&
-      !FLAGS_cfile.empty()) {
+  if (!FST_FLAGS_syms.empty() &&
+      !FST_FLAGS_cfile.empty()) {
     LOG(ERROR) << "Both --syms and --cfile cannot be provided.  Give --syms to "
                   "compile the --ifile; give --cfile to compare with --ifile.";
     return 1;
   }
-  if (FLAGS_syms.empty()) {
-    std::unique_ptr<FstClass> ifst1(FstClass::Read(FLAGS_ifile));
+  if (FST_FLAGS_syms.empty()) {
+    std::unique_ptr<FstClass> ifst1(FstClass::Read(FST_FLAGS_ifile));
     if (!ifst1) return 1;
 
-    std::unique_ptr<FstClass> ifst2(FstClass::Read(FLAGS_cfile));
+    std::unique_ptr<FstClass> ifst2(FstClass::Read(FST_FLAGS_cfile));
     if (!ifst2) return 1;
 
     bool result =
-        fst::script::Equal(*ifst1, *ifst2, FLAGS_delta);
+        fst::script::Equal(*ifst1, *ifst2, FST_FLAGS_delta);
     if (!result) VLOG(1) << "FSTs are not equal.";
 
     return result ? 0 : 2;
   } else {
     std::unique_ptr<const fst::SymbolTable> syms(
-        fst::SymbolTable::ReadText(FLAGS_syms));
+        fst::SymbolTable::ReadText(FST_FLAGS_syms));
     if (!syms) return 1;
     std::unique_ptr<const fst::SymbolTable> ssyms;
     std::ifstream fstrm;
-    fstrm.open(FLAGS_ifile);
+    fstrm.open(FST_FLAGS_ifile);
     if (!fstrm) {
-      LOG(ERROR) << argv[0] << ": Open failed, file = " << FLAGS_ifile;
+      LOG(ERROR) << argv[0]
+                 << ": Open failed, file = " << FST_FLAGS_ifile;
       return 1;
     }
     std::istream &istrm = fstrm.is_open() ? fstrm : std::cin;
-    fst::script::CompileFst(istrm, FLAGS_ifile, FLAGS_ofile, "vector",
-                                "hist", syms.get(), syms.get(), ssyms.get(),
-                                false, true, true, true, false);
+    fst::script::CompileFst(istrm, FST_FLAGS_ifile,
+                                FST_FLAGS_ofile, "vector", "hist",
+                                syms.get(), syms.get(), ssyms.get(), false,
+                                true, true, true, false);
   }
   return 0;
 }

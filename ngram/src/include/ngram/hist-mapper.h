@@ -18,6 +18,8 @@
 #ifndef NGRAM_HIST_MAPPER_H_
 #define NGRAM_HIST_MAPPER_H_
 
+#include <cstdint>
+
 #include <fst/fst.h>
 #include <fst/map.h>
 #include <fst/properties.h>
@@ -48,7 +50,7 @@ struct ToStdArcMapper {
     return MAP_COPY_SYMBOLS;
   }
 
-  uint64 Properties(uint64 props) const {
+  uint64_t Properties(uint64_t props) const {
     return props & kWeightInvariantProperties;
   }
 };
@@ -99,7 +101,7 @@ class ToHistogramMapper {
     return MAP_COPY_SYMBOLS;
   }
 
-  uint64 Properties(uint64 props) const {
+  uint64_t Properties(uint64_t props) const {
     return props & kWeightInvariantProperties;
   }
 };

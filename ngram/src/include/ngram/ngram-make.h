@@ -18,6 +18,7 @@
 #ifndef NGRAM_NGRAM_MAKE_H_
 #define NGRAM_NGRAM_MAKE_H_
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -255,8 +256,8 @@ class NGramMake : public NGramMutableModel<Arc> {
 bool NGramMakeModel(fst::StdMutableFst *fst, const std::string &method,
                     const fst::StdFst *ccfst = nullptr,
                     bool backoff = false, bool interpolate = false,
-                    int64 bins = -1, double witten_bell_k = 1,
-                    double discount_D = -1.0, int64 backoff_label = 0,
+                    int64_t bins = -1, double witten_bell_k = 1,
+                    double discount_D = -1.0, int64_t backoff_label = 0,
                     double norm_eps = kNormEps, bool check_consistency = false);
 
 // The same, but uses scripting FSTs.
@@ -264,16 +265,16 @@ bool NGramMakeModel(fst::script::MutableFstClass *fst,
                     const std::string &method,
                     const fst::script::FstClass *ccfst = nullptr,
                     bool backoff = false, bool interpolate = false,
-                    int64 bins = -1, double witten_bell_k = 1,
-                    double discount_D = -1.0, int64 backoff_label = 0,
+                    int64_t bins = -1, double witten_bell_k = 1,
+                    double discount_D = -1.0, int64_t backoff_label = 0,
                     double norm_eps = kNormEps, bool check_consistency = false);
 
 // Makes models from NGram count FSTs with HistogramArc counts.
 bool NGramMakeHistModel(fst::MutableFst<ngram::HistogramArc> *hist_fst,
                         fst::StdMutableFst *fst, const std::string &method,
                         const fst::StdFst *ccfst = nullptr,
-                        bool interpolate = false, int64 bins = -1,
-                        int64 backoff_label = 0, double norm_eps = kNormEps,
+                        bool interpolate = false, int64_t bins = -1,
+                        int64_t backoff_label = 0, double norm_eps = kNormEps,
                         bool check_consistency = false);
 
 // TODO(kbg): Figure out how to make this compatible with scripting interface.

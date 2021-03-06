@@ -42,19 +42,19 @@ bool ReadFst(const char *file, std::unique_ptr<fst::VectorFst<Arc>> *fst) {
   std::string in_name = (strcmp(file, "-") != 0) ? file : "";
   fst->reset(fst::VectorFst<Arc>::Read(file));
   if (!*fst ||
-      (FLAGS_complete && !ngram::NGramComplete(fst->get())))
+      (FST_FLAGS_complete && !ngram::NGramComplete(fst->get())))
     return false;
   return true;
 }
 
 bool GetContexts(int in_count, std::vector<std::string> *contexts) {
   contexts->clear();
-  if (!FLAGS_contexts.empty()) {
-    ngram::NGramReadContexts(FLAGS_contexts, contexts);
-  } else if (!FLAGS_context_pattern1.empty() &&
-             !FLAGS_context_pattern2.empty()) {
-    contexts->push_back(FLAGS_context_pattern1);
-    contexts->push_back(FLAGS_context_pattern2);
+  if (!FST_FLAGS_contexts.empty()) {
+    ngram::NGramReadContexts(FST_FLAGS_contexts, contexts);
+  } else if (!FST_FLAGS_context_pattern1.empty() &&
+             !FST_FLAGS_context_pattern2.empty()) {
+    contexts->push_back(FST_FLAGS_context_pattern1);
+    contexts->push_back(FST_FLAGS_context_pattern2);
   } else {
     LOG(ERROR) << "Context patterns not specified";
     return false;
@@ -69,18 +69,18 @@ bool GetContexts(int in_count, std::vector<std::string> *contexts) {
 template <class Arc>
 bool Transfer(std::string out_name_prefix, int in_count, char **argv) {
   std::unique_ptr<fst::VectorFst<Arc>> index_fst;
-  if (!ReadFst<Arc>(argv[FLAGS_index + 1], &index_fst))
+  if (!ReadFst<Arc>(argv[FST_FLAGS_index + 1], &index_fst))
     return false;
 
   std::vector<std::string> contexts;
   if (!GetContexts(in_count, &contexts)) return false;
 
-  if (FLAGS_transfer_from) {
+  if (FST_FLAGS_transfer_from) {
     ngram::NGramTransfer<Arc> transfer(index_fst.get(),
-                                       contexts[FLAGS_index],
-                                       FLAGS_backoff_label);
+                                       contexts[FST_FLAGS_index],
+                                       FST_FLAGS_backoff_label);
     for (int src = 0; src < in_count; ++src) {
-      if (src == FLAGS_index) continue;
+      if (src == FST_FLAGS_index) continue;
 
       std::unique_ptr<fst::VectorFst<Arc>> fst_src;
       if (!ReadFst<Arc>(argv[src + 1], &fst_src) ||
@@ -90,17 +90,17 @@ bool Transfer(std::string out_name_prefix, int in_count, char **argv) {
     }
 
     // Normalization occurs after all transfer has occurred.
-    if (FLAGS_normalize && !transfer.TransferNormalize()) {
+    if (FST_FLAGS_normalize && !transfer.TransferNormalize()) {
       NGRAMERROR() << "Unable to normalize after transfer";
       return false;
     }
     index_fst->Write(out_name_prefix);  // no suffix in this case
   } else {
     ngram::NGramTransfer<Arc> transfer(*index_fst,
-                                       contexts[FLAGS_index],
-                                       FLAGS_backoff_label);
+                                       contexts[FST_FLAGS_index],
+                                       FST_FLAGS_backoff_label);
     for (int dest = 0; dest < in_count; ++dest) {
-      if (dest == FLAGS_index) continue;
+      if (dest == FST_FLAGS_index) continue;
 
       std::unique_ptr<fst::VectorFst<Arc>> fst_dest;
       if (!ReadFst<Arc>(argv[dest + 1], &fst_dest) ||
@@ -132,26 +132,27 @@ int ngramtransfer_main(int argc, char **argv) {
     return 1;
   }
 
-  std::string out_name_prefix = FLAGS_ofile.empty()
+  std::string out_name_prefix = FST_FLAGS_ofile.empty()
                                     ? (argc > 3 ? argv[3] : "")
-                                    : FLAGS_ofile;
+                                    : FST_FLAGS_ofile;
 
-  int in_count = FLAGS_ofile.empty() ? 2 : argc - 1;
+  int in_count = FST_FLAGS_ofile.empty() ? 2 : argc - 1;
 
-  if (FLAGS_index < 0 ||
-      FLAGS_index >= in_count) {
-    LOG(ERROR) << "Bad FST index: " << FLAGS_index;
+  if (FST_FLAGS_index < 0 ||
+      FST_FLAGS_index >= in_count) {
+    LOG(ERROR) << "Bad FST index: " << FST_FLAGS_index;
     return 1;
   }
 
-  if (FLAGS_method == "histogram_transfer") {
+  if (FST_FLAGS_method == "histogram_transfer") {
     if (!Transfer<ngram::HistogramArc>(out_name_prefix, in_count, argv))
       return 1;
-  } else if (FLAGS_method == "count_transfer") {
+  } else if (FST_FLAGS_method == "count_transfer") {
     if (!Transfer<fst::StdArc>(out_name_prefix, in_count, argv))
       return 1;
   } else {
-    LOG(ERROR) << argv[0] << ": bad transfer method: " << FLAGS_method;
+    LOG(ERROR) << argv[0]
+               << ": bad transfer method: " << FST_FLAGS_method;
     return 1;
   }
   return 0;

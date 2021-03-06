@@ -18,6 +18,7 @@
 #include <ngram/ngram-output.h>
 
 #include <cmath>
+#include <cstdint>
 #include <ctime>
 #include <deque>
 
@@ -62,14 +63,14 @@ void NGramOutput::ShowNGramModel(NGramOutput::ShowBackoff showeps, bool neglogs,
       ShowNGrams(UnigramState(), str, showeps, neglogs, intcnts);
       start_wt =
           WeightRep(GetFst().Final(UnigramState()).Value(), neglogs, intcnts);
-      str = FLAGS_start_symbol;  // init n-grams from <s> state
+      str = FST_FLAGS_start_symbol;  // init n-grams from <s> state
     } else {
       start_wt =
           WeightRep(GetFst().Final(GetFst().Start()).Value(), neglogs, intcnts);
     }
     // print <s> unigram following SRILM
     if (InContext(GetFst().Start())) {
-      ostrm_ << FLAGS_start_symbol << '\t' << start_wt;
+      ostrm_ << FST_FLAGS_start_symbol << '\t' << start_wt;
       if (showeps == ShowBackoff::INLINE &&
           UnigramState() >= 0)  // <s> state exists, then show backoff
         ostrm_ << '\t' << WeightRep(GetBackoffCost(GetFst().Start()).Value(),
@@ -83,8 +84,8 @@ void NGramOutput::ShowNGramModel(NGramOutput::ShowBackoff showeps, bool neglogs,
 // Use n-gram model to calculate perplexity of input strings.
 // Returns true on success and false on failure.
 bool NGramOutput::PerplexityNGramModel(
-    const std::vector<std::unique_ptr<fst::StdVectorFst>> &infsts, int32 v,
-    bool phimatch, std::string *OOV_symbol, double OOV_class_size,
+    const std::vector<std::unique_ptr<fst::StdVectorFst>> &infsts,
+    int32_t v, bool phimatch, std::string *OOV_symbol, double OOV_class_size,
     double OOV_probability) {
   if (Error()) return false;
   bool verbose = v > 0;
@@ -138,7 +139,7 @@ void NGramOutput::ShowARPANGrams(StdArc::StateId st, const std::string &str,
     // log_10(p)
     ostrm_ << ShowLogNewBase(GetFst().Final(st).Value(), 10) << "\t";
     if (!str.empty()) ostrm_ << str << " ";
-    ostrm_ << FLAGS_end_symbol << '\n';
+    ostrm_ << FST_FLAGS_end_symbol << '\n';
   }
   for (ArcIterator<StdExpandedFst> aiter(GetExpandedFst(), st); !aiter.Done();
        aiter.Next()) {
@@ -172,7 +173,7 @@ void NGramOutput::ShowARPAModel() const {
     if (i == 0 &&  // following SRILM, add <s> unigram w/ dummy weight of -99
         ((UnigramState() >= 0 && InContext(UnigramState())) ||
          (UnigramState() < 0 && InContext(GetFst().Start())))) {
-      ostrm_ << "-99\t" << FLAGS_start_symbol << '\t';
+      ostrm_ << "-99\t" << FST_FLAGS_start_symbol << '\t';
       if (UnigramState() >= 0)  // <s> state exists, then show backoff
         ostrm_ << ShowLogNewBase(ScalarValue(GetBackoffCost(GetFst().Start())),
                                  10);
@@ -180,7 +181,8 @@ void NGramOutput::ShowARPAModel() const {
     }
     if (UnigramState() >= 0) {
       // init n-grams from <s> state
-      ShowARPANGrams(GetFst().Start(), FLAGS_start_symbol, i + 1);
+      ShowARPANGrams(GetFst().Start(), FST_FLAGS_start_symbol,
+                     i + 1);
       // show n-grams from unigram state
       ShowARPANGrams(UnigramState(), "", i + 1);
     } else {
@@ -225,7 +227,7 @@ void NGramOutput::ShowNGrams(StdArc::StateId st, const std::string &str,
       GetFst().Final(st) != StdArc::Weight::Zero()) {  // show </s> counts
     if (!str.empty())  // if history string, print it
       ostrm_ << str << " ";
-    ostrm_ << FLAGS_end_symbol << '\t'
+    ostrm_ << FST_FLAGS_end_symbol << '\t'
            << WeightRep(GetFst().Final(st).Value(), neglogs, intcnts);
     ostrm_ << '\n';
   }
@@ -252,7 +254,7 @@ void NGramOutput::RelabelAndSetSymbols(StdMutableFst *infst,
          aiter.Next()) {
       StdArc arc = aiter.Value();
       std::string symbol = symbolfst.InputSymbols()->Find(arc.ilabel);
-      int64 key = GetFst().InputSymbols()->Find(symbol);
+      int64_t key = GetFst().InputSymbols()->Find(symbol);
       if (key < 0) {
         key = GetMutableFst()->MutableInputSymbols()->AddSymbol(symbol);
         GetMutableFst()->MutableOutputSymbols()->AddSymbol(symbol);
@@ -300,7 +302,7 @@ void NGramOutput::ShowPhiPerplexity(const ComposeFst<StdArc> &cfst,
   StateId st = cfst.Start();
   int word_cnt = 0, oov_cnt = 0, skipped = 0;
   double neglogprob = 0, ngram_cost;
-  std::string history = FLAGS_start_symbol + " ";
+  std::string history = FST_FLAGS_start_symbol + " ";
   while (cfst.NumArcs(st) != 0) {
     ArcIterator<Fst<StdArc>> aiter(cfst, st);
     StdArc arc = aiter.Value();
@@ -326,7 +328,8 @@ void NGramOutput::ShowPhiPerplexity(const ComposeFst<StdArc> &cfst,
     st = arc.nextstate;
   }
   ngram_cost = ShowLogNewBase(cfst.Final(st).Value(), 10);
-  if (verbose) ShowNGramProb(FLAGS_end_symbol, history, 0, -1, -ngram_cost);
+  if (verbose)
+    ShowNGramProb(FST_FLAGS_end_symbol, history, 0, -1, -ngram_cost);
   if (InContext(st)) neglogprob += ngram_cost;
   if (verbose) ShowPerplexity(1, word_cnt, oov_cnt, skipped, neglogprob);
   *logprob += neglogprob;
@@ -342,7 +345,7 @@ void NGramOutput::ShowNonPhiPerplexity(const Fst<StdArc> &infst, bool verbose,
   StateId st = infst.Start(), mst = GetFst().Start();
   int word_cnt = 0, oov_cnt = 0, skipped = 0;
   double neglogprob = 0;
-  std::string history = FLAGS_start_symbol + " ";
+  std::string history = FST_FLAGS_start_symbol + " ";
   std::vector<Label> ngram(HiOrder(), 0);
   while (infst.NumArcs(st) != 0) {  // assumes linear fst (string)
     ArcIterator<Fst<StdArc>> aiter(infst, st);
@@ -403,7 +406,8 @@ void NGramOutput::ApplyFinalCost(StateId mst, std::string history, int word_cnt,
       ShowLogNewBase(-ScalarValue(FinalCostInModel(mst, &order)), 10);
   if (InContext(ngram)) neglogprob += ngram_cost;
   if (verbose) {
-    ShowNGramProb(FLAGS_end_symbol, history, (order < 0), order, ngram_cost);
+    ShowNGramProb(FST_FLAGS_end_symbol, history, (order < 0), order,
+                  ngram_cost);
     ShowPerplexity(1, word_cnt, oov_cnt, skipped, -neglogprob);
   }
   *logprob -= neglogprob;
@@ -492,7 +496,7 @@ NGramOutput::StateId NGramOutput::GetAndShowSymbol(StateId st, double p,
 }
 
 // Produce and output random samples from model using rand/srand
-void NGramOutput::RandNGramModel(int64 samples, bool show_backoff) const {
+void NGramOutput::RandNGramModel(int64_t samples, bool show_backoff) const {
   srand(time(nullptr));  // initialize random number
   for (int i = 0; i < 1000; ++i)  // a bit of burn-in
     rand();                       // TODO(riley): huh?

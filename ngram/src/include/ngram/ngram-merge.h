@@ -18,6 +18,7 @@
 #ifndef NGRAM_NGRAM_MERGE_H_
 #define NGRAM_NGRAM_MERGE_H_
 
+#include <cstdint>
 #include <map>
 #include <set>
 #include <string>
@@ -178,7 +179,7 @@ class NGramMerge : public NGramMutableModel<Arc> {
                                    /* state_ngrams= */check_consistency_,
                                    /* infinite_backoff= */false));
 
-    std::map<int64, int64> symbol_map;  // mapping symbols in symbol lists
+    std::map<int64_t, int64_t> symbol_map;  // mapping symbols in symbol lists
     symbol_map[mutable_ngram2->BackoffLabel()] = BackoffLabel();
     for (StateId st = 0; st < ngram2_ns_; ++st) {
       for (MutableArcIterator<MutableFst<Arc>> aiter(
@@ -202,8 +203,8 @@ class NGramMerge : public NGramMutableModel<Arc> {
   }
 
   // Finds word key if in symbol table, otherwise adds (for merging wordlists)
-  int64 NewWordKey(std::string symbol, int64 key2) {
-    int64 key1 = GetMutableFst()->InputSymbols()->Find(symbol);
+  int64_t NewWordKey(std::string symbol, int64_t key2) {
+    int64_t key1 = GetMutableFst()->InputSymbols()->Find(symbol);
     if (key1 < 0) {  // Returns key2 if free, o.w. next available key.
       key1 = GetMutableFst()->InputSymbols()->Find(key2).empty()
                  ? key2

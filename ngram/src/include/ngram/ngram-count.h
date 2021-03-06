@@ -18,6 +18,7 @@
 #ifndef NGRAM_NGRAM_COUNT_H_
 #define NGRAM_NGRAM_COUNT_H_
 
+#include <cstdint>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -34,7 +35,7 @@
 namespace ngram {
 
 // NGramCounter class.
-template <class Weight, class Label = int32>
+template <class Weight, class Label = int32_t>
 class NGramCounter {
  public:
   // Construct an NGramCounter object counting n-grams of order less or equal to
@@ -533,7 +534,7 @@ struct ToLog64Mapper {
     return fst::MAP_COPY_SYMBOLS;
   }
 
-  uint64 Properties(uint64 props) const { return props; }
+  uint64_t Properties(uint64_t props) const { return props; }
 };
 
 }  // namespace internal
