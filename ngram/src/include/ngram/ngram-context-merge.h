@@ -26,15 +26,16 @@
 
 namespace ngram {
 
-class NGramContextMerge : public NGramMerge<StdArc> {
+class NGramContextMerge : public NGramMerge<fst::StdArc> {
  public:
-  typedef StdArc::StateId StateId;
-  typedef StdArc::Label Label;
+  typedef fst::StdArc::StateId StateId;
+  typedef fst::StdArc::Label Label;
 
   // Constructs an NGramContextMerge object consisting of ngram model to be
   // merged.
   // Ownership of FST is retained by the caller.
-  explicit NGramContextMerge(StdMutableFst *infst1, Label backoff_label = 0,
+  explicit NGramContextMerge(fst::StdMutableFst *infst1,
+                             Label backoff_label = 0,
                              double norm_eps = kNormEps,
                              bool check_consistency = false)
       : NGramMerge(infst1, backoff_label, norm_eps, true) {}
@@ -44,12 +45,13 @@ class NGramContextMerge : public NGramMerge<StdArc> {
   // the second FST and added to the first FST, replacing any existing
   // shared arcs.  See 'ngram-context.h' for meaning of the context
   // specification.
-  void MergeNGramModels(const StdFst &infst2,
+  void MergeNGramModels(const fst::StdFst &infst2,
                         const std::string &context_pattern, bool norm = false) {
-    context_.reset(new NGramExtendedContext(context_pattern, HiOrder()));
-    if (!NGramMerge<StdArc>::MergeNGramModels(infst2, norm)) {
+    context_ =
+        std::make_unique<NGramExtendedContext>(context_pattern, HiOrder());
+    if (!NGramMerge<fst::StdArc>::MergeNGramModels(infst2, norm)) {
       NGRAMERROR() << "Context merge failed";
-      NGramModel<StdArc>::SetError();
+      NGramModel<fst::StdArc>::SetError();
     }
   }
 
@@ -58,15 +60,15 @@ class NGramContextMerge : public NGramMerge<StdArc> {
   // taken from the second FST and added to the first FST, replacing any
   // existing shared arcs.  See 'ngram-context.h' for meaning of the
   // context specification.
-  void MergeNGramModels(const StdFst &infst2,
+  void MergeNGramModels(const fst::StdFst &infst2,
                         const std::vector<Label> &context_begin,
                         const std::vector<Label> &context_end,
                         bool norm = false) {
-    context_.reset(
-        new NGramExtendedContext(context_begin, context_end, HiOrder()));
-    if (!NGramMerge<StdArc>::MergeNGramModels(infst2, norm)) {
+    context_ = std::make_unique<NGramExtendedContext>(context_begin,
+                                                       context_end, HiOrder());
+    if (!NGramMerge<fst::StdArc>::MergeNGramModels(infst2, norm)) {
       NGRAMERROR() << "Context merge failed";
-      NGramModel<StdArc>::SetError();
+      NGramModel<fst::StdArc>::SetError();
     }
   }
 

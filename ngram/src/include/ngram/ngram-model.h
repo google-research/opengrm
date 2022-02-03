@@ -18,6 +18,7 @@
 #ifndef NGRAM_NGRAM_MODEL_H_
 #define NGRAM_NGRAM_MODEL_H_
 
+#include <array>
 #include <cstdint>
 #include <deque>
 #include <vector>
@@ -32,27 +33,6 @@
 #include <ngram/util.h>
 
 namespace ngram {
-
-using fst::kAcceptor;
-using fst::kIDeterministic;
-using fst::kILabelSorted;
-using fst::kNoLabel;
-using fst::kNoStateId;
-
-using fst::Fst;
-using fst::StdFst;
-using fst::StdMutableFst;
-using fst::VectorFst;
-
-using fst::ArcIterator;
-using fst::HistogramArc;
-using fst::LogArc;
-using fst::MATCH_INPUT;
-using fst::MATCH_NONE;
-using fst::Matcher;
-using fst::StdArc;
-
-using fst::StdILabelCompare;
 
 // Default normalization constant (e.g., for checks)
 const double kNormEps = 0.001;
@@ -74,8 +54,8 @@ static double NegLogDeltaValue(double a, double b, double *c) {
 // -log( exp(-a) + exp(-b) ) = a - log( exp(a - b) + 1 )
 // Uses Mercator series and Kahan formula for additional numerical stability
 static double NegLogSum(double a, double b, double *c) {
-  if (a == StdArc::Weight::Zero().Value()) return b;
-  if (b == StdArc::Weight::Zero().Value()) return a;
+  if (a == fst::StdArc::Weight::Zero().Value()) return b;
+  if (b == fst::StdArc::Weight::Zero().Value()) return a;
   if (a > b) return NegLogSum(b, a, c);
   double delta = NegLogDeltaValue(a, b, c), val = a + delta;
   if (c) *c = (val - a) - delta;  // update sum correction for Kahan formula
@@ -83,19 +63,19 @@ static double NegLogSum(double a, double b, double *c) {
 }
 
 // Summing reals and saving negative logs, no Kahan formula (backwards compat)
-static double NegLogSum(double a, double b) { return NegLogSum(a, b, 0); }
+static double NegLogSum(double a, double b) { return NegLogSum(a, b, nullptr); }
 
 // Negative log of difference: -log(exp^{-a} - exp^{-b}).
 // FRAGILE: assumes exp^{-a} >= exp^{-b}
 // Sets (but does not clear) optional error field.
 static double NegLogDiff(double a, double b, bool *error = nullptr) {
-  if (b == StdArc::Weight::Zero().Value()) return a;
+  if (b == fst::StdArc::Weight::Zero().Value()) return a;
   if (a >= b) {
     if (a - b >= kNormEps) {  // not equal within fp error
       NGRAMERROR() << "NegLogDiff: undefined " << a << " " << b;
       if (error) *error = true;
     }
-    return StdArc::Weight::Zero().Value();
+    return fst::StdArc::Weight::Zero().Value();
   }
   return b - log(exp(b - a) - 1);
 }
@@ -115,8 +95,8 @@ class NGramModel {
   // this class explicitly finds, checks the consistency of and stores
   // the ngram that must be read to reach each state (normally false
   // to save some time and space).
-  NGramModel(const Fst<Arc> &infst, Label backoff_label, double norm_eps,
-             bool state_ngrams)
+  NGramModel(const fst::Fst<Arc> &infst, Label backoff_label,
+             double norm_eps, bool state_ngrams)
       : fst_(infst),
         backoff_label_(backoff_label),
         norm_eps_(norm_eps),
@@ -126,7 +106,7 @@ class NGramModel {
   }
 
   // Same as above, but requires the FST and the backoff label.
-  NGramModel(const Fst<Arc> &infst, Label backoff_label)
+  NGramModel(const fst::Fst<Arc> &infst, Label backoff_label)
       : fst_(infst),
         backoff_label_(backoff_label),
         norm_eps_(kNormEps),
@@ -136,7 +116,7 @@ class NGramModel {
   }
 
   // Same as above, but uses defaults for most of the parameters.
-  NGramModel(const Fst<Arc> &infst)
+  explicit NGramModel(const fst::Fst<Arc> &infst)
       : fst_(infst),
         backoff_label_(0),
         norm_eps_(kNormEps),
@@ -177,7 +157,7 @@ class NGramModel {
   StateId NGramState(const std::vector<Label> &ngram) const {
     StateId state = UnigramState();
     if (state < 0) state = GetFst().Start();
-    Matcher<Fst<Arc>> matcher(fst_, MATCH_INPUT);
+    fst::Matcher<fst::Fst<Arc>> matcher(fst_, fst::MATCH_INPUT);
     for (auto it = ngram.begin(); it != ngram.end(); ++it) {
       if (*it == 0) {
         state = fst_.Start();
@@ -207,7 +187,7 @@ class NGramModel {
 
   // Returns the unigram cost of requested symbol if found (inf otherwise)
   double GetSymbolUnigramCost(Label symbol) const {
-    Matcher<Fst<Arc>> matcher(fst_, MATCH_INPUT);
+    fst::Matcher<fst::Fst<Arc>> matcher(fst_, fst::MATCH_INPUT);
     StateId st = unigram_;
     if (st < 0) st = fst_.Start();
     matcher.SetState(st);
@@ -225,14 +205,14 @@ class NGramModel {
   // Find the backoff state for a given state st, and provide bocost if req'd
   StateId GetBackoff(StateId st, Weight *bocost) const {
     StateId backoff = -1;
-    Matcher<Fst<Arc>> matcher(fst_, MATCH_INPUT);
+    fst::Matcher<fst::Fst<Arc>> matcher(fst_, fst::MATCH_INPUT);
     matcher.SetState(st);
     if (matcher.Find(backoff_label_)) {
       for (; !matcher.Done(); matcher.Next()) {
         Arc arc = matcher.Value();
-        if (arc.ilabel == kNoLabel) continue;  // non-consuming symbol
+        if (arc.ilabel == fst::kNoLabel) continue;  // non-consuming symbol
         backoff = arc.nextstate;
-        if (bocost != 0) bocost[0] = arc.weight;
+        if (bocost != nullptr) bocost[0] = arc.weight;
       }
     }
     return backoff;
@@ -266,7 +246,7 @@ class NGramModel {
 
   // Calculate backoff cost from neglog sums of hi and low order arcs
   double CalculateBackoffCost(double hi_neglog_sum, double low_neglog_sum,
-                              bool infinite_backoff = 0) const {
+                              bool infinite_backoff = false) const {
     double nlog_backoff_num, nlog_backoff_denom;  // backoff cost and factors
     bool return_inf = CalculateBackoffFactors(
         hi_neglog_sum, low_neglog_sum, &nlog_backoff_num, &nlog_backoff_denom,
@@ -279,7 +259,7 @@ class NGramModel {
   bool CalculateBackoffFactors(double hi_neglog_sum, double low_neglog_sum,
                                double *nlog_backoff_num,
                                double *nlog_backoff_denom,
-                               bool infinite_backoff = 0) const {
+                               bool infinite_backoff = false) const {
     double effective_zero = kNormEps * kFloatEps, effective_nlog_zero = 99.0;
     if (infinite_backoff && hi_neglog_sum <= kFloatEps)  // unsmoothed and p=1
       return true;
@@ -319,12 +299,17 @@ class NGramModel {
     return ret;
   }
 
-  // Fst const reference
-  const Fst<Arc> &GetFst() const { return fst_; }
+  // fst::Fst const reference
+  const fst::Fst<Arc> &GetFst() const { return fst_; }
 
   // Called at construction. If the model topology is mutated, this should
   // be re-called prior to any member function that depends on it.
   void InitModel() {
+    using fst::kAcceptor;
+    using fst::kIDeterministic;
+    using fst::kILabelSorted;
+    using fst::kNoLabel;
+    using fst::kNoStateId;
     // unigram state is set to -1 for unigram models (in which case start
     // state is the unigram state, no need to store here)
     if (fst_.Start() == kNoLabel) {
@@ -357,7 +342,7 @@ class NGramModel {
     }
 
     nstates_ = CountStates(fst_);
-    unigram_ = GetBackoff(fst_.Start(), 0);  // set the unigram state
+    unigram_ = GetBackoff(fst_.Start(), nullptr);  // set the unigram state
     ComputeStateOrders();
     if (!CheckTopology()) {
       NGRAMERROR() << "NGramModel: bad ngram model topology";
@@ -372,7 +357,7 @@ class NGramModel {
   // Calculates number of n-grams at state
   int NumNGrams(StateId st) {
     int num_ngrams = fst_.NumArcs(st);  // arcs are n-grams
-    if (GetBackoff(st, 0) >= 0)         // except one arc, backoff arc
+    if (GetBackoff(st, nullptr) >= 0)   // except one arc, backoff arc
       num_ngrams--;
     if (ScalarValue(fst_.Final(st)) !=
         ScalarValue(Arc::Weight::Zero()))  // </s> n-gram
@@ -395,7 +380,7 @@ class NGramModel {
     Weight cost = ngram.front() == 0 && unigram_ >= 0 ? fst_.Final(unigram_)
                                                       : Weight::One();
 
-    Matcher<Fst<Arc>> matcher(fst_, MATCH_INPUT);
+    fst::Matcher<fst::Fst<Arc>> matcher(fst_, fst::MATCH_INPUT);
 
     for (int n = 0; n < ngram.size(); ++n) {
       Label label = ngram[n];
@@ -441,7 +426,7 @@ class NGramModel {
   Weight FinalCostInModel(StateId mst, int *order) const {
     Weight cost = Arc::Weight::One();
     while (fst_.Final(mst) == Arc::Weight::Zero()) {
-      Matcher<Fst<Arc>> matcher(fst_, MATCH_INPUT);
+      fst::Matcher<fst::Fst<Arc>> matcher(fst_, fst::MATCH_INPUT);
       matcher.SetState(mst);
       if (matcher.Find(backoff_label_)) {
         for (; !matcher.Done(); matcher.Next()) {
@@ -516,10 +501,10 @@ class NGramModel {
   double EstimateTotalUnigramCount() const {
     StateId st = UnigramState();
     bool first = true;
-    double max = LogArc::Weight::Zero().Value(), nextmax = max;
+    double max = fst::LogArc::Weight::Zero().Value(), nextmax = max;
     if (st < 0) st = GetFst().Start();  // if model unigram, use Start()
-    for (ArcIterator<Fst<Arc>> aiter(GetFst(), st); !aiter.Done();
-         aiter.Next()) {
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(GetFst(), st);
+         !aiter.Done(); aiter.Next()) {
       Arc arc = aiter.Value();
       if (arc.ilabel == BackoffLabel()) continue;
       if (first || ScalarValue(arc.weight) > max) {
@@ -532,7 +517,7 @@ class NGramModel {
         nextmax = ScalarValue(arc.weight);
       }
     }
-    if (nextmax == LogArc::Weight::Zero().Value()) return exp(max);
+    if (nextmax == fst::LogArc::Weight::Zero().Value()) return exp(max);
     return exp(NegLogDiff(nextmax, max));
   }
 
@@ -557,9 +542,11 @@ class NGramModel {
   // Collect backoff arc weights in a vector
   bool FillBackoffArcWeights(StateId st, StateId bo,
                              std::vector<double> *bo_arc_weight) const {
-    Matcher<Fst<Arc>> matcher(fst_, MATCH_INPUT);  // for querying backoff
+    fst::Matcher<fst::Fst<Arc>> matcher(
+        fst_, fst::MATCH_INPUT);  // for querying backoff
     matcher.SetState(bo);
-    for (ArcIterator<Fst<Arc>> aiter(fst_, st); !aiter.Done(); aiter.Next()) {
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst_, st); !aiter.Done();
+         aiter.Next()) {
       Arc arc = aiter.Value();
       if (arc.ilabel == backoff_label_) continue;
       if (matcher.Find(arc.ilabel)) {
@@ -584,7 +571,8 @@ class NGramModel {
 
   // Uses iterator in place of matcher for arc iterators; allows
   // getting Position(). NB: begins search from current position.
-  bool FindArc(ArcIterator<Fst<Arc>> *biter, Label label) const {
+  bool FindArc(fst::ArcIterator<fst::Fst<Arc>> *biter,
+               Label label) const {
     while (!biter->Done()) {  // scan through arcs
       Arc barc = biter->Value();
       if (barc.ilabel == label)
@@ -600,7 +588,7 @@ class NGramModel {
   // Finds the arc weight associated with a label at a state
   Weight FindArcWeight(StateId st, Label label) const {
     Weight cost = Arc::Weight::Zero();
-    Matcher<Fst<Arc>> matcher(fst_, MATCH_INPUT);
+    fst::Matcher<fst::Fst<Arc>> matcher(fst_, fst::MATCH_INPUT);
     matcher.SetState(st);
     if (matcher.Find(label)) {
       Arc arc = matcher.Value();
@@ -617,7 +605,7 @@ class NGramModel {
     *cost = 0;
     *mst = -1;
     while (*mst < 0) {
-      Matcher<Fst<Arc>> matcher(fst_, MATCH_INPUT);
+      fst::Matcher<fst::Fst<Arc>> matcher(fst_, fst::MATCH_INPUT);
       matcher.SetState(currstate);
       if (matcher.Find(label)) {  // arc found out of current state
         Arc arc = matcher.Value();
@@ -645,7 +633,7 @@ class NGramModel {
   bool CalcBONegLogSums(StateId st, double *hi_neglog_sum,
                         double *low_neglog_sum, bool infinite_backoff = false,
                         bool unigram = false) const {
-    StateId bo = GetBackoff(st, 0);
+    StateId bo = GetBackoff(st, nullptr);
     if (bo < 0 && !unigram) return false;  // only calc for states that backoff
     *low_neglog_sum = *hi_neglog_sum =     // final costs initialize the sum
         ScalarValue(fst_.Final(st));
@@ -676,13 +664,15 @@ class NGramModel {
  private:
   // Iterate through arcs, accumulate neglog probs from arcs and their backoffs
   bool CalcArcNegLogSums(StateId st, StateId bo, double *hi_sum,
-                         double *low_sum, bool infinite_backoff = 0) const {
+                         double *low_sum, bool infinite_backoff = false) const {
     // correction values for Kahan summation
     double KahanVal1 = 0, KahanVal2 = 0;
     double init_low = *low_sum;
-    Matcher<Fst<Arc>> matcher(fst_, MATCH_INPUT);  // for querying backoff
+    fst::Matcher<fst::Fst<Arc>> matcher(
+        fst_, fst::MATCH_INPUT);  // for querying backoff
     if (bo >= 0) matcher.SetState(bo);
-    for (ArcIterator<Fst<Arc>> aiter(fst_, st); !aiter.Done(); aiter.Next()) {
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst_, st); !aiter.Done();
+         aiter.Next()) {
       Arc arc = aiter.Value();
       if (arc.ilabel == backoff_label_) continue;
       if (bo < 0 || matcher.Find(arc.ilabel)) {
@@ -715,11 +705,13 @@ class NGramModel {
   // Used in case the more efficient method fails to produce a sane value
   double CalcBruteLowSum(StateId st, StateId bo, double start_low) const {
     double low_sum = start_low, KahanVal = 0;
-    Matcher<Fst<Arc>> matcher(fst_, MATCH_INPUT);  // for querying backoff
+    fst::Matcher<fst::Fst<Arc>> matcher(
+        fst_, fst::MATCH_INPUT);  // for querying backoff
     matcher.SetState(bo);
-    ArcIterator<Fst<Arc>> biter(fst_, bo);
+    fst::ArcIterator<fst::Fst<Arc>> biter(fst_, bo);
     Arc barc;
-    for (ArcIterator<Fst<Arc>> aiter(fst_, st); !aiter.Done(); aiter.Next()) {
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst_, st); !aiter.Done();
+         aiter.Next()) {
       Arc arc = aiter.Value();
       if (arc.ilabel == backoff_label_) continue;
       barc = biter.Value();
@@ -758,7 +750,7 @@ class NGramModel {
 
     hi_order_ = 1;  // calculate highest order in the model
     std::deque<StateId> state_queue;
-    if (unigram_ != kNoStateId) {
+    if (unigram_ != fst::kNoStateId) {
       state_orders_[unigram_] = 1;
       state_queue.push_back(unigram_);
       state_orders_[fst_.Start()] = hi_order_ = 2;
@@ -773,8 +765,8 @@ class NGramModel {
     while (!state_queue.empty()) {
       StateId state = state_queue.front();
       state_queue.pop_front();
-      for (ArcIterator<Fst<Arc>> aiter(fst_, state); !aiter.Done();
-           aiter.Next()) {
+      for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst_, state);
+           !aiter.Done(); aiter.Next()) {
         const Arc &arc = aiter.Value();
         if (state_orders_[arc.nextstate] == -1) {
           state_orders_[arc.nextstate] = state_orders_[state] + 1;
@@ -801,8 +793,9 @@ class NGramModel {
       }
     }
 
-    StateId bos = GetBackoff(st, 0);
-    Matcher<Fst<Arc>> matcher(fst_, MATCH_INPUT);  // for querying backoff
+    StateId bos = GetBackoff(st, nullptr);
+    fst::Matcher<fst::Fst<Arc>> matcher(
+        fst_, fst::MATCH_INPUT);  // for querying backoff
 
     if (st == unigram_) {  // unigram state
       if (fst_.Final(unigram_) == Arc::Weight::Zero()) {
@@ -834,7 +827,8 @@ class NGramModel {
       matcher.SetState(bos);
     }
 
-    for (ArcIterator<Fst<Arc>> aiter(fst_, st); !aiter.Done(); aiter.Next()) {
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst_, st); !aiter.Done();
+         aiter.Next()) {
       Arc arc = aiter.Value();
 
       if (StateOrder(st) < StateOrder(arc.nextstate)) ++ascending_ngrams_;
@@ -877,7 +871,7 @@ class NGramModel {
   // sum of state probs + exp(-backoff_cost) - sum of arc backoff probs = 1
   bool CheckNormalizationState(StateId st) const {
     double Norm, Norm1;
-    Weight bocost;
+    Weight bocost = Weight::NoWeight();
     StateId bo = GetBackoff(st, &bocost);
     // final costs initialize the sum
     Norm = Norm1 = ScalarValue(fst_.Final(st));
@@ -928,7 +922,8 @@ class NGramModel {
   // Collects prefix counts for arcs out of a specific state
   void CollectPrefixCounts(std::vector<double> *state_counts,
                            StateId st) const {
-    for (ArcIterator<Fst<Arc>> aiter(fst_, st); !aiter.Done(); aiter.Next()) {
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst_, st); !aiter.Done();
+         aiter.Next()) {
       Arc arc = aiter.Value();
       if (arc.ilabel != backoff_label_ &&  // only counting non-backoff arcs
           state_orders_[st] < state_orders_[arc.nextstate]) {  // that + order
@@ -951,7 +946,8 @@ class NGramModel {
   // Test to see if model came from pre-summing a mixture
   // Should have: backoff weights > 0; higher order always higher prob (summed)
   bool MixtureConsistent() const {
-    Matcher<Fst<Arc>> matcher(fst_, MATCH_INPUT);  // for querying backoff
+    fst::Matcher<fst::Fst<Arc>> matcher(
+        fst_, fst::MATCH_INPUT);  // for querying backoff
     for (StateId st = 0; st < nstates_; ++st) {
       Weight bocost;
       StateId bo = GetBackoff(st, &bocost);
@@ -959,8 +955,8 @@ class NGramModel {
         if (bocost < 0)  // Backoff cost > 0 (can't happen with mixture)
           return false;
         matcher.SetState(bo);
-        for (ArcIterator<Fst<Arc>> aiter(fst_, st); !aiter.Done();
-             aiter.Next()) {
+        for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst_, st);
+             !aiter.Done(); aiter.Next()) {
           Arc arc = aiter.Value();
           if (arc.ilabel == backoff_label_) {
             continue;
@@ -989,7 +985,8 @@ class NGramModel {
   // At a given state, calculate the marginal prob p(h) based on
   // the smoothed, order-ascending n-gram transition probabilities.
   void NGramStateProb(StateId st, std::vector<double> *probs) const {
-    for (ArcIterator<Fst<Arc>> aiter(fst_, st); !aiter.Done(); aiter.Next()) {
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst_, st); !aiter.Done();
+         aiter.Next()) {
       Arc arc = aiter.Value();
       if (arc.ilabel == backoff_label_) continue;
       if (state_orders_[arc.nextstate] > state_orders_[st]) {
@@ -1030,7 +1027,8 @@ class NGramModel {
   // LM with re-entry probability 'alpha'.
   void StationaryStateProb(StateId st, std::vector<double> *init_probs,
                            std::vector<double> *probs, double alpha) const {
-    Matcher<Fst<Arc>> matcher(fst_, MATCH_INPUT);  // for querying backoff
+    fst::Matcher<fst::Fst<Arc>> matcher(
+        fst_, fst::MATCH_INPUT);  // for querying backoff
     Weight bocost;
     StateId bo = GetBackoff(st, &bocost);
     if (bo != -1) {
@@ -1039,7 +1037,8 @@ class NGramModel {
       (*init_probs)[bo] += (*init_probs)[st] * exp(-ScalarValue(bocost));
     }
 
-    for (ArcIterator<Fst<Arc>> aiter(fst_, st); !aiter.Done(); aiter.Next()) {
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst_, st); !aiter.Done();
+         aiter.Next()) {
       Arc arc = aiter.Value();
       if (arc.ilabel == backoff_label_) continue;
       (*probs)[arc.nextstate] +=
@@ -1102,7 +1101,7 @@ class NGramModel {
     return true;
   }
 
-  const Fst<Arc> &fst_;
+  const fst::Fst<Arc> &fst_;
   StateId unigram_;                // unigram state
   Label backoff_label_;            // label of backoff transitions
   StateId nstates_;                // number of states in LM
@@ -1138,18 +1137,12 @@ typename Arc::Weight NGramModel<Arc>::UnitCount() {
 
 template <>
 inline typename HistogramArc::Weight NGramModel<HistogramArc>::UnitCount() {
-  std::vector<StdArc::Weight> weights(kHistogramBins);
-  for (int i = 0; i < kHistogramBins; i++) {
-    weights[i] = StdArc::Weight::Zero();
-  }
-  if (kHistogramBins > 0) {
-    weights[0] = StdArc::Weight::One();
-  }
-  if (kHistogramBins > 2) {
-    weights[2] = StdArc::Weight::One();
-  }
-  static const fst::PowerWeight<StdArc::Weight, kHistogramBins> one(
-      weights.begin(), weights.end());
+  std::array<fst::StdArc::Weight, kHistogramBins> weights;
+  weights.fill(fst::StdArc::Weight::Zero());
+  if (kHistogramBins > 0) weights[0] = fst::StdArc::Weight::One();
+  if (kHistogramBins > 2) weights[2] = fst::StdArc::Weight::One();
+  static const fst::PowerWeight<fst::StdArc::Weight, kHistogramBins>
+      one(weights.begin(), weights.end());
   return one;
 }
 

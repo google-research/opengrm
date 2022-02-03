@@ -19,8 +19,9 @@
 
 #include <cstdint>
 
-#include <fst/map.h>
+#include <fst/arc-map.h>
 #include <ngram/hist-arc.h>
+#include <ngram/hist-mapper.h>
 #include <ngram/ngram-absolute.h>
 #include <ngram/ngram-count-of-counts.h>
 #include <ngram/ngram-katz.h>
@@ -29,27 +30,11 @@
 #include <ngram/ngram-witten-bell.h>
 #include <ngram/util.h>
 
-namespace fst {
-
-// Maps from HistogramArc to StdArc FST.
-struct ToStdArcMapper {
-  typedef ngram::HistogramArc FromArc;
-  typedef StdArc ToArc;
-
-  ToArc operator()(const FromArc &arc) const {
-    return ToArc(arc.ilabel, arc.olabel, arc.weight.Value(0).Value(),
-                 arc.nextstate);
-  }
-
-  MapFinalAction FinalAction() const { return MAP_NO_SUPERFINAL; }
-  MapSymbolsAction InputSymbolsAction() const { return MAP_COPY_SYMBOLS; }
-  MapSymbolsAction OutputSymbolsAction() const { return MAP_COPY_SYMBOLS; }
-  uint64_t Properties(uint64_t props) const { return props; }
-};
-
-}  // namespace fst
-
 namespace ngram {
+
+using fst::StdArc;
+using fst::StdFst;
+using fst::StdMutableFst;
 
 // Makes models from NGram count FSTs with StdArc counts.
 bool NGramMakeModel(fst::StdMutableFst *fst, const std::string &method,
@@ -142,7 +127,7 @@ bool NGramMakeHistModel(fst::MutableFst<ngram::HistogramArc> *hist_fst,
       NGRAMERROR() << "NGramKatz(Frac): failed to make model";
       return false;
     }
-    Map(ngram.GetFst(), fst, fst::ToStdArcMapper());
+    ArcMap(ngram.GetFst(), fst, ToStdArcMapper());
   } else {
     LOG(ERROR) << "Model method " << method
                << " not processed by NGramMakeHistModel";

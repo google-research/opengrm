@@ -82,8 +82,8 @@ int ngramperplexity_main(int argc, char **argv) {
 
   std::vector<std::unique_ptr<fst::StdVectorFst>> infsts;
   while (!far_reader->Done()) {
-    infsts.push_back(std::unique_ptr<fst::StdVectorFst>(
-        new fst::StdVectorFst(*far_reader->GetFst())));
+    infsts.push_back(
+        std::make_unique<fst::StdVectorFst>(*far_reader->GetFst()));
     far_reader->Next();
   }
 

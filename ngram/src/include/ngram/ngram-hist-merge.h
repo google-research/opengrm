@@ -18,15 +18,13 @@
 #ifndef NGRAM_NGRAM_HIST_MERGE_H_
 #define NGRAM_NGRAM_HIST_MERGE_H_
 
+#include <array>
+
 #include <ngram/hist-arc.h>
 #include <ngram/ngram-merge.h>
 #include <ngram/util.h>
 
 namespace ngram {
-
-using fst::TropicalWeight;
-using fst::HistogramArc;
-using fst::PowerWeight;
 
 class NGramHistMerge : public NGramMerge<HistogramArc> {
  public:
@@ -36,14 +34,14 @@ class NGramHistMerge : public NGramMerge<HistogramArc> {
   // Constructs an NGramCountMerge object consisting of ngram model
   // to be merged.
   // Ownership of FST is retained by the caller.
-  explicit NGramHistMerge(MutableFst<HistogramArc> *infst1,
+  explicit NGramHistMerge(fst::MutableFst<HistogramArc> *infst1,
                           Label backoff_label = 0, double norm_eps = kNormEps,
                           bool check_consistency = false)
       : NGramMerge(infst1, backoff_label, norm_eps, check_consistency) {}
 
   // Perform count-model merger with n-gram model specified by the FST argument
   // and mixing weights alpha and beta.
-  void MergeNGramModels(const Fst<HistogramArc> &infst2, double alpha,
+  void MergeNGramModels(const fst::Fst<HistogramArc> &infst2, double alpha,
                         double beta, bool norm = false) {
     alpha_ = -log(alpha);
     beta_ = -log(beta);
@@ -93,19 +91,21 @@ class NGramHistMerge : public NGramMerge<HistogramArc> {
   // Add together two weights using addition for histogram weights.
   // Histogram weight is a tuple where first coordinate corresponds
   // to expected count and the rest K+1 coordinates indicate
-  // the probability of observing index-1 occurences of the n-gram
+  // the probability of observing index-1 occurrences of the n-gram
   // (associated with this weight).
   Weight WeightSum(Weight w1, Weight w2) const {
-    std::vector<TropicalWeight> v(kHistogramBins, TropicalWeight::Zero());
+    std::array<fst::TropicalWeight, kHistogramBins> v;
+    v.fill(fst::TropicalWeight::Zero());
     v[0] = NegLogSum(w1.Value(0).Value(), w2.Value(0).Value());
 
-    for (int k = 0; k < kHistogramBins - 1; k++) {
+    for (int k = 0; k < v.size() - 1; k++) {
       for (int j = 0; j <= k; j++) {
         v[k + 1] = NegLogSum(v[k + 1].Value(), w1.Value(j + 1).Value() +
                                                    w2.Value(k - j + 1).Value());
       }
     }
-    return PowerWeight<TropicalWeight, kHistogramBins>(v.begin(), v.end());
+    return fst::PowerWeight<fst::TropicalWeight, kHistogramBins>(
+        v.begin(), v.end());
   }
 
   double alpha_;  // weight to scale model ngram1

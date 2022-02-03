@@ -30,14 +30,11 @@ namespace ngram {
 // count and counts higher than the cutoff.
 constexpr size_t kHistogramBins = 7;
 
-}  // namespace ngram
-
-namespace fst {
-
 // HistogramArc is the Cartesian product of kHistogramBins StdArcs.
-struct HistogramArc : public PowerArc<StdArc, ::ngram::kHistogramBins> {
+struct HistogramArc
+    : public fst::PowerArc<fst::StdArc, kHistogramBins> {
   // Inherited types.
-  using Base = PowerArc<StdArc, ::ngram::kHistogramBins>;
+  using Base = fst::PowerArc<fst::StdArc, ::ngram::kHistogramBins>;
   using Base::Label;
   using Base::StateId;
   using Base::Weight;
@@ -64,6 +61,6 @@ struct HistogramArc : public PowerArc<StdArc, ::ngram::kHistogramBins> {
   }
 };
 
-}  // namespace fst
+}  // namespace ngram
 
 #endif  // NGRAM_HIST_ARC_H_

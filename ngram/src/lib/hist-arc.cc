@@ -24,6 +24,8 @@
 namespace fst {
 namespace script {
 
+using ngram::HistogramArc;
+
 REGISTER_FST(ConstFst, HistogramArc);
 REGISTER_FST(VectorFst, HistogramArc);
 

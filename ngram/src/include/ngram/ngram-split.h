@@ -30,11 +30,6 @@
 
 namespace ngram {
 
-using fst::StdArc;
-using fst::Fst;
-using fst::MutableFst;
-using fst::VectorFst;
-
 // Splits NGram model into multiple parts by context.
 // Assumes outer context encompasses input.
 template <class Arc>
@@ -46,20 +41,20 @@ class NGramSplit {
 
   // Split based on context patterns (sse ngram-context.h for more
   // information).
-  NGramSplit(const Fst<Arc> &fst,
+  NGramSplit(const fst::Fst<Arc> &fst,
              const std::vector<std::string> &context_patterns,
              Label backoff_label = 0, double norm_eps = kNormEps,
              bool include_all_suffixes = false);
 
   // Split based on context begin and end vectors (sse ngram-context.h
   // for more information).
-  NGramSplit(const Fst<Arc> &infst,
+  NGramSplit(const fst::Fst<Arc> &infst,
              const std::vector<std::vector<Label>> &contexts,
              Label backoff_label = 0, double norm_eps = kNormEps,
              bool include_all_suffixes = false);
 
   // Return next NGram component model.
-  bool NextNGramModel(MutableFst<Arc> *outfst) {
+  bool NextNGramModel(fst::MutableFst<Arc> *outfst) {
     outfst->DeleteStates();
     CreateSplitFst(model_.GetFst(), split_, outfst);
     ++split_;
@@ -77,10 +72,10 @@ class NGramSplit {
   void SetError() { error_ = true; }
 
  private:
-  void SplitNGramModel(const Fst<Arc> &fst);
+  void SplitNGramModel(const fst::Fst<Arc> &fst);
 
-  void CreateSplitFst(const Fst<Arc> &fst, size_t context_idx,
-                      MutableFst<Arc> *outfst);
+  void CreateSplitFst(const fst::Fst<Arc> &fst, size_t context_idx,
+                      fst::MutableFst<Arc> *split_fst);
 
   NGramModel<Arc> model_;
   std::vector<std::unique_ptr<NGramContext>>
@@ -94,7 +89,7 @@ class NGramSplit {
 
 // Split based on context patterns (sse ngram-context.h for more information).
 template <typename Arc>
-NGramSplit<Arc>::NGramSplit(const Fst<Arc> &fst,
+NGramSplit<Arc>::NGramSplit(const fst::Fst<Arc> &fst,
                             const std::vector<std::string> &context_patterns,
                             Label backoff_label, double norm_eps,
                             bool include_all_suffixes)
@@ -112,7 +107,7 @@ NGramSplit<Arc>::NGramSplit(const Fst<Arc> &fst,
 // Split based on context begin and end vectors (sse ngram-context.h
 // for more information).
 template <typename Arc>
-NGramSplit<Arc>::NGramSplit(const Fst<Arc> &fst,
+NGramSplit<Arc>::NGramSplit(const fst::Fst<Arc> &fst,
                             const std::vector<std::vector<Label>> &contexts,
                             Label backoff_label, double norm_eps,
                             bool include_all_suffixes)
@@ -128,7 +123,7 @@ NGramSplit<Arc>::NGramSplit(const Fst<Arc> &fst,
 }
 
 template <typename Arc>
-void NGramSplit<Arc>::SplitNGramModel(const Fst<Arc> &fst) {
+void NGramSplit<Arc>::SplitNGramModel(const fst::Fst<Arc> &fst) {
   // For each state, compute the strict split it belongs to.
   std::vector<std::set<size_t>> state_splits(model_.NumStates());
   for (StateId state = 0; state < model_.NumStates(); ++state) {
@@ -150,8 +145,8 @@ void NGramSplit<Arc>::SplitNGramModel(const Fst<Arc> &fst) {
     for (StateId state = 0; state < model_.NumStates(); ++state) {
       if (model_.StateOrder(state) != order) continue;
       // Second get more splits from ascending arcs.
-      for (ArcIterator<Fst<Arc>> aiter(fst, state); !aiter.Done();
-           aiter.Next()) {
+      for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, state);
+           !aiter.Done(); aiter.Next()) {
         const Arc &arc = aiter.Value();
         if (model_.StateOrder(arc.nextstate) != model_.StateOrder(state) + 1)
           continue;
@@ -164,7 +159,7 @@ void NGramSplit<Arc>::SplitNGramModel(const Fst<Arc> &fst) {
       // TODO(allauzen): decide whether keeping backoff of out of context
       // states. If so, process backoff after ascending arcs.
       // First propage the current splits for 'state' to its backoff.
-      StateId bo_state = model_.GetBackoff(state, 0);
+      StateId bo_state = model_.GetBackoff(state, nullptr);
       if (bo_state >= 0) {
         for (std::set<size_t>::const_iterator iter =
                  state_splits[state].begin();
@@ -195,8 +190,9 @@ void NGramSplit<Arc>::SplitNGramModel(const Fst<Arc> &fst) {
 }
 
 template <typename Arc>
-void NGramSplit<Arc>::CreateSplitFst(const Fst<Arc> &fst, size_t context_idx,
-                                     MutableFst<Arc> *split_fst) {
+void NGramSplit<Arc>::CreateSplitFst(const fst::Fst<Arc> &fst,
+                                     size_t context_idx,
+                                     fst::MutableFst<Arc> *split_fst) {
   if (Error()) return;
   split_fst->SetInputSymbols(fst.InputSymbols());
   split_fst->SetOutputSymbols(fst.OutputSymbols());
@@ -216,7 +212,7 @@ void NGramSplit<Arc>::CreateSplitFst(const Fst<Arc> &fst, size_t context_idx,
     Weight bo_weight = NGramModel<Arc>::UnitCount();
     StateId bo_state = model_.GetBackoff(state, &bo_weight);
 
-    if (bo_state != kNoStateId) {
+    if (bo_state != fst::kNoStateId) {
       // Add backoff arc
       split_fst->AddArc(state_map[state],
                         Arc(0, 0, bo_weight, state_map[bo_state]));
@@ -228,7 +224,8 @@ void NGramSplit<Arc>::CreateSplitFst(const Fst<Arc> &fst, size_t context_idx,
     bool in_context =
         contexts_[context_idx]->HasContext(ngram, include_all_suffixes_);
 
-    for (ArcIterator<Fst<Arc>> aiter(fst, state); !aiter.Done(); aiter.Next()) {
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, state);
+         !aiter.Done(); aiter.Next()) {
       const Arc &arc = aiter.Value();
       if (arc.ilabel == model_.BackoffLabel()) continue;
       StateId nextstate = arc.nextstate;
@@ -244,8 +241,8 @@ void NGramSplit<Arc>::CreateSplitFst(const Fst<Arc> &fst, size_t context_idx,
         return;
       }
       while (iter == state_map.end()) {
-        nextstate = model_.GetBackoff(nextstate, 0);
-        if (nextstate == kNoStateId) {
+        nextstate = model_.GetBackoff(nextstate, nullptr);
+        if (nextstate == fst::kNoStateId) {
           NGRAMERROR() << "backoff state not found for destination state";
           SetError();
           return;

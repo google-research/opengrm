@@ -65,7 +65,7 @@ void GetSortedPatterns(const std::vector<std::string> &context_patterns,
   std::sort(sorted_full_patterns->begin(), sorted_full_patterns->end());
   for (const auto &full_pattern : *sorted_full_patterns) {
     std::vector<std::string> split_pattern =
-        ::fst::StringSplit(full_pattern, '/');
+        ::fst::StrSplit(full_pattern, '/', ::fst::SkipEmpty());
     CHECK_EQ(split_pattern.size(), 2);
     sorted_context_patterns->push_back(split_pattern[0]);
   }

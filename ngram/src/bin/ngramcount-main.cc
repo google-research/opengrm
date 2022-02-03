@@ -112,7 +112,7 @@ int ngramcount_main(int argc, char **argv) {
       LOG(ERROR) << "ngramhistcount: open of FST archive failed: " << in_name;
       return 1;
     }
-    fst::VectorFst<fst::HistogramArc> fst;
+    fst::VectorFst<ngram::HistogramArc> fst;
     ngrams_counted = ngram::GetNGramHistograms(
         far_reader.get(), &fst, FST_FLAGS_order,
         FST_FLAGS_epsilon_as_backoff,
@@ -132,10 +132,10 @@ int ngramcount_main(int argc, char **argv) {
           *fst, &ccfst, FST_FLAGS_order,
           FST_FLAGS_context_pattern);
     } else {
-      std::unique_ptr<fst::VectorFst<fst::HistogramArc>> fst(
-          fst::VectorFst<fst::HistogramArc>::Read(in_name));
+      std::unique_ptr<fst::VectorFst<ngram::HistogramArc>> fst(
+          fst::VectorFst<ngram::HistogramArc>::Read(in_name));
       if (!fst) return 1;
-      ngram::GetNGramCountOfCounts<fst::HistogramArc>(
+      ngram::GetNGramCountOfCounts<ngram::HistogramArc>(
           *fst, &ccfst, FST_FLAGS_order,
           FST_FLAGS_context_pattern);
     }

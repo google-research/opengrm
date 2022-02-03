@@ -25,15 +25,15 @@
 
 namespace ngram {
 
-class NGramAbsolute : public NGramMake<StdArc> {
+class NGramAbsolute : public NGramMake<fst::StdArc> {
  public:
   // Construct NGramMake object, consisting of the FST and some
   // information about the states under the assumption that the FST is a model.
   // Ownership of the FST is retained by the caller.
-  explicit NGramAbsolute(StdMutableFst *infst, bool backoff = false,
-                Label backoff_label = 0, double norm_eps = kNormEps,
-                bool check_consistency = false, double parameter = -1.0,
-                int bins = -1)
+  explicit NGramAbsolute(fst::StdMutableFst *infst, bool backoff = false,
+                         Label backoff_label = 0, double norm_eps = kNormEps,
+                         bool check_consistency = false,
+                         double parameter = -1.0, int bins = -1)
       : NGramMake(infst, backoff, backoff_label, norm_eps, check_consistency),
         parameter_(parameter),
         bins_(bins <= 0 ? 1 : bins),
@@ -43,7 +43,9 @@ class NGramAbsolute : public NGramMake<StdArc> {
   bool MakeNGramModel() override;
 
   // Pass in count of counts (rather than computing them)
-  void SetCountOfCounts(const StdFst &fst) { count_of_counts_.SetCounts(fst); }
+  void SetCountOfCounts(const fst::StdFst &fst) {
+    count_of_counts_.SetCounts(fst);
+  }
 
  protected:
   // Return negative log discounted count for provided negative log count
@@ -101,7 +103,8 @@ class NGramAbsolute : public NGramMake<StdArc> {
 
   double parameter_;  // Absolute Discounting D
   int bins_;          // number of bins for discounting
-  NGramCountOfCounts<StdArc> count_of_counts_;  // count bins for orders
+  NGramCountOfCounts<fst::StdArc>
+      count_of_counts_;  // count bins for orders
   std::vector<std::vector<double> > discount_;            // discount for bins
 };
 

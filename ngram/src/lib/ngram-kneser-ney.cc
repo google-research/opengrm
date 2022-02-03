@@ -25,8 +25,12 @@
 
 namespace ngram {
 
+using fst::ArcIterator;
+using fst::MutableArcIterator;
+using fst::StdArc;
 using fst::StdExpandedFst;
 using fst::StdILabelCompare;
+using fst::StdMutableFst;
 
 // Normalize n-gram counts and smooth to create an n-gram model
 // Using Kneser-Ney methods.
@@ -40,7 +44,7 @@ bool NGramKneserNey::MakeNGramModel() {
 
 // Update arc and final values, either initializing or incrementing
 bool NGramKneserNey::UpdateKneserNeyCounts(StateId st, bool increment) {
-  StateId bo = GetBackoff(st, 0);
+  StateId bo = GetBackoff(st, nullptr);
   if (bo >= 0) {  // if bigram or higher order
     MutableArcIterator<StdMutableFst> biter(GetMutableFst(), bo);
     for (ArcIterator<StdExpandedFst> aiter(GetExpandedFst(), st); !aiter.Done();

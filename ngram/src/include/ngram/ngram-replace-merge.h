@@ -23,16 +23,17 @@
 
 namespace ngram {
 
-class NGramReplaceMerge : public NGramMerge<StdArc> {
+class NGramReplaceMerge : public NGramMerge<fst::StdArc> {
  public:
-  typedef StdArc::StateId StateId;
-  typedef StdArc::Label Label;
+  typedef fst::StdArc::StateId StateId;
+  typedef fst::StdArc::Label Label;
 
   // Constructs an NGramReplaceMerge object consisting of ngram model
   // to be merged.  Since normalization in this case is only handled by
   // recalculating the backoff weights, the general merging mechanism is not
   // asked to normalize. Ownership of FST is retained by the caller.
-  explicit NGramReplaceMerge(StdMutableFst *infst1, Label backoff_label = 0,
+  explicit NGramReplaceMerge(fst::StdMutableFst *infst1,
+                             Label backoff_label = 0,
                              double norm_eps = kNormEps,
                              bool check_consistency = false)
       : NGramMerge(infst1, backoff_label, norm_eps, check_consistency) {}
@@ -42,12 +43,12 @@ class NGramReplaceMerge : public NGramMerge<StdArc> {
   // assumed that infst2 has a superset of n-grams contained in the first model.
   // Resulting model will have up to and including max_replace_order orders of
   // the model from infst2, and any orders above that max from infst1.
-  void MergeNGramModels(const StdFst &infst2, int max_replace_order = -1,
-                        bool norm = false) {
+  void MergeNGramModels(const fst::StdFst &infst2,
+                        int max_replace_order = -1, bool norm = false) {
     if (Error()) return;
-    NGramModel<StdArc> mod2(infst2);
-    if (!NGramMerge<StdArc>::MergeNGramModels(infst2, /* norm = */ false,
-                                              max_replace_order)) {
+    NGramModel<fst::StdArc> mod2(infst2);
+    if (!NGramMerge<fst::StdArc>::MergeNGramModels(
+            infst2, /* norm = */ false, max_replace_order)) {
       NGRAMERROR() << "NGramReplaceMerge: Model merging failed";
       NGramModel::SetError();
       return;
@@ -91,19 +92,20 @@ class NGramReplaceMerge : public NGramMerge<StdArc> {
     for (StateId st = 0; st < NumStates(); ++st) {
       // Destinations states are identity unless state is a dead end.  Sets
       // destination state to -1 for dead end states, to be adjusted later.
-      dest_states[st] =
-          GetFst().NumArcs(st) == 0 && ScalarValue(GetFst().Final(st)) ==
-                                           ScalarValue(StdArc::Weight::Zero())
-              ? -1
-              : st;
+      dest_states[st] = GetFst().NumArcs(st) == 0 &&
+                                ScalarValue(GetFst().Final(st)) ==
+                                    ScalarValue(fst::StdArc::Weight::Zero())
+                            ? -1
+                            : st;
     }
     for (StateId st = 0; st < NumStates(); ++st) {
       // Ignores dead end states when adjusting arcs.
       if (dest_states[st] != st) continue;
       StateId bo = GetBackoff(st, nullptr);
-      for (MutableArcIterator<MutableFst<StdArc>> aiter(GetMutableFst(), st);
+      for (fst::MutableArcIterator<fst::MutableFst<fst::StdArc>>
+               aiter(GetMutableFst(), st);
            !aiter.Done(); aiter.Next()) {
-        StdArc arc = aiter.Value();
+        fst::StdArc arc = aiter.Value();
         if (dest_states[arc.nextstate] != arc.nextstate) {
           // If the arc is pointing to a dead end state, change destination.
           if (dest_states[arc.nextstate] < 0) {
@@ -127,7 +129,7 @@ class NGramReplaceMerge : public NGramMerge<StdArc> {
   }
 
   // Finds correct destination for arcs pointing to dead end states.
-  void UpdateDestStates(StateId st, const StdArc &in_arc,
+  void UpdateDestStates(StateId st, const fst::StdArc &in_arc,
                         std::vector<StateId> *dest_states) {
     if ((*dest_states)[in_arc.nextstate] >= 0) {
       NGRAMERROR() << "Destination state already set.";
@@ -139,14 +141,14 @@ class NGramReplaceMerge : public NGramMerge<StdArc> {
       (*dest_states)[in_arc.nextstate] = UnigramState();
     } else {
       StateId bo = GetBackoff(st, nullptr);
-      Matcher<StdFst> matcher(GetFst(), MATCH_INPUT);
+      fst::Matcher<fst::StdFst> matcher(GetFst(), fst::MATCH_INPUT);
       matcher.SetState(st);
       if (!matcher.Find(in_arc.ilabel)) {
         NGRAMERROR() << "Could not find n-gram arc at backoff state.";
         NGramModel::SetError();
         return;
       }
-      StdArc arc = matcher.Value();
+      fst::StdArc arc = matcher.Value();
       if ((*dest_states)[arc.nextstate] < 0) {
         // This arc also needs a new destination state.
         UpdateDestStates(bo, arc, dest_states);

@@ -30,13 +30,11 @@
 
 namespace ngram {
 
-using fst::StdArc;
-
 // Represents a context interval.
 class NGramContext {
  public:
-  typedef StdArc::Label Label;
-  typedef StdArc::StateId StateId;
+  typedef fst::StdArc::Label Label;
+  typedef fst::StdArc::StateId StateId;
 
   // Constructs a context specification from begin and end context
   // vectors.  If the context is less than the n-gram order - 1, it is
@@ -138,7 +136,7 @@ class NGramContext {
   std::vector<Label> GetContextBegin() const {
     std::vector<Label> ngram(context_begin_);
     while (ngram.size() > 1 && ngram.back() == 0) ngram.pop_back();
-    reverse(ngram.begin(), ngram.end());
+    std::reverse(ngram.begin(), ngram.end());
     return ngram;
   }
 
@@ -146,7 +144,7 @@ class NGramContext {
   std::vector<Label> GetContextEnd() const {
     std::vector<Label> ngram(context_end_);
     while (ngram.size() > 1 && ngram.back() == 0) ngram.pop_back();
-    reverse(ngram.begin(), ngram.end());
+    std::reverse(ngram.begin(), ngram.end());
     return ngram;
   }
 
@@ -188,7 +186,7 @@ class NGramContext {
 // Represents a set of disjoint context intervals.
 class NGramExtendedContext {
  public:
-  typedef StdArc::Label Label;
+  typedef fst::StdArc::Label Label;
 
   // Constructs a context specification om begin and end context vectors.
   // See the corresponding NGramContext constructor.
@@ -275,8 +273,8 @@ class NGramExtendedContext {
       // order assuming the context intervals are disjoint.
       const std::vector<Label> &b1 = c1.GetReverseContextBegin();
       const std::vector<Label> &b2 = c2.GetReverseContextBegin();
-      return lexicographical_compare(b1.begin(), b1.end(), b2.begin(),
-                                     b2.end());
+      return std::lexicographical_compare(b1.begin(), b1.end(), b2.begin(),
+                                          b2.end());
     };
   };
 
@@ -297,6 +295,7 @@ void NGramContext::FindContexts(
     std::vector<std::vector<typename Arc::Label>> *begin_contexts,
     std::vector<std::vector<typename Arc::Label>> *end_contexts,
     float bigram_thresh) {
+  using fst::kNoLabel;
   // state n-gram counts with given unigram suffix
   std::map<typename Arc::Label, size_t> suffix1_counts;
   // state n-gram counts with given (reversed) bigram suffix
@@ -308,8 +307,8 @@ void NGramContext::FindContexts(
   typename Arc::Label max_label = kNoLabel;
 
   for (StateId s = 0; s < model.NumStates(); ++s) {
-    for (ArcIterator<Fst<Arc>> aiter(model.GetFst(), s); !aiter.Done();
-         aiter.Next()) {
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(model.GetFst(), s);
+         !aiter.Done(); aiter.Next()) {
       const Arc &arc = aiter.Value();
       if (arc.ilabel == kNoLabel || arc.ilabel > max_label)
         max_label = arc.ilabel;

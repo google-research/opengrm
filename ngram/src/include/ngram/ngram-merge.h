@@ -29,9 +29,6 @@
 
 namespace ngram {
 
-using fst::ILabelCompare;
-using fst::VectorFst;
-
 template <class Arc>
 class NGramMerge : public NGramMutableModel<Arc> {
  public:
@@ -63,12 +60,12 @@ class NGramMerge : public NGramMutableModel<Arc> {
 
   // Constructs an NGramMerge object consisting of ngram model to be merged.
   // Ownership of FST is retained by the caller.
-  explicit NGramMerge(MutableFst<Arc> *infst1, Label backoff_label = 0,
+  explicit NGramMerge(fst::MutableFst<Arc> *infst1, Label backoff_label = 0,
                       double norm_eps = kNormEps,
                       bool check_consistency = false)
       : NGramMutableModel<Arc>(infst1, backoff_label, norm_eps,
-                               /* state_ngrams= */check_consistency,
-                               /* infinite_backoff= */false),
+                               /* state_ngrams= */ check_consistency,
+                               /* infinite_backoff= */ false),
         check_consistency_(check_consistency) {
     // set switch if inf backoff costs
     NGramMutableModel<Arc>::SetAllowInfiniteBO();
@@ -85,7 +82,7 @@ class NGramMerge : public NGramMutableModel<Arc> {
   //    including the matching arc weight
 
   // Perform merger with NGram model specified by the FST argument.
-  bool MergeNGramModels(const Fst<Arc> &infst2, bool norm = false,
+  bool MergeNGramModels(const fst::Fst<Arc> &infst2, bool norm = false,
                         int max_order = -1) {
     ngram2_.reset(new NGramModel<Arc>(infst2, BackoffLabel(), NormEps(),
                                       check_consistency_));
@@ -172,17 +169,18 @@ class NGramMerge : public NGramMutableModel<Arc> {
       return false;
     }
 
-    fst2_.reset(new VectorFst<Arc>(ngram2_->GetFst()));
+    fst2_.reset(new fst::VectorFst<Arc>(ngram2_->GetFst()));
 
     std::unique_ptr<NGramMutableModel<Arc>> mutable_ngram2(
         new NGramMutableModel<Arc>(fst2_.get(), BackoffLabel(), NormEps(),
                                    /* state_ngrams= */check_consistency_,
                                    /* infinite_backoff= */false));
 
-    std::map<int64_t, int64_t> symbol_map;  // mapping symbols in symbol lists
+    std::map<int64_t, int64_t>
+        symbol_map;  // mapping symbols in symbol lists
     symbol_map[mutable_ngram2->BackoffLabel()] = BackoffLabel();
     for (StateId st = 0; st < ngram2_ns_; ++st) {
-      for (MutableArcIterator<MutableFst<Arc>> aiter(
+      for (fst::MutableArcIterator<fst::MutableFst<Arc>> aiter(
                mutable_ngram2->GetMutableFst(), st);
            !aiter.Done(); aiter.Next()) {
         Arc arc = aiter.Value();
@@ -196,7 +194,7 @@ class NGramMerge : public NGramMutableModel<Arc> {
         }
       }
     }
-    ArcSort(mutable_ngram2->GetMutableFst(), ILabelCompare<Arc>());
+    ArcSort(mutable_ngram2->GetMutableFst(), fst::ILabelCompare<Arc>());
     mutable_ngram2->InitModel();
     ngram2_ = std::move(mutable_ngram2);
     return ngram2_->Error() ? false : true;
@@ -247,15 +245,16 @@ class NGramMerge : public NGramMutableModel<Arc> {
     StateId unigram1 = UnigramState();
     StateId unigram2 = ngram2_->UnigramState();
 
-    if (unigram2 != kNoStateId) {
-      if (unigram1 != kNoStateId) {  // merging two order > 1
+    if (unigram2 != fst::kNoStateId) {
+      if (unigram1 != fst::kNoStateId) {  // merging two order > 1
         MergeStateMaps(unigram1, unigram2, true, bo_from1, true);
         MergeStateMaps(start1, start2, true, bo_from1, true);
       } else {  // merging order > 1 into unigram
         MergeStateMaps(start1, unigram2, true, bo_from1, true);
         MergeStateMaps(start1, start2, false, false, true);
       }
-    } else if (unigram1 != kNoStateId) {  // merging unigram into order > 1
+    } else if (unigram1 !=
+               fst::kNoStateId) {  // merging unigram into order > 1
       MergeStateMaps(unigram1, start2, true, bo_from1, true);
       MergeStateMaps(start1, start2, false, bo_from1, false);
     } else {  // merging two unigrams
@@ -282,10 +281,10 @@ class NGramMerge : public NGramMutableModel<Arc> {
     exact_map_1to2_[st] = ist;  // collect source state for state match
     exact_map_2to1_[ist] = st;  // collect target state for state match
 
-    Matcher<Fst<Arc>> matcher(GetFst(), MATCH_INPUT);
+    fst::Matcher<fst::Fst<Arc>> matcher(GetFst(), fst::MATCH_INPUT);
     matcher.SetState(st);
-    for (ArcIterator<Fst<Arc>> biter(ngram2_->GetFst(), ist); !biter.Done();
-         biter.Next()) {
+    for (fst::ArcIterator<fst::Fst<Arc>> biter(ngram2_->GetFst(), ist);
+         !biter.Done(); biter.Next()) {
       Arc barc = biter.Value();
       if (barc.ilabel == BackoffLabel()) continue;
       if (matcher.Find(barc.ilabel)) {  // found match in ngram1
@@ -305,13 +304,13 @@ class NGramMerge : public NGramMutableModel<Arc> {
     const NGramModel<Arc> *ngram = from1 ? this : ngram2_.get();
     UpdateBackoffMap(st, ist, from1);  // update state map
 
-    for (ArcIterator<Fst<Arc>> biter(ngram->GetFst(), ist); !biter.Done();
-         biter.Next()) {
+    for (fst::ArcIterator<fst::Fst<Arc>> biter(ngram->GetFst(), ist);
+         !biter.Done(); biter.Next()) {
       Arc barc = biter.Value();
       if (barc.ilabel == BackoffLabel() ||
           ngram->StateOrder(barc.nextstate) <= ngram->StateOrder(ist))
         continue;
-      MergeBackoffStateMap(MergeBackoffDest(st, barc.ilabel, from1, 0),
+      MergeBackoffStateMap(MergeBackoffDest(st, barc.ilabel, from1, nullptr),
                            barc.nextstate, from1);
       if (Error()) return;
     }
@@ -323,10 +322,10 @@ class NGramMerge : public NGramMutableModel<Arc> {
   // and going to destination d. Computed only for non-ascending arcs.
   void MergeBackedOffToMap() {
     for (StateId st = 0; st < ngram1_ns_; ++st) {
-      StateId bo = GetBackoff(st, 0);
+      StateId bo = GetBackoff(st, nullptr);
       if (bo < 0) continue;
-      for (ArcIterator<Fst<Arc>> aiter(GetFst(), st); !aiter.Done();
-           aiter.Next()) {
+      for (fst::ArcIterator<fst::Fst<Arc>> aiter(GetFst(), st);
+           !aiter.Done(); aiter.Next()) {
         const Arc &arc = aiter.Value();
         if (arc.ilabel == BackoffLabel()) continue;
         if (StateOrder(st) > StateOrder(arc.nextstate)) {
@@ -346,7 +345,7 @@ class NGramMerge : public NGramMutableModel<Arc> {
       if (exact_map_2to1_[ist] < 0) {  // no matching state in ngram1
         StateId st = GetMutableFst()->AddState();
         UpdateState(st, ngram2_->StateOrder(ist), false,
-                    check_consistency_ ? &(ngram2_->StateNGram(ist)) : 0);
+                    check_consistency_ ? &(ngram2_->StateNGram(ist)) : nullptr);
         if (Error()) return;
         exact_map_1to2_.push_back(ist);
         exact_map_2to1_[ist] = st;
@@ -355,12 +354,13 @@ class NGramMerge : public NGramMutableModel<Arc> {
     }
 
     // If merging non-unigram into unigram, updates start and unigram info.
-    if (UnigramState() == kNoStateId && ngram2_->UnigramState() != kNoStateId) {
+    if (UnigramState() == fst::kNoStateId &&
+        ngram2_->UnigramState() != fst::kNoStateId) {
       StateId new_start = exact_map_2to1_[ngram2_->GetFst().Start()];
       StateId new_unigram = exact_map_2to1_[ngram2_->UnigramState()];
       GetMutableFst()->SetStart(new_start);
       UpdateState(new_unigram, 1, true,
-                  check_consistency_ ? &StateNGram(new_unigram) : 0);
+                  check_consistency_ ? &StateNGram(new_unigram) : nullptr);
       if (Error()) return;
     }
 
@@ -404,12 +404,15 @@ class NGramMerge : public NGramMutableModel<Arc> {
 
   // For n-gram arcs shared in common, combines weight,
   // sets correct destination
-  void MergeSharedArcs(StateId st, StateId ist, std::set<Label> *shared) {
-    MutableArcIterator<MutableFst<Arc>> aiter(GetMutableFst(), st);
+  void MergeSharedArcs(StateId st, StateId ist,
+                       std::set<Label> *shared) {
+    fst::MutableArcIterator<fst::MutableFst<Arc>> aiter(GetMutableFst(),
+                                                                st);
     if (!aiter.Done()) {
       Arc arc = aiter.Value();
-      for (ArcIterator<Fst<Arc>> biter(ngram2_->GetFst(), ist); !biter.Done();
-           biter.Next()) {
+      for (fst::ArcIterator<fst::Fst<Arc>> biter(ngram2_->GetFst(),
+                                                         ist);
+           !biter.Done(); biter.Next()) {
         const Arc &barc = biter.Value();
         // Can't use matcher for Mutable fst (full copy made), use iterator
         if (FindMutableArc(&aiter, barc.ilabel)) {  // found in ngram1
@@ -438,9 +441,9 @@ class NGramMerge : public NGramMutableModel<Arc> {
     if (ScalarValue(final1) != ScalarValue(Weight::Zero()) &&
         ScalarValue(final2) != ScalarValue(Weight::Zero())) {
       Weight merge_final =
-          MergeWeights(st, ist, kNoLabel, final1, final2, true, true);
+          MergeWeights(st, ist, fst::kNoLabel, final1, final2, true, true);
       GetMutableFst()->SetFinal(st, merge_final);
-      shared->insert(kNoLabel);  // marks superfinal word shared
+      shared->insert(fst::kNoLabel);  // marks superfinal word shared
     }
   }
 
@@ -449,7 +452,8 @@ class NGramMerge : public NGramMutableModel<Arc> {
   void MergeUnsharedArcs1(StateId st, StateId ist,
                           const std::set<Label> &shared) {
     StateId bst = backoff_map_1to2_[st];
-    for (MutableArcIterator<MutableFst<Arc>> aiter(GetMutableFst(), st);
+    for (fst::MutableArcIterator<fst::MutableFst<Arc>> aiter(
+             GetMutableFst(), st);
          !aiter.Done(); aiter.Next()) {
       Arc arc = aiter.Value();
       Weight cost = Weight::Zero();
@@ -467,13 +471,13 @@ class NGramMerge : public NGramMutableModel<Arc> {
     }
 
     // Superfinal arc
-    if (shared.count(kNoLabel) == 0) {  // not found
+    if (shared.count(fst::kNoLabel) == 0) {  // not found
       Weight final1 = GetFst().Final(st);
       if (ScalarValue(final1) != ScalarValue(Weight::Zero())) {
         int order;
         Weight cost = ngram2_->FinalCostInModel(bst, &order);
         Weight merge_final =
-            MergeWeights(st, bst, kNoLabel, final1, cost, true, false);
+            MergeWeights(st, bst, fst::kNoLabel, final1, cost, true, false);
         GetMutableFst()->SetFinal(st, merge_final);
       }
     }
@@ -483,11 +487,11 @@ class NGramMerge : public NGramMutableModel<Arc> {
   void MergeUnsharedArcs2(StateId st, StateId ist,
                           const std::set<Label> &shared) {
     StateId bst = backoff_map_2to1_[ist];
-    StateId ibo = ngram2_->GetBackoff(ist, 0);
+    StateId ibo = ngram2_->GetBackoff(ist, nullptr);
     StateId bo = ibo >= 0 ? exact_map_2to1_[ibo] : -1;
     bool arcsort = false;
-    for (ArcIterator<Fst<Arc>> biter(ngram2_->GetFst(), ist); !biter.Done();
-         biter.Next()) {
+    for (fst::ArcIterator<fst::Fst<Arc>> biter(ngram2_->GetFst(), ist);
+         !biter.Done(); biter.Next()) {
       const Arc &barc = biter.Value();
       Weight cost = Weight::Zero();
       if (shared.count(barc.ilabel) == 0) {  // not found
@@ -513,13 +517,13 @@ class NGramMerge : public NGramMutableModel<Arc> {
 
     if (arcsort) SortArcs(st);
 
-    if (shared.count(kNoLabel) == 0) {  // not found
+    if (shared.count(fst::kNoLabel) == 0) {  // not found
       Weight final2 = ngram2_->GetFst().Final(ist);
       if (ScalarValue(final2) != ScalarValue(Weight::Zero())) {
         int order;
         Weight cost = FinalCostInModel(bst, &order);
-        Weight merge_final =
-            MergeWeights(bst, ist, kNoLabel, cost, final2, false, true);
+        Weight merge_final = MergeWeights(bst, ist, fst::kNoLabel, cost,
+                                          final2, false, true);
         GetMutableFst()->SetFinal(st, merge_final);
       }
     }
@@ -541,7 +545,8 @@ class NGramMerge : public NGramMutableModel<Arc> {
       // Is backed_off_to_ entry still needed when we're done here?
       bool needed = non_ascending;
       StateId hi_src = it->second;
-      MutableArcIterator<MutableFst<Arc>> aiter(GetMutableFst(), hi_src);
+      fst::MutableArcIterator<fst::MutableFst<Arc>> aiter(
+          GetMutableFst(), hi_src);
       if (!FindMutableArc(&aiter, label)) {
         NGRAMERROR() << "label not found";
         SetError();
@@ -576,7 +581,8 @@ class NGramMerge : public NGramMutableModel<Arc> {
       return st;
     }
     if (cost) *cost = Arc::Weight::One();
-    Matcher<Fst<Arc>> matcher(ngram->GetFst(), MATCH_INPUT);
+    fst::Matcher<fst::Fst<Arc>> matcher(ngram->GetFst(),
+                                                fst::MATCH_INPUT);
     matcher.SetState(st);
     while (!matcher.Find(label)) {  // while no match found
       Weight thiscost;
@@ -619,7 +625,8 @@ class NGramMerge : public NGramMutableModel<Arc> {
     GetMutableFst()->SetFinal(st, ScaleWeight(GetFst().Final(st), norm));
     double kahan_factor = 0;
     double tot_neg_log_prob = ScalarValue(GetFst().Final(st));
-    for (MutableArcIterator<MutableFst<Arc>> aiter(GetMutableFst(), st);
+    for (fst::MutableArcIterator<fst::MutableFst<Arc>> aiter(
+             GetMutableFst(), st);
          !aiter.Done(); aiter.Next()) {
       Arc arc = aiter.Value();
       if (arc.ilabel != BackoffLabel()) {
@@ -633,7 +640,8 @@ class NGramMerge : public NGramMutableModel<Arc> {
       // Normalizes directly since total probability mass greater than one.
       GetMutableFst()->SetFinal(
           st, ScaleWeight(GetFst().Final(st), -tot_neg_log_prob));
-      for (MutableArcIterator<MutableFst<Arc>> aiter(GetMutableFst(), st);
+      for (fst::MutableArcIterator<fst::MutableFst<Arc>> aiter(
+               GetMutableFst(), st);
            !aiter.Done(); aiter.Next()) {
         Arc arc = aiter.Value();
         if (arc.ilabel != BackoffLabel()) {
@@ -675,7 +683,7 @@ class NGramMerge : public NGramMutableModel<Arc> {
   std::multimap<std::pair<StateId, Label>, StateId> backed_off_to_;
   size_t ngram1_ns_;  // original number of states in ngram1
   size_t ngram2_ns_;  // original number of states in ngram2
-  std::unique_ptr<VectorFst<Arc>> fst2_;  // copy of FST2 if needed.
+  std::unique_ptr<fst::VectorFst<Arc>> fst2_;  // copy of FST2 if needed.
 };
 
 }  // namespace ngram

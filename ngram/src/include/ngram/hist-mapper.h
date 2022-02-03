@@ -18,14 +18,15 @@
 #ifndef NGRAM_HIST_MAPPER_H_
 #define NGRAM_HIST_MAPPER_H_
 
+#include <array>
 #include <cstdint>
 
+#include <fst/arc-map.h>
 #include <fst/fst.h>
-#include <fst/map.h>
 #include <fst/properties.h>
 #include <ngram/hist-arc.h>
 
-namespace fst {
+namespace ngram {
 
 // Mapper from HistogramArc to StdArc.
 //
@@ -33,31 +34,33 @@ namespace fst {
 // which becomes the value of the mapped StdArc.
 struct ToStdArcMapper {
   using FromArc = HistogramArc;
-  using ToArc = StdArc;
+  using ToArc = fst::StdArc;
 
   ToArc operator()(const FromArc &arc) const {
     return ToArc(arc.ilabel, arc.olabel, arc.weight.Value(0).Value(),
                  arc.nextstate);
   }
 
-  constexpr MapFinalAction FinalAction() const { return MAP_NO_SUPERFINAL; }
-
-  constexpr MapSymbolsAction InputSymbolsAction() const {
-    return MAP_COPY_SYMBOLS;
+  constexpr fst::MapFinalAction FinalAction() const {
+    return fst::MAP_NO_SUPERFINAL;
   }
 
-  constexpr MapSymbolsAction OutputSymbolsAction() const {
-    return MAP_COPY_SYMBOLS;
+  constexpr fst::MapSymbolsAction InputSymbolsAction() const {
+    return fst::MAP_COPY_SYMBOLS;
+  }
+
+  constexpr fst::MapSymbolsAction OutputSymbolsAction() const {
+    return fst::MAP_COPY_SYMBOLS;
   }
 
   uint64_t Properties(uint64_t props) const {
-    return props & kWeightInvariantProperties;
+    return props & fst::kWeightInvariantProperties;
   }
 };
 
 // Mapper from Arc to HistogramArc.
 //
-// The value at index 0 of HistogramArc is the raw exptected count
+// The value at index 0 of HistogramArc is the raw expected count
 // (weight value of the original arc). Note that HistogramArc stores
 // frequencies of 0, 1, 2, ..., K at indices 1, 2, 3, ... , K + 1.
 //
@@ -71,41 +74,44 @@ class ToHistogramMapper {
  public:
   using FromArc = Arc;
   using ToArc = HistogramArc;
-  using Weight = PowerWeight<TropicalWeight, ::ngram::kHistogramBins>;
+  using Weight =
+      fst::PowerWeight<fst::TropicalWeight, ::ngram::kHistogramBins>;
 
   ToArc operator()(const Arc &arc) const {
-    std::vector<TropicalWeight> weights(::ngram::kHistogramBins,
-                                        TropicalWeight::Zero());
-    double val = arc.weight.Value();
+    std::array<fst::TropicalWeight, ::ngram::kHistogramBins> weights;
+    weights.fill(fst::TropicalWeight::Zero());
+    const double val = arc.weight.Value();
     weights[0] = val;
     const double round_down = floor(exp(-val));
     const double round_up = round_down + 1;
     const auto index = static_cast<int>(round_up);
-    if (index < ::ngram::kHistogramBins - 1) {
+    if (index < weights.size() - 1) {
       weights[index + 1] = -log(exp(-val) - round_down);
     }
-    if (index && index < ::ngram::kHistogramBins) {
+    if (index && index < weights.size()) {
       weights[index] = -log(round_up - exp(-val));
     }
     return ToArc(arc.ilabel, arc.olabel, Weight(weights.begin(), weights.end()),
                  arc.nextstate);
   }
 
-  constexpr MapFinalAction FinalAction() const { return MAP_NO_SUPERFINAL; }
-
-  constexpr MapSymbolsAction InputSymbolsAction() const {
-    return MAP_COPY_SYMBOLS;
+  constexpr fst::MapFinalAction FinalAction() const {
+    return fst::MAP_NO_SUPERFINAL;
   }
 
-  constexpr MapSymbolsAction OutputSymbolsAction() const {
-    return MAP_COPY_SYMBOLS;
+  constexpr fst::MapSymbolsAction InputSymbolsAction() const {
+    return fst::MAP_COPY_SYMBOLS;
+  }
+
+  constexpr fst::MapSymbolsAction OutputSymbolsAction() const {
+    return fst::MAP_COPY_SYMBOLS;
   }
 
   uint64_t Properties(uint64_t props) const {
-    return props & kWeightInvariantProperties;
+    return props & fst::kWeightInvariantProperties;
   }
 };
 
-}  // namespace fst
+}  // namespace ngram
 
 #endif  // NGRAM_HIST_MAPPER_H_

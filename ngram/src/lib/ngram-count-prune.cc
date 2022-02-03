@@ -23,6 +23,8 @@
 
 namespace ngram {
 
+using fst::StdArc;
+
 // Reads from string while token is a numerical value
 template <class T>
 char NGramCountPrune::GetNextCharVal(std::string::const_iterator *strit,

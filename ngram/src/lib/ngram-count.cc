@@ -79,7 +79,7 @@ bool GetCounts(const std::string &countname,
     counted = ngram_counter->Count(*ifst);
   } else {
     fst::VectorFst<fst::Log64Arc> log_ifst;
-    Map(*ifst, &log_ifst, internal::ToLog64Mapper<fst::StdArc>());
+    ArcMap(*ifst, &log_ifst, fst::StdToLog64Mapper());
     counted = ngram_counter->Count(&log_ifst);
   }
   if (!counted) LOG(ERROR) << countname << ": fst #" << fstnumber << " skipped";
@@ -130,12 +130,12 @@ bool GetNGramHistograms(fst::FarReader<fst::StdArc> *far_reader,
       return false;
     }
     if (ngramrg == nullptr) {
-      Map(in_fst, fst, fst::ToHistogramMapper<fst::StdArc>());
-      ngramrg.reset(new NGramHistMerge(fst, backoff_label, norm_eps,
-                                              check_consistency));
+      ArcMap(in_fst, fst, ToHistogramMapper<fst::StdArc>());
+      ngramrg = std::make_unique<NGramHistMerge>(fst, backoff_label, norm_eps,
+                                                  check_consistency);
     } else {
       fst::VectorFst<HistogramArc> hist_fst;
-      Map(in_fst, &hist_fst, fst::ToHistogramMapper<fst::StdArc>());
+      ArcMap(in_fst, &hist_fst, ToHistogramMapper<fst::StdArc>());
       bool norm = normalize && far_reader->Done();
       ngramrg->MergeNGramModels(hist_fst, alpha, beta, norm);
     }
@@ -170,9 +170,9 @@ bool GetNGramsAndSyms(fst::FarReader<fst::StdArc> *far_reader,
 
 // Computes ngram counts and returns ngram format FST.
 bool GetNGramCounts(fst::FarReader<fst::StdArc> *far_reader,
-                    StdMutableFst *fst, int order, bool require_symbols,
-                    bool epsilon_as_backoff, bool round_to_int,
-                    double add_to_symbol_unigram_count) {
+                    fst::StdMutableFst *fst, int order,
+                    bool require_symbols, bool epsilon_as_backoff,
+                    bool round_to_int, double add_to_symbol_unigram_count) {
   NGramCounter<fst::Log64Weight> ngram_counter(order, epsilon_as_backoff);
   fst::SymbolTable syms;
   if (!GetNGramsAndSyms(far_reader, &ngram_counter, &syms, require_symbols,

@@ -29,7 +29,7 @@ class NGramKneserNey : public NGramAbsolute {
   // Construct NGramKneserNey object, consisting of the FST and some
   // information about the states under the assumption that the FST is a model.
   // Ownership of the FST is retained by the caller.
-  explicit NGramKneserNey(StdMutableFst *infst, bool backoff = false,
+  explicit NGramKneserNey(fst::StdMutableFst *infst, bool backoff = false,
                           Label backoff_label = 0, double norm_eps = kNormEps,
                           bool check_consistency = false,
                           double parameter = -1.0, int bins = -1)

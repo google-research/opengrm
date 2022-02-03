@@ -362,10 +362,10 @@ class NGramCounter {
   }
 
   template <class Arc>
-  bool CountFromTopSortedFst(const Fst<Arc> &fst);
+  bool CountFromTopSortedFst(const fst::Fst<Arc> &fst);
 
   template <class Arc>
-  bool CountFromStringFst(const Fst<Arc> &fst);
+  bool CountFromStringFst(const fst::Fst<Arc> &fst);
 
   struct PairCompare {
     bool operator()(const Pair &p1, const Pair &p2) const {
@@ -389,7 +389,8 @@ class NGramCounter {
 
 template <class Weight, class Label>
 template <class Arc>
-bool NGramCounter<Weight, Label>::CountFromStringFst(const Fst<Arc> &fst) {
+bool NGramCounter<Weight, Label>::CountFromStringFst(
+    const fst::Fst<Arc> &fst) {
   if (!fst.Properties(fst::kString, false)) {
     NGRAMERROR() << "Input FST is not a string";
     return false;
@@ -421,7 +422,8 @@ bool NGramCounter<Weight, Label>::CountFromStringFst(const Fst<Arc> &fst) {
 
 template <class Weight, class Label>
 template <class Arc>
-bool NGramCounter<Weight, Label>::CountFromTopSortedFst(const Fst<Arc> &fst) {
+bool NGramCounter<Weight, Label>::CountFromTopSortedFst(
+    const fst::Fst<Arc> &fst) {
   if (!fst.Properties(fst::kTopSorted, false)) {
     NGRAMERROR() << "Input not topologically sorted";
     return false;
@@ -493,52 +495,23 @@ bool GetNGramCounts(fst::FarReader<fst::StdArc> *far_reader,
 
 // Computes counts using the HistogramArc template.
 bool GetNGramHistograms(fst::FarReader<fst::StdArc> *far_reader,
-                        fst::VectorFst<fst::HistogramArc> *fst,
-                        int order, bool epsilon_as_backoff = false,
-                        int backoff_label = 0, double norm_eps = kNormEps,
+                        fst::VectorFst<HistogramArc> *fst, int order,
+                        bool epsilon_as_backoff = false, int backoff_label = 0,
+                        double norm_eps = kNormEps,
                         bool check_consistency = false, bool normalize = false,
                         double alpha = 1.0, double beta = 1.0);
 
 // Computes count-of-counts.
 template <class Arc>
-void GetNGramCountOfCounts(const Fst<Arc> &fst, StdMutableFst *ccfst,
-                           int in_order, const std::string &context_pattern) {
+void GetNGramCountOfCounts(const fst::Fst<Arc> &fst,
+                           fst::StdMutableFst *ccfst, int in_order,
+                           const std::string &context_pattern) {
   NGramModel<Arc> ngram(fst, 0, kNormEps, !context_pattern.empty());
   int order = ngram.HiOrder() > in_order ? ngram.HiOrder() : in_order;
   NGramCountOfCounts<Arc> count_of_counts(context_pattern, order);
   count_of_counts.CalculateCounts(ngram);
   count_of_counts.GetFst(ccfst);
 }
-
-namespace internal {
-
-// Mapper for going to Log64 arcs from other float arc types.
-template <class Arc>
-struct ToLog64Mapper {
-  using FromArc = Arc;
-  using ToArc = fst::Log64Arc;
-
-  ToArc operator()(const FromArc &arc) const {
-    return ToArc(arc.ilabel, arc.olabel, arc.weight.Value(), arc.nextstate);
-  }
-
-  fst::MapFinalAction FinalAction() const {
-    return fst::MAP_NO_SUPERFINAL;
-  }
-
-  fst::MapSymbolsAction InputSymbolsAction() const {
-    return fst::MAP_COPY_SYMBOLS;
-  }
-
-  fst::MapSymbolsAction OutputSymbolsAction() const {
-    return fst::MAP_COPY_SYMBOLS;
-  }
-
-  uint64_t Properties(uint64_t props) const { return props; }
-};
-
-}  // namespace internal
-
 }  // namespace ngram
 
 #endif  // NGRAM_NGRAM_COUNT_H_

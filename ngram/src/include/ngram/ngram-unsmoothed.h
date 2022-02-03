@@ -24,12 +24,12 @@
 
 namespace ngram {
 
-class NGramUnsmoothed : public NGramMake<StdArc> {
+class NGramUnsmoothed : public NGramMake<fst::StdArc> {
  public:
   // Construct Unsmoothed object, consisting of the FST and some
   // information about the states under the assumption that the FST is a model.
   // Ownership of the FST is retained by the caller.
-  explicit NGramUnsmoothed(StdMutableFst *infst, bool backoff = true,
+  explicit NGramUnsmoothed(fst::StdMutableFst *infst, bool backoff = true,
                            bool prefix_norm = true, Label backoff_label = 0,
                            double norm_eps = kNormEps,
                            bool check_consistency = false)
@@ -39,7 +39,7 @@ class NGramUnsmoothed : public NGramMake<StdArc> {
   }
 
   // Make unsmoothed model
-  bool MakeNGramModel() { return NGramMake::MakeNGramModel(); }
+  bool MakeNGramModel() override { return NGramMake::MakeNGramModel(); }
 
  protected:
   // For unsmoothed model, do not add epsilon to count mass
@@ -58,7 +58,7 @@ class NGramUnsmoothed : public NGramMake<StdArc> {
 
   double CalculateTotalMass(double nlog_count, StateId st) override {
     if (norm_counts_.empty() ||
-        norm_counts_[st] == StdArc::Weight::Zero().Value())
+        norm_counts_[st] == fst::StdArc::Weight::Zero().Value())
       return nlog_count;
     else {
       if (norm_counts_[st] > nlog_count) {

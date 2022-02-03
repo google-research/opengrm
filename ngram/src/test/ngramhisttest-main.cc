@@ -76,10 +76,10 @@ int ngramhisttest_main(int argc, char **argv) {
       return 1;
     }
     std::istream &istrm = fstrm.is_open() ? fstrm : std::cin;
-    fst::script::CompileFst(istrm, FST_FLAGS_ifile,
-                                FST_FLAGS_ofile, "vector", "hist",
-                                syms.get(), syms.get(), ssyms.get(), false,
-                                true, true, true, false);
+    fst::script::Compile(istrm, FST_FLAGS_ifile,
+                             FST_FLAGS_ofile, "vector", "hist",
+                             syms.get(), syms.get(), ssyms.get(), false, true,
+                             true, true, false);
   }
   return 0;
 }

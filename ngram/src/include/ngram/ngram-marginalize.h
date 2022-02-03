@@ -23,19 +23,20 @@
 
 namespace ngram {
 
-class NGramMarginal : public NGramMutableModel<StdArc> {
+class NGramMarginal : public NGramMutableModel<fst::StdArc> {
  public:
-  typedef StdArc::StateId StateId;
-  typedef StdArc::Label Label;
-  typedef StdArc::Weight Weight;
+  typedef fst::StdArc::StateId StateId;
+  typedef fst::StdArc::Label Label;
+  typedef fst::StdArc::Weight Weight;
 
   // Construct an NGramMarginal object, including an NGramModel and parameters
-  explicit NGramMarginal(StdMutableFst *infst, Label backoff_label = 0,
+  explicit NGramMarginal(fst::StdMutableFst *infst, Label backoff_label = 0,
                          double norm_eps = kNormEps, int max_bo_updates = 10,
                          bool check_consistency = false)
-      : NGramMutableModel<StdArc>(infst, backoff_label, norm_eps,
-                                  /* state_ngrams= */check_consistency,
-                                  /* infinite_backoff= */false),
+      : NGramMutableModel<fst::StdArc>(
+            infst, backoff_label, norm_eps,
+            /* state_ngrams= */ check_consistency,
+            /* infinite_backoff= */ false),
         max_bo_updates_(max_bo_updates) {
     ns_ = infst->NumStates();
     for (StateId st = 0; st < ns_; ++st)
@@ -48,19 +49,19 @@ class NGramMarginal : public NGramMutableModel<StdArc> {
     if (!CheckNormalization()) {  // requires normalized model
       NGRAMERROR() << "NGramMarginal: Model not normalized;"
                    << " Model must be normalized for this estimation method";
-      NGramModel<StdArc>::SetError();
+      NGramModel<fst::StdArc>::SetError();
       return false;
     }
     if (!CalculateStateProbs()) {  // calculate p(h)
       NGRAMERROR() << "NGramMarginal: state probability calculation failed";
-      NGramModel<StdArc>::SetError();
+      NGramModel<fst::StdArc>::SetError();
       return false;
     }
     CalculateNewWeights();         // calculate new arc weights
     RecalcBackoff();               // re-calcs backoff weights
     if (!CheckNormalization()) {   // model should be normalized
       NGRAMERROR() << "NGramMarginal: Marginalized model not fully normalized";
-      NGramModel<StdArc>::SetError();
+      NGramModel<fst::StdArc>::SetError();
       return false;
     }
     return true;
@@ -77,8 +78,8 @@ class NGramMarginal : public NGramMutableModel<StdArc> {
 
     MarginalStateStats()
         : log_prob(0),
-          sum_ho_log_prob(-LogArc::Weight::Zero().Value()),
-          sum_ho_log_prob_w_bo(-LogArc::Weight::Zero().Value()){}
+          sum_ho_log_prob(-fst::LogArc::Weight::Zero().Value()),
+          sum_ho_log_prob_w_bo(-fst::LogArc::Weight::Zero().Value()) {}
   };
 
   // Calculates state marginal probs, and sums higher order log probs

@@ -71,8 +71,8 @@ int ngramapply_main(int argc, char** argv) {
   }
   std::unique_ptr<ngram::StdLexicographicRescorer> lex_rescorer;
   if (type == LEX_EPS) {
-    lex_rescorer.reset(
-        new ngram::StdLexicographicRescorer(lmfst.get(), &ngram));
+    lex_rescorer =
+        std::make_unique<ngram::StdLexicographicRescorer>(lmfst.get(), &ngram);
   } else if (type == PHI) {
     ngram.MakePhiMatcherLM(ngram::kSpecialLabel);
   }

@@ -29,43 +29,23 @@
 
 #include <cstdint>
 
+#include <fst/arc-map.h>
 #include <fst/arc.h>
 #include <fst/compose.h>
 #include <fst/determinize.h>
 #include <fst/fst.h>
 #include <fst/lexicographic-weight.h>
-#include <fst/map.h>
 #include <fst/rmepsilon.h>
 #include <fst/vector-fst.h>
 #include <ngram/ngram-model.h>
 
 namespace ngram {
 
-using fst::ArcMap;
-using fst::Compose;
-using fst::Determinize;
-using fst::Fst;
-using fst::kNoStateId;
-using fst::kWeightInvariantProperties;
-using fst::LexicographicArc;
-using fst::LexicographicWeight;
-using fst::MAP_COPY_SYMBOLS;
-using fst::MAP_NO_SUPERFINAL;
-using fst::MapFinalAction;
-using fst::MapSymbolsAction;
-using fst::MutableFst;
-using fst::Power;
-using fst::ProjectProperties;
-using fst::RmEpsilon;
-using fst::StdArc;
-using fst::StdVectorFst;
-using fst::VectorFst;
-
 // The penalty for the first dimension of the lexicographic weight on
 // the phi arc implemented as an epsilon arc. In the most common
 // usage, where W=Tropical, this could just be 1 (or any positive
 // number). But we make it 2 in case someone uses a semiring where
-// Power is really power and not (as in the Tropical),
+// fst::Power is really power and not (as in the Tropical),
 // multiplication.
 
 static const int32_t kBackoffPenalty = 2;
@@ -75,19 +55,19 @@ struct ToLexicographicMapper {
   using FromArc = A;
   using W = typename A::Weight;
 
-  using ToArc = LexicographicArc<W, W>;
+  using ToArc = fst::LexicographicArc<W, W>;
   using LW = typename ToArc::Weight;
 
-  explicit ToLexicographicMapper(NGramModel<StdArc>* in_model)
+  explicit ToLexicographicMapper(NGramModel<fst::StdArc>* in_model)
       : model(in_model) {}
 
   ToArc operator()(const FromArc& arc) const {
     // 'Super-non-final' arc
-    if (arc.nextstate == kNoStateId && arc.weight == W::Zero()) {
-      return ToArc(0, 0, LW(W::Zero(), arc.weight), kNoStateId);
+    if (arc.nextstate == fst::kNoStateId && arc.weight == W::Zero()) {
+      return ToArc(0, 0, LW(W::Zero(), arc.weight), fst::kNoStateId);
       // 'Super-final' arc
-    } else if (arc.nextstate == kNoStateId) {
-      return ToArc(0, 0, LW(W::One(), arc.weight), kNoStateId);
+    } else if (arc.nextstate == fst::kNoStateId) {
+      return ToArc(0, 0, LW(W::One(), arc.weight), fst::kNoStateId);
       // Epsilon label: in this case if it's an LM we need to check the
       // order of the backoff, unless this is Zero(), which can happen
       // in some topologies.
@@ -97,7 +77,7 @@ struct ToLexicographicMapper {
                      arc.nextstate);
       int expt = model->HiOrder() - model->StateOrder(arc.nextstate);
       return ToArc(arc.ilabel, arc.olabel,
-                   LW(Power<W>(kBackoffPenalty, expt), arc.weight),
+                   LW(fst::Power<W>(kBackoffPenalty, expt), arc.weight),
                    arc.nextstate);
       // Real arc (called an "ngram" arc in Roark et al. 2011)
     } else {
@@ -119,23 +99,24 @@ struct ToLexicographicMapper {
   }
 
   uint64_t Properties(uint64_t props) const {
-    return ProjectProperties(props, true) & kWeightInvariantProperties;
+    return fst::ProjectProperties(props, true) &
+           fst::kWeightInvariantProperties;
   }
 
-  NGramModel<StdArc>* model;
+  NGramModel<fst::StdArc>* model;
 };
 
 template <class A>
 struct FromLexicographicMapper {
   using ToArc = A;
   using W = typename A::Weight;
-  using FromArc = LexicographicArc<W, W>;
+  using FromArc = fst::LexicographicArc<W, W>;
   using LW = typename FromArc::Weight;
 
   ToArc operator()(const FromArc& arc) const {
     // 'Super-final' arc and 'Super-non-final' arc
-    if (arc.nextstate == kNoStateId) {
-      return ToArc(0, 0, W(arc.weight.Value2()), kNoStateId);
+    if (arc.nextstate == fst::kNoStateId) {
+      return ToArc(0, 0, W(arc.weight.Value2()), fst::kNoStateId);
     } else {
       return ToArc(arc.ilabel, arc.olabel, W(arc.weight.Value2()),
                    arc.nextstate);
@@ -155,7 +136,8 @@ struct FromLexicographicMapper {
   }
 
   uint64_t Properties(uint64_t props) const {
-    return ProjectProperties(props, true) & kWeightInvariantProperties;
+    return fst::ProjectProperties(props, true) &
+           fst::kWeightInvariantProperties;
   }
 };
 
@@ -168,31 +150,33 @@ class LexicographicRescorer {
   using W = typename A::Weight;
   using ToArc = typename ToMapper::ToArc;
 
-  LexicographicRescorer(MutableFst<A>* lm, NGramModel<StdArc>* model) {
-    ArcMap(*lm, &lm_, ToMapper(model));
+  LexicographicRescorer(fst::MutableFst<A>* lm,
+                        NGramModel<fst::StdArc>* model) {
+    fst::ArcMap(*lm, &lm_, ToMapper(model));
   }
 
-  VectorFst<A>* Rescore(MutableFst<A>* lattice);
+  fst::VectorFst<A>* Rescore(fst::MutableFst<A>* lattice);
 
  private:
-  VectorFst<ToArc> lm_;
-  VectorFst<A> result_;
+  fst::VectorFst<ToArc> lm_;
+  fst::VectorFst<A> result_;
 };
 
 template <class A>
-VectorFst<A>* LexicographicRescorer<A>::Rescore(MutableFst<A>* lattice) {
-  VectorFst<ToArc> lexlat;
-  ArcMap(*lattice, &lexlat, ToMapper(nullptr));
-  VectorFst<ToArc> comp;
-  Compose(lexlat, lm_, &comp);
-  RmEpsilon(&comp);
-  VectorFst<ToArc> det;
-  Determinize(comp, &det);
-  ArcMap(det, &result_, FromMapper());
+fst::VectorFst<A>* LexicographicRescorer<A>::Rescore(
+    fst::MutableFst<A>* lattice) {
+  fst::VectorFst<ToArc> lexlat;
+  fst::ArcMap(*lattice, &lexlat, ToMapper(nullptr));
+  fst::VectorFst<ToArc> comp;
+  fst::Compose(lexlat, lm_, &comp);
+  fst::RmEpsilon(&comp);
+  fst::VectorFst<ToArc> det;
+  fst::Determinize(comp, &det);
+  fst::ArcMap(det, &result_, FromMapper());
   return &result_;
 }
 
-using StdLexicographicRescorer = LexicographicRescorer<StdArc>;
+using StdLexicographicRescorer = LexicographicRescorer<fst::StdArc>;
 
 }  // namespace ngram
 

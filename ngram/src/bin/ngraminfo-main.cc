@@ -32,20 +32,22 @@ DECLARE_double(norm_eps);
 
 namespace ngram {
 
-void PrintNGramInfo(const NGramModel<StdArc> &ngram, std::ostream &ostrm) {
-  const StdFst &fst = ngram.GetFst();
+void PrintNGramInfo(const NGramModel<fst::StdArc> &ngram,
+                    std::ostream &ostrm) {
+  const fst::StdFst &fst = ngram.GetFst();
   std::vector<size_t> order_ngrams(ngram.HiOrder(), 0);
   size_t ngrams = 0;
   size_t backoffs = 0;
   size_t nfinal = 0;
   for (size_t s = 0; s < ngram.NumStates(); ++s) {
     int order = ngram.StateOrder(s);
-    if (fst.Final(s) != StdArc::Weight::Zero()) {
+    if (fst.Final(s) != fst::StdArc::Weight::Zero()) {
       ++nfinal;
       if (order > 0) ++order_ngrams[order - 1];
     }
-    for (ArcIterator<StdFst> aiter(fst, s); !aiter.Done(); aiter.Next()) {
-      const StdArc &arc = aiter.Value();
+    for (fst::ArcIterator<fst::StdFst> aiter(fst, s); !aiter.Done();
+         aiter.Next()) {
+      const fst::StdArc &arc = aiter.Value();
       if (arc.ilabel == 0) {
         ++backoffs;
       } else {

@@ -31,11 +31,17 @@
 
 namespace ngram {
 
+using ::fst::ArcIterator;
 using ::fst::kNoStateId;
 using ::fst::Log64Weight;
+using ::fst::MATCH_INPUT;
+using ::fst::Matcher;
 using ::fst::MutableArcIterator;
 using ::fst::MutableFst;
 using ::fst::StateIterator;
+using ::fst::StdArc;
+using ::fst::StdILabelCompare;
+using ::fst::StdMutableFst;
 using ::fst::StdVectorFst;
 using ::fst::SymbolTable;
 
@@ -86,7 +92,8 @@ void NGramInput::InitializeSymbols(const std::string &symbols,
                                    const std::string &epsilon_symbol) {
   if (Error()) return;
   if (symbols.empty()) {                           // Symbol table not provided.
-    syms_.reset(new SymbolTable("NGramSymbols"));  // Initializes symbol table
+    syms_ = std::make_unique<SymbolTable>(
+        "NGramSymbols");  // Initializes symbol table
     syms_->AddSymbol(epsilon_symbol);
     add_symbols_ = true;
   } else {
@@ -575,7 +582,7 @@ bool NGramInput::CompileARPAModel(bool output, bool renormalize) {
   }
   ARPAHeaderStringMatch("\\end\\");  // Verify that everything parsed well
   if (Error()) return false;
-  fst_.reset(new StdVectorFst());
+  fst_ = std::make_unique<StdVectorFst>();
   ngram_counter.GetFst(fst_.get());
   static const StdILabelCompare icomp;
   ArcSort(fst_.get(), icomp);
@@ -753,7 +760,7 @@ int NGramInput::UpdateLast(std::vector<std::string> *words, int longest_ngram,
 
 // Converts a sorted n-gram count file to an FST.
 bool NGramInput::CompileNGramCounts(bool output) {
-  fst_.reset(new StdVectorFst());  // Creates new FST.
+  fst_ = std::make_unique<StdVectorFst>();  // Creates new FST.
   auto init = fst_->AddState();
   auto unigram = init;
   auto start = fst::kNoStateId;
@@ -813,13 +820,10 @@ double NGramInput::FillStringLabels(std::string *str,
 
 // Converts text corpus to symbol table.
 bool NGramInput::CompileSymbolTable(bool output) {
-  std::string str;
-  bool gotline = static_cast<bool>(std::getline(istrm_, str));
-  while (gotline) {  // For each string.
+  for (std::string str; std::getline(istrm_, str);) {  // For each string.
     std::vector<Label> labels;
     FillStringLabels(&str, &labels, false);
     if (Error()) return false;
-    gotline = static_cast<bool>(std::getline(istrm_, str));
   }
   if (!oov_symbol_.empty()) syms_->AddSymbol(oov_symbol_);
   if (output) syms_->WriteText(ostrm_);

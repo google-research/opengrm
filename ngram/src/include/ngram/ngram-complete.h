@@ -27,19 +27,10 @@
 
 namespace ngram {
 
-using fst::ArcIterator;
-using fst::kNoLabel;
-using fst::kNoStateId;
-using fst::Matcher;
-using fst::MATCH_INPUT;
-using fst::ILabelCompare;
-using fst::MutableFst;
-using fst::Fst;
-
 // Ascends the NGram WFST from lower order states and collects state info.
 template <class Arc>
 bool AscendAndCollectStateInfo(
-    const Fst<Arc> &fst, int order, typename Arc::Label backoff_label,
+    const fst::Fst<Arc> &fst, int order, typename Arc::Label backoff_label,
     std::vector<std::vector<typename Arc::StateId>> *order_states,
     std::vector<int> *state_orders,
     std::vector<typename Arc::StateId> *backoff_states) {
@@ -51,7 +42,8 @@ bool AscendAndCollectStateInfo(
                    << "order " << order << ", but that is not the case";
       return false;
     }
-    for (ArcIterator<Fst<Arc>> aiter(fst, s); !aiter.Done(); aiter.Next()) {
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, s); !aiter.Done();
+         aiter.Next()) {
       const Arc &arc = aiter.Value();
       if (arc.ilabel == backoff_label) {
         (*backoff_states)[s] = arc.nextstate;
@@ -61,7 +53,7 @@ bool AscendAndCollectStateInfo(
         (*order_states)[order + 1].push_back(arc.nextstate);
       }
     }
-    if (order > 1 && (*backoff_states)[s] == kNoStateId) {
+    if (order > 1 && (*backoff_states)[s] == fst::kNoStateId) {
       NGRAMERROR() << "No backoff state for higher order state " << s;
       return false;
     }
@@ -76,7 +68,7 @@ bool NGramComplete(fst::MutableFst<Arc> *fst,
   typedef typename Arc::Weight Weight;
   typedef typename Arc::Label Label;
   if (fst->NumStates() < 2) return true;
-  ArcIterator<Fst<Arc>> aiter(*fst, fst->Start());
+  fst::ArcIterator<fst::Fst<Arc>> aiter(*fst, fst->Start());
   const Arc &arc = aiter.Value();
   if (arc.ilabel != backoff_label) {
     NGRAMERROR() << "First arc out of start state is not backoff arc";
@@ -84,7 +76,7 @@ bool NGramComplete(fst::MutableFst<Arc> *fst,
   }
   StateId unigram_state = arc.nextstate;
   std::vector<int> state_orders(fst->NumStates());
-  std::vector<StateId> backoff_states(fst->NumStates(), kNoStateId);
+  std::vector<StateId> backoff_states(fst->NumStates(), fst::kNoStateId);
   std::vector<std::vector<StateId>> order_states(3);
   order_states[1].push_back(unigram_state);
   state_orders[unigram_state] = 1;
@@ -101,7 +93,7 @@ bool NGramComplete(fst::MutableFst<Arc> *fst,
   }
 
   for (StateId s = 0; s < fst->NumStates(); ++s) {
-    if (s != unigram_state && backoff_states[s] == kNoStateId) {
+    if (s != unigram_state && backoff_states[s] == fst::kNoStateId) {
       NGRAMERROR() << "state with no backoff state: " << s;
       return false;
     }
@@ -114,8 +106,8 @@ bool NGramComplete(fst::MutableFst<Arc> *fst,
   std::vector<std::set<Label>> label_sets(fst->NumStates());
   std::set<StateId> new_final_states;
 
-  std::unique_ptr<Matcher<Fst<Arc>>> matcher(
-      new Matcher<Fst<Arc>>(*fst, MATCH_INPUT));
+  std::unique_ptr<fst::Matcher<fst::Fst<Arc>>> matcher(
+      new fst::Matcher<fst::Fst<Arc>>(*fst, fst::MATCH_INPUT));
 
   for (int order = order_states.size() - 1; order > 1; --order) {
     for (int idx = 0; idx < order_states[order].size(); ++idx) {
@@ -126,7 +118,8 @@ bool NGramComplete(fst::MutableFst<Arc> *fst,
         return false;
       }
       matcher->SetState(bs);
-      for (ArcIterator<Fst<Arc>> aiter(*fst, s); !aiter.Done(); aiter.Next()) {
+      for (fst::ArcIterator<fst::Fst<Arc>> aiter(*fst, s);
+           !aiter.Done(); aiter.Next()) {
         const Arc &arc = aiter.Value();
         if (arc.ilabel == backoff_label || matcher->Find(arc.ilabel)) continue;
         label_sets[bs].insert(arc.ilabel);
@@ -153,8 +146,8 @@ bool NGramComplete(fst::MutableFst<Arc> *fst,
       StateId s = order_states[order][idx];
       if (label_sets[s].empty()) continue;
       StateId bs = backoff_states[s];
-      std::unique_ptr<Matcher<Fst<Arc>>> updated_matcher(
-          new Matcher<Fst<Arc>>(*fst, MATCH_INPUT));
+      std::unique_ptr<fst::Matcher<fst::Fst<Arc>>> updated_matcher(
+          new fst::Matcher<fst::Fst<Arc>>(*fst, fst::MATCH_INPUT));
       if (bs < 0) {
         updated_matcher->SetState(s);
       } else {
@@ -178,11 +171,12 @@ bool NGramComplete(fst::MutableFst<Arc> *fst,
         return false;
       }
 
-      for (ArcIterator<Fst<Arc>> aiter(*fst, s); !aiter.Done(); aiter.Next())
+      for (fst::ArcIterator<fst::Fst<Arc>> aiter(*fst, s);
+           !aiter.Done(); aiter.Next())
         arcs.push_back(aiter.Value());
 
       fst->DeleteArcs(s);
-      std::sort(arcs.begin(), arcs.end(), ILabelCompare<Arc>());
+      std::sort(arcs.begin(), arcs.end(), fst::ILabelCompare<Arc>());
 
       for (size_t i = 0; i < arcs.size(); ++i) fst->AddArc(s, arcs[i]);
     }

@@ -30,22 +30,22 @@
 namespace ngram {
 
 // Context-restricting pruning
-class NGramContextPrune : public NGramShrink<StdArc> {
+class NGramContextPrune : public NGramShrink<fst::StdArc> {
  public:
   // Constructs an NGramShrink object, including an NGramModel and parameters.
   // This version is passed a context pattern string; see ngram-context.h for
   // meaning of the context specification. The specified contexts will NOT be
   // pruned from the model; all others will be (where possible to maintain a
   // well-formed LM).
-  explicit NGramContextPrune(StdMutableFst *infst,
+  explicit NGramContextPrune(fst::StdMutableFst *infst,
                              const std::string &context_pattern = "",
                              int shrink_opt = 0, double tot_uni = -1.0,
                              Label backoff_label = 0,
                              double norm_eps = kNormEps,
                              bool check_consistency = false)
       // shrink_opt must be less than 2 for context pruning
-      : NGramShrink<StdArc>(infst, shrink_opt < 2 ? shrink_opt : 0, tot_uni,
-                            backoff_label, norm_eps, true),
+      : NGramShrink<fst::StdArc>(infst, shrink_opt < 2 ? shrink_opt : 0,
+                                     tot_uni, backoff_label, norm_eps, true),
         context_(context_pattern, HiOrder()) {}
 
   // Constructs an NGramShrink object, including an NGramModel and
@@ -54,7 +54,7 @@ class NGramContextPrune : public NGramShrink<StdArc> {
   // specification.  The specified contexts will NOT be pruned from
   // the model; all others will be (where possible to maintaine a
   // well-formed LM).
-  NGramContextPrune(StdMutableFst *infst,
+  NGramContextPrune(fst::StdMutableFst *infst,
                     const std::vector<Label> &context_begin,
                     const std::vector<Label> &context_end, int shrink_opt = 0,
                     double tot_uni = -1.0, Label backoff_label = 0,
@@ -67,7 +67,8 @@ class NGramContextPrune : public NGramShrink<StdArc> {
 
   // Shrinks n-gram model, based on initialized parameters
   bool ShrinkNGramModel() {
-    return NGramShrink<StdArc>::ShrinkNGramModel(/*require_norm=*/false);
+    return NGramShrink<fst::StdArc>::ShrinkNGramModel(
+        /*require_norm=*/false);
   }
 
  protected:
@@ -87,7 +88,8 @@ class NGramContextPrune : public NGramShrink<StdArc> {
 // Joint context-restricting and count pruning.
 class NGramContextCountPrune : public NGramCountPrune {
  public:
-  NGramContextCountPrune(StdMutableFst *infst, const std::string &count_pattern,
+  NGramContextCountPrune(fst::StdMutableFst *infst,
+                         const std::string &count_pattern,
                          const std::string &context_pattern, int shrink_opt = 0,
                          double tot_uni = -1.0, Label backoff_label = 0,
                          double norm_eps = kNormEps,
@@ -97,7 +99,7 @@ class NGramContextCountPrune : public NGramCountPrune {
                         tot_uni, backoff_label, norm_eps, true),
         context_(context_pattern, HiOrder()) {}
 
-  NGramContextCountPrune(StdMutableFst *infst,
+  NGramContextCountPrune(fst::StdMutableFst *infst,
                          const std::vector<double> &count_minimums,
                          const std::vector<Label> &context_begin,
                          const std::vector<Label> &context_end,
@@ -136,7 +138,7 @@ class NGramContextCountPrune : public NGramCountPrune {
 // Joint context-restricting and relative entropy pruning
 class NGramContextRelEntropy : public NGramRelEntropy {
  public:
-  NGramContextRelEntropy(StdMutableFst *infst, double theta,
+  NGramContextRelEntropy(fst::StdMutableFst *infst, double theta,
                          const std::string &context_pattern, int shrink_opt = 0,
                          double tot_uni = -1.0, Label backoff_label = 0,
                          double norm_eps = kNormEps,
@@ -146,7 +148,7 @@ class NGramContextRelEntropy : public NGramRelEntropy {
                         backoff_label, norm_eps, true),
         context_(context_pattern, HiOrder()) {}
 
-  NGramContextRelEntropy(StdMutableFst *infst, double theta,
+  NGramContextRelEntropy(fst::StdMutableFst *infst, double theta,
                          const std::vector<Label> &context_begin,
                          const std::vector<Label> &context_end,
                          int shrink_opt = 0, double tot_uni = -1.0,
@@ -185,7 +187,7 @@ class NGramContextRelEntropy : public NGramRelEntropy {
 // Joint context-restricting and SeymoreShrink-Rosenfeld pruning
 class NGramContextSeymoreShrink : public NGramSeymoreShrink {
  public:
-  NGramContextSeymoreShrink(StdMutableFst *infst, double theta,
+  NGramContextSeymoreShrink(fst::StdMutableFst *infst, double theta,
                             const std::string &context_pattern,
                             int shrink_opt = 0, double tot_uni = -1.0,
                             Label backoff_label = 0, double norm_eps = kNormEps,
@@ -195,7 +197,7 @@ class NGramContextSeymoreShrink : public NGramSeymoreShrink {
                            tot_uni, backoff_label, norm_eps, true),
         context_(context_pattern, HiOrder()) {}
 
-  NGramContextSeymoreShrink(StdMutableFst *infst, double theta,
+  NGramContextSeymoreShrink(fst::StdMutableFst *infst, double theta,
                             const std::vector<Label> &context_begin,
                             const std::vector<Label> &context_end,
                             int shrink_opt = 0, double tot_uni = -1.0,

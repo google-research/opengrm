@@ -23,16 +23,16 @@
 
 namespace ngram {
 
-class NGramModelMerge : public NGramMerge<StdArc> {
+class NGramModelMerge : public NGramMerge<fst::StdArc> {
  public:
-  typedef StdArc::StateId StateId;
-  typedef StdArc::Label Label;
+  typedef fst::StdArc::StateId StateId;
+  typedef fst::StdArc::Label Label;
 
   // Constructs an NGramModelMerge object consisting of ngram model
   // to be merged.
   // Ownership of FST is retained by the caller.
-  explicit NGramModelMerge(StdMutableFst *infst1, Label backoff_label = 0,
-                           double norm_eps = kNormEps,
+  explicit NGramModelMerge(fst::StdMutableFst *infst1,
+                           Label backoff_label = 0, double norm_eps = kNormEps,
                            bool check_consistency = false)
       : NGramMerge(infst1, backoff_label, norm_eps, check_consistency),
         merge_norm_(true) {
@@ -45,10 +45,10 @@ class NGramModelMerge : public NGramMerge<StdArc> {
 
   // Perform smooth-model merge with n-gram model specified by the FST argument
   // and mixing weights alpha and beta.
-  void MergeNGramModels(const StdFst &infst2, double alpha, double beta,
-                        bool norm = false) {
+  void MergeNGramModels(const fst::StdFst &infst2, double alpha,
+                        double beta, bool norm = false) {
     if (Error()) return;
-    NGramModel<StdArc> mod2(infst2);
+    NGramModel<fst::StdArc> mod2(infst2);
     if (!mod2.CheckNormalization()) {
       NGRAMERROR() << "NGramModelMerge: Model 2 must be normalized to"
                    << " use smoothing in merging";
@@ -57,7 +57,7 @@ class NGramModelMerge : public NGramMerge<StdArc> {
     }
     alpha_ = -log(alpha);
     beta_ = -log(beta);
-    if (!NGramMerge<StdArc>::MergeNGramModels(infst2, norm)) {
+    if (!NGramMerge<fst::StdArc>::MergeNGramModels(infst2, norm)) {
       NGRAMERROR() << "NGramModelMerge: Model merging failed";
       NGramModel::SetError();
       return;

@@ -29,38 +29,31 @@
 
 namespace ngram {
 
-using fst::StdFst;
-using fst::ComposeFst;
-using fst::ComposeFstOptions;
-using fst::CacheOptions;
-
-using fst::MATCHER_REWRITE_NEVER;
-using fst::PhiMatcher;
-
 static const int kSpecialLabel = -2;
 
-class NGramOutput : public NGramMutableModel<StdArc> {
+class NGramOutput : public NGramMutableModel<fst::StdArc> {
  public:
-  typedef StdArc::StateId StateId;
-  typedef StdArc::Label Label;
-  typedef StdArc::Weight Weight;
+  typedef fst::StdArc::StateId StateId;
+  typedef fst::StdArc::Label Label;
+  typedef fst::StdArc::Weight Weight;
 
   // Construct an NGramModel object, consisting of the fst and some
   // information about the states under the assumption that the fst is a model
-  explicit NGramOutput(StdMutableFst *infst, std::ostream &ostrm = std::cout,
-                       Label backoff_label = 0, bool check_consistency = false,
+  explicit NGramOutput(fst::StdMutableFst *infst,
+                       std::ostream &ostrm = std::cout, Label backoff_label = 0,
+                       bool check_consistency = false,
                        const std::string &context_pattern = "",
                        bool include_all_suffixes = false)
-      : NGramMutableModel<StdArc>(infst, backoff_label, kNormEps,
-                                  /* state_ngrams= */!context_pattern.empty() ||
-                                                     check_consistency,
-                                  /* infinite_backoff= */false),
+      : NGramMutableModel<fst::StdArc>(
+            infst, backoff_label, kNormEps,
+            /* state_ngrams= */ !context_pattern.empty() || check_consistency,
+            /* infinite_backoff= */ false),
         ostrm_(ostrm),
         include_all_suffixes_(include_all_suffixes),
         context_(context_pattern, HiOrder()) {
     if (!GetFst().InputSymbols()) {
       NGRAMERROR() << "NGramOutput: no symbol tables provided";
-      NGramModel<StdArc>::SetError();
+      NGramModel<fst::StdArc>::SetError();
     }
   }
 
@@ -87,27 +80,31 @@ class NGramOutput : public NGramMutableModel<StdArc> {
     RandNGramModel(samples, show_backoff);  // randgen from resulting model
   }
 
-  typedef PhiMatcher<Matcher<Fst<StdArc> > > NGPhiMatcher;
+  typedef fst::PhiMatcher<fst::Matcher<fst::Fst<fst::StdArc>>>
+      NGPhiMatcher;
 
-  ComposeFst<StdArc> *FailLMCompose(const StdMutableFst &infst,
-                                    Label special_label) const {
-    ComposeFst<StdArc> *cfst = new ComposeFst<StdArc>(
-        infst, GetFst(),
-        ComposeFstOptions<StdArc, NGPhiMatcher>(
-            CacheOptions(), new NGPhiMatcher(infst, MATCH_NONE, kNoLabel),
-            new NGPhiMatcher(GetFst(), MATCH_INPUT, special_label, 1,
-                             MATCHER_REWRITE_NEVER)));
+  fst::ComposeFst<fst::StdArc> *FailLMCompose(
+      const fst::StdMutableFst &infst, Label special_label) const {
+    fst::ComposeFst<fst::StdArc> *cfst =
+        new fst::ComposeFst<fst::StdArc>(
+            infst, GetFst(),
+            fst::ComposeFstOptions<fst::StdArc, NGPhiMatcher>(
+                fst::CacheOptions(),
+                new NGPhiMatcher(infst, fst::MATCH_NONE, fst::kNoLabel),
+                new NGPhiMatcher(GetFst(), fst::MATCH_INPUT, special_label,
+                                 true, fst::MATCHER_REWRITE_NEVER)));
     return cfst;
   }
 
-  void FailLMCompose(const StdMutableFst &infst, StdMutableFst *ofst,
-                     Label special_label) const {
-    *ofst = ComposeFst<StdArc>(
+  void FailLMCompose(const fst::StdMutableFst &infst,
+                     fst::StdMutableFst *ofst, Label special_label) const {
+    *ofst = fst::ComposeFst<fst::StdArc>(
         infst, GetFst(),
-        ComposeFstOptions<StdArc, NGPhiMatcher>(
-            CacheOptions(), new NGPhiMatcher(infst, MATCH_NONE, kNoLabel),
-            new NGPhiMatcher(GetFst(), MATCH_INPUT, special_label, 1,
-                             MATCHER_REWRITE_NEVER)));
+        fst::ComposeFstOptions<fst::StdArc, NGPhiMatcher>(
+            fst::CacheOptions(),
+            new NGPhiMatcher(infst, fst::MATCH_NONE, fst::kNoLabel),
+            new NGPhiMatcher(GetFst(), fst::MATCH_INPUT, special_label,
+                             true, fst::MATCHER_REWRITE_NEVER)));
   }
 
   // Switch backoff label to special label for phi matcher
@@ -116,10 +113,10 @@ class NGramOutput : public NGramMutableModel<StdArc> {
 
   // Apply n-gram model to fst.  For now, assumes linear fst, accumulates stats
   double ApplyNGramToFst(const fst::StdVectorFst &input_fst,
-                         const Fst<StdArc> &symbolfst, bool phimatch,
-                         bool verbose, Label special_label, Label OOV_label,
-                         double OOV_cost, double *logprob, int *words,
-                         int *oovs, int *words_skipped);
+                         const fst::Fst<fst::StdArc> &symbolfst,
+                         bool phimatch, bool verbose, Label special_label,
+                         Label OOV_label, double OOV_cost, double *logprob,
+                         int *words, int *oovs, int *words_skipped);
 
   // Adds a phi loop (rho) at unigram state for OOVs
   // OOV_class_size (N) and OOV_probability (p) determine weight of loop: p/N
@@ -141,27 +138,30 @@ class NGramOutput : public NGramMutableModel<StdArc> {
   void ShowARPAHeader() const;
 
   // Print n-grams leaving a particular state for the ARPA model format
-  void ShowARPANGrams(StdArc::StateId st, const std::string &str,
+  void ShowARPANGrams(fst::StdArc::StateId st, const std::string &str,
                       int order) const;
 
   // Print the N-gram model in ARPA format
   void ShowARPAModel() const;
 
   // Print n-grams leaving a particular state, standard output format
-  void ShowNGrams(StdArc::StateId st, const std::string &str,
+  void ShowNGrams(fst::StdArc::StateId st, const std::string &str,
                   ShowBackoff showeps, bool neglogs, bool intcnts) const;
 
-  void ShowStringFst(const Fst<StdArc> &infst) const;
+  void ShowStringFst(const fst::Fst<fst::StdArc> &infst) const;
 
-  void RelabelAndSetSymbols(StdMutableFst *infst, const Fst<StdArc> &symbolfst);
+  void RelabelAndSetSymbols(fst::StdMutableFst *infst,
+                            const fst::Fst<fst::StdArc> &symbolfst);
 
-  void ShowPhiPerplexity(const ComposeFst<StdArc> &cfst, bool verbose,
-                         int special_label, Label OOV_label, double *logprob,
-                         int *words, int *oovs, int *words_skipped) const;
+  void ShowPhiPerplexity(const fst::ComposeFst<fst::StdArc> &cfst,
+                         bool verbose, int special_label, Label OOV_label,
+                         double *logprob, int *words, int *oovs,
+                         int *words_skipped) const;
 
-  void ShowNonPhiPerplexity(const Fst<StdArc> &infst, bool verbose,
-                            double OOV_cost, Label OOV_label, double *logprob,
-                            int *words, int *oovs, int *words_skipped) const;
+  void ShowNonPhiPerplexity(const fst::Fst<fst::StdArc> &infst,
+                            bool verbose, double OOV_cost, Label OOV_label,
+                            double *logprob, int *words, int *oovs,
+                            int *words_skipped) const;
 
   void FindNextStateInModel(StateId *mst, Label label, double OOV_cost,
                             Label OOV_label, double *neglogprob, int *word_cnt,
@@ -227,7 +227,7 @@ class NGramOutput : public NGramMutableModel<StdArc> {
 
   // Checks parameterization of perplexity calculation and sets OOV_label
   bool GetOOVLabel(double *OOV_probability, std::string *OOV_symbol,
-                   StdArc::Label *OOV_label);
+                   fst::StdArc::Label *OOV_label);
 
  private:
   std::ostream &ostrm_;

@@ -151,9 +151,9 @@ int CountFromRandGen(fst::StdMutableFst *genmodel,
   if (order < 2) order = 2;  // minimum bigram
   if (!first) varstrm << "ORDER=" << order << std::endl;
   std::unique_ptr<fst::FarWriter<fst::StdArc>> far_writer1;
-  ngram::NGramCounter<fst::Log64Weight> ngram_counter(order, 0);
+  ngram::NGramCounter<fst::Log64Weight> ngram_counter(order, false);
   fst::RandGenOptions<ngram::NGramArcSelector<fst::StdArc>> opts(
-      *selector, max_length, 1, 0, 0);
+      *selector, max_length, 1, false, false);
   for (int stringidx = 1; stringidx <= num_strings; ++stringidx) {
     fst::StdVectorFst ofst;
     while (ofst.NumStates() == 0)  // counting only non-empty strings
@@ -180,20 +180,22 @@ int CountFromRandGen(fst::StdMutableFst *genmodel,
 fst::StdMutableFst *RandomMake(fst::StdMutableFst *countfst) {
   int switchval = ceil(4 * (rand() / (RAND_MAX + 1.0)));  // NOLINT
   if (switchval == 1) {
-    ngram::NGramKneserNey ngram(countfst, 0, 0, ngram::kNormEps, 1, -1, -1);
+    ngram::NGramKneserNey ngram(countfst, false, 0, ngram::kNormEps, true, -1,
+                                -1);
     ngram.MakeNGramModel();
     return ngram.GetMutableFst();
   } else if (switchval == 2) {
-    ngram::NGramAbsolute ngram(countfst, 0, 0, ngram::kNormEps, 1, -1, -1);
+    ngram::NGramAbsolute ngram(countfst, false, 0, ngram::kNormEps, true, -1,
+                               -1);
     ngram.MakeNGramModel();
     return ngram.GetMutableFst();
   } else if (switchval == 3) {
-    ngram::NGramKatz<fst::StdArc> ngram(countfst, 0, 0, ngram::kNormEps, 1,
-                                            -1);
+    ngram::NGramKatz<fst::StdArc> ngram(countfst, false, 0, ngram::kNormEps,
+                                            true, -1);
     ngram.MakeNGramModel();
     return ngram.GetMutableFst();
   } else {
-    ngram::NGramWittenBell ngram(countfst, 0, 0, ngram::kNormEps, 1, 1);
+    ngram::NGramWittenBell ngram(countfst, false, 0, ngram::kNormEps, true, 1);
     ngram.MakeNGramModel();
     return ngram.GetMutableFst();
   }
@@ -247,10 +249,10 @@ int ngramrandtest_main(int argc, char **argv) {
   double num_samples =
       FST_FLAGS_sample_max * (rand() / (RAND_MAX + 1.0));  // NOLINT
   int num_strings = ceil(num_samples);
-  int far_cnt =
-      CountFromRandGen(&unigram, &countfst1, &selector, num_strings,
-                       far_writer.get(), 0, FST_FLAGS_max_length,
-                       FST_FLAGS_ngram_max, directory, 1, varstrm);
+  int far_cnt = CountFromRandGen(
+      &unigram, &countfst1, &selector, num_strings, far_writer.get(), 0,
+      FST_FLAGS_max_length, FST_FLAGS_ngram_max,
+      directory, true, varstrm);
   // copy first count file, since making model modifies input counts
   fst::StdMutableFst *modfst1 =
       RandomMake(&countfst1);  // model from counts
@@ -258,6 +260,6 @@ int ngramrandtest_main(int argc, char **argv) {
   fst::StdVectorFst countfst2;  // n-gram counts from 2nd random corpus
   CountFromRandGen(modfst1, &countfst2, &selector, num_strings,
                    far_writer.get(), far_cnt, FST_FLAGS_max_length,
-                   FST_FLAGS_ngram_max, directory, 0, varstrm);
+                   FST_FLAGS_ngram_max, directory, false, varstrm);
   return 0;
 }

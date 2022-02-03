@@ -25,17 +25,18 @@
 
 namespace ngram {
 
-class NGramBayesModelMerge : public NGramMerge<StdArc> {
+class NGramBayesModelMerge : public NGramMerge<fst::StdArc> {
  public:
-  typedef StdArc::StateId StateId;
-  typedef StdArc::Label Label;
+  typedef fst::StdArc::StateId StateId;
+  typedef fst::StdArc::Label Label;
 
   // Constructs an NGramBayesModelMerge object consisting of ngram model
   // to be merged.
   // Ownership of FST is retained by the caller.
-  explicit NGramBayesModelMerge(StdMutableFst *infst1, Label backoff_label = 0,
+  explicit NGramBayesModelMerge(fst::StdMutableFst *infst1,
+                                Label backoff_label = 0,
                                 double norm_eps = kNormEps)
-      : NGramMerge<StdArc>(infst1, backoff_label, norm_eps, true) {
+      : NGramMerge<fst::StdArc>(infst1, backoff_label, norm_eps, true) {
     if (!CheckNormalization()) {
       NGRAMERROR() << "NGramBayesModelMerge: Model 1 must be normalized to"
                    << " use smoothing in merging";
@@ -45,8 +46,9 @@ class NGramBayesModelMerge : public NGramMerge<StdArc> {
 
   // Perform smooth-model merge with n-gram model specified by the FST argument
   // and mixing weights alpha and beta. Resultant model will be normalized.
-  void MergeNGramModels(const StdFst &infst2, double alpha, double beta) {
-    NGramModel<StdArc> mod2(infst2);
+  void MergeNGramModels(const fst::StdFst &infst2, double alpha,
+                        double beta) {
+    NGramModel<fst::StdArc> mod2(infst2);
     if (!mod2.CheckNormalization()) {
       NGRAMERROR() << "NGramBayesModelMerge: Model 2 must be normalized to"
                    << " use smoothing in merging";
@@ -56,7 +58,7 @@ class NGramBayesModelMerge : public NGramMerge<StdArc> {
     alpha_ = -log(alpha);
     beta_ = -log(beta);
     state_alpha_.clear();
-    if (!NGramMerge<StdArc>::MergeNGramModels(infst2, true)) {
+    if (!NGramMerge<fst::StdArc>::MergeNGramModels(infst2, true)) {
       NGRAMERROR() << "NGramBayesModelMerge: Model merging failed";
       NGramModel::SetError();
     }
@@ -64,9 +66,10 @@ class NGramBayesModelMerge : public NGramMerge<StdArc> {
 
  protected:
   // Specifies resultant weight when combining a weight from each FST
-  StdArc::Weight MergeWeights(StateId s1, StateId s2, Label label,
-                              StdArc::Weight w1, StdArc::Weight w2,
-                              bool in_fst1, bool in_fst2) const override {
+  fst::StdArc::Weight MergeWeights(StateId s1, StateId s2, Label label,
+                                       fst::StdArc::Weight w1,
+                                       fst::StdArc::Weight w2, bool in_fst1,
+                                       bool in_fst2) const override {
     if (label == BackoffLabel()) {  // don't modify (needed) backoff weights
       return in_fst1 ? w1.Value() : w2.Value();
     } else {
@@ -93,7 +96,7 @@ class NGramBayesModelMerge : public NGramMerge<StdArc> {
 
       // Only normalize non-infinite cost (to avoid potential NaN issues).
       // If state_alpha_[st] = inf (i.e., p = 0), then normalized is also inf.
-      if (state_alpha_[st] < StdArc::Weight::Zero().Value())
+      if (state_alpha_[st] < fst::StdArc::Weight::Zero().Value())
         state_alpha_[st] -= NegLogSum(w1 + alpha_, w2 + beta_);
     }
     return state_alpha_[st];

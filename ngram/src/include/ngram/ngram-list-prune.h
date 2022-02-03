@@ -28,7 +28,7 @@
 namespace ngram {
 
 // Context-restricting pruning
-class NGramListPrune : public NGramShrink<StdArc> {
+class NGramListPrune : public NGramShrink<fst::StdArc> {
  public:
   // Constructs an NGramShrink object, including an NGramModel and
   // parameters.  A set of word label vectors represent n-grams to be pruned.
@@ -36,7 +36,7 @@ class NGramListPrune : public NGramShrink<StdArc> {
   // n-grams that have a specified n-gram as a substring.  Unigrams will not be
   // removed, but unigrams in the list will cause the removal of any
   // non-unigrams that have that unigram as a substring.
-  NGramListPrune(StdMutableFst *infst,
+  NGramListPrune(fst::StdMutableFst *infst,
                  const std::set<std::vector<Label>> &ngrams_to_prune,
                  int shrink_opt = 0, double tot_uni = -1.0,
                  Label backoff_label = 0, double norm_eps = kNormEps,
@@ -52,8 +52,8 @@ class NGramListPrune : public NGramShrink<StdArc> {
 
   // Shrinks n-gram model, based on initialized parameters
   bool ShrinkNGramModel(int min_order = 2) {
-    return NGramShrink<StdArc>::ShrinkNGramModel(/*require_norm=*/false,
-                                                 min_order);
+    return NGramShrink<fst::StdArc>::ShrinkNGramModel(
+        /*require_norm=*/false, min_order);
   }
 
  protected:
@@ -89,9 +89,10 @@ class NGramListPrune : public NGramShrink<StdArc> {
   // order.
   void InitializeStateVectors() {
     state_on_prune_path_.resize(GetMutableFst()->NumStates(), false);
-    Matcher<Fst<StdArc>> matcher(GetFst(), MATCH_INPUT);
+    fst::Matcher<fst::Fst<fst::StdArc>> matcher(
+        GetFst(), fst::MATCH_INPUT);
     for (auto ngram : ngrams_to_prune_) {
-      StateId origin_state = kNoStateId;
+      StateId origin_state = fst::kNoStateId;
       StateId curr_state =
           UnigramState() < 0 ? GetMutableFst()->Start() : UnigramState();
       bool ngram_found = true;
@@ -100,11 +101,12 @@ class NGramListPrune : public NGramShrink<StdArc> {
         if (label < 0) {
           ngram_found = false;
         } else {
-          bool still_ascending = origin_state == kNoStateId ||
-                            StateOrder(origin_state) < StateOrder(curr_state);
+          bool still_ascending =
+              origin_state == fst::kNoStateId ||
+              StateOrder(origin_state) < StateOrder(curr_state);
           matcher.SetState(curr_state);
           if (still_ascending && matcher.Find(label)) {
-            StdArc arc = matcher.Value();
+            fst::StdArc arc = matcher.Value();
             origin_state = curr_state;
             curr_state = arc.nextstate;
           } else {
@@ -143,8 +145,9 @@ class NGramListPrune : public NGramShrink<StdArc> {
     }
     for (int order = 1; order <= HiOrder(); ++order) {
       for (auto s : order_states[order]) {
-        ArcIterator<ExpandedFst<StdArc>> aiter(GetExpandedFst(), s);
-        StdArc arc = aiter.Value();
+        fst::ArcIterator<fst::ExpandedFst<fst::StdArc>> aiter(
+            GetExpandedFst(), s);
+        fst::StdArc arc = aiter.Value();
         if (arc.ilabel == 0) {
           StateId backoff_state = arc.nextstate;
           if (state_on_prune_path_[backoff_state]) {
@@ -159,7 +162,7 @@ class NGramListPrune : public NGramShrink<StdArc> {
                   highest_order_prune_arcs_.end()) {
                 if (StateOrder(s) < StateOrder(arc.nextstate)) {
                   NGRAMERROR() << "Ascending arc, should be non-ascending.";
-                  NGramModel<StdArc>::SetError();
+                  NGramModel<fst::StdArc>::SetError();
                   return false;
                 }
                 highest_order_prune_arcs_.insert(std::make_pair(s, arc.ilabel));
@@ -175,9 +178,10 @@ class NGramListPrune : public NGramShrink<StdArc> {
   // Ascend to all subsequent states and mark them if on prune path.
   void AscendAndMark(StateId s) {
     if (state_on_prune_path_[s]) {
-      for (ArcIterator<ExpandedFst<StdArc>> aiter(GetExpandedFst(), s);
+      for (fst::ArcIterator<fst::ExpandedFst<fst::StdArc>> aiter(
+               GetExpandedFst(), s);
            !aiter.Done(); aiter.Next()) {
-        StdArc arc = aiter.Value();
+        fst::StdArc arc = aiter.Value();
         if (arc.ilabel != 0 && !state_on_prune_path_[arc.nextstate] &&
             StateOrder(s) < StateOrder(arc.nextstate)) {
           state_on_prune_path_[arc.nextstate] = true;

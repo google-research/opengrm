@@ -100,12 +100,12 @@ bool NGramContext::HasContext(const std::vector<Label> &ngram,
     context_begin_end = context_begin_.end();
   }
 
-  bool less_begin = lexicographical_compare(
-      ngram_for_cmp.begin(), ngram_for_cmp.end(),
-      context_begin_.begin(), context_begin_end);
-  bool less_end = lexicographical_compare(
-      ngram_for_cmp.begin(), ngram_for_cmp.end(),
-      context_end_.begin(), context_end_.end());
+  bool less_begin =
+      std::lexicographical_compare(ngram_for_cmp.begin(), ngram_for_cmp.end(),
+                                   context_begin_.begin(), context_begin_end);
+  bool less_end =
+      std::lexicographical_compare(ngram_for_cmp.begin(), ngram_for_cmp.end(),
+                                   context_end_.begin(), context_end_.end());
 
   return !less_begin && less_end;
 }
@@ -119,13 +119,13 @@ void NGramContext::ParseContextInterval(std::string_view context_pattern,
   if (context_pattern.empty()) return;
 
   std::vector<std::string_view> contexts =
-      fst::SplitString(context_pattern, ":", true);
+      ::fst::StrSplit(context_pattern, ':', ::fst::SkipEmpty());
   if (contexts.size() != 2)
     LOG(FATAL) << "NGramContext: bad context pattern: " << context_pattern;
   std::vector<std::string_view> labels1 =
-      fst::SplitString(contexts[0], " ", true);
+      ::fst::StrSplit(contexts[0], ' ', ::fst::SkipEmpty());
   std::vector<std::string_view> labels2 =
-      fst::SplitString(contexts[1], " ", true);
+      ::fst::StrSplit(contexts[1], ' ', ::fst::SkipEmpty());
   for (int i = 0; i < labels1.size(); ++i) {
     Label label = fst::StrToInt64(labels1[i], "context begin", 1, false);
     context_begin->push_back(label);
@@ -139,14 +139,15 @@ void NGramContext::ParseContextInterval(std::string_view context_pattern,
 void NGramContext::Init() {
   if (NullContext()) return;
 
-  reverse(context_begin_.begin(), context_begin_.end());
-  reverse(context_end_.begin(), context_end_.end());
+  std::reverse(context_begin_.begin(), context_begin_.end());
+  std::reverse(context_end_.begin(), context_end_.end());
   if (context_begin_.size() >= hi_order_) hi_order_ = context_begin_.size() + 1;
   if (context_end_.size() >= hi_order_) hi_order_ = context_end_.size() + 1;
   context_begin_.resize(hi_order_ - 1, 0);
   context_end_.resize(hi_order_ - 1, 0);
-  if (!lexicographical_compare(context_begin_.begin(), context_begin_.end(),
-                               context_end_.begin(), context_end_.end()))
+  if (!std::lexicographical_compare(context_begin_.begin(),
+                                    context_begin_.end(), context_end_.begin(),
+                                    context_end_.end()))
     LOG(FATAL) << "NGramContext: bad context interval";
 }
 
@@ -198,7 +199,8 @@ bool NGramExtendedContext::CheckContexts() {
   for (size_t i = 1; i < contexts_.size(); ++i) {
     const std::vector<Label> &e1 = contexts_[i - 1].GetReverseContextEnd();
     const std::vector<Label> &b2 = contexts_[i].GetReverseContextBegin();
-    if (lexicographical_compare(b2.begin(), b2.end(), e1.begin(), e1.end())) {
+    if (std::lexicographical_compare(b2.begin(), b2.end(), e1.begin(),
+                                     e1.end())) {
       LOG(WARNING) << "CheckContexts: over-lapping context intevals";
       return false;
     };
@@ -224,7 +226,7 @@ void NGramExtendedContext::ParseContextIntervals(
     std::vector<NGramContext> *contexts) {
   contexts->clear();
   std::vector<std::string_view> context_patterns =
-      fst::SplitString(extended_context_pattern, ",", true);
+      ::fst::StrSplit(extended_context_pattern, ',', ::fst::SkipEmpty());
 
   for (size_t i = 0; i < context_patterns.size(); ++i)
     contexts->push_back(NGramContext(context_patterns[i], hi_order));
@@ -249,8 +251,8 @@ const NGramContext *NGramExtendedContext::GetContext(
   NGramContext ngram_context(std::move(ngram_beg), std::move(ngram_end),
                              hi_order);
   ContextCompare context_cmp;
-  auto it = upper_bound(contexts_.begin(), contexts_.end(), ngram_context,
-                        context_cmp);
+  auto it = std::upper_bound(contexts_.begin(), contexts_.end(), ngram_context,
+                             context_cmp);
   if (it != contexts_.begin() &&
       (it - 1)->HasContext(ngram, include_all_suffixes)) {
     return &*(it - 1);  // strict match

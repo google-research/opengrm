@@ -22,15 +22,16 @@
 
 namespace ngram {
 
-class NGramRelEntropy : public NGramShrink<StdArc> {
+class NGramRelEntropy : public NGramShrink<fst::StdArc> {
  public:
   // Constructs an NGramRelEntropy object that prunes an LM using relative
   // entropy criterion.
-  NGramRelEntropy(StdMutableFst *infst, double theta, int shrink_opt = 0,
-                  double tot_uni = -1.0, Label backoff_label = 0,
-                  double norm_eps = kNormEps, bool check_consistency = false)
-      : NGramShrink<StdArc>(infst, shrink_opt, tot_uni, backoff_label, norm_eps,
-                            check_consistency) {
+  NGramRelEntropy(fst::StdMutableFst *infst, double theta,
+                  int shrink_opt = 0, double tot_uni = -1.0,
+                  Label backoff_label = 0, double norm_eps = kNormEps,
+                  bool check_consistency = false)
+      : NGramShrink<fst::StdArc>(infst, shrink_opt, tot_uni, backoff_label,
+                                     norm_eps, check_consistency) {
     // Threshold provided in real domain, convert to log
     theta_ = log(theta + 1);  // e^D - 1 <= theta_ -> D <= log(theta_ + 1)
   }
@@ -39,8 +40,8 @@ class NGramRelEntropy : public NGramShrink<StdArc> {
   // than min_order will be pruned; min_order must be at least 2 (the default
   // value).
   bool ShrinkNGramModel(int min_order = 2) {
-    return NGramShrink<StdArc>::ShrinkNGramModel(/* require_norm = */ true,
-                                                 min_order);
+    return NGramShrink<fst::StdArc>::ShrinkNGramModel(
+        /* require_norm = */ true, min_order);
   }
 
   // Returns a theta that will yield the target number of ngrams and no more.
@@ -62,9 +63,9 @@ class NGramRelEntropy : public NGramShrink<StdArc> {
   // return exp(D(p||p')) - 1
   double ShrinkScore(const ShrinkStateStats &state,
                      const ShrinkArcStats &arc) const override {
-    if (arc.log_prob == -StdArc::Weight::Zero().Value() ||
-        state.log_prob == -StdArc::Weight::Zero().Value()) {
-      return -StdArc::Weight::Zero().Value();
+    if (arc.log_prob == -fst::StdArc::Weight::Zero().Value() ||
+        state.log_prob == -fst::StdArc::Weight::Zero().Value()) {
+      return -fst::StdArc::Weight::Zero().Value();
     }
     double new_log_backoff = CalcNewLogBackoff(arc);
     double score = arc.log_backoff_prob + new_log_backoff - arc.log_prob;

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Tests the command line binary ngramsymbols.
+# Tests the command line binary ngramshrink.
 
 set -eou pipefail
 

@@ -22,23 +22,24 @@
 
 namespace ngram {
 
-class NGramSeymoreShrink : public NGramShrink<StdArc> {
+class NGramSeymoreShrink : public NGramShrink<fst::StdArc> {
  public:
   // Constructs an NGramSeymoreShrink object that prunes an LM using the
   // Seymore-Rosenfeld criterion.
-  NGramSeymoreShrink(StdMutableFst *infst, double theta, int shrink_opt = 0,
-                     double tot_uni = -1.0, Label backoff_label = 0,
-                     double norm_eps = kNormEps, bool check_consistency = false)
-      : NGramShrink<StdArc>(infst, shrink_opt, tot_uni, backoff_label, norm_eps,
-                            check_consistency),
-        theta_(theta){}
+  NGramSeymoreShrink(fst::StdMutableFst *infst, double theta,
+                     int shrink_opt = 0, double tot_uni = -1.0,
+                     Label backoff_label = 0, double norm_eps = kNormEps,
+                     bool check_consistency = false)
+      : NGramShrink<fst::StdArc>(infst, shrink_opt, tot_uni, backoff_label,
+                                     norm_eps, check_consistency),
+        theta_(theta) {}
 
   // Shrink n-gram model, based on initialized parameters (requires normalized).
   // No ngrams smaller than min_order will be pruned; min_order must be at
   // least 2 (the default value).
   bool ShrinkNGramModel(int min_order = 2) {
-    return NGramShrink<StdArc>::ShrinkNGramModel(/* require_norm = */ true,
-                                                 min_order);
+    return NGramShrink<fst::StdArc>::ShrinkNGramModel(
+        /* require_norm = */ true, min_order);
   }
 
   // Returns a theta that will yield the target number of ngrams and no more.
@@ -56,9 +57,9 @@ class NGramSeymoreShrink : public NGramShrink<StdArc> {
   // N(w,h) [ log p(w|h) - log p'(w|h) ] where N(w,h) is discounted frequency
   double ShrinkScore(const ShrinkStateStats &state,
                      const ShrinkArcStats &arc) const override {
-    if (arc.log_prob == -StdArc::Weight::Zero().Value() ||
-        state.log_prob == -StdArc::Weight::Zero().Value()) {
-      return -StdArc::Weight::Zero().Value();
+    if (arc.log_prob == -fst::StdArc::Weight::Zero().Value() ||
+        state.log_prob == -fst::StdArc::Weight::Zero().Value()) {
+      return -fst::StdArc::Weight::Zero().Value();
     }
     double score;
     score = arc.log_prob - CalcNewLogBackoff(arc);

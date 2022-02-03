@@ -31,8 +31,17 @@ DEFINE_string(end_symbol, "</s>", "Class label for sentence end");
 
 namespace ngram {
 
+using fst::ArcIterator;
+using fst::ComposeFst;
+using fst::Fst;
+using fst::MATCH_INPUT;
+using fst::Matcher;
+using fst::MutableArcIterator;
+using fst::StdArc;
 using fst::StdExpandedFst;
+using fst::StdFst;
 using fst::StdILabelCompare;
+using fst::StdMutableFst;
 
 // Determine whether n-gram state is in context or not
 bool NGramOutput::InContext(StateId st) const {
@@ -310,7 +319,7 @@ void NGramOutput::ShowPhiPerplexity(const ComposeFst<StdArc> &cfst,
     ngram_cost = ShowLogNewBase(arc.weight.Value(), 10);
     ++word_cnt;
     if (arc.olabel == special_label) {
-      if (verbose) ShowNGramProb(symbol, history, 1, -1, -ngram_cost);
+      if (verbose) ShowNGramProb(symbol, history, true, -1, -ngram_cost);
       history = "";
       ++oov_cnt;
       if (ngram_cost != -StdArc::Weight::Zero().Value()) {
@@ -319,7 +328,7 @@ void NGramOutput::ShowPhiPerplexity(const ComposeFst<StdArc> &cfst,
         skipped++;  // no cost to OOV, word skipped for perplexity
       }
     } else {
-      if (verbose) ShowNGramProb(symbol, history, 0, -1, -ngram_cost);
+      if (verbose) ShowNGramProb(symbol, history, false, -1, -ngram_cost);
       if (arc.olabel == OOV_label)  // OOV is symbol in the model
         ++oov_cnt;
       history = symbol + " ...";
@@ -329,7 +338,8 @@ void NGramOutput::ShowPhiPerplexity(const ComposeFst<StdArc> &cfst,
   }
   ngram_cost = ShowLogNewBase(cfst.Final(st).Value(), 10);
   if (verbose)
-    ShowNGramProb(FST_FLAGS_end_symbol, history, 0, -1, -ngram_cost);
+    ShowNGramProb(FST_FLAGS_end_symbol, history, false, -1,
+                  -ngram_cost);
   if (InContext(st)) neglogprob += ngram_cost;
   if (verbose) ShowPerplexity(1, word_cnt, oov_cnt, skipped, neglogprob);
   *logprob += neglogprob;

@@ -30,17 +30,6 @@
 
 namespace ngram {
 
-using fst::MutableFst;
-using fst::ExpandedFst;
-using fst::MutableArcIterator;
-
-using fst::VectorFst;
-using fst::ILabelCompare;
-
-using fst::kAcceptor;
-using fst::kIDeterministic;
-using fst::kILabelSorted;
-
 template <class Arc>
 class NGramMutableModel : public NGramModel<Arc> {
  public:
@@ -61,29 +50,32 @@ class NGramMutableModel : public NGramModel<Arc> {
   // Constructs an NGramMutableModel object, derived from NGramModel,
   // that adds mutable methods such as backoff normalization.
   // Ownership of the FST is retained by the caller.
-  explicit NGramMutableModel(MutableFst<Arc> *infst, Label backoff_label,
-                             double norm_eps, bool state_ngrams,
-                             bool infinite_backoff = false)
+  explicit NGramMutableModel(fst::MutableFst<Arc> *infst,
+                             Label backoff_label, double norm_eps,
+                             bool state_ngrams, bool infinite_backoff = false)
       : NGramModel<Arc>(*infst, backoff_label, norm_eps, state_ngrams),
         infinite_backoff_(infinite_backoff),
         mutable_fst_(infst) {}
 
   // Same as above, but requires the FST and the backoff label.
-  NGramMutableModel(MutableFst<Arc> *infst, Label backoff_label)
-      : NGramModel<Arc>(*infst, backoff_label), infinite_backoff_(false),
+  NGramMutableModel(fst::MutableFst<Arc> *infst, Label backoff_label)
+      : NGramModel<Arc>(*infst, backoff_label),
+        infinite_backoff_(false),
         mutable_fst_(infst) {}
 
   // Same as above, but uses default parameters where possible.
-  explicit NGramMutableModel(MutableFst<Arc> *infst)
+  explicit NGramMutableModel(fst::MutableFst<Arc> *infst)
       : NGramModel<Arc>(*infst),
         infinite_backoff_(false),
         mutable_fst_(infst) {}
 
   // ExpandedFst const reference
-  const ExpandedFst<Arc> &GetExpandedFst() const { return *mutable_fst_; }
+  const fst::ExpandedFst<Arc> &GetExpandedFst() const {
+    return *mutable_fst_;
+  }
 
   // Mutable Fst pointer
-  MutableFst<Arc> *GetMutableFst() { return mutable_fst_; }
+  fst::MutableFst<Arc> *GetMutableFst() { return mutable_fst_; }
 
   // For given state, recalculates backoff cost, assigns to backoff arc
   void RecalcBackoff(StateId st) {
@@ -134,7 +126,7 @@ class NGramMutableModel : public NGramModel<Arc> {
   void SetScalarValue(Weight *w, double scalar);
 
   // Scale given weight by a given scalar
-  Weight ScaleWeight(Weight w, double scale);
+  Weight ScaleWeight(Weight w, double scalar);
 
  protected:
   Weight GetBackoffFinalCost(StateId st) const {
@@ -153,8 +145,9 @@ class NGramMutableModel : public NGramModel<Arc> {
   // Uses iterator in place of matcher for mutable arc iterators,
   // avoids full copy and allows getting Position(). NB: begins
   // search from current position.
-  bool FindMutableArc(MutableArcIterator<MutableFst<Arc>> *biter,
-                      Label label) const {
+  bool FindMutableArc(
+      fst::MutableArcIterator<fst::MutableFst<Arc>> *biter,
+      Label label) const {
     while (!biter->Done()) {  // scan through arcs
       Arc barc = biter->Value();
       if (barc.ilabel == label)
@@ -172,7 +165,8 @@ class NGramMutableModel : public NGramModel<Arc> {
     if (mutable_fst_->Final(st) != Arc::Weight::Zero()) {
       mutable_fst_->SetFinal(st, ScaleWeight(mutable_fst_->Final(st), scale));
     }
-    for (MutableArcIterator<MutableFst<Arc>> aiter(mutable_fst_, st);
+    for (fst::MutableArcIterator<fst::MutableFst<Arc>> aiter(
+             mutable_fst_, st);
          !aiter.Done(); aiter.Next()) {
       Arc arc = aiter.Value();
       if (arc.ilabel != BackoffLabel()) {  // only scaling non-backoff arcs
@@ -184,10 +178,10 @@ class NGramMutableModel : public NGramModel<Arc> {
 
   // Sorts arcs in state in ilabel order.
   void SortArcs(StateId s) {
-    ILabelCompare<Arc> comp;
+    fst::ILabelCompare<Arc> comp;
     std::vector<Arc> arcs;
-    for (ArcIterator<MutableFst<Arc>> aiter(*mutable_fst_, s); !aiter.Done();
-         aiter.Next())
+    for (fst::ArcIterator<fst::MutableFst<Arc>> aiter(*mutable_fst_, s);
+         !aiter.Done(); aiter.Next())
       arcs.push_back(aiter.Value());
     std::sort(arcs.begin(), arcs.end(), comp);
     mutable_fst_->DeleteArcs(s);
@@ -199,7 +193,8 @@ class NGramMutableModel : public NGramModel<Arc> {
     for (StateId st = 0; st < mutable_fst_->NumStates(); ++st) {
       double hi_neglog_sum, low_neglog_sum;
       if (CalcBONegLogSums(st, &hi_neglog_sum, &low_neglog_sum)) {
-        MutableArcIterator<MutableFst<Arc>> aiter(mutable_fst_, st);
+        fst::MutableArcIterator<fst::MutableFst<Arc>> aiter(
+            mutable_fst_, st);
         if (FindMutableArc(&aiter, BackoffLabel())) {
           Arc arc = aiter.Value();
           SetScalarValue(&arc.weight, -log(1 - exp(-hi_neglog_sum)));
@@ -221,7 +216,8 @@ class NGramMutableModel : public NGramModel<Arc> {
     double alpha =
         CalculateBackoffCost(hi_neglog_sum, low_neglog_sum, infinite_backoff_);
     AdjustCompleteStates(st, &alpha);
-    MutableArcIterator<MutableFst<Arc>> aiter(mutable_fst_, st);
+    fst::MutableArcIterator<fst::MutableFst<Arc>> aiter(mutable_fst_,
+                                                                st);
     if (FindMutableArc(&aiter, BackoffLabel())) {
       Arc arc = aiter.Value();
       SetScalarValue(&arc.weight, alpha);
@@ -243,7 +239,8 @@ class NGramMutableModel : public NGramModel<Arc> {
   void UnSumState(StateId st) {
     Weight bocost;
     StateId bo = GetBackoff(st, &bocost);
-    for (MutableArcIterator<MutableFst<Arc>> aiter(mutable_fst_, st);
+    for (fst::MutableArcIterator<fst::MutableFst<Arc>> aiter(
+             mutable_fst_, st);
          !aiter.Done(); aiter.Next()) {
       Arc arc = aiter.Value();
       if (arc.ilabel == BackoffLabel()) continue;
@@ -270,8 +267,8 @@ class NGramMutableModel : public NGramModel<Arc> {
     bool operator()(StateId s1, StateId s2) const {
       std::vector<Label> ngram1 = ngramlm_.StateNGram(s1);
       std::vector<Label> ngram2 = ngramlm_.StateNGram(s2);
-      return lexicographical_compare(ngram1.begin(), ngram1.end(),
-                                     ngram2.begin(), ngram2.end());
+      return std::lexicographical_compare(ngram1.begin(), ngram1.end(),
+                                          ngram2.begin(), ngram2.end());
     }
 
    private:
@@ -279,7 +276,7 @@ class NGramMutableModel : public NGramModel<Arc> {
   };
 
   bool infinite_backoff_;
-  MutableFst<Arc> *mutable_fst_;
+  fst::MutableFst<Arc> *mutable_fst_;
 };
 
 template <typename Arc>

@@ -1,4 +1,4 @@
-# Copyright 2015-2020 Google LLC. All Rights Reserved.
+# Copyright 2015-2022 Google LLC. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,11 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Bazel build file for OpenGrm N-Gram library.
+# Bazel build file for NGram.
 
 package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])
+
+exports_files(["LICENSE"])
 
 prefix_dir = "src/"
 
@@ -54,8 +56,6 @@ cc_library(
         prefix_dir + "lib/ngram-shrink.cc",
         prefix_dir + "lib/util.cc",
     ],
-    includes = [prefix_dir + "include"],
-    copts = COPTS_LIB,
     hdrs = [
         prefix_dir + "include/ngram/hist-arc.h",
         prefix_dir + "include/ngram/hist-mapper.h",
@@ -93,6 +93,8 @@ cc_library(
         prefix_dir + "include/ngram/ngram-witten-bell.h",
         prefix_dir + "include/ngram/util.h",
     ],
+    copts = COPTS_LIB,
+    includes = [prefix_dir + "include"],
     visibility = ["//visibility:public"],
     deps = [
         "@com_google_absl//absl/base:log_severity",
@@ -143,7 +145,7 @@ cc_binary(
     name = "ngramsplit",
     srcs = [
         prefix_dir + "bin/ngramsplit.cc",
-        prefix_dir + "bin/ngramsplit-main.cc"
+        prefix_dir + "bin/ngramsplit-main.cc",
     ],
     deps = [
         ":opengrm-ngram-lib",

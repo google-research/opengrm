@@ -59,7 +59,7 @@ int ngrammake_main(int argc, char **argv) {
     std::unique_ptr<fst::VectorFst<ngram::HistogramArc>> hist_fst(
         fst::VectorFst<ngram::HistogramArc>::Read(in_name));
     if (hist_fst) {
-      fst.reset(new fst::StdVectorFst());
+      fst = std::make_unique<fst::StdVectorFst>();
       model_made = ngram::NGramMakeHistModel(
           hist_fst.get(), fst.get(), FST_FLAGS_method, ccfst.get(),
           FST_FLAGS_interpolate, FST_FLAGS_bins,

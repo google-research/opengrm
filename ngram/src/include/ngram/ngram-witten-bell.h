@@ -24,12 +24,12 @@
 
 namespace ngram {
 
-class NGramWittenBell : public NGramMake<StdArc> {
+class NGramWittenBell : public NGramMake<fst::StdArc> {
  public:
   // Construct NGramMake object, consisting of the FST and some
   // information about the states under the assumption that the FST is a model.
   // Ownership of the FST is retained by the caller.
-  explicit NGramWittenBell(StdMutableFst *infst, bool backoff = false,
+  explicit NGramWittenBell(fst::StdMutableFst *infst, bool backoff = false,
                            Label backoff_label = 0, double norm_eps = kNormEps,
                            bool check_consistency = false,
                            double parameter = 1.0)
@@ -37,7 +37,7 @@ class NGramWittenBell : public NGramMake<StdArc> {
         parameter_(parameter) {}
 
   // Smooth model according to 'method' and parameters.
-  bool MakeNGramModel() { return NGramMake::MakeNGramModel(); }
+  bool MakeNGramModel() override { return NGramMake::MakeNGramModel(); }
 
  protected:
   // No discount, hence hi order mass is count
@@ -50,7 +50,7 @@ class NGramWittenBell : public NGramMake<StdArc> {
   // -log c(h) + K |{w:c(hw)>0}|
   double CalculateTotalMass(double nlog_count, StateId st) override {
     double ngcount = GetFst().NumArcs(st) - 1;
-    if (GetFst().Final(st).Value() != StdArc::Weight::Zero().Value())
+    if (GetFst().Final(st).Value() != fst::StdArc::Weight::Zero().Value())
       ++ngcount;  // count </s> if p > 0
     // Count mass allocated to lower order estimates: K |{w:c(hw)>0}|
     double low_order_mass = -log(ngcount) - log(parameter_);

@@ -56,14 +56,14 @@ class NGramMake : public NGramMutableModel<Arc> {
   // Construct NGramMake object, consisting of the FST and some
   // information about the states under the assumption that the FST is a model.
   // Ownership of the FST is retained by the caller.
-  NGramMake(MutableFst<Arc> *infst, bool backoff, Label backoff_label = 0,
-            double norm_eps = kNormEps, bool check_consistency = false,
-            bool infinite_backoff = false)
+  NGramMake(fst::MutableFst<Arc> *infst, bool backoff,
+            Label backoff_label = 0, double norm_eps = kNormEps,
+            bool check_consistency = false, bool infinite_backoff = false)
       : NGramMutableModel<Arc>(infst, backoff_label, norm_eps,
                                check_consistency, infinite_backoff),
         backoff_(backoff) {}
 
-  virtual ~NGramMake() {}
+  ~NGramMake() override {}
 
   // Normalizes n-gram counts and smoothes to create an n-gram model.
   // Returns true on success and false on failure.
@@ -184,14 +184,14 @@ class NGramMake : public NGramMutableModel<Arc> {
 
   // Checks to see if all n-grams already represented at state
   bool HasAllArcsInBackoff(StateId st) {
-    StateId bo = GetBackoff(st, 0);
+    StateId bo = GetBackoff(st, nullptr);
     if (!has_all_ngrams_[bo]) return false;  // backoff state doesn't have all
     size_t starcs = GetFst().NumArcs(st), boarcs = GetFst().NumArcs(bo);
     if (boarcs > starcs) return false;  // arcs at backoff not in current state
     if (ScalarValue(GetFst().Final(bo)) !=
         ScalarValue(Arc::Weight::Zero()))  // count </s> symbol
       boarcs++;
-    if (GetBackoff(bo, 0) >= 0) boarcs--;  // don't count backoff arc
+    if (GetBackoff(bo, nullptr) >= 0) boarcs--;  // don't count backoff arc
     if (ScalarValue(GetFst().Final(st)) !=
         ScalarValue(Arc::Weight::Zero()))  // count </s> symbol
       starcs++;
@@ -203,7 +203,7 @@ class NGramMake : public NGramMutableModel<Arc> {
   // Calculate smoothed values for all arcs leaving a state
   void NormalizeStateArcs(StateId st, double norm, double neglog_bo_prob,
                           const std::vector<double> &discounts) {
-    StateId bo = GetBackoff(st, 0);
+    StateId bo = GetBackoff(st, nullptr);
     if (ScalarValue(GetFst().Final(st)) != ScalarValue(Arc::Weight::Zero())) {
       GetMutableFst()->SetFinal(st,
                                 SmoothVal(discounts[0], norm, neglog_bo_prob,
@@ -218,7 +218,8 @@ class NGramMake : public NGramMutableModel<Arc> {
     }
     int arc_counter = 0;     // index into backoff weights
     int discount_index = 1;  // index into discounts (off by one, for </s>)
-    for (MutableArcIterator<MutableFst<Arc>> aiter(GetMutableFst(), st);
+    for (fst::MutableArcIterator<fst::MutableFst<Arc>> aiter(
+             GetMutableFst(), st);
          !aiter.Done(); aiter.Next()) {
       Arc arc = aiter.Value();
       if (arc.ilabel != BackoffLabel()) {  // backoff weights calculated later
@@ -236,7 +237,8 @@ class NGramMake : public NGramMutableModel<Arc> {
     double KahanVal = 0.0;
     int order = StateOrder(st) - 1;  // for retrieving discount parameters
     discounts->push_back(GetDiscount(GetFst().Final(st), order));
-    for (ArcIterator<ExpandedFst<Arc>> aiter(GetExpandedFst(), st);
+    for (fst::ArcIterator<fst::ExpandedFst<Arc>> aiter(GetExpandedFst(),
+                                                               st);
          !aiter.Done(); aiter.Next()) {
       Arc arc = aiter.Value();
       if (arc.ilabel != BackoffLabel()) {  // skip backoff arc

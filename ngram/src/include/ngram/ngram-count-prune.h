@@ -24,7 +24,7 @@
 
 namespace ngram {
 
-class NGramCountPrune : public NGramShrink<StdArc> {
+class NGramCountPrune : public NGramShrink<fst::StdArc> {
  public:
   // Constructs an NGramCountShrink object that count prunes an LM.
   // This version parses a count pattern string.
@@ -34,21 +34,22 @@ class NGramCountPrune : public NGramShrink<StdArc> {
   //
   // Example: "2:2;3+:3" signifies:
   //   prune bigrams with count < 2; trigrams and above with count < 3
-  NGramCountPrune(StdMutableFst *infst, const std::string &count_pattern,
-                  int shrink_opt = 0, double tot_uni = -1.0,
-                  Label backoff_label = 0, double norm_eps = kNormEps,
-                  bool check_consistency = false)
-      : NGramShrink<StdArc>(infst, shrink_opt < 2 ? shrink_opt : 0, tot_uni,
-                            backoff_label, norm_eps, check_consistency) {
+  NGramCountPrune(fst::StdMutableFst *infst,
+                  const std::string &count_pattern, int shrink_opt = 0,
+                  double tot_uni = -1.0, Label backoff_label = 0,
+                  double norm_eps = kNormEps, bool check_consistency = false)
+      : NGramShrink<fst::StdArc>(infst, shrink_opt < 2 ? shrink_opt : 0,
+                                     tot_uni, backoff_label, norm_eps,
+                                     check_consistency) {
     // shrink_opt must be less than 2 for count pruning
     for (int i = 0; i < HiOrder(); ++i)  // initialize minimum values
-      count_minimums_.push_back(-StdArc::Weight::Zero().Value());
+      count_minimums_.push_back(-fst::StdArc::Weight::Zero().Value());
     if (!count_pattern.empty()) ParseCountMinimums(count_pattern);
   }
 
   // Constructs an NGramCountShrink object that count prunes an LM.
   // This version is given the count minimums per order.
-  NGramCountPrune(StdMutableFst *infst,
+  NGramCountPrune(fst::StdMutableFst *infst,
                   const std::vector<double> &count_minimums, int shrink_opt = 0,
                   double tot_uni = -1.0, Label backoff_label = 0,
                   double norm_eps = kNormEps, bool check_consistency = false)
@@ -58,7 +59,7 @@ class NGramCountPrune : public NGramShrink<StdArc> {
     for (int i = 0; i < HiOrder(); ++i) {  // initialize minimum values
       count_minimums_[i] = count_minimums.size() > i
                                ? count_minimums[i]
-                               : StdArc::Weight::Zero().Value();
+                               : fst::StdArc::Weight::Zero().Value();
     }
   }
 
@@ -66,8 +67,8 @@ class NGramCountPrune : public NGramShrink<StdArc> {
 
   // Shrinks n-gram model, based on initialized parameters
   bool ShrinkNGramModel(int min_order = 2) {
-    return NGramShrink<StdArc>::ShrinkNGramModel(/*require_norm=*/false,
-                                                 min_order);
+    return NGramShrink<fst::StdArc>::ShrinkNGramModel(
+        /*require_norm=*/false, min_order);
   }
 
  protected:

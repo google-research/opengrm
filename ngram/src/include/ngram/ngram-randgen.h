@@ -36,11 +36,6 @@
 
 namespace ngram {
 
-using fst::Fst;
-using fst::ArcIterator;
-using fst::LogWeight;
-using fst::Log64Weight;
-
 // Same as FastLogProbArcSelector but treats *all* epsilons as
 // failure transitions that have a backoff weight. The LM must
 // be fully normalized.
@@ -50,19 +45,19 @@ class NGramArcSelector {
   typedef typename A::StateId StateId;
   typedef typename A::Weight Weight;
 
-  explicit NGramArcSelector(int seed = time(0) + getpid()) : seed_(seed) {
+  explicit NGramArcSelector(int seed = time(nullptr) + getpid()) : seed_(seed) {
     srand(seed);
   }
 
   // Samples one transition.
-  size_t operator()(const Fst<A> &fst, StateId s, double total_prob,
+  size_t operator()(const fst::Fst<A> &fst, StateId s, double total_prob,
                     fst::CacheLogAccumulator<A> *accumulator) const {
     double r = rand() / (RAND_MAX + 1.0);
     // In effect, subtract out excess mass from the cumulative distribution.
     // Requires the backoff epsilon be the initial transition.
     double z = r + total_prob - 1.0;
     if (z <= 0.0) return 0;
-    ArcIterator<Fst<A> > aiter(fst, s);
+    fst::ArcIterator<fst::Fst<A> > aiter(fst, s);
     return accumulator->LowerBound(-log(z), &aiter);
   }
 
@@ -70,7 +65,7 @@ class NGramArcSelector {
 
  private:
   int seed_;
-  fst::WeightConvert<Weight, LogWeight> to_log_weight_;
+  fst::WeightConvert<Weight, fst::LogWeight> to_log_weight_;
 };
 
 }  // namespace ngram
@@ -87,7 +82,8 @@ class ArcSampler<A, ngram::NGramArcSelector<A> > {
   typedef typename A::Label Label;
   typedef CacheLogAccumulator<A> C;
 
-  ArcSampler(const Fst<A> &fst, const S &arc_selector, int max_length = INT_MAX)
+  ArcSampler(const fst::Fst<A> &fst, const S &arc_selector,
+             int max_length = INT_MAX)
       : fst_(fst),
         arc_selector_(arc_selector),
         max_length_(max_length),
@@ -103,7 +99,7 @@ class ArcSampler<A, ngram::NGramArcSelector<A> > {
 #endif  // HAVE_GSL
   }
 
-  ArcSampler(const ArcSampler<A, S> &sampler, const Fst<A> *fst = 0)
+  ArcSampler(const ArcSampler<A, S> &sampler, const fst::Fst<A> *fst = 0)
       : fst_(fst ? *fst : sampler.fst_),
         arc_selector_(sampler.arc_selector_),
         max_length_(sampler.max_length_),
@@ -145,7 +141,7 @@ class ArcSampler<A, ngram::NGramArcSelector<A> > {
     }
 #endif  // HAVE_GSL
 
-    ArcIterator<Fst<A> > aiter(fst_, rstate.state_id);
+    fst::ArcIterator<fst::Fst<A> > aiter(fst_, rstate.state_id);
 
     for (size_t i = 0; i < rstate.nsamples; ++i) {
       size_t pos = 0;
@@ -175,7 +171,7 @@ class ArcSampler<A, ngram::NGramArcSelector<A> > {
  private:
   double TotalProb(StateId s) {
     // Get cumulative weight at the state.
-    ArcIterator<Fst<A> > aiter(fst_, s);
+    fst::ArcIterator<fst::Fst<A> > aiter(fst_, s);
     accumulator_->SetState(s);
     Weight total_weight =
         accumulator_->Sum(fst_.Final(s), &aiter, 0, fst_.NumArcs(s));
@@ -191,7 +187,7 @@ class ArcSampler<A, ngram::NGramArcSelector<A> > {
 
   bool ForbiddenLabel(Label l, const RandState<A> &rstate);
 
-  const Fst<A> &fst_;
+  const fst::Fst<A> &fst_;
   const S &arc_selector_;
   int max_length_;
 
@@ -207,11 +203,11 @@ class ArcSampler<A, ngram::NGramArcSelector<A> > {
   vector<unsigned int> n_;    // sample counts
 #endif                        // HAVE_GSL
 
-  WeightConvert<Log64Weight, Weight> to_weight_;
-  WeightConvert<Weight, Log64Weight> to_log_weight_;
+  WeightConvert<fst::Log64Weight, Weight> to_weight_;
+  WeightConvert<Weight, fst::Log64Weight> to_log_weight_;
   std::set<Label>
       forbidden_labels_;  // labels forbidden for failure transitions
-  Matcher<Fst<A> > matcher_;
+  Matcher<fst::Fst<A> > matcher_;
 };
 
 // Finds and decomposes the backoff probability into its numerator and
@@ -254,8 +250,8 @@ void ArcSampler<A, ngram::NGramArcSelector<A> >::MultinomialSample(
   pos_.clear();
   n_.clear();
   size_t pos = 0;
-  for (ArcIterator<Fst<A> > aiter(fst_, rstate.state_id); !aiter.Done();
-       aiter.Next(), ++pos) {
+  for (fst::ArcIterator<fst::Fst<A> > aiter(fst_, rstate.state_id);
+       !aiter.Done(); aiter.Next(), ++pos) {
     const A &arc = aiter.Value();
     if (!ForbiddenLabel(arc.ilabel, rstate)) {
       pos_.push_back(pos);
@@ -287,9 +283,10 @@ bool ArcSampler<A, ngram::NGramArcSelector<A> >::ForbiddenLabel(
   if (l == 0) return false;
 
   if (fst_.NumArcs(rstate.state_id) > rstate.nsamples) {
-    for (const RandState<A> *rs = &rstate; rs->parent != 0; rs = rs->parent) {
+    for (const RandState<A> *rs = &rstate; rs->parent != nullptr;
+         rs = rs->parent) {
       StateId parent_id = rs->parent->state_id;
-      ArcIterator<Fst<A> > aiter(fst_, parent_id);
+      fst::ArcIterator<fst::Fst<A> > aiter(fst_, parent_id);
       aiter.Seek(rs->select);
       if (aiter.Value().ilabel != 0)  // not backoff transition
         return false;
@@ -304,9 +301,10 @@ bool ArcSampler<A, ngram::NGramArcSelector<A> >::ForbiddenLabel(
     return false;
   } else {
     if (forbidden_labels_.empty()) {
-      for (const RandState<A> *rs = &rstate; rs->parent != 0; rs = rs->parent) {
+      for (const RandState<A> *rs = &rstate; rs->parent != nullptr;
+           rs = rs->parent) {
         StateId parent_id = rs->parent->state_id;
-        ArcIterator<Fst<A> > aiter(fst_, parent_id);
+        fst::ArcIterator<fst::Fst<A> > aiter(fst_, parent_id);
         aiter.Seek(rs->select);
         if (aiter.Value().ilabel != 0)  // not backoff transition
           break;

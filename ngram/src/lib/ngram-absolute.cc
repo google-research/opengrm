@@ -25,6 +25,7 @@
 
 namespace ngram {
 
+using fst::StdArc;
 using fst::StdILabelCompare;
 
 // Normalize n-gram counts and smooth to create an n-gram model

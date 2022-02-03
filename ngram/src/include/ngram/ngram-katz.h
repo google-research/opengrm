@@ -41,9 +41,9 @@ class NGramKatz : public NGramMake<Arc> {
   // Construct NGramMake object, consisting of the FST and some
   // information about the states under the assumption that the FST is a model.
   // Ownership of the FST is retained by the caller.
-  explicit NGramKatz(MutableFst<Arc> *infst, bool backoff = true,
-            Label backoff_label = 0, double norm_eps = kNormEps,
-            bool check_consistency = false, int bins = -1)
+  explicit NGramKatz(fst::MutableFst<Arc> *infst, bool backoff = true,
+                     Label backoff_label = 0, double norm_eps = kNormEps,
+                     bool check_consistency = false, int bins = -1)
       : NGramMake<Arc>(infst, BackOffOrMixed(backoff), backoff_label, norm_eps,
                        check_consistency),
         bins_(bins <= 0 ? 5 : bins),
@@ -61,7 +61,9 @@ class NGramKatz : public NGramMake<Arc> {
   }
 
   // Pass in count of counts (rather than computing them)
-  void SetCountOfCounts(const StdFst &fst) { count_of_counts_.SetCounts(fst); }
+  void SetCountOfCounts(const fst::StdFst &fst) {
+    count_of_counts_.SetCounts(fst);
+  }
 
  protected:
   // Return negative log discounted count for provided negative log count

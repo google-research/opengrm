@@ -30,10 +30,6 @@
 
 namespace ngram {
 
-using fst::StdMutableFst;
-using fst::StdFst;
-using fst::SymbolTable;
-
 template <class Arc>
 class NGramCountOfCounts {
  public:
@@ -77,8 +73,8 @@ class NGramCountOfCounts {
         if (!context_.HasContext(ngram, false)) continue;
       }
       int order = model.StateOrder(st) - 1;  // order starts from 0 here, not 1
-      for (ArcIterator<Fst<Arc>> aiter(model.GetFst(), st); !aiter.Done();
-           aiter.Next()) {
+      for (fst::ArcIterator<fst::Fst<Arc>> aiter(model.GetFst(), st);
+           !aiter.Done(); aiter.Next()) {
         Arc arc = aiter.Value();
         if (arc.ilabel != model.BackoffLabel())  // no count from backoff
           IncrementBinCount(order, arc.weight, model);
@@ -139,8 +135,8 @@ class NGramCountOfCounts {
   }
 
   // Get an Fst representation of the ngram count-of-counts
-  void GetFst(StdMutableFst *fst) const {
-    std::unique_ptr<SymbolTable> symbols(new SymbolTable());
+  void GetFst(fst::StdMutableFst *fst) const {
+    std::unique_ptr<fst::SymbolTable> symbols(new fst::SymbolTable());
 
     fst->DeleteStates();
     StateId s = fst->AddState();
@@ -155,6 +151,7 @@ class NGramCountOfCounts {
         std::ostringstream strm;
         strm << "order=" << order << ",bin=" << bin;
         symbols->AddSymbol(strm.str(), label);
+        using fst::StdArc;
         StdArc::Weight weight = -log(histogram_[order][bin]);
         if (bin > 0 && weight == StdArc::Weight::Zero()) continue;
         fst->AddArc(s, StdArc(label, label, weight, s));
@@ -167,12 +164,13 @@ class NGramCountOfCounts {
   }
 
   // Sets counts from count-of-counts FST
-  void SetCounts(const StdFst &fst) {
+  void SetCounts(const fst::StdFst &fst) {
     histogram_.clear();
-    if (fst.Start() == kNoStateId) return;
+    if (fst.Start() == fst::kNoStateId) return;
 
-    for (ArcIterator<StdFst> aiter(fst, 0); !aiter.Done(); aiter.Next()) {
-      StdArc arc = aiter.Value();
+    for (fst::ArcIterator<fst::StdFst> aiter(fst, 0); !aiter.Done();
+         aiter.Next()) {
+      fst::StdArc arc = aiter.Value();
       // label encodes order and bin
       int bin = (arc.ilabel - 1) % (kMaxBins + 1);
       int order = (arc.ilabel - 1) / (kMaxBins + 1);

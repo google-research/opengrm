@@ -23,7 +23,15 @@
 
 namespace ngram {
 
+using fst::ArcIterator;
+using fst::LogArc;
+using fst::MATCH_INPUT;
+using fst::Matcher;
+using fst::MutableArcIterator;
+using fst::StdArc;
 using fst::StdExpandedFst;
+using fst::StdFst;
+using fst::StdMutableFst;
 
 // Calculates state marginal probs, and sums higher order log probs
 // Returns true with success.
