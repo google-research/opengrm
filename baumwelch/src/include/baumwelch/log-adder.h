@@ -18,6 +18,7 @@
 #include <type_traits>
 
 #include <fst/float-weight.h>
+#include <fst/weight.h>
 
 namespace fst {
 
@@ -29,15 +30,13 @@ class LogAdder {
  public:
   // HelperWeight is Weight for non-idempotent weights, as is the converter;
   // it is a LogWeightTpl of appropriate precision otherwise.
-  using HelperWeight = typename std::conditional<
-      (Weight::Properties() & kIdempotent) == kIdempotent,
-      LogWeightTpl<typename Weight::ValueType>, Weight>::type;
+  using HelperWeight =
+      typename std::conditional_t<IsIdempotent<Weight>::value,
+                                  LogWeightTpl<typename Weight::ValueType>,
+                                  Weight>;
 
   explicit LogAdder(Weight weight = Weight::Zero())
       : sum_(LogAdder<Weight>::To(weight)) {}
-
-  // Resets the summation's value using a weight type.
-  void Reset(const Weight &weight) { sum_.Reset(LogAdder<Weight>::To(weight)); }
 
   // Adds a weight to the sum.
   void Add(const Weight &weight) { sum_.Add(LogAdder<Weight>::To(weight)); }

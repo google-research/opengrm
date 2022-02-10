@@ -59,7 +59,7 @@ CompactUnweightedFst<Arc> DecodePair(const Fst<Arc> &ifst) {
   if constexpr (IsPath<typename Arc::Weight>::value) {
     ShortestPath(ifst, &ofst);
   } else {
-    AStarSingleShortestPath(ifst, &ofst);
+    AStarSingleShortestString(ifst, &ofst);
   }
   MakeString(&ofst);
   return CompactUnweightedFst<Arc>(ofst);
@@ -75,7 +75,7 @@ CompactStringFst<Arc> DecodeDecipherment(const Fst<Arc> &ifst) {
   if constexpr (IsPath<typename Arc::Weight>::value) {
     ShortestPath(lattice, &ofst);
   } else {
-    AStarSingleShortestPath(lattice, &ofst);
+    AStarSingleShortestString(lattice, &ofst);
   }
   MakeString(&ofst);
   return CompactStringFst<Arc>(ofst);
@@ -85,20 +85,19 @@ CompactStringFst<Arc> DecodeDecipherment(const Fst<Arc> &ifst) {
 
 // Full decipherment setup.
 template <class Arc>
-void DecodeBaumWelch(FarReader<Arc> *input, FarReader<Arc> *output,
-                     const Fst<Arc> &model, FarWriter<Arc> *hypotext) {
-  while (!input->Done() && !output->Done()) {
-    const SimpleCascade<Arc> cascade(*input->GetFst(), *output->GetFst(),
-                                     model);
-    if (input->Type() == FarType::FST) {
-      hypotext->Add(output->GetKey(),
-                    internal::DecodeDecipherment(cascade.GetFst()));
+void Decode(FarReader<Arc> &input, FarReader<Arc> &output,
+            const Fst<Arc> &model, FarWriter<Arc> &hypotext) {
+  while (!input.Done() && !output.Done()) {
+    const SimpleCascade<Arc> cascade(*input.GetFst(), *output.GetFst(), model);
+    if (input.Type() == FarType::FST) {
+      hypotext.Add(output.GetKey(),
+                   internal::DecodeDecipherment(cascade.GetFst()));
     } else {
-      hypotext->Add(input->GetKey() + "_" + output->GetKey(),
-                    internal::DecodePair(cascade.GetFst()));
-      input->Next();
+      hypotext.Add(input.GetKey() + "_" + output.GetKey(),
+                   internal::DecodePair(cascade.GetFst()));
+      input.Next();
     }
-    output->Next();
+    output.Next();
   }
 }
 

@@ -19,19 +19,18 @@
 namespace fst {
 namespace script {
 
-void DecodeBaumWelch(FarReaderClass *input, FarReaderClass *output,
-                     const FstClass &model, FarWriterClass *hypotext) {
-  if (!internal::ArcTypesMatch(*input, model, "DecodeBaumWelch") ||
-      !internal::ArcTypesMatch(*output, model, "DecodeBaumWelch") ||
-      !internal::ArcTypesMatch(*hypotext, model, "DecodeBaumWelch")) {
+void Decode(FarReaderClass &input, FarReaderClass &output,
+            const FstClass &model, FarWriterClass &hypotext) {
+  if (!internal::ArcTypesMatch(input, model, "Decode") ||
+      !internal::ArcTypesMatch(output, model, "Decode") ||
+      !internal::ArcTypesMatch(hypotext, model, "Decode")) {
     return;
   }
-  DecodeBaumWelchArgs args(input, output, model, hypotext);
-  Apply<Operation<DecodeBaumWelchArgs>>("DecodeBaumWelch", model.ArcType(),
-                                        &args);
+  BaumWelchDecodeArgs args{input, output, model, hypotext};
+  Apply<Operation<BaumWelchDecodeArgs>>("Decode", model.ArcType(), &args);
 }
 
-REGISTER_FST_OPERATION_3ARCS(DecodeBaumWelch, DecodeBaumWelchArgs);
+REGISTER_FST_OPERATION_3ARCS(Decode, BaumWelchDecodeArgs);
 
 }  // namespace script
 }  // namespace fst

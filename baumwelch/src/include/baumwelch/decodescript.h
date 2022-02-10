@@ -15,6 +15,8 @@
 #ifndef BAUMWELCH_DECODESCRIPT_H_
 #define BAUMWELCH_DECODESCRIPT_H_
 
+#include <tuple>
+
 #include <fst/extensions/far/far-class.h>
 #include <fst/script/fst-class.h>
 #include <baumwelch/decode.h>
@@ -22,20 +24,20 @@
 namespace fst {
 namespace script {
 
-using DecodeBaumWelchArgs = std::tuple<FarReaderClass *, FarReaderClass *,
-                                       const FstClass &, FarWriterClass *>;
+using BaumWelchDecodeArgs = std::tuple<FarReaderClass &, FarReaderClass &,
+                                       const FstClass &, FarWriterClass &>;
 
 template <class Arc>
-void DecodeBaumWelch(DecodeBaumWelchArgs *args) {
-  FarReader<Arc> *input = std::get<0>(*args)->GetFarReader<Arc>();
-  FarReader<Arc> *output = std::get<1>(*args)->GetFarReader<Arc>();
-  const Fst<Arc> &model = *(std::get<2>(*args).GetFst<Arc>());
-  FarWriter<Arc> *hypotext = std::get<3>(*args)->GetFarWriter<Arc>();
-  DecodeBaumWelch(input, output, model, hypotext);
+void Decode(BaumWelchDecodeArgs *args) {
+  FarReader<Arc> &input = *std::get<0>(*args).GetFarReader<Arc>();
+  FarReader<Arc> &output = *std::get<1>(*args).GetFarReader<Arc>();
+  const Fst<Arc> &model = *std::get<2>(*args).GetFst<Arc>();
+  FarWriter<Arc> &hypotext = *std::get<3>(*args).GetFarWriter<Arc>();
+  Decode(input, output, model, hypotext);
 }
 
-void DecodeBaumWelch(FarReaderClass *input, FarReaderClass *output,
-                     const FstClass &model, FarWriterClass *hypotext);
+void Decode(FarReaderClass &input, FarReaderClass &output,
+            const FstClass &model, FarWriterClass &hypotext);
 
 }  // namespace script
 }  // namespace fst

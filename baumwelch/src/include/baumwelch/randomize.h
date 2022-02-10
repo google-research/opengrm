@@ -16,9 +16,9 @@
 #define BAUMWELCH_RANDOMIZE_H_
 
 #include <cmath>
+#include <cstdint>
 #include <random>
 
-#include <fst/types.h>
 #include <fst/mutable-fst.h>
 
 namespace fst {
@@ -30,7 +30,7 @@ class LogUniformGenerator {
  public:
   using ValueType = typename Weight::ValueType;
 
-  explicit LogUniformGenerator(uint64 seed = std::random_device()())
+  explicit LogUniformGenerator(uint64_t seed = std::random_device()())
       : rand_(seed), dist_(kDelta, 1.0) {}
 
   Weight operator()() const { return Weight(-std::log(dist_(rand_))); }
@@ -43,8 +43,7 @@ class LogUniformGenerator {
 }  // namespace internal
 
 template <class Arc>
-void RandomizeBaumWelch(MutableFst<Arc> *fst,
-                        uint64 seed = std::random_device()()) {
+void Randomize(MutableFst<Arc> *fst, uint64_t seed = std::random_device()()) {
   using Weight = typename Arc::Weight;
   const internal::LogUniformGenerator<Weight> generator(seed);
   for (StateIterator<MutableFst<Arc>> siter(*fst); !siter.Done();

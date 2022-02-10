@@ -19,21 +19,19 @@
 namespace fst {
 namespace script {
 
-// 1: Pair construction.
-void TrainBaumWelch(FarReaderClass *input, FarReaderClass *output,
-                    MutableFstClass *model, bool normalize_ilabel,
-                    const TrainBaumWelchOptions &opts) {
-  if (!internal::ArcTypesMatch(*input, *model, "TrainBaumWelch") ||
-      !internal::ArcTypesMatch(*output, *model, "TrainBaumWelch")) {
+void Train(FarReaderClass &input, FarReaderClass &output,
+           MutableFstClass *model, bool normalize_ilabel,
+           const TrainOptions &opts) {
+  if (!internal::ArcTypesMatch(input, *model, "Train") ||
+      !internal::ArcTypesMatch(output, *model, "Train")) {
     model->SetProperties(kError, kError);
     return;
   }
-  TrainBaumWelchArgs args(input, output, model, normalize_ilabel, opts);
-  Apply<Operation<TrainBaumWelchArgs>>("TrainBaumWelch", model->ArcType(),
-                                       &args);
+  BaumWelchTrainArgs args{input, output, model, normalize_ilabel, opts};
+  Apply<Operation<BaumWelchTrainArgs>>("Train", model->ArcType(), &args);
 }
 
-REGISTER_FST_OPERATION_3ARCS(TrainBaumWelch, TrainBaumWelchArgs);
+REGISTER_FST_OPERATION_3ARCS(Train, BaumWelchTrainArgs);
 
 }  // namespace script
 }  // namespace fst

@@ -21,7 +21,9 @@
 
 DEFINE_int32(batch_size, 0, "Batch size; 0 indicates full-batch training");
 DEFINE_double(delta, ::fst::kDelta, "Comparison/quantization delta");
-DEFINE_double(lr, ::fst::kLr, "Learning rate");
+DEFINE_double(alpha, ::fst::kAlpha,
+              "Step size reduction power parameter; full standard batch EM is "
+              "run (not stepwise) if alpha is set to 0");
 DEFINE_int32(max_iters, ::fst::kMaxIters,
              "Maximum number of iterations to perform");
 DEFINE_bool(normalize_ilabel, true, "Should ilabel be used in normalization?");

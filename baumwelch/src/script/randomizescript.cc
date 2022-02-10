@@ -14,18 +14,19 @@
 
 #include <baumwelch/randomizescript.h>
 
+#include <cstdint>
+
 #include <fst/script/script-impl.h>
 
 namespace fst {
 namespace script {
 
-void RandomizeBaumWelch(MutableFstClass *fst, uint64 seed) {
-  RandomizeBaumWelchArgs args(fst, seed);
-  Apply<Operation<RandomizeBaumWelchArgs>>("RandomizeBaumWelch", fst->ArcType(),
-                                           &args);
+void Randomize(MutableFstClass *fst, uint64_t seed) {
+  BaumWelchRandomizeArgs args{fst, seed};
+  Apply<Operation<BaumWelchRandomizeArgs>>("Randomize", fst->ArcType(), &args);
 }
 
-REGISTER_FST_OPERATION_3ARCS(RandomizeBaumWelch, RandomizeBaumWelchArgs);
+REGISTER_FST_OPERATION_3ARCS(Randomize, BaumWelchRandomizeArgs);
 
 }  // namespace script
 }  // namespace fst

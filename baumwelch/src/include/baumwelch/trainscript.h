@@ -15,6 +15,8 @@
 #ifndef BAUMWELCH_TRAINSCRIPT_H_
 #define BAUMWELCH_TRAINSCRIPT_H_
 
+#include <tuple>
+
 #include <fst/extensions/far/far-class.h>
 #include <fst/script/fst-class.h>
 #include <baumwelch/train.h>
@@ -22,22 +24,21 @@
 namespace fst {
 namespace script {
 
-using TrainBaumWelchArgs =
-    std::tuple<FarReaderClass *, FarReaderClass *, MutableFstClass *, bool,
-               const TrainBaumWelchOptions &>;
+using BaumWelchTrainArgs =
+    std::tuple<FarReaderClass &, FarReaderClass &, MutableFstClass *, bool,
+               const TrainOptions &>;
 
 template <class Arc>
-void TrainBaumWelch(TrainBaumWelchArgs *args) {
-  FarReader<Arc> *input = std::get<0>(*args)->GetFarReader<Arc>();
-  FarReader<Arc> *output = std::get<1>(*args)->GetFarReader<Arc>();
+void Train(BaumWelchTrainArgs *args) {
+  FarReader<Arc> &input = *std::get<0>(*args).GetFarReader<Arc>();
+  FarReader<Arc> &output = *std::get<1>(*args).GetFarReader<Arc>();
   MutableFst<Arc> *model = std::get<2>(*args)->GetMutableFst<Arc>();
-  TrainBaumWelch(input, output, model, std::get<3>(*args), std::get<4>(*args));
+  Train(input, output, model, std::get<3>(*args), std::get<4>(*args));
 }
 
-void TrainBaumWelch(
-    FarReaderClass *input, FarReaderClass *output, MutableFstClass *model,
-    bool normalize_ilabel = true,
-    const TrainBaumWelchOptions &opts = TrainBaumWelchOptions());
+void Train(FarReaderClass &input, FarReaderClass &output,
+           MutableFstClass *model, bool normalize_ilabel = true,
+           const TrainOptions &opts = TrainOptions());
 
 }  // namespace script
 }  // namespace fst

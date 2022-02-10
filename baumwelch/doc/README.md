@@ -37,9 +37,9 @@ somewhat more accurate (Jansche 2003).
 ### Options
 
 `TrainBaumWelch` takes an struct representing options for training. These define
-the size of the batch, the maximum number of iterations for training, the
-learning rate $$\alpha$$, and the comparison/quantization $$\delta$$ used to
-detect convergence.
+the size of the batch, the maximum number of iterations for training, the step
+size reduction power $$\alpha$$, and the comparison/quantization $$\delta$$ used
+to detect convergence.
 
 Since expectation maximization training is only locally optimal, _random
 (re)starts_ can be used to avoid local minima. For particularly difficult
@@ -76,9 +76,9 @@ In a semiring with the path property, decoding is simple:
 In a semiring without the path property, exact decoding is much more
 challenging, and in fact we do not have an algorithm for the pair case since we
 normally need to preserve the input-output correspondences. In the decipherment
-case, it is possible to perform with a DFA lattice, but determinizing the entire
-lattice is rarely feasible for interesting problems. Therefore we use the
-following strategy:
+case, it is possible to compute the shortest string using a DFA lattice, but
+determinizing the entire lattice is rarely feasible for interesting problems.
+Therefore we use the following strategy:
 
 1.  Compose the plaintext model, channel model, and ciphertext, and materialize
     the cascade, then input-project and remove epsilons to produce an acyclic,
@@ -91,8 +91,9 @@ following strategy:
     property by converting the weights to tropical.
 5.  Compute the shortest path of the on-the-fly tropical-semiring DFA using
     $$A^{*}$$ search (Hart et al. 1968) with $$\beta_d$$ as a heuristic, halting
-    immediately after the shortest path is found.
-6.  Convert the shortest path back to the input semiring and remove weights.
+    immediately after the shortest path is found. This gives us the shortest
+    string.
+6.  Convert the shortest string back to the input semiring and remove weights.
 
 ## Problems
 

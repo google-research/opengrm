@@ -15,7 +15,9 @@
 #ifndef BAUMWELCH_RANDOMIZESCRIPT_H_
 #define BAUMWELCH_RANDOMIZESCRIPT_H_
 
+#include <cstdint>
 #include <random>
+#include <tuple>
 
 #include <fst/script/fst-class.h>
 #include <baumwelch/randomize.h>
@@ -23,16 +25,15 @@
 namespace fst {
 namespace script {
 
-using RandomizeBaumWelchArgs = std::tuple<MutableFstClass *, uint64>;
+using BaumWelchRandomizeArgs = std::tuple<MutableFstClass *, uint64_t>;
 
 template <class Arc>
-void RandomizeBaumWelch(RandomizeBaumWelchArgs *args) {
+void Randomize(BaumWelchRandomizeArgs *args) {
   MutableFst<Arc> *model = std::get<0>(*args)->GetMutableFst<Arc>();
-  RandomizeBaumWelch(model, std::get<1>(*args));
+  Randomize(model, std::get<1>(*args));
 }
 
-void RandomizeBaumWelch(MutableFstClass *fst,
-                        uint64 seed = std::random_device()());
+void Randomize(MutableFstClass *fst, uint64_t seed = std::random_device()());
 
 }  // namespace script
 }  // namespace fst

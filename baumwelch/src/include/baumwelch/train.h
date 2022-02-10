@@ -15,11 +15,11 @@
 #ifndef BAUMWELCH_TRAIN_H_
 #define BAUMWELCH_TRAIN_H_
 
+#include <cstdint>
 #include <type_traits>
 #include <utility>
 #include <vector>
 
-#include <fst/types.h>
 #include <fst/log.h>
 #include <fst/extensions/far/far.h>
 #include <fst/compose.h>
@@ -33,26 +33,33 @@
 namespace fst {
 
 // Some defaults.
-constexpr float kLr = 1.;
+constexpr float kAlpha = 1.;
 constexpr int kMaxIters = 50;
 
 // Helper for all the options. If batch_size is 0, or larger than the data,
 // full-batch training is performed.
-struct TrainBaumWelchOptions {
-  explicit TrainBaumWelchOptions(int max_iters = kMaxIters, float lr = kLr,
-                                 int batch_size = 0, float delta = kDelta,
-                                 const CascadeOptions &copts = CascadeOptions())
+struct TrainOptions {
+  explicit TrainOptions(int max_iters = kMaxIters, float alpha = kAlpha,
+                        int batch_size = 0, float delta = kDelta,
+                        const CascadeOptions &copts = CascadeOptions())
       : max_iters(max_iters),
-        lr(lr),
+        alpha(alpha),
         batch_size(batch_size),
         delta(delta),
-        copts(copts) {}
+        copts(copts) {
+    if (alpha == 0.0) {
+      // Sets batch_size to 0 when alpha is set to 0, i.e., full-batch training.
+      batch_size = 0;
+    }
+  }
 
   // Maximum number of iterations to perform.
   int max_iters;
-  // Learning rate.
-  float lr;
-  // Maximum size of a batch.
+  // Step size reduction power, from Liang, P., & Klein, D. (2009). Online EM
+  // for unsupervised models. Proceedings of NAACL, pp. 611-619.  When non-zero,
+  // step size is (k + 2)^{-alpha}, where k is the step.
+  float alpha;
+  // Maximum size of a batch.  If set to 0, full-batch training occurs.
   int batch_size;
   // Comparison/quantization delta used to determine convergence.
   float delta;
@@ -124,9 +131,6 @@ class ForwardBackward {
   std::vector<Weight> beta_;
 };
 
-template <class Arc>
-constexpr typename ForwardBackward<Arc>::Weight ForwardBackward<Arc>::kZero;
-
 // Object which holds all necessary information for stepwise or minibatch
 // training. It stores the (initial) learning rate and the step counter. For
 // more information, see the "sEM" pseudocode (p. 613) in:
@@ -141,26 +145,26 @@ class StepwiseBaumWelchTrainer {
 
   // Valid values of alpha are usually between [.5, 1.0].
   explicit StepwiseBaumWelchTrainer(
-      float lr = kLr, int batch_size = 0,
+      float alpha = kAlpha, int batch_size = 0,
       const CascadeOptions &opts = CascadeOptions())
-      : lr_(lr), batch_size_(batch_size), opts_(opts), step_(0) {}
+      : alpha_(alpha), batch_size_(batch_size), opts_(opts), step_(0) {}
 
   // The Step methods all perform a single step or minibatch of stepwise
   // training.
 
   // Performs a batch of training returning the likelihood. Semiring Zero is
   // returned in the case of composition failure.
-  Weight Step(FarReader<Arc> *input, FarReader<Arc> *output,
+  Weight Step(FarReader<Arc> &input, FarReader<Arc> &output,
               MutableFst<Arc> *model) {
     ExpectationTable table(*model);
     Sum likelihood;  // Tracks batch likelihood.
-    for (int batch_step = 0; !input->Done() && !output->Done() &&
+    for (int batch_step = 0; !input.Done() && !output.Done() &&
                              (!batch_size_ || batch_step < batch_size_);
          ++batch_step) {
       likelihood.Add(
-          Forward(*input->GetFst(), *output->GetFst(), *model, &table));
-      if (input->Type() != FarType::FST) input->Next();
-      output->Next();
+          Forward(*input.GetFst(), *output.GetFst(), *model, &table));
+      if (input.Type() != FarType::FST) input.Next();
+      output.Next();
     }
     Backward(table, model);
     ++step_;
@@ -171,10 +175,10 @@ class StepwiseBaumWelchTrainer {
   // perform a single pass over the data.
 
   // Repeatedly do the stepwise computation.
-  Weight Train(FarReader<Arc> *input, FarReader<Arc> *output,
+  Weight Train(FarReader<Arc> &input, FarReader<Arc> &output,
                MutableFst<Arc> *model) {
     Sum likelihood;  // Tracks iteration likelihood.
-    while (!input->Done() && !output->Done()) {
+    while (!input.Done() && !output.Done()) {
       likelihood.Add(Step(input, output, model));
     }
     return likelihood.Sum();
@@ -228,6 +232,11 @@ class StepwiseBaumWelchTrainer {
   // TODO(kbg): Add a way to disable interpolation.
   static Weight Interpolate(const Weight &old_weight, const Weight &new_weight,
                             double nu_k) {
+    if (nu_k == 1.0) {
+      // Contribution of old_weight is 0, so just returns the new_weight.
+      // This corresponds to standard full-batch EM.
+      return new_weight;
+    }
     const auto old_term = Times(1 - nu_k, old_weight);
     const auto new_term = Times(nu_k, new_weight);
     Sum plus(old_term);
@@ -236,7 +245,7 @@ class StepwiseBaumWelchTrainer {
   }
 
   void Backward(const ExpectationTable &table, MutableFst<Arc> *model) {
-    const double nu_k = std::pow(step_ + 2, -lr_);
+    const double nu_k = alpha_ == 0.0 ? 1.0 : std::pow(step_ + 2, -alpha_);
     for (StateIterator<MutableFst<Arc>> siter(*model); !siter.Done();
          siter.Next()) {
       const auto state = siter.Value();
@@ -253,24 +262,24 @@ class StepwiseBaumWelchTrainer {
     }
   }
 
-  const float lr_;        // Learning rate hypparameter.
+  const float alpha_;     // Step size reduction power.
   const int batch_size_;  // Batch size hyperparameter.
   const CascadeOptions opts_;
-  uint64 step_;  // Iteration/step number.
+  uint64_t step_;  // Iteration/step number.
 };
 
 // Full training setup, templated on expectation table.
 template <class Arc, class ExpectationTable>
-typename Arc::Weight TrainBaumWelch(
-    FarReader<Arc> *input, FarReader<Arc> *output, MutableFst<Arc> *model,
-    const TrainBaumWelchOptions &opts = TrainBaumWelchOptions()) {
+typename Arc::Weight Train(FarReader<Arc> &input, FarReader<Arc> &output,
+                           MutableFst<Arc> *model,
+                           const TrainOptions &opts = TrainOptions()) {
   using Weight = typename Arc::Weight;
   auto last_likelihood = Weight::Zero();
   StepwiseBaumWelchTrainer<Arc, ExpectationTable> trainer(
-      opts.lr, opts.batch_size, opts.copts);
+      opts.alpha, opts.batch_size, opts.copts);
   for (int iter = 1; iter <= opts.max_iters; ++iter) {
-    input->Reset();
-    output->Reset();
+    input.Reset();
+    output.Reset();
     const auto likelihood = trainer.Train(input, output, model);
     LOG(INFO) << "Iteration " << iter << ": " << likelihood;
     if (ApproxEqual(last_likelihood, likelihood, opts.delta)) return likelihood;
@@ -283,16 +292,15 @@ typename Arc::Weight TrainBaumWelch(
 
 // Full training setup.
 template <class Arc>
-typename Arc::Weight TrainBaumWelch(
-    FarReader<Arc> *input, FarReader<Arc> *output, MutableFst<Arc> *model,
-    bool normalize_ilabel = true,
-    const TrainBaumWelchOptions &opts = TrainBaumWelchOptions()) {
+typename Arc::Weight Train(FarReader<Arc> &input, FarReader<Arc> &output,
+                           MutableFst<Arc> *model, bool normalize_ilabel = true,
+                           const TrainOptions &opts = TrainOptions()) {
   if (normalize_ilabel) {
-    return internal::TrainBaumWelch<Arc, StateILabelExpectationTable<Arc>>(
-        input, output, model, opts);
+    return internal::Train<Arc, StateILabelExpectationTable<Arc>>(input, output,
+                                                                  model, opts);
   } else {
-    return internal::TrainBaumWelch<Arc, StateExpectationTable<Arc>>(
-        input, output, model, opts);
+    return internal::Train<Arc, StateExpectationTable<Arc>>(input, output,
+                                                            model, opts);
   }
 }
 

@@ -26,7 +26,7 @@
 
 namespace fst {
 
-// Computes the shortest path string over a semiring without the path property:
+// Computes the shortest string over a semiring without the path property:
 //
 // * Compute the NFA beta.
 // * Lazily determinize and compute the DFA beta.
@@ -36,8 +36,8 @@ namespace fst {
 //
 // Due to limitations of determinization, this only works for acceptors.
 template <class Arc>
-void AStarSingleShortestPath(const Fst<Arc> &ifst, MutableFst<Arc> *ofst,
-                             float delta = kShortestDelta) {
+void AStarSingleShortestString(const Fst<Arc> &ifst, MutableFst<Arc> *ofst,
+                               float delta = kShortestDelta) {
   static_assert(!IsPath<typename Arc::Weight>::value,
                 "This procedure is only valid for non-path semirings");
   using StateId = typename Arc::StateId;
@@ -58,7 +58,7 @@ void AStarSingleShortestPath(const Fst<Arc> &ifst, MutableFst<Arc> *ofst,
         ShortestPathOptions<PathArc, MyQueue, MyArcFilter>;
     using ToPathMapper = WeightConvertMapper<Arc, PathArc>;
     static constexpr ToPathMapper to_mapper;
-    const auto path_dfa = MakeArcMapFst(dfa, to_mapper);
+    const ArcMapFst path_dfa(dfa, to_mapper);
     const MyEstimate estimate(
         reinterpret_cast<const std::vector<PathWeight> &>(dfa_beta));
     std::vector<PathWeight> dfa_alpha;

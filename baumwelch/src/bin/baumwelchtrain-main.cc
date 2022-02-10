@@ -24,16 +24,16 @@
 
 DECLARE_int32(batch_size);
 DECLARE_double(delta);
-DECLARE_double(lr);
+DECLARE_double(alpha);
 DECLARE_int32(max_iters);
 DECLARE_bool(normalize_ilabel);
 
 int baumwelchtrain_main(int argc, char **argv) {
-  using fst::TrainBaumWelchOptions;
+  namespace s = fst::script;
+  using fst::TrainOptions;
   using fst::script::FarReaderClass;
   using fst::script::FstClass;
   using fst::script::MutableFstClass;
-  using fst::script::TrainBaumWelch;
 
   std::string usage = "Trains a WFST model\n\n  Usage: ";
   usage += argv[0];
@@ -74,14 +74,23 @@ int baumwelchtrain_main(int argc, char **argv) {
       MutableFstClass::Read(model_name));
   if (!model) return 1;
 
-  const TrainBaumWelchOptions opts(
+  const TrainOptions opts(
       /*max_iters=*/FST_FLAGS_max_iters,
-      /*lr=*/FST_FLAGS_lr,
+      /*alpha=*/FST_FLAGS_alpha,
       /*batch_size=*/FST_FLAGS_batch_size,
       /*delta=*/FST_FLAGS_delta);
 
-  TrainBaumWelch(input.get(), output.get(), model.get(),
-                 FST_FLAGS_normalize_ilabel, opts);
+  s::Train(*input, *output, model.get(), FST_FLAGS_normalize_ilabel,
+           opts);
+
+  if (input->Error()) {
+    FSTERROR() << "Error reading FAR: " << input_name;
+    return 1;
+  }
+  if (output->Error()) {
+    FSTERROR() << "Error reading FAR: " << output_name;
+    return 1;
+  }
 
   return !model->Write(out_name);
 }

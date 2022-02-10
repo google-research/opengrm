@@ -23,8 +23,8 @@
 #include <baumwelch/decodescript.h>
 
 int baumwelchdecode_main(int argc, char **argv) {
+  namespace s = fst::script;
   using fst::FarType;
-  using fst::script::DecodeBaumWelch;
   using fst::script::FarReaderClass;
   using fst::script::FarWriterClass;
   using fst::script::FstClass;
@@ -44,7 +44,7 @@ int baumwelchdecode_main(int argc, char **argv) {
   const std::string input_name = strcmp(argv[1], "-") != 0 ? argv[1] : "";
   const std::string output_name = strcmp(argv[2], "-") != 0 ? argv[2] : "";
   const std::string model_name = strcmp(argv[3], "-") != 0 ? argv[3] : "";
-  const std::string out_name = argc > 4 ? argv[4] : "";
+  const std::string hypotext_name = argc > 4 ? argv[4] : "";
 
   if (input_name.empty() && (output_name.empty() || model_name.empty())) {
     LOG(ERROR) << argv[0] << ": Can't take more than one input from standard "
@@ -67,12 +67,25 @@ int baumwelchdecode_main(int argc, char **argv) {
   const std::unique_ptr<const FstClass> model(FstClass::Read(model_name));
   if (!model) return 1;
 
-  const std::unique_ptr<FarWriterClass> out(
-      FarWriterClass::Create(out_name, output->ArcType()));
-  if (!out) return 1;
+  const std::unique_ptr<FarWriterClass> hypotext(
+      FarWriterClass::Create(hypotext_name, output->ArcType()));
+  if (!hypotext) return 1;
 
-  DecodeBaumWelch(input.get(), output.get(), *model, out.get());
+  s::Decode(*input, *output, *model, *hypotext);
 
-  return out->Error();
+  if (input->Error()) {
+    FSTERROR() << "Error reading FAR: " << input_name;
+    return 1;
+  }
+  if (output->Error()) {
+    FSTERROR() << "Error reading FAR: " << output_name;
+    return 1;
+  }
+  if (hypotext->Error()) {
+    FSTERROR() << "Error writing FAR: " << hypotext_name;
+    return 1;
+  }
+
+  return 0;
 }
 
