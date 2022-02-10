@@ -26,7 +26,7 @@
 #include <utility>
 #include <vector>
 
-#include <fst/types.h>
+#include <fst/log.h>
 #include <fst/arc-map.h>
 #include <fst/arcsort.h>
 #include <fst/closure.h>
@@ -350,7 +350,7 @@ void CDRewriteRule<Arc>::MakeFilter(
   }
   static const IdentityArcMapper<StdArc> imapper;
   if (reverse) {
-    Reverse(MakeArcMapFst(ufilter, imapper), &ufilter);
+    Reverse(ArcMapFst(ufilter, imapper), &ufilter);
     VectorFst<StdArc> reversed_sigma;
     Reverse(usigma, &reversed_sigma);
     RmEpsilon(&reversed_sigma);
@@ -364,7 +364,7 @@ void CDRewriteRule<Arc>::MakeFilter(
   Minimize(&ufilter);
   MakeMarker(&ufilter, usigma, type, markers);
   if (reverse) {
-    Reverse(MakeArcMapFst(ufilter, imapper), &ufilter);
+    Reverse(ArcMapFst(ufilter, imapper), &ufilter);
   }
   static const ILabelCompare<StdArc> icomp;
   ArcSort(&ufilter, icomp);

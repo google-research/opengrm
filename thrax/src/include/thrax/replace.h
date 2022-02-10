@@ -50,7 +50,7 @@ class Replace : public Function<Arc> {
 
  protected:
   std::unique_ptr<DataType> Execute(
-      const std::vector<std::unique_ptr<DataType>>& args) final {
+      const std::vector<std::unique_ptr<DataType>>& args) const final {
     if (args.size() < 3) {
       std::cout << "Replace: Expected at least 3 arguments but got "
                 << args.size() << std::endl;
@@ -106,7 +106,7 @@ class Replace : public Function<Arc> {
 
  private:
   void ExtractReplacementLabels(MutableTransducer* fst,
-                                std::vector<Label>* labels) {
+                                std::vector<Label>* labels) const {
     ::fst::RmEpsilon(fst);
     auto s = fst->Start();
     while (fst->Final(s) == Arc::Weight::Zero()) {

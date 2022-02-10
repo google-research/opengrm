@@ -47,7 +47,7 @@ class Rewrite : public BinaryFstFunction<Arc> {
  protected:
   std::unique_ptr<Transducer> BinaryFstExecute(
       const Transducer& left, const Transducer& right,
-      const std::vector<std::unique_ptr<DataType>>& args) final {
+      const std::vector<std::unique_ptr<DataType>>& args) const final {
     if (args.size() != 2) {
       std::cout << "Rewrite: Expected 2 arguments but got " << args.size()
                 << std::endl;

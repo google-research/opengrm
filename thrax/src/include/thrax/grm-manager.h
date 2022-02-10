@@ -23,6 +23,7 @@
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
+#include <fst/flags.h>
 #include <thrax/compat/utils.h>
 #include <fst/extensions/far/far.h>
 #include <thrax/abstract-grm-manager.h>
@@ -67,7 +68,7 @@ bool GrmManagerSpec<Arc>::LoadArchive(const std::string &filename) {
     LOG(ERROR) << "Unable to open FAR: " << filename;
     return false;
   }
-  return Base::LoadArchive(reader.get());
+  return Base::LoadArchive(reader.get(), filename);
 }
 
 template <typename Arc>

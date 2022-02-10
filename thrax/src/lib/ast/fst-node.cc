@@ -18,6 +18,7 @@
 #include <string>
 #include <vector>
 
+#include <fst/log.h>
 #include <thrax/node.h>
 #include <thrax/string-node.h>
 #include <thrax/walker.h>

@@ -91,6 +91,11 @@ class DataType {
   }
 
  private:
+  // NB: We don't use `unique_ptr<Fst<>>` here since a) the `get()` and
+  // `get_mutable()` methods above depend on the exact template params given to
+  // the variant, and b) this type doesn't need to be moved from since all uses
+  // are boxed and there's no obvious way to de-box it (since it's pushed into
+  // interfaces expecting `unique_ptr`).
   using ThingType = std::variant<::fst::Fst<::fst::StdArc> *,
                                   ::fst::Fst<::fst::LogArc> *,
                                   ::fst::Fst<::fst::Log64Arc> *,

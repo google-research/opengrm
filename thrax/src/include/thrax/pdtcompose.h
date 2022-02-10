@@ -70,7 +70,7 @@ class PdtCompose : public Function<Arc> {
 
  protected:
   std::unique_ptr<DataType> Execute(
-      const std::vector<std::unique_ptr<DataType>>& args) final {
+      const std::vector<std::unique_ptr<DataType>>& args) const final {
     if (args.size() < 3 || args.size() > 5) {
       std::cout << "PdtCompose: Expected 3-5 arguments but got " << args.size()
                 << std::endl;

@@ -1,3 +1,5 @@
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -12,8 +14,10 @@
 //
 // STL container functions.
 
-#ifndef THRAX_COMPAT_STL_FUNCTIONS_H_
-#define THRAX_COMPAT_STL_FUNCTIONS_H_
+#ifndef THRAX_COMPAT_STLFUNCTIONS_H_
+#define THRAX_COMPAT_STLFUNCTIONS_H_
+
+#include <fst/log.h>
 
 namespace thrax {
 
@@ -140,4 +144,4 @@ LookupOrInsertNew(T *const collection,
 
 }  // namespace thrax
 
-#endif  // THRAX_COMPAT_STL_FUNCTIONS_H_
+#endif  // THRAX_COMPAT_STLFUNCTIONS_H_

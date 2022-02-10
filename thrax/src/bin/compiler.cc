@@ -16,6 +16,8 @@
 
 #include <thrax/compiler.h>
 
+#include <fst/flags.h>
+#include <fst/log.h>
 #include <thrax/compat/utils.h>
 #include <thrax/grm-compiler.h>
 #include <thrax/grm-manager.h>
@@ -35,7 +37,6 @@ int main(int argc, char **argv) {
   std::set_new_handler(FailedNewHandler);
   SET_FLAGS(argv[0], &argc, &argv, true);
 
-  thrax::function::RegisterFunctions();
   if (FST_FLAGS_arc_type == "standard") {
     if (CompileGrammar<::fst::StdArc>(
             FST_FLAGS_input_grammar, FST_FLAGS_output_far,

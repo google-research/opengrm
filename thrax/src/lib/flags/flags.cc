@@ -16,6 +16,7 @@
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
+#include <fst/flags.h>
 
 DEFINE_bool(save_symbols, false,
             "Keep symbol tables associated with generated fsts.");

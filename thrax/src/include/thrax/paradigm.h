@@ -52,6 +52,7 @@
 #include <memory>
 #include <vector>
 
+#include <fst/log.h>
 #include <fst/determinize.h>
 #include <fst/difference.h>
 #include <fst/project.h>
@@ -97,7 +98,7 @@ class Analyzer : public Function<Arc> {
 
  protected:
   std::unique_ptr<DataType> Execute(
-      const std::vector<std::unique_ptr<DataType>>& args) final {
+      const std::vector<std::unique_ptr<DataType>>& args) const final {
     CHECK_EQ(args.size(), 4);
     MutableTransducer paradigm(**args[0]->get<Transducer*>());
     MutableTransducer stems(**args[1]->get<Transducer*>());
@@ -178,7 +179,7 @@ class Tagger : public Function<Arc> {
 
  protected:
   std::unique_ptr<DataType> Execute(
-      const std::vector<std::unique_ptr<DataType>>& args) final {
+      const std::vector<std::unique_ptr<DataType>>& args) const final {
     CHECK_EQ(args.size(), 5);
     MutableTransducer paradigm(**args[0]->get<Transducer*>());
     MutableTransducer stems(**args[1]->get<Transducer*>());
@@ -232,7 +233,7 @@ class ParadigmReplace : public Function<Arc> {
 
  protected:
   std::unique_ptr<DataType> Execute(
-      const std::vector<std::unique_ptr<DataType>>& args) final {
+      const std::vector<std::unique_ptr<DataType>>& args) const final {
     CHECK_EQ(args.size(), 3);
     MutableTransducer paradigm(**args[0]->get<Transducer*>());
     MutableTransducer old_forms(**args[1]->get<Transducer*>());

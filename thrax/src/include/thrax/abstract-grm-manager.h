@@ -26,6 +26,7 @@
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
+#include <fst/log.h>
 #include <fst/extensions/mpdt/compose.h>
 #include <fst/extensions/mpdt/mpdt.h>
 #include <fst/extensions/pdt/compose.h>
@@ -38,6 +39,7 @@
 #include <fst/vector-fst.h>
 #include <thrax/make-parens-pair-vector.h>
 #include <unordered_map>
+#include <string_view>
 
 namespace thrax {
 
@@ -46,7 +48,8 @@ class AbstractGrmManager {
  public:
   using Transducer = ::fst::Fst<Arc>;
   using MutableTransducer = ::fst::VectorFst<Arc>;
-  using FstMap = std::map<std::string, std::unique_ptr<const Transducer>>;
+  using FstMap =
+      std::map<std::string, std::unique_ptr<const Transducer>, std::less<>>;
   using Label = typename Arc::Label;
 
   virtual ~AbstractGrmManager();
@@ -70,30 +73,28 @@ class AbstractGrmManager {
   // pdt_parens_rule is assumed to specify the parentheses. If
   // pdt_assignments_rule is not empty, then this is assumed to be an MPDT.
 
-  bool RewriteBytes(const std::string& rule, const std::string& input,
-                    std::string* output,
-                    const std::string& pdt_parens_rule = "",
-                    const std::string& mpdt_assignments_rule = "") const;
+  bool RewriteBytes(std::string_view rule, std::string_view input,
+                    std::string* output, std::string_view pdt_parens_rule = "",
+                    std::string_view mpdt_assignments_rule = "") const;
 
-  bool RewriteBytes(const std::string& rule, const Transducer& input,
-                    std::string* output,
-                    const std::string& pdt_parens_rule = "",
-                    const std::string& mpdt_assignments_rule = "") const;
+  bool RewriteBytes(std::string_view rule, const Transducer& input,
+                    std::string* output, std::string_view pdt_parens_rule = "",
+                    std::string_view mpdt_assignments_rule = "") const;
 
   // Unlike RewriteBytes(), The MutableTransducer output of Rewrite() contains
   // all the possible output paths. A Rewrite() call only returns false if the
   // specified rule(s) cannot be found. Notably, the call returns true even if
   // output transducer contains no accepting path.
 
-  bool Rewrite(const std::string& rule, const std::string& input,
+  bool Rewrite(std::string_view rule, std::string_view input,
                MutableTransducer* output,
-               const std::string& pdt_parens_rule = "",
-               const std::string& mpdt_assignments_rule = "") const;
+               std::string_view pdt_parens_rule = "",
+               std::string_view mpdt_assignments_rule = "") const;
 
-  bool Rewrite(const std::string& rule, const Transducer& input,
+  bool Rewrite(std::string_view rule, const Transducer& input,
                MutableTransducer* output,
-               const std::string& pdt_parens_rule = "",
-               const std::string& mpdt_assignments_rule = "") const;
+               std::string_view pdt_parens_rule = "",
+               std::string_view mpdt_assignments_rule = "") const;
 
   // This helper function (when given a potential string fst) takes the shortest
   // path, projects the output, and then removes epsilon arcs.
@@ -105,17 +106,17 @@ class AbstractGrmManager {
   // Returns the FST associated with the particular name. This class returns
   // the actual pointer to the FST (or nullptr if it is not found), so the
   // caller should not free the pointer.
-  const Transducer* GetFst(const std::string& name) const;
+  const Transducer* GetFst(std::string_view name) const;
 
   // Gets the named FST, just like GetFst(), but this function doesn't lock
   // anything and is thread-safe because it returns a transducer safely
   // shallow-copied from the original.
-  std::unique_ptr<Transducer> GetFstSafe(const std::string& name) const;
+  std::unique_ptr<Transducer> GetFstSafe(std::string_view name) const;
 
   // Modify the transducer under the given name. If no such rule name exists,
   // returns false, otherwise returns true. Note: For thread-safety, it is
   // assumed this function will not be used in a multi-threaded context.
-  bool SetFst(const std::string& name, const Transducer& input);
+  bool SetFst(std::string_view name, const Transducer& input);
 
   // This function will write the created FSTs into an FST archive with the
   // provided filename.
@@ -134,7 +135,7 @@ class AbstractGrmManager {
   // Loads up the FSTs given the supplied reader. Returns true on success and
   // false otherwise.
   template <typename FarReader>
-  bool LoadArchive(FarReader *reader);
+  bool LoadArchive(FarReader* reader, std::string_view filename = "");
 
   // The list of FSTs held by this manager.
   FstMap fsts_;
@@ -153,11 +154,16 @@ AbstractGrmManager<Arc>::~AbstractGrmManager() {
 
 template <typename Arc>
 template <typename FarReader>
-bool AbstractGrmManager<Arc>::LoadArchive(FarReader *reader) {
+bool AbstractGrmManager<Arc>::LoadArchive(FarReader* reader,
+                                          std::string_view filename) {
   fsts_.clear();
   for (reader->Reset(); !reader->Done(); reader->Next()) {
     const auto& name = reader->GetKey();
     fsts_[name] = std::make_unique<MutableTransducer>(*reader->GetFst());
+  }
+  if (fsts_.size() == 0) {
+    LOG(ERROR) << filename << " is an empty FAR: Did you `export` any rules?";
+    return false;
   }
   SortRuleInputLabels();
   return true;
@@ -189,20 +195,20 @@ void AbstractGrmManager<Arc>::SortRuleInputLabels() {
 
 template <typename Arc>
 const typename AbstractGrmManager<Arc>::Transducer*
-AbstractGrmManager<Arc>::GetFst(const std::string& name) const {
+AbstractGrmManager<Arc>::GetFst(std::string_view name) const {
   const auto it = fsts_.find(name);
   return it == fsts_.end() ? nullptr : it->second.get();
 }
 
 template <typename Arc>
 std::unique_ptr<typename AbstractGrmManager<Arc>::Transducer>
-AbstractGrmManager<Arc>::GetFstSafe(const std::string& name) const {
+AbstractGrmManager<Arc>::GetFstSafe(std::string_view name) const {
   const auto* fst = GetFst(name);
   return fst::WrapUnique(fst ? fst->Copy(true) : nullptr);
 }
 
 template <typename Arc>
-bool AbstractGrmManager<Arc>::SetFst(const std::string& name,
+bool AbstractGrmManager<Arc>::SetFst(std::string_view name,
                                      const Transducer& input) {
   auto it = fsts_.find(name);
   if (it != fsts_.end()) {
@@ -214,9 +220,9 @@ bool AbstractGrmManager<Arc>::SetFst(const std::string& name,
 
 template <typename Arc>
 bool AbstractGrmManager<Arc>::RewriteBytes(
-    const std::string& rule, const std::string& input, std::string* output,
-    const std::string& pdt_parens_rule,
-    const std::string& mpdt_assignments_rule) const {
+    std::string_view rule, std::string_view input, std::string* output,
+    std::string_view pdt_parens_rule,
+    std::string_view mpdt_assignments_rule) const {
   static const ::fst::StringCompiler<Arc> compiler(
       ::fst::TokenType::BYTE);
   MutableTransducer str_fst;
@@ -227,9 +233,9 @@ bool AbstractGrmManager<Arc>::RewriteBytes(
 
 template <typename Arc>
 bool AbstractGrmManager<Arc>::RewriteBytes(
-    const std::string& rule, const Transducer& input, std::string* output,
-    const std::string& pdt_parens_rule,
-    const std::string& mpdt_assignments_rule) const {
+    std::string_view rule, const Transducer& input, std::string* output,
+    std::string_view pdt_parens_rule,
+    std::string_view mpdt_assignments_rule) const {
   MutableTransducer output_fst;
   if (!Rewrite(rule, input, &output_fst, pdt_parens_rule,
                mpdt_assignments_rule)) {
@@ -244,9 +250,9 @@ bool AbstractGrmManager<Arc>::RewriteBytes(
 
 template <typename Arc>
 bool AbstractGrmManager<Arc>::Rewrite(
-    const std::string& rule, const std::string& input,
-    MutableTransducer* output, const std::string& pdt_parens_rule,
-    const std::string& mpdt_assignments_rule) const {
+    std::string_view rule, std::string_view input, MutableTransducer* output,
+    std::string_view pdt_parens_rule,
+    std::string_view mpdt_assignments_rule) const {
   static const ::fst::StringCompiler<Arc> compiler(
       ::fst::TokenType::BYTE);
   MutableTransducer str_fst;
@@ -257,9 +263,9 @@ bool AbstractGrmManager<Arc>::Rewrite(
 
 template <typename Arc>
 bool AbstractGrmManager<Arc>::Rewrite(
-    const std::string& rule, const Transducer& input, MutableTransducer* output,
-    const std::string& pdt_parens_rule,
-    const std::string& mpdt_assignments_rule) const {
+    std::string_view rule, const Transducer& input, MutableTransducer* output,
+    std::string_view pdt_parens_rule,
+    std::string_view mpdt_assignments_rule) const {
   const std::unique_ptr<const Transducer> rule_fst = GetFstSafe(rule);
   if (!rule_fst) {
     LOG(ERROR) << "Rule " << rule << " not found.";
@@ -326,22 +332,22 @@ void AbstractGrmManager<Arc>::StringifyFst(MutableTransducer* fst) {
 struct RuleTriple {
   std::string main_rule, pdt_parens_rule, mpdt_assignments_rule;
 
-  explicit RuleTriple(const std::string& rule_def) {
+  explicit RuleTriple(std::string_view rule_def) {
     auto main_pos = rule_def.find('$');
     if (main_pos == std::string::npos) main_pos = rule_def.find(':');
-    main_rule = rule_def.substr(0, main_pos);
+    main_rule = std::string(rule_def.substr(0, main_pos));
     if (main_pos == std::string::npos) return;
     auto pdt_parens_pos = rule_def.find('$', main_pos + 1);
     if (pdt_parens_pos == std::string::npos) {
       pdt_parens_pos = rule_def.find(':', main_pos + 1);
     }
     if (pdt_parens_pos == std::string::npos) {
-      pdt_parens_rule = rule_def.substr(main_pos + 1);
+      pdt_parens_rule = std::string(rule_def.substr(main_pos + 1));
       return;
     }
-    pdt_parens_rule =
-        rule_def.substr(main_pos + 1, pdt_parens_pos - main_pos - 1);
-    mpdt_assignments_rule = rule_def.substr(pdt_parens_pos + 1);
+    pdt_parens_rule = std::string(
+        rule_def.substr(main_pos + 1, pdt_parens_pos - main_pos - 1));
+    mpdt_assignments_rule = std::string(rule_def.substr(pdt_parens_pos + 1));
   }
 };
 
@@ -362,11 +368,11 @@ class RuleCascade {
   bool InitFromDefs(const AbstractGrmManager<Arc>* grm,
                     const std::vector<std::string>& rule_defs);
 
-  bool RewriteBytes(const std::string& input, std::string* output) const;
+  bool RewriteBytes(std::string_view input, std::string* output) const;
 
   bool RewriteBytes(const Transducer& input, std::string* output) const;
 
-  bool Rewrite(const std::string& input, MutableTransducer* output) const;
+  bool Rewrite(std::string_view input, MutableTransducer* output) const;
 
   bool Rewrite(const Transducer& input, MutableTransducer* output) const;
 
@@ -415,7 +421,7 @@ bool RuleCascade<Arc>::InitFromDefs(const AbstractGrmManager<Arc>* grm,
 }
 
 template <typename Arc>
-bool RuleCascade<Arc>::RewriteBytes(const std::string& input,
+bool RuleCascade<Arc>::RewriteBytes(std::string_view input,
                                     std::string* output) const {
   static const ::fst::StringCompiler<Arc> compiler(
       ::fst::TokenType::BYTE);
@@ -443,7 +449,7 @@ bool RuleCascade<Arc>::RewriteBytes(const Transducer& input,
 }
 
 template <typename Arc>
-bool RuleCascade<Arc>::Rewrite(const std::string& input,
+bool RuleCascade<Arc>::Rewrite(std::string_view input,
                                MutableTransducer* output) const {
   static const ::fst::StringCompiler<Arc> compiler(
       ::fst::TokenType::BYTE);

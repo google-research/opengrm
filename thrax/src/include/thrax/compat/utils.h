@@ -1,3 +1,5 @@
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -13,8 +15,8 @@
 // Simple implementation of StrCat, needed in various places. This version
 // allows from 2 to 5 combinations of strings and ints.
 
-#ifndef THRAX_COMPAT_STRUTILS_H_
-#define THRAX_COMPAT_STRUTILS_H_
+#ifndef THRAX_COMPAT_UTILS_H_
+#define THRAX_COMPAT_UTILS_H_
 
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -23,36 +25,12 @@
 
 #include <cstdarg>
 #include <cstdio>
-
 #include <fstream>
 #include <memory>
 #include <string>
 #include <vector>
 
-#include <fst/compat.h>
-
 namespace thrax {
-
-// Operations on strings.
-
-inline void StringReplace(std::string *full, const std::string &before,
-                          const std::string &after) {
-  size_t pos = 0;
-  while ((pos = full->find(before, pos)) != std::string::npos) {
-    full->replace(pos, before.size(), after);
-    pos += after.size();
-  }
-}
-
-inline std::string StringReplace(const std::string &full,
-                                 const std::string &before,
-                                 const std::string &after, bool /* ignored */) {
-  std::string copy(full);
-  StringReplace(&copy, before, after);
-  return copy;
-}
-
-std::string StringPrintf(const char *format, ...);
 
 // Operations on filenames.
 
@@ -125,4 +103,4 @@ File *OpenOrDie(const std::string &filename, const std::string &mode);
 
 }  // namespace thrax
 
-#endif  // THRAX_COMPAT_STRUTILS_H_
+#endif  // THRAX_COMPAT_UTILS_H_

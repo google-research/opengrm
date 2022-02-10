@@ -47,7 +47,7 @@ class Closure : public UnaryFstFunction<Arc> {
  protected:
   std::unique_ptr<Transducer> UnaryFstExecute(
       const Transducer& fst,
-      const std::vector<std::unique_ptr<DataType>>& args) final {
+      const std::vector<std::unique_ptr<DataType>>& args) const final {
     if (args.size() < 2) {
       std::cout << "Closure: Expected 2 or 4 arguments" << std::endl;
       return nullptr;

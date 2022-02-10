@@ -78,7 +78,7 @@ class MPdtCompose : public Function<Arc> {
 
  protected:
   std::unique_ptr<DataType> Execute(
-      const std::vector<std::unique_ptr<DataType>>& args) final {
+      const std::vector<std::unique_ptr<DataType>>& args) const final {
     if (args.size() < 4 || args.size() > 6) {
       std::cout << "MPdtCompose: Expected 4-6 arguments but got " << args.size()
                 << std::endl;

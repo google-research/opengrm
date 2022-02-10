@@ -16,6 +16,7 @@
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
+#include <fst/flags.h>
 #include <../bin/rewrite-tester-utils.h>
 
 int main(int argc, char **argv) {

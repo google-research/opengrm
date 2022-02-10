@@ -3,7 +3,8 @@
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
-#include <thrax/compat/utils.h>
+#include <fst/flags.h>
+#include <fst/log.h>
 #include <thrax/collection-node.h>
 #include <thrax/fst-node.h>
 #include <thrax/function-node.h>
@@ -17,6 +18,7 @@
 #include <thrax/string-node.h>
 #include <thrax/grm-compiler.h>
 #include <thrax/lexer.h>
+#include <fst/compat.h>
 
 DECLARE_bool(always_export);
 
@@ -199,7 +201,7 @@ descriptor:
       IdentifierNode* node = new IdentifierNode(name, begin_pos);
       node->SetLine(parm->GetLexer()->line_number());
       if (!node->IsValid())
-        parm->Error(StringPrintf("Illegal identifier: %s", name.c_str()));
+        parm->Error(::fst::StrCat("Illegal identifier: ", name));
       $$ = node; }
 ;
 
@@ -319,18 +321,18 @@ repetition_fst:
       $$ = node; }
 | atomic_obj tLBRACE number tCOMMA number tRBRACE
     { if ($3 > $5)
-        parm->Error(StringPrintf("Reversed repetition bounds: %d > %d", $3, $5));
+        parm->Error(::fst::StrCat("Reversed repetition bounds: ", $3, " > ", $5));
       if ($3 < 0)
-        parm->Error(StringPrintf("Start bound must be non-negative: %d", $3));
+        parm->Error(::fst::StrCat("Start bound must be non-negative: ", $3));
       if ($5 < 0)
-        parm->Error(StringPrintf("End bound must be non-negative: %d", $5));
+        parm->Error(::fst::StrCat("End bound must be non-negative: ", $5));
       RepetitionFstNode* node = new RepetitionFstNode(RepetitionFstNode::RANGE);
       node->AddArgument($1);
       node->SetRange($3, $5);
       $$ = node; }
 | atomic_obj tLBRACE number tRBRACE
     { if ($3 < 0)
-        parm->Error(StringPrintf("Repetition count should be non-negative: %d", $3));
+        parm->Error(::fst::StrCat("Repetition count should be non-negative: ", $3));
       RepetitionFstNode* node = new RepetitionFstNode(RepetitionFstNode::RANGE);
       node->AddArgument($1);
       node->SetRange($3, $3);
@@ -506,7 +508,7 @@ int yylex(void *, GrmCompilerParserInterface *parm) {
     case Lexer::CONNECTOR: {
       std::string connector = parm->GetLexer()->YYString();
       if (connector.length() != 1) {
-        parm->Error(StringPrintf("Parse error - unknown connector: %s", connector.c_str()));
+        parm->Error(::fst::StrCat("Parse error - unknown connector: ", connector));
         return 0;
       }
       switch (parm->GetLexer()->YYString()[0]) {
@@ -530,7 +532,7 @@ int yylex(void *, GrmCompilerParserInterface *parm) {
         case '{': return tLBRACE;
         case '}': return tRBRACE;
         case '|': return tPIPE;
-        default:  parm->Error(StringPrintf("Parse error - unknown connector: %s", connector.c_str()));
+        default:  parm->Error(::fst::StrCat("Parse error - unknown connector: ", connector));
                   return 0;
       }
     }
@@ -551,7 +553,7 @@ int yylex(void *, GrmCompilerParserInterface *parm) {
       } else if (keyword == "utf8") {
         return tKEYWORD_UTF8;
       } else {
-        parm->Error(StringPrintf("Parse error - unknown keyword: %s", keyword.c_str()));
+        parm->Error(::fst::StrCat("Parse error - unknown keyword: ", keyword));
         return 0;
       }
     }

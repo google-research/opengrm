@@ -122,4 +122,13 @@ Thrax - Release 1.3.5
 
 Thrax - Release 1.3.6
 
+  * Remove ArcSort function
   * Compatibility with OpenFst version 1.8.1
+
+Thrax - Release 1.3.7
+
+  * Symbol `[0]` now gets assigned the numeric interpretation of `0x00` rather
+    than the ASCII digit interpretation of `0x30`, just like the rest of the
+    bracketed numeric symbols.
+  * Use OpenFst's type registration module instead of our own
+  * Compatibility with OpenFst version 1.8.2

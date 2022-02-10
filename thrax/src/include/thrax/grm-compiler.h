@@ -26,6 +26,8 @@
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
+#include <fst/flags.h>
+#include <fst/log.h>
 #include <thrax/compat/utils.h>
 #include <fst/arc.h>
 #include <thrax/node.h>

@@ -16,6 +16,7 @@
 
 #include <string>
 
+#include <fst/log.h>
 #include <thrax/collection-node.h>
 #include <thrax/fst-node.h>
 #include <thrax/grammar-node.h>

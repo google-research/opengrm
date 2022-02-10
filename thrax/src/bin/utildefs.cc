@@ -120,6 +120,25 @@ bool FstToStrings(const StdVectorFst &fst,
   return true;
 }
 
+bool FstToAllStrings(const StdVectorFst &fst,
+                     std::vector<std::pair<std::string, float>> *strings,
+                     const SymbolTable *generated_symtab, TokenType type,
+                     SymbolTable *symtab) {
+  if (fst.Start() == kNoStateId) return false;
+  PathIterator<StdArc> iter(fst, /*check_acyclic=*/true);
+  if (iter.Error()) return false;
+  for (; !iter.Done(); iter.Next()) {
+    std::string path;
+    for (const auto label : iter.OLabels()) {
+      if (!AppendLabel(label, type, generated_symtab, symtab, &path)) {
+        return false;
+      }
+    }
+    strings->emplace_back(std::move(path), iter.Weight().Value());
+  }
+  return true;
+}
+
 std::unique_ptr<SymbolTable> GetGeneratedSymbolTable(
     GrmManagerSpec<StdArc> *grm) {
   const auto *symbolfst = grm->GetFst("*StringFstSymbolTable");

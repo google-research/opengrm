@@ -36,6 +36,7 @@
 #include <fst/fst.h>
 #include <fst/vector-fst.h>
 #include <thrax/algo/cdrewrite.h>
+#include <thrax/algo/getters.h>
 #include <thrax/algo/stringcompile.h>
 #include <thrax/datatype.h>
 #include <thrax/function.h>
@@ -56,7 +57,7 @@ class CDRewrite : public Function<Arc> {
   ~CDRewrite() final {}
 
   std::unique_ptr<DataType> Execute(
-      const std::vector<std::unique_ptr<DataType>>& args) final {
+      const std::vector<std::unique_ptr<DataType>>& args) const final {
     if (args.size() != 4 && args.size() != 6) {
       std::cout << "CDRewrite: Expected 4 or 6 arguments but received "
                 << args.size() << std::endl;
@@ -152,23 +153,13 @@ class CDRewrite : public Function<Arc> {
         }
       }
       const auto& direction_str = *args[4]->get<std::string>();
-      if (direction_str == "ltr") {
-        dir = ::fst::LEFT_TO_RIGHT;
-      } else if (direction_str == "rtl") {
-        dir = ::fst::RIGHT_TO_LEFT;
-      } else if (direction_str == "sim") {
-        dir = ::fst::SIMULTANEOUS;
-      } else {
+      if (!::fst::script::GetCDRewriteDirection(direction_str, &dir)) {
         std::cout << "CDRewrite: Invalid direction: " << direction_str
                   << std::endl;
         return nullptr;
       }
       const auto& mode_str = *args[5]->get<std::string>();
-      if (mode_str == "obl") {
-        mode = ::fst::OBLIGATORY;
-      } else if (mode_str == "opt") {
-        mode = ::fst::OPTIONAL;
-      } else {
+      if (!::fst::script::GetCDRewriteMode(mode_str, &mode)) {
         std::cout << "CDRewrite: Invalid mode: " << mode_str << std::endl;
         return nullptr;
       }

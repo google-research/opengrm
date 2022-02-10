@@ -41,7 +41,7 @@ class Invert : public UnaryFstFunction<Arc> {
  protected:
   std::unique_ptr<Transducer> UnaryFstExecute(
       const Transducer& fst,
-      const std::vector<std::unique_ptr<DataType>>& args) final {
+      const std::vector<std::unique_ptr<DataType>>& args) const final {
     if (args.size() != 1) {
       std::cout << "Invert: Expected 1 argument but got " << args.size()
                 << std::endl;

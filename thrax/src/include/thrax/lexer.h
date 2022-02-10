@@ -18,6 +18,7 @@
 #define NLP_GRM_LANGUAGE_LEXER_H_
 
 #include <string.h>
+
 #include <algorithm>
 #include <iostream>
 #include <set>
@@ -26,6 +27,7 @@
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
+#include <fst/flags.h>
 #include <thrax/compat/utils.h>
 
 namespace thrax {
@@ -50,7 +52,7 @@ class Lexer {
   // Must be called before the grammar is processed via repeated calls to
   // YYLex().
   void ScanString(const std::string &str) {
-    grammar_.push(GrammarFile("", str));
+    grammar_.push(GrammarFile(str));
   }
 
   // Parses one token and returns its type. Token data is accessible via
@@ -87,11 +89,6 @@ class Lexer {
     return curr_file()->content.substr(start, end - start);
   }
 
-  // Path to current grammar file.
-  const std::string &current_grammar_path() const {
-    return curr_file()->filename;
-  }
-
  private:
   // Information about the current token.
   struct Token {
@@ -109,12 +106,11 @@ class Lexer {
   };
 
   struct GrammarFile {
-    GrammarFile(const std::string &fn, const std::string &cont)
-        : filename(fn), content(cont), pos(0), line_number(1) {}
+    explicit GrammarFile(const std::string &cont)
+        : content(cont), pos(0), line_number(1) {}
     GrammarFile()
         : pos(0), line_number(1) {}
 
-    std::string filename;
     std::string content;
     int pos;
     int line_number;
@@ -130,8 +126,8 @@ class Lexer {
   // '_' are also connectors but are handled separately.
   bool is_connector(char c) const { return strchr("()=:;[]{}|*+@,.?$/", c); }
 
-  int GetChar() {
-    int c = 0;
+  char GetChar() {
+    char c = 0;
     while (!grammar_.empty() &&
            curr_file()->pos >= curr_file()->content.size()) {
       grammar_.pop();

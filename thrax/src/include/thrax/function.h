@@ -31,8 +31,8 @@
 #include <thrax/compat/compat.h>
 #include <fst/fst.h>
 #include <thrax/datatype.h>
+#include <thrax/register.h>
 #include <thrax/compat/stlfunctions.h>
-#include <thrax/compat/registry.h>
 
 namespace thrax {
 namespace function {
@@ -46,7 +46,7 @@ class Function {
   // Runs the desired function by wrapping Execute() and then freeing the
   // arguments.
   std::unique_ptr<DataType> Run(
-      std::unique_ptr<std::vector<std::unique_ptr<DataType>>> args) {
+      std::unique_ptr<std::vector<std::unique_ptr<DataType>>> args) const {
     auto return_value = Execute(*args);
     return return_value;
   }
@@ -55,35 +55,20 @@ class Function {
   // Actually performs the function's work, without deleting the provided
   // arguments.
   virtual std::unique_ptr<DataType> Execute(
-      const std::vector<std::unique_ptr<DataType>>& args) = 0;
+      const std::vector<std::unique_ptr<DataType>>& args) const = 0;
 
  private:
   Function<Arc>(const Function<Arc>&) = delete;
   Function<Arc>& operator=(const Function<Arc>&) = delete;
 };
 
-
-extern Registry<Function<fst::StdArc>* > kStdArcRegistry;
-extern Registry<Function<fst::LogArc>* > kLogArcRegistry;
-extern Registry<Function<fst::Log64Arc>* > kLog64ArcRegistry;
-extern void RegisterFunctions();
-
-#define REGISTER_STDARC_FUNCTION(function) \
-  kStdArcRegistry.Register(#function, new function)
-
-#define REGISTER_LOGARC_FUNCTION(function) \
-  kLogArcRegistry.Register(#function, new function)
-
-#define REGISTER_LOG64ARC_FUNCTION(function) \
-  kLogArcRegistry.Register(#function, new function)
-
 #define REGISTER_GRM_FUNCTION(name) \
-  typedef name<fst::StdArc> StdArc ## name; \
-  REGISTER_STDARC_FUNCTION(StdArc ## name); \
-  typedef name<fst::LogArc> LogArc ## name; \
-  REGISTER_LOGARC_FUNCTION(LogArc ## name); \
-  typedef name<fst::LogArc> Log64Arc ## name; \
-  REGISTER_LOGARC_FUNCTION(Log64Arc ## name)
+  using ::fst::StdArc;          \
+  REGISTER_FUNCTION(name, StdArc);  \
+  using ::fst::LogArc;          \
+  REGISTER_FUNCTION(name, LogArc);  \
+  using ::fst::Log64Arc;        \
+  REGISTER_FUNCTION(name, Log64Arc);
 
 template <typename Arc>
 class UnaryFstFunction : public Function<Arc> {
@@ -95,7 +80,7 @@ class UnaryFstFunction : public Function<Arc> {
 
  protected:
   std::unique_ptr<DataType> Execute(
-      const std::vector<std::unique_ptr<DataType>>& args) final {
+      const std::vector<std::unique_ptr<DataType>>& args) const final {
     if (args.empty()) {
       std::cout << "UnaryFstFunction: Expected at least 1 argument"
                 << std::endl;
@@ -116,7 +101,7 @@ class UnaryFstFunction : public Function<Arc> {
   // remains with the caller. To signal an error, return nullptr.
   virtual std::unique_ptr<Transducer> UnaryFstExecute(
       const Transducer& fst,
-      const std::vector<std::unique_ptr<DataType>>& args) = 0;
+      const std::vector<std::unique_ptr<DataType>>& args) const = 0;
 
  private:
   UnaryFstFunction(const UnaryFstFunction&) = delete;
@@ -134,7 +119,7 @@ class BinaryFstFunction : public Function<Arc> {
 
  protected:
   std::unique_ptr<DataType> Execute(
-      const std::vector<std::unique_ptr<DataType>>& args) final {
+      const std::vector<std::unique_ptr<DataType>>& args) const final {
     if (args.size() < 2) {
       std::cout << "BinaryFstFunction: Expected at least 2 arguments"
                 << std::endl;
@@ -156,7 +141,7 @@ class BinaryFstFunction : public Function<Arc> {
   // Same as above (with UnaryFstFunction), except now with two arguments.
   virtual std::unique_ptr<Transducer> BinaryFstExecute(
       const Transducer& left, const Transducer& right,
-      const std::vector<std::unique_ptr<DataType>>& args) = 0;
+      const std::vector<std::unique_ptr<DataType>>& args) const = 0;
 
  private:
   BinaryFstFunction(const BinaryFstFunction&) = delete;

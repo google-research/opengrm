@@ -51,7 +51,7 @@ class StringFile : public Function<Arc> {
 
  protected:
   std::unique_ptr<DataType> Execute(
-      const std::vector<std::unique_ptr<DataType>> &args) final {
+      const std::vector<std::unique_ptr<DataType>> &args) const final {
     if (args.empty() || args.size() > 3) {
       std::cout << "StringFile: Expected 1-3 arguments but got " << args.size()
                 << std::endl;

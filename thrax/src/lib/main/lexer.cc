@@ -15,8 +15,11 @@
 #include <thrax/lexer.h>
 
 #include <ctype.h>
+
 #include <iostream>
 #include <set>
+
+#include <fst/log.h>
 
 namespace thrax {
 
@@ -36,7 +39,7 @@ const std::set<std::string> Lexer::kKeywords = InitStaticKeywords();
 
 Lexer::TokenClass Lexer::YYLex() {
   int begin_pos = GetPos();
-  int c = GetChar();
+  char c = GetChar();
 
   bool found_token = false;
   curr_token_.Reset();
@@ -134,12 +137,8 @@ Lexer::TokenClass Lexer::YYLex() {
       }
       found_token = true;
     } else {
-      std::string filename = current_grammar_path() + ":";
-      if (filename == ":") {
-        filename = "line ";
-      }
-      LOG(FATAL) << "Cannot parse character " << static_cast<char>(c) << " ("
-                 << c << ") at " << filename << line_number()
+      LOG(FATAL) << "Cannot parse character " << c << " ("
+                 << static_cast<int>(c) << ") at line " << line_number()
                  << " at absolute character position " << GetPos() << " near: '"
                  << GetCurrentContext() << "'";
     }

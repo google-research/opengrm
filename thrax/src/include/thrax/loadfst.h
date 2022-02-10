@@ -24,6 +24,7 @@
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
+#include <fst/log.h>
 #include <thrax/compat/utils.h>
 #include <fst/fst.h>
 #include <thrax/datatype.h>
@@ -45,7 +46,7 @@ class LoadFst : public Function<Arc> {
 
  protected:
   std::unique_ptr<DataType> Execute(
-      const std::vector<std::unique_ptr<DataType>>& args) final {
+      const std::vector<std::unique_ptr<DataType>>& args) const final {
     if (args.size() != 1) {
       std::cout << "LoadFst: Expected 1 argument but got " << args.size()
                 << std::endl;

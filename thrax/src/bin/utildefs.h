@@ -37,12 +37,25 @@ namespace thrax {
 // the type and the symtab. Elements that are in the generated label set from
 // the grammar are output as "[name]" where "name" is the name of the generated
 // label. Paths are sorted in ascending order of weights.
-
 bool FstToStrings(const ::fst::VectorFst<::fst::StdArc> &fst,
                   std::vector<std::pair<std::string, float>> *strings,
                   const ::fst::SymbolTable *generated_symtab,
                   ::fst::TokenType type = ::fst::TokenType::BYTE,
                   ::fst::SymbolTable *symtab = nullptr, size_t n = 1);
+
+// Returns a string for each path of `fst`, in an arbitrary order.
+//
+// The mapping of labels to strings is controlled by the type and the symtab.
+// Elements that are in the generated label set from the grammar are output as
+// "[name]" where "name" is the name of the generated label.
+//
+// `fst` must not be cyclic -- if it is, this function will return false
+// and produce no results. For cyclic FSTs, use `FstToStrings`.
+bool FstToAllStrings(const ::fst::VectorFst<::fst::StdArc> &fst,
+                     std::vector<std::pair<std::string, float>> *strings,
+                     const ::fst::SymbolTable *generated_symtab,
+                     ::fst::TokenType type = ::fst::TokenType::BYTE,
+                     ::fst::SymbolTable *symtab = nullptr);
 
 // Find the generated labels from the grammar.
 std::unique_ptr<::fst::SymbolTable> GetGeneratedSymbolTable(

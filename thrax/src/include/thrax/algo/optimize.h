@@ -24,6 +24,8 @@
 // construction of integrated speech recognition transducers. In Proc. ICASSP,
 // pages 761-764.
 
+#include <cstdint>
+
 #include <fst/arcsort.h>
 #include <fst/determinize.h>
 #include <fst/encode.h>
@@ -31,6 +33,7 @@
 #include <fst/mutable-fst.h>
 #include <fst/rmepsilon.h>
 #include <fst/state-map.h>
+#include <fst/weight.h>
 
 // These functions are generic optimization methods for mutable FSTs, inspired
 // by those originally included in Thrax.
@@ -38,8 +41,8 @@
 namespace fst {
 namespace internal {
 
-constexpr uint64 kDoNotEncodeWeights = (kAcyclic | kUnweighted |
-                                        kUnweightedCycles);
+constexpr uint64_t kDoNotEncodeWeights =
+    (kAcyclic | kUnweighted | kUnweightedCycles);
 
 // Helpers.
 
@@ -63,7 +66,7 @@ void DeterminizeAndMinimize(MutableFst<Arc> *fst) {
 //   kEncodeWeights: optimize as an unweighted transducer
 //   kEncodeLabels | kEncodeWeights: optimize as an unweighted acceptor
 template <class Arc>
-void OptimizeAs(MutableFst<Arc> *fst, uint8 flags) {
+void OptimizeAs(MutableFst<Arc> *fst, uint8_t flags) {
   EncodeMapper<Arc> encoder(flags);
   Encode(fst, &encoder);
   DeterminizeAndMinimize(fst);
@@ -77,7 +80,7 @@ void OptimizeAcceptor(MutableFst<Arc> *fst, bool compute_props = false) {
   // If the FST is not (known to be) epsilon-free, perform epsilon-removal.
   MaybeRmEpsilon(fst, compute_props);
   if (fst->Properties(kIDeterministic, compute_props) != kIDeterministic) {
-    if constexpr ((Arc::Weight::Properties() & kIdempotent) == kIdempotent) {
+    if constexpr (IsIdempotent<typename Arc::Weight>::value) {
       // If the FST is not known to have no weighted cycles, it is encoded
       // before determinization and minimization.
       if (!fst->Properties(kDoNotEncodeWeights, compute_props)) {
@@ -104,7 +107,7 @@ void OptimizeTransducer(MutableFst<Arc> *fst, bool compute_props = false) {
   // If the FST is not (known to be) epsilon-free, perform epsilon-removal.
   MaybeRmEpsilon(fst, compute_props);
   if (fst->Properties(kIDeterministic, compute_props) != kIDeterministic) {
-    if constexpr ((Arc::Weight::Properties() & kIdempotent) == kIdempotent) {
+    if constexpr (IsIdempotent<typename Arc::Weight>::value) {
       // If the FST is not known to have no weighted cycles, it is encoded
       // before determinization and minimization.
       if (!fst->Properties(kDoNotEncodeWeights, compute_props)) {

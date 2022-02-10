@@ -8,9 +8,9 @@ if HAVE_BIN
 bin_PROGRAMS = thraxcompiler thraxrewrite-tester thraxrandom-generator
 
 if HAVE_READLINE
-  LDADD= -L/usr/local/lib/fst ../lib/libthrax.la -lfstfar -lfst -lm -ldl -lreadline -lcurses
+  LDADD= -L/usr/local/lib/fst ../lib/libthrax.la -lfstscript -lfstfar -lfst -lm -ldl -lreadline -lcurses
 else
-  LDADD= -L/usr/local/lib/fst ../lib/libthrax.la -lfstfar -lfst -lm -ldl
+  LDADD= -L/usr/local/lib/fst ../lib/libthrax.la -lfstscript -lfstfar -lfst -lm -ldl
 endif
 
 thraxcompiler_SOURCES = compiler.cc

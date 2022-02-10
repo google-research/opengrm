@@ -28,12 +28,15 @@
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
+#include <fst/flags.h>
+#include <fst/log.h>
 #include <thrax/compat/utils.h>
 #include <fst/extensions/far/far.h>
 #include <fst/arc.h>
 #include <fst/concat.h>
 #include <fst/fst.h>
 #include <fst/topsort.h>
+#include <fst/util.h>
 #include <fst/vector-fst.h>
 #include <fst/weight.h>
 #include <thrax/collection-node.h>
@@ -56,6 +59,7 @@
 #include <thrax/stringfst.h>
 #include <thrax/symbols.h>
 #include <thrax/namespace.h>
+#include <thrax/register.h>
 #include <thrax/walker.h>
 #include <unordered_set>
 #include <fst/compat.h>
@@ -74,18 +78,11 @@ namespace thrax {
 // (i.e., the user shouldn't be able to create this).
 static const char kStringFstSymtabFst[] = "*StringFstSymbolTable";
 
-// Retrieves a C++ function for the proper arc type. See
-// evaluator-specializations.cc for implementations.
+// Retrieves a C++ function for the proper arc type.
 template <typename Arc>
-function::Function<Arc>* GetFunction(const std::string& func_name);
-
-template <>
-function::Function<::fst::StdArc>* GetFunction(
-    const std::string& func_name);
-
-template <>
-function::Function<::fst::LogArc>* GetFunction(
-    const std::string& func_name);
+const function::Function<Arc>* GetFunction(const std::string& func_name) {
+  return FunctionRegister<Arc>::GetRegister()->GetEntry(func_name);
+}
 
 template <typename Arc>
 class GrmCompilerSpec;
@@ -379,7 +376,8 @@ class AstEvaluator : public AstWalker {
   // grammar). This information gets passed down ultimately to StringFst's
   // GetLabelSymbolTable to determine (assuming --save_symbols is set), whether
   // or not to add generated labels to the byte and utf8 symbol tables.
-  void GetFsts(std::map<std::string, std::unique_ptr<const Transducer>>* fsts,
+  void GetFsts(std::map<std::string, std::unique_ptr<const Transducer>,
+                        std::less<>>* fsts,
                bool top_level) {
     // Checks if we ever used generated labels. If so, get the symbol table and
     // add it to a unique FST called kStringFstSymtabFst.
@@ -519,7 +517,7 @@ class AstEvaluator : public AstWalker {
   std::unique_ptr<DataType> MakeFstFromCFunction(
       const std::string& function_name, const Node& debug_location_node,
       std::unique_ptr<std::vector<std::unique_ptr<DataType>>> arguments) {
-    function::Function<Arc>* func = GetFunction<Arc>(function_name);
+    const function::Function<Arc>* func = GetFunction<Arc>(function_name);
     // If we get a nullptr function, then the name was invalid.
     if (!func) return nullptr;
     auto output = func->Run(std::move(arguments));
@@ -720,9 +718,9 @@ class AstEvaluator : public AstWalker {
   static std::unique_ptr<Transducer> AttachWeight(
       const Transducer& input_fst, const std::string& weight_str) {
     // Generates the appropriate weight.
-    auto weight = Arc::Weight::One();
-    std::istringstream iss(weight_str);
-    iss >> weight;  // Interprets the weight instead of reading it as raw bytes.
+    auto weight = ::fst::StrToWeight<typename Arc::Weight>(weight_str);
+    // TODO(wolfsonkin): Investigate removing this branch.
+    if (weight == Arc::Weight::NoWeight()) weight = Arc::Weight::One();
     // Then, creates a single state FST with the appropriate final state weight.
     MutableTransducer weight_fst;
     int state = weight_fst.AddState();
@@ -796,7 +794,7 @@ class AstEvaluator : public AstWalker {
   // A list of the names of the FSTs we want exported at the end. We'll find
   // these FSTs from the local environment. Note that these pointers are owned
   // by the original AST, not us.
-  std::set<IdentifierNode*> exported_fsts_;
+  std::unordered_set<IdentifierNode*> exported_fsts_;
   // A list of grammars that we've opened (and thus need to close at the end).
   // TODO(ttai): This is dangerous right now since if we have two simulatneous
   // compilations within the same process, then they'll be incorrectly sharing

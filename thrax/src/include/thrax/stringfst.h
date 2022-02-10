@@ -31,6 +31,7 @@
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
+#include <fst/log.h>
 #include <fst/string.h>
 #include <thrax/algo/stringcompile.h>
 #include <thrax/fst-node.h>
@@ -54,7 +55,7 @@ class StringFst : public Function<Arc> {
 
  protected:
   std::unique_ptr<DataType> Execute(
-      const std::vector<std::unique_ptr<DataType>>& args) final {
+      const std::vector<std::unique_ptr<DataType>>& args) const final {
     CHECK_GE(args.size(), 2);
     // Find the mode (and maybe the symbol table).
     auto mode = ::fst::TokenType::BYTE;

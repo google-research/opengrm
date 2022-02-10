@@ -48,7 +48,7 @@ IdentifierNode::IdentifierNode(const std::string& name)
 
 IdentifierNode::IdentifierNode(const std::string& name, int begin_pos)
     : Node(), full_name_(name), begin_pos_(begin_pos) {
-  namespaces_ = ::fst::StringSplit(full_name_, '.');
+  namespaces_ = ::fst::StrSplit(full_name_, '.');
   identifier_ = namespaces_.back();
   namespaces_.pop_back();
   valid_ = CalculateValidity();

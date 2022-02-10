@@ -45,7 +45,7 @@
 
 (defvar thrax-built-in-functions
   (regexp-opt
-   '("Analyzer" "ArcSort" "AssertEmpty" "AssertEqual" "AssertNull"
+   '("Analyzer" "AssertEmpty" "AssertEqual" "AssertNull"
      "Category" "CDRewrite" "Closure" "Compose" "Concat"
      "Determinize" "Difference" "Expand" "Feature" "FeatureVector"
      "Invert" "LoadFst" "LenientlyCompose" "LoadFstFromFar" "Minimize"

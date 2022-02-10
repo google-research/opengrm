@@ -1,4 +1,4 @@
-/* A Bison parser, made by GNU Bison 3.7.5.  */
+/* A Bison parser, made by GNU Bison 3.8.2.  */
 
 /* Bison implementation for Yacc-like parsers in C
 
@@ -16,7 +16,7 @@
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 
 /* As a special exception, you may create a larger work that contains
    part or all of the Bison parser skeleton and distribute that work
@@ -46,10 +46,10 @@
    USER NAME SPACE" below.  */
 
 /* Identify Bison output, and Bison version.  */
-#define YYBISON 30705
+#define YYBISON 30802
 
 /* Bison version string.  */
-#define YYBISON_VERSION "3.7.5"
+#define YYBISON_VERSION "3.8.2"
 
 /* Skeleton name.  */
 #define YYSKELETON_NAME "yacc.c"
@@ -73,7 +73,8 @@
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
-#include <thrax/compat/utils.h>
+#include <fst/flags.h>
+#include <fst/log.h>
 #include <thrax/collection-node.h>
 #include <thrax/fst-node.h>
 #include <thrax/function-node.h>
@@ -87,6 +88,7 @@
 #include <thrax/string-node.h>
 #include <thrax/grm-compiler.h>
 #include <thrax/lexer.h>
+#include <fst/compat.h>
 
 DECLARE_bool(always_export);
 
@@ -102,7 +104,7 @@ namespace thrax_rewriter {
   int yylex(void *, GrmCompilerParserInterface *parm);
   int yyerror(GrmCompilerParserInterface *, const char *);
 
-#line 106 "main/parser.cc"
+#line 108 "main/parser.cc"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -232,7 +234,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 40 "main/parser.yy"
+#line 42 "main/parser.yy"
 
   int                        int_type;
   FunctionNode*              function_node_type;
@@ -248,7 +250,7 @@ union YYSTYPE
   Node*                      node_type;
   FuncOrStmt*                function_or_statement_node_type;
 
-#line 252 "main/parser.cc"
+#line 254 "main/parser.cc"
 
 };
 typedef union YYSTYPE YYSTYPE;
@@ -258,7 +260,9 @@ typedef union YYSTYPE YYSTYPE;
 
 
 
+
 int yyparse (GrmCompilerParserInterface *parm);
+
 
 
 /* Symbol kind.  */
@@ -497,12 +501,18 @@ typedef int yy_state_fast_t;
 # define YY_USE(E) /* empty */
 #endif
 
-#if defined __GNUC__ && ! defined __ICC && 407 <= __GNUC__ * 100 + __GNUC_MINOR__
 /* Suppress an incorrect diagnostic about yylval being uninitialized.  */
-# define YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN                            \
+#if defined __GNUC__ && ! defined __ICC && 406 <= __GNUC__ * 100 + __GNUC_MINOR__
+# if __GNUC__ * 100 + __GNUC_MINOR__ < 407
+#  define YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN                           \
+    _Pragma ("GCC diagnostic push")                                     \
+    _Pragma ("GCC diagnostic ignored \"-Wuninitialized\"")
+# else
+#  define YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN                           \
     _Pragma ("GCC diagnostic push")                                     \
     _Pragma ("GCC diagnostic ignored \"-Wuninitialized\"")              \
     _Pragma ("GCC diagnostic ignored \"-Wmaybe-uninitialized\"")
+# endif
 # define YY_IGNORE_MAYBE_UNINITIALIZED_END      \
     _Pragma ("GCC diagnostic pop")
 #else
@@ -720,17 +730,17 @@ static const yytype_int8 yytranslate[] =
 };
 
 #if YYDEBUG
-  /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
+/* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int16 yyrline[] =
 {
-       0,   113,   113,   118,   125,   126,   133,   137,   140,   147,
-     148,   154,   159,   164,   167,   173,   179,   185,   191,   196,
-     207,   208,   209,   210,   211,   215,   220,   226,   232,   238,
-     244,   250,   256,   262,   270,   272,   277,   281,   286,   291,
-     295,   300,   308,   312,   316,   320,   331,   338,   344,   350,
-     355,   363,   368,   373,   378,   384,   393,   399,   404,   410,
-     417,   422,   429,   436,   443,   447,   453,   457,   463,   465,
-     470,   474,   480
+       0,   115,   115,   120,   127,   128,   135,   139,   142,   149,
+     150,   156,   161,   166,   169,   175,   181,   187,   193,   198,
+     209,   210,   211,   212,   213,   217,   222,   228,   234,   240,
+     246,   252,   258,   264,   272,   274,   279,   283,   288,   293,
+     297,   302,   310,   314,   318,   322,   333,   340,   346,   352,
+     357,   365,   370,   375,   380,   386,   395,   401,   406,   412,
+     419,   424,   431,   438,   445,   449,   455,   459,   465,   467,
+     472,   476,   482
 };
 #endif
 
@@ -771,19 +781,6 @@ yysymbol_name (yysymbol_kind_t yysymbol)
 }
 #endif
 
-#ifdef YYPRINT
-/* YYTOKNUM[NUM] -- (External) token number corresponding to the
-   (internal) symbol number NUM (which must be that of a token).  */
-static const yytype_int16 yytoknum[] =
-{
-       0,   256,   257,   258,   259,   260,   261,   262,   263,   264,
-     265,   266,   267,   268,   269,   270,   271,   272,   273,   274,
-     275,   276,   277,   278,   279,   280,   281,   282,   283,   284,
-     285,   286,   287,   288,   289,   290,   291,   292,   293,   294,
-     295
-};
-#endif
-
 #define YYPACT_NINF (-75)
 
 #define yypact_value_is_default(Yyn) \
@@ -794,8 +791,8 @@ static const yytype_int16 yytoknum[] =
 #define yytable_value_is_error(Yyn) \
   0
 
-  /* YYPACT[STATE-NUM] -- Index in YYTABLE of the portion describing
-     STATE-NUM.  */
+/* YYPACT[STATE-NUM] -- Index in YYTABLE of the portion describing
+   STATE-NUM.  */
 static const yytype_int8 yypact[] =
 {
        1,   -13,    11,    15,    10,    18,   -75,   -75,     8,   -75,
@@ -812,9 +809,9 @@ static const yytype_int8 yypact[] =
      -75,   -75,   -75,   -75,   103,   -75
 };
 
-  /* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
-     Performed when YYTABLE does not specify something else to do.  Zero
-     means the default is an error.  */
+/* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
+   Performed when YYTABLE does not specify something else to do.  Zero
+   means the default is an error.  */
 static const yytype_int8 yydefact[] =
 {
        0,     3,     0,     0,     0,     0,    65,    62,     0,     1,
@@ -831,7 +828,7 @@ static const yytype_int8 yydefact[] =
       10,    39,    41,    37,     0,    45
 };
 
-  /* YYPGOTO[NTERM-NUM].  */
+/* YYPGOTO[NTERM-NUM].  */
 static const yytype_int8 yypgoto[] =
 {
      -75,   -75,   110,    17,    16,   -74,   -75,   -75,    70,    -4,
@@ -840,7 +837,7 @@ static const yytype_int8 yypgoto[] =
      -75,   -75,    22,   -75
 };
 
-  /* YYDEFGOTO[NTERM-NUM].  */
+/* YYDEFGOTO[NTERM-NUM].  */
 static const yytype_int8 yydefgoto[] =
 {
        0,     3,     4,    15,   100,    16,    17,    18,    70,    31,
@@ -849,9 +846,9 @@ static const yytype_int8 yydefgoto[] =
       21,    53,    76,    78
 };
 
-  /* YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
-     positive, shift that token.  If negative, reduce the rule whose
-     number is the opposite.  If YYTABLE_NINF, syntax error.  */
+/* YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
+   positive, shift that token.  If negative, reduce the rule whose
+   number is the opposite.  If YYTABLE_NINF, syntax error.  */
 static const yytype_int8 yytable[] =
 {
       19,    -4,     1,   101,    -4,    11,    64,     6,    27,    28,
@@ -886,8 +883,8 @@ static const yytype_int8 yycheck[] =
       69,    51,    69,    -1,    -1,    -1,   107
 };
 
-  /* YYSTOS[STATE-NUM] -- The (internal number of the) accessing
-     symbol of state STATE-NUM.  */
+/* YYSTOS[STATE-NUM] -- The symbol kind of the accessing symbol of
+   state STATE-NUM.  */
 static const yytype_int8 yystos[] =
 {
        0,     1,    40,    42,    43,    70,    20,     5,    68,     0,
@@ -904,7 +901,7 @@ static const yytype_int8 yystos[] =
       45,    59,    59,    59,    66,    11
 };
 
-  /* YYR1[YYN] -- Symbol number of symbol that rule YYN derives.  */
+/* YYR1[RULE-NUM] -- Symbol kind of the left-hand side of rule RULE-NUM.  */
 static const yytype_int8 yyr1[] =
 {
        0,    41,    42,    42,    43,    43,    44,    44,    44,    45,
@@ -917,7 +914,7 @@ static const yytype_int8 yyr1[] =
       73,    73,    74
 };
 
-  /* YYR2[YYN] -- Number of symbols on the right hand side of rule YYN.  */
+/* YYR2[RULE-NUM] -- Number of symbols on the right-hand side of rule RULE-NUM.  */
 static const yytype_int8 yyr2[] =
 {
        0,     2,     2,     1,     0,     2,     0,     2,     2,     0,
@@ -939,6 +936,7 @@ enum { YYENOMEM = -2 };
 #define YYACCEPT        goto yyacceptlab
 #define YYABORT         goto yyabortlab
 #define YYERROR         goto yyerrorlab
+#define YYNOMEM         goto yyexhaustedlab
 
 
 #define YYRECOVERING()  (!!yyerrstatus)
@@ -979,10 +977,7 @@ do {                                            \
     YYFPRINTF Args;                             \
 } while (0)
 
-/* This macro is provided for backward compatibility. */
-# ifndef YY_LOCATION_PRINT
-#  define YY_LOCATION_PRINT(File, Loc) ((void) 0)
-# endif
+
 
 
 # define YY_SYMBOL_PRINT(Title, Kind, Value, Location)                    \
@@ -1010,10 +1005,6 @@ yy_symbol_value_print (FILE *yyo,
   YY_USE (parm);
   if (!yyvaluep)
     return;
-# ifdef YYPRINT
-  if (yykind < YYNTOKENS)
-    YYPRINT (yyo, yytoknum[yykind], *yyvaluep);
-# endif
   YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
   YY_USE (yykind);
   YY_IGNORE_MAYBE_UNINITIALIZED_END
@@ -1205,6 +1196,7 @@ YYSTYPE yylval YY_INITIAL_VALUE (= yyval_default);
   YYDPRINTF ((stderr, "Starting parse\n"));
 
   yychar = YYEMPTY; /* Cause a token to be read.  */
+
   goto yysetstate;
 
 
@@ -1230,7 +1222,7 @@ yysetstate:
 
   if (yyss + yystacksize - 1 <= yyssp)
 #if !defined yyoverflow && !defined YYSTACK_RELOCATE
-    goto yyexhaustedlab;
+    YYNOMEM;
 #else
     {
       /* Get the current used size of the three stacks, in elements.  */
@@ -1258,7 +1250,7 @@ yysetstate:
 # else /* defined YYSTACK_RELOCATE */
       /* Extend the stack our own way.  */
       if (YYMAXDEPTH <= yystacksize)
-        goto yyexhaustedlab;
+        YYNOMEM;
       yystacksize *= 2;
       if (YYMAXDEPTH < yystacksize)
         yystacksize = YYMAXDEPTH;
@@ -1269,7 +1261,7 @@ yysetstate:
           YY_CAST (union yyalloc *,
                    YYSTACK_ALLOC (YY_CAST (YYSIZE_T, YYSTACK_BYTES (yystacksize))));
         if (! yyptr)
-          goto yyexhaustedlab;
+          YYNOMEM;
         YYSTACK_RELOCATE (yyss_alloc, yyss);
         YYSTACK_RELOCATE (yyvs_alloc, yyvs);
 #  undef YYSTACK_RELOCATE
@@ -1290,6 +1282,7 @@ yysetstate:
         YYABORT;
     }
 #endif /* !defined yyoverflow && !defined YYSTACK_RELOCATE */
+
 
   if (yystate == YYFINAL)
     YYACCEPT;
@@ -1403,558 +1396,558 @@ yyreduce:
   switch (yyn)
     {
   case 2: /* grammar: import_list func_or_stmt_list  */
-#line 114 "main/parser.yy"
+#line 116 "main/parser.yy"
     { GrammarNode* node = new GrammarNode((yyvsp[-1].collection_node_type), (yyvsp[0].function_or_statement_node_type)->funcs_, (yyvsp[0].function_or_statement_node_type)->stmts_);
       delete (yyvsp[0].function_or_statement_node_type);
       (yyval.grammar_node_type) = node;
       parm->SetAst(fst::WrapUnique(fst::implicit_cast<Node*>((yyval.grammar_node_type)))); }
-#line 1412 "main/parser.cc"
+#line 1405 "main/parser.cc"
     break;
 
   case 3: /* grammar: error  */
-#line 119 "main/parser.yy"
+#line 121 "main/parser.yy"
     { parm->Error("Generic parsing error.");
       (yyval.grammar_node_type) = NULL; }
-#line 1419 "main/parser.cc"
+#line 1412 "main/parser.cc"
     break;
 
   case 4: /* import_list: %empty  */
-#line 125 "main/parser.yy"
+#line 127 "main/parser.yy"
     { (yyval.collection_node_type) = new CollectionNode(); }
-#line 1425 "main/parser.cc"
+#line 1418 "main/parser.cc"
     break;
 
   case 5: /* import_list: import_request import_list  */
-#line 127 "main/parser.yy"
+#line 129 "main/parser.yy"
     { (yyvsp[0].collection_node_type)->AddFront((yyvsp[-1].import_node_type));
       (yyval.collection_node_type) = (yyvsp[0].collection_node_type); }
-#line 1432 "main/parser.cc"
+#line 1425 "main/parser.cc"
     break;
 
   case 6: /* func_or_stmt_list: %empty  */
-#line 133 "main/parser.yy"
+#line 135 "main/parser.yy"
     { (yyval.function_or_statement_node_type) = new FuncOrStmt();
       (yyval.function_or_statement_node_type)->funcs_ = new CollectionNode();
       (yyval.function_or_statement_node_type)->stmts_ = new CollectionNode();
     }
-#line 1441 "main/parser.cc"
+#line 1434 "main/parser.cc"
     break;
 
   case 7: /* func_or_stmt_list: stmt func_or_stmt_list  */
-#line 138 "main/parser.yy"
+#line 140 "main/parser.yy"
     { (yyvsp[0].function_or_statement_node_type)->stmts_->AddFront((yyvsp[-1].statement_node_type));
+      (yyval.function_or_statement_node_type) = (yyvsp[0].function_or_statement_node_type); }
+#line 1441 "main/parser.cc"
+    break;
+
+  case 8: /* func_or_stmt_list: func_decl func_or_stmt_list  */
+#line 143 "main/parser.yy"
+    { (yyvsp[0].function_or_statement_node_type)->funcs_->AddFront((yyvsp[-1].function_node_type));
       (yyval.function_or_statement_node_type) = (yyvsp[0].function_or_statement_node_type); }
 #line 1448 "main/parser.cc"
     break;
 
-  case 8: /* func_or_stmt_list: func_decl func_or_stmt_list  */
-#line 141 "main/parser.yy"
-    { (yyvsp[0].function_or_statement_node_type)->funcs_->AddFront((yyvsp[-1].function_node_type));
-      (yyval.function_or_statement_node_type) = (yyvsp[0].function_or_statement_node_type); }
-#line 1455 "main/parser.cc"
-    break;
-
   case 9: /* stmt_list: %empty  */
-#line 147 "main/parser.yy"
+#line 149 "main/parser.yy"
     { (yyval.collection_node_type) = new CollectionNode(); }
-#line 1461 "main/parser.cc"
+#line 1454 "main/parser.cc"
     break;
 
   case 10: /* stmt_list: stmt stmt_list  */
-#line 149 "main/parser.yy"
+#line 151 "main/parser.yy"
     { (yyvsp[0].collection_node_type)->AddFront((yyvsp[-1].statement_node_type));
       (yyval.collection_node_type) = (yyvsp[0].collection_node_type); }
-#line 1468 "main/parser.cc"
+#line 1461 "main/parser.cc"
     break;
 
   case 11: /* stmt: rule_stmt  */
-#line 155 "main/parser.yy"
+#line 157 "main/parser.yy"
     { StatementNode* node = new StatementNode(StatementNode::RULE_STATEMENTNODE);
       node->SetLine(parm->GetLexer()->line_number());
       node->Set((yyvsp[0].rule_node_type));
       (yyval.statement_node_type) = node; }
-#line 1477 "main/parser.cc"
+#line 1470 "main/parser.cc"
     break;
 
   case 12: /* stmt: return_stmt  */
-#line 160 "main/parser.yy"
+#line 162 "main/parser.yy"
     { StatementNode* node = new StatementNode(StatementNode::RETURN_STATEMENTNODE);
       node->SetLine(parm->GetLexer()->line_number());
       node->Set((yyvsp[0].return_node_type));
       (yyval.statement_node_type) = node; }
-#line 1486 "main/parser.cc"
+#line 1479 "main/parser.cc"
     break;
 
   case 13: /* stmt: import_request  */
-#line 165 "main/parser.yy"
+#line 167 "main/parser.yy"
     { parm->Error("import statements must occur in the first block of the grammar.");
+      (yyval.statement_node_type) = NULL; }
+#line 1486 "main/parser.cc"
+    break;
+
+  case 14: /* stmt: error tSEMICOLON  */
+#line 170 "main/parser.yy"
+    { parm->Error("Invalid statement (or previous statement).");
       (yyval.statement_node_type) = NULL; }
 #line 1493 "main/parser.cc"
     break;
 
-  case 14: /* stmt: error tSEMICOLON  */
-#line 168 "main/parser.yy"
-    { parm->Error("Invalid statement (or previous statement).");
-      (yyval.statement_node_type) = NULL; }
+  case 15: /* return_stmt: tKEYWORD_RETURN obj tSEMICOLON  */
+#line 176 "main/parser.yy"
+    { ReturnNode* node = new ReturnNode((yyvsp[-1].node_type));
+      (yyval.return_node_type) = node; }
 #line 1500 "main/parser.cc"
     break;
 
-  case 15: /* return_stmt: tKEYWORD_RETURN obj tSEMICOLON  */
-#line 174 "main/parser.yy"
-    { ReturnNode* node = new ReturnNode((yyvsp[-1].node_type));
-      (yyval.return_node_type) = node; }
-#line 1507 "main/parser.cc"
-    break;
-
   case 16: /* rule_stmt: descriptor tEQUALS rule_body tSEMICOLON  */
-#line 180 "main/parser.yy"
+#line 182 "main/parser.yy"
     { RuleNode* node = new RuleNode((yyvsp[-3].identifier_node_type), (yyvsp[-1].node_type),
                                     FST_FLAGS_always_export ?
                                     RuleNode::EXPORT :
                                     RuleNode::DO_NOT_EXPORT);
       (yyval.rule_node_type) = node; }
-#line 1517 "main/parser.cc"
+#line 1510 "main/parser.cc"
     break;
 
   case 17: /* rule_stmt: tKEYWORD_EXPORT descriptor tEQUALS rule_body tSEMICOLON  */
-#line 186 "main/parser.yy"
+#line 188 "main/parser.yy"
     { RuleNode* node = new RuleNode((yyvsp[-3].identifier_node_type), (yyvsp[-1].node_type), RuleNode::EXPORT);
       (yyval.rule_node_type) = node; }
-#line 1524 "main/parser.cc"
+#line 1517 "main/parser.cc"
     break;
 
   case 18: /* rule_body: obj  */
-#line 192 "main/parser.yy"
+#line 194 "main/parser.yy"
     { (yyval.node_type) = (yyvsp[0].node_type); }
-#line 1530 "main/parser.cc"
+#line 1523 "main/parser.cc"
     break;
 
   case 19: /* descriptor: tDESCR  */
-#line 197 "main/parser.yy"
+#line 199 "main/parser.yy"
     { const std::string& name = parm->GetLexer()->YYString();
       int begin_pos = parm->GetLexer()->YYBeginPos();
       IdentifierNode* node = new IdentifierNode(name, begin_pos);
       node->SetLine(parm->GetLexer()->line_number());
       if (!node->IsValid())
-        parm->Error(StringPrintf("Illegal identifier: %s", name.c_str()));
+        parm->Error(::fst::StrCat("Illegal identifier: ", name));
       (yyval.identifier_node_type) = node; }
-#line 1542 "main/parser.cc"
+#line 1535 "main/parser.cc"
     break;
 
   case 20: /* atomic_obj: quoted_string  */
-#line 207 "main/parser.yy"
+#line 209 "main/parser.yy"
                    { (yyval.node_type) = (yyvsp[0].string_node_type); }
-#line 1548 "main/parser.cc"
+#line 1541 "main/parser.cc"
     break;
 
   case 21: /* atomic_obj: string_fst  */
-#line 208 "main/parser.yy"
+#line 210 "main/parser.yy"
                    { (yyval.node_type) = (yyvsp[0].node_type); }
-#line 1554 "main/parser.cc"
+#line 1547 "main/parser.cc"
     break;
 
   case 22: /* atomic_obj: identifier_obj  */
-#line 209 "main/parser.yy"
+#line 211 "main/parser.yy"
                    { (yyval.node_type) = (yyvsp[0].node_type); }
-#line 1560 "main/parser.cc"
+#line 1553 "main/parser.cc"
     break;
 
   case 23: /* atomic_obj: funccall_obj  */
-#line 210 "main/parser.yy"
+#line 212 "main/parser.yy"
                    { (yyval.node_type) = (yyvsp[0].node_type); }
-#line 1566 "main/parser.cc"
+#line 1559 "main/parser.cc"
     break;
 
   case 24: /* atomic_obj: grouped_obj  */
-#line 211 "main/parser.yy"
+#line 213 "main/parser.yy"
                    { (yyval.node_type) = (yyvsp[0].node_type); }
-#line 1572 "main/parser.cc"
+#line 1565 "main/parser.cc"
     break;
 
   case 25: /* obj: fst_with_weight  */
-#line 215 "main/parser.yy"
+#line 217 "main/parser.yy"
                   { (yyval.node_type) = (yyvsp[0].node_type); }
-#line 1578 "main/parser.cc"
+#line 1571 "main/parser.cc"
     break;
 
   case 26: /* concat_fst: repetition_fst concat_fst  */
-#line 221 "main/parser.yy"
+#line 223 "main/parser.yy"
     { FstNode* node = new FstNode(FstNode::CONCAT_FSTNODE);
       node->SetLine(parm->GetLexer()->line_number());
       node->AddArgument((yyvsp[-1].node_type));
       node->AddArgument((yyvsp[0].node_type));
       (yyval.node_type) = node; }
-#line 1588 "main/parser.cc"
+#line 1581 "main/parser.cc"
     break;
 
   case 27: /* concat_fst: repetition_fst  */
-#line 227 "main/parser.yy"
+#line 229 "main/parser.yy"
     { (yyval.node_type) = (yyvsp[0].node_type); }
-#line 1594 "main/parser.cc"
+#line 1587 "main/parser.cc"
     break;
 
   case 28: /* union_fst: composition_fst tPIPE union_fst  */
-#line 233 "main/parser.yy"
+#line 235 "main/parser.yy"
     { FstNode* node = new FstNode(FstNode::UNION_FSTNODE);
       node->SetLine(parm->GetLexer()->line_number());
       node->AddArgument((yyvsp[-2].node_type));
       node->AddArgument((yyvsp[0].node_type));
       (yyval.node_type) = node; }
-#line 1604 "main/parser.cc"
+#line 1597 "main/parser.cc"
     break;
 
   case 29: /* union_fst: composition_fst  */
-#line 239 "main/parser.yy"
+#line 241 "main/parser.yy"
     { (yyval.node_type) = (yyvsp[0].node_type); }
-#line 1610 "main/parser.cc"
+#line 1603 "main/parser.cc"
     break;
 
   case 30: /* difference_fst: difference_fst tMINUS concat_fst  */
-#line 245 "main/parser.yy"
+#line 247 "main/parser.yy"
     { FstNode* node = new FstNode(FstNode::DIFFERENCE_FSTNODE);
       node->SetLine(parm->GetLexer()->line_number());
       node->AddArgument((yyvsp[-2].node_type));
       node->AddArgument((yyvsp[0].node_type));
       (yyval.node_type) = node; }
-#line 1620 "main/parser.cc"
+#line 1613 "main/parser.cc"
     break;
 
   case 31: /* difference_fst: concat_fst  */
-#line 251 "main/parser.yy"
+#line 253 "main/parser.yy"
     { (yyval.node_type) = (yyvsp[0].node_type); }
-#line 1626 "main/parser.cc"
+#line 1619 "main/parser.cc"
     break;
 
   case 32: /* grouped_obj: tLPAREN obj tRPAREN  */
-#line 257 "main/parser.yy"
+#line 259 "main/parser.yy"
     { (yyval.node_type) = (yyvsp[-1].node_type); }
-#line 1632 "main/parser.cc"
+#line 1625 "main/parser.cc"
     break;
 
   case 33: /* funccall_obj: descriptor funccall_arglist  */
-#line 263 "main/parser.yy"
+#line 265 "main/parser.yy"
     { FstNode* node = new FstNode(FstNode::FUNCTION_FSTNODE);
       node->SetLine(parm->GetLexer()->line_number());
       node->AddArgument((yyvsp[-1].identifier_node_type));
       node->AddArgument((yyvsp[0].collection_node_type));
       (yyval.node_type) = node; }
-#line 1642 "main/parser.cc"
+#line 1635 "main/parser.cc"
     break;
 
   case 34: /* funccall_arglist: tLBRACKET tRBRACKET  */
-#line 271 "main/parser.yy"
+#line 273 "main/parser.yy"
     { (yyval.collection_node_type) = new CollectionNode(); }
-#line 1648 "main/parser.cc"
+#line 1641 "main/parser.cc"
     break;
 
   case 35: /* funccall_arglist: tLBRACKET funccall_arguments tRBRACKET  */
-#line 273 "main/parser.yy"
+#line 275 "main/parser.yy"
     { (yyval.collection_node_type) = (yyvsp[-1].collection_node_type); }
-#line 1654 "main/parser.cc"
+#line 1647 "main/parser.cc"
     break;
 
   case 36: /* funccall_arguments: obj  */
-#line 278 "main/parser.yy"
+#line 280 "main/parser.yy"
     { CollectionNode* node = new CollectionNode();
       node->AddFront((yyvsp[0].node_type));
       (yyval.collection_node_type) = node; }
-#line 1662 "main/parser.cc"
+#line 1655 "main/parser.cc"
     break;
 
   case 37: /* funccall_arguments: obj tCOMMA funccall_arguments  */
-#line 282 "main/parser.yy"
+#line 284 "main/parser.yy"
     { (yyvsp[0].collection_node_type)->AddFront((yyvsp[-2].node_type));
       (yyval.collection_node_type) = (yyvsp[0].collection_node_type); }
-#line 1669 "main/parser.cc"
+#line 1662 "main/parser.cc"
     break;
 
   case 38: /* funccall_arguments: tKEYWORD_BYTE  */
-#line 287 "main/parser.yy"
+#line 289 "main/parser.yy"
     { CollectionNode* node = new CollectionNode();
       StringNode* nnode = new StringNode("byte");
       node->AddFront(nnode);
       (yyval.collection_node_type) = node; }
-#line 1678 "main/parser.cc"
+#line 1671 "main/parser.cc"
     break;
 
   case 39: /* funccall_arguments: tKEYWORD_BYTE tCOMMA funccall_arguments  */
-#line 292 "main/parser.yy"
+#line 294 "main/parser.yy"
     { StringNode* nnode = new StringNode("byte");
       (yyvsp[0].collection_node_type)->AddFront(nnode);
       (yyval.collection_node_type) = (yyvsp[0].collection_node_type); }
-#line 1686 "main/parser.cc"
+#line 1679 "main/parser.cc"
     break;
 
   case 40: /* funccall_arguments: tKEYWORD_UTF8  */
-#line 296 "main/parser.yy"
+#line 298 "main/parser.yy"
     { CollectionNode* node = new CollectionNode();
       StringNode* nnode = new StringNode("utf8");
       node->AddFront(nnode);
       (yyval.collection_node_type) = node; }
-#line 1695 "main/parser.cc"
+#line 1688 "main/parser.cc"
     break;
 
   case 41: /* funccall_arguments: tKEYWORD_UTF8 tCOMMA funccall_arguments  */
-#line 301 "main/parser.yy"
+#line 303 "main/parser.yy"
     { StringNode* nnode = new StringNode("utf8");
       (yyvsp[0].collection_node_type)->AddFront(nnode);
       (yyval.collection_node_type) = (yyvsp[0].collection_node_type); }
-#line 1703 "main/parser.cc"
+#line 1696 "main/parser.cc"
     break;
 
   case 42: /* repetition_fst: atomic_obj tSTAR  */
-#line 309 "main/parser.yy"
+#line 311 "main/parser.yy"
     { RepetitionFstNode* node = new RepetitionFstNode(RepetitionFstNode::STAR);
       node->AddArgument((yyvsp[-1].node_type));
       (yyval.node_type) = node; }
-#line 1711 "main/parser.cc"
+#line 1704 "main/parser.cc"
     break;
 
   case 43: /* repetition_fst: atomic_obj tPLUS  */
-#line 313 "main/parser.yy"
+#line 315 "main/parser.yy"
     { RepetitionFstNode* node = new RepetitionFstNode(RepetitionFstNode::PLUS);
       node->AddArgument((yyvsp[-1].node_type));
       (yyval.node_type) = node; }
-#line 1719 "main/parser.cc"
+#line 1712 "main/parser.cc"
     break;
 
   case 44: /* repetition_fst: atomic_obj tQMARK  */
-#line 317 "main/parser.yy"
+#line 319 "main/parser.yy"
     { RepetitionFstNode* node = new RepetitionFstNode(RepetitionFstNode::QUESTION);
       node->AddArgument((yyvsp[-1].node_type));
       (yyval.node_type) = node; }
-#line 1727 "main/parser.cc"
+#line 1720 "main/parser.cc"
     break;
 
   case 45: /* repetition_fst: atomic_obj tLBRACE number tCOMMA number tRBRACE  */
-#line 321 "main/parser.yy"
+#line 323 "main/parser.yy"
     { if ((yyvsp[-3].int_type) > (yyvsp[-1].int_type))
-        parm->Error(StringPrintf("Reversed repetition bounds: %d > %d", (yyvsp[-3].int_type), (yyvsp[-1].int_type)));
+        parm->Error(::fst::StrCat("Reversed repetition bounds: ", (yyvsp[-3].int_type), " > ", (yyvsp[-1].int_type)));
       if ((yyvsp[-3].int_type) < 0)
-        parm->Error(StringPrintf("Start bound must be non-negative: %d", (yyvsp[-3].int_type)));
+        parm->Error(::fst::StrCat("Start bound must be non-negative: ", (yyvsp[-3].int_type)));
       if ((yyvsp[-1].int_type) < 0)
-        parm->Error(StringPrintf("End bound must be non-negative: %d", (yyvsp[-1].int_type)));
+        parm->Error(::fst::StrCat("End bound must be non-negative: ", (yyvsp[-1].int_type)));
       RepetitionFstNode* node = new RepetitionFstNode(RepetitionFstNode::RANGE);
       node->AddArgument((yyvsp[-5].node_type));
       node->SetRange((yyvsp[-3].int_type), (yyvsp[-1].int_type));
       (yyval.node_type) = node; }
-#line 1742 "main/parser.cc"
+#line 1735 "main/parser.cc"
     break;
 
   case 46: /* repetition_fst: atomic_obj tLBRACE number tRBRACE  */
-#line 332 "main/parser.yy"
+#line 334 "main/parser.yy"
     { if ((yyvsp[-1].int_type) < 0)
-        parm->Error(StringPrintf("Repetition count should be non-negative: %d", (yyvsp[-1].int_type)));
+        parm->Error(::fst::StrCat("Repetition count should be non-negative: ", (yyvsp[-1].int_type)));
       RepetitionFstNode* node = new RepetitionFstNode(RepetitionFstNode::RANGE);
       node->AddArgument((yyvsp[-3].node_type));
       node->SetRange((yyvsp[-1].int_type), (yyvsp[-1].int_type));
       (yyval.node_type) = node; }
-#line 1753 "main/parser.cc"
+#line 1746 "main/parser.cc"
     break;
 
   case 47: /* repetition_fst: atomic_obj  */
-#line 339 "main/parser.yy"
+#line 341 "main/parser.yy"
     { (yyval.node_type) = (yyvsp[0].node_type); }
-#line 1759 "main/parser.cc"
+#line 1752 "main/parser.cc"
     break;
 
   case 48: /* composition_fst: composition_fst tAT difference_fst  */
-#line 345 "main/parser.yy"
+#line 347 "main/parser.yy"
     { FstNode* node = new FstNode(FstNode::COMPOSITION_FSTNODE);
       node->SetLine(parm->GetLexer()->line_number());
       node->AddArgument((yyvsp[-2].node_type));
       node->AddArgument((yyvsp[0].node_type));
       (yyval.node_type) = node; }
-#line 1769 "main/parser.cc"
+#line 1762 "main/parser.cc"
     break;
 
   case 49: /* composition_fst: difference_fst  */
-#line 351 "main/parser.yy"
+#line 353 "main/parser.yy"
     { (yyval.node_type) = (yyvsp[0].node_type); }
-#line 1775 "main/parser.cc"
+#line 1768 "main/parser.cc"
     break;
 
   case 50: /* identifier_obj: descriptor  */
-#line 356 "main/parser.yy"
+#line 358 "main/parser.yy"
     { FstNode* node = new FstNode(FstNode::IDENTIFIER_FSTNODE);
       node->SetLine(parm->GetLexer()->line_number());
       node->AddArgument((yyvsp[0].identifier_node_type));
       (yyval.node_type) = node; }
-#line 1784 "main/parser.cc"
+#line 1777 "main/parser.cc"
     break;
 
   case 51: /* string_fst: quoted_fst_string  */
-#line 364 "main/parser.yy"
+#line 366 "main/parser.yy"
     { StringFstNode* node = new StringFstNode(StringFstNode::BYTE);
       node->AddArgument((yyvsp[0].string_node_type));
       node->SetLine((yyvsp[0].string_node_type)->getline());  // Get the line from the actual text line.
       (yyval.node_type) = node; }
-#line 1793 "main/parser.cc"
+#line 1786 "main/parser.cc"
     break;
 
   case 52: /* string_fst: quoted_fst_string tDOT tKEYWORD_BYTE  */
-#line 369 "main/parser.yy"
+#line 371 "main/parser.yy"
     { StringFstNode* node = new StringFstNode(StringFstNode::BYTE);
       node->AddArgument((yyvsp[-2].string_node_type));
       node->SetLine((yyvsp[-2].string_node_type)->getline());
       (yyval.node_type) = node; }
-#line 1802 "main/parser.cc"
+#line 1795 "main/parser.cc"
     break;
 
   case 53: /* string_fst: quoted_fst_string tDOT tKEYWORD_UTF8  */
-#line 374 "main/parser.yy"
+#line 376 "main/parser.yy"
     { StringFstNode* node = new StringFstNode(StringFstNode::UTF8);
       node->AddArgument((yyvsp[-2].string_node_type));
       node->SetLine((yyvsp[-2].string_node_type)->getline());
       (yyval.node_type) = node; }
-#line 1811 "main/parser.cc"
+#line 1804 "main/parser.cc"
     break;
 
   case 54: /* string_fst: quoted_fst_string tDOT identifier_obj  */
-#line 379 "main/parser.yy"
+#line 381 "main/parser.yy"
     { StringFstNode* node = new StringFstNode(StringFstNode::SYMBOL_TABLE);
       node->AddArgument((yyvsp[-2].string_node_type));
       node->AddArgument((yyvsp[0].node_type));
       node->SetLine((yyvsp[-2].string_node_type)->getline());
       (yyval.node_type) = node; }
-#line 1821 "main/parser.cc"
+#line 1814 "main/parser.cc"
     break;
 
   case 55: /* string_fst: quoted_fst_string tDOT funccall_obj  */
-#line 385 "main/parser.yy"
+#line 387 "main/parser.yy"
     { StringFstNode* node = new StringFstNode(StringFstNode::SYMBOL_TABLE);
       node->AddArgument((yyvsp[-2].string_node_type));
       node->AddArgument((yyvsp[0].node_type));
       node->SetLine((yyvsp[-2].string_node_type)->getline());
       (yyval.node_type) = node; }
-#line 1831 "main/parser.cc"
+#line 1824 "main/parser.cc"
     break;
 
   case 56: /* fst_with_output: union_fst tCOLON union_fst  */
-#line 394 "main/parser.yy"
+#line 396 "main/parser.yy"
     { FstNode* node = new FstNode(FstNode::REWRITE_FSTNODE);
       node->SetLine(parm->GetLexer()->line_number());
       node->AddArgument((yyvsp[-2].node_type));
       node->AddArgument((yyvsp[0].node_type));
       (yyval.node_type) = node; }
-#line 1841 "main/parser.cc"
+#line 1834 "main/parser.cc"
     break;
 
   case 57: /* fst_with_output: union_fst  */
-#line 400 "main/parser.yy"
+#line 402 "main/parser.yy"
     { (yyval.node_type) = (yyvsp[0].node_type); }
-#line 1847 "main/parser.cc"
+#line 1840 "main/parser.cc"
     break;
 
   case 58: /* fst_with_weight: fst_with_output weight  */
-#line 407 "main/parser.yy"
+#line 409 "main/parser.yy"
     { if (!fst::down_cast<FstNode*>((yyvsp[-1].node_type))->SetWeight((yyvsp[0].string_node_type)))
         parm->Error("Rules may have only one weight.");
       (yyval.node_type) = (yyvsp[-1].node_type); }
-#line 1855 "main/parser.cc"
+#line 1848 "main/parser.cc"
     break;
 
   case 59: /* fst_with_weight: fst_with_output  */
-#line 411 "main/parser.yy"
+#line 413 "main/parser.yy"
     { (yyval.node_type) = (yyvsp[0].node_type); }
-#line 1861 "main/parser.cc"
+#line 1854 "main/parser.cc"
     break;
 
   case 60: /* number: tINTEGER  */
-#line 418 "main/parser.yy"
+#line 420 "main/parser.yy"
     { (yyval.int_type) = atoi(parm->GetLexer()->YYString().c_str()); }
-#line 1867 "main/parser.cc"
+#line 1860 "main/parser.cc"
     break;
 
   case 61: /* quoted_fst_string: tDQSTRING  */
-#line 423 "main/parser.yy"
+#line 425 "main/parser.yy"
     { StringNode* node = new StringNode(parm->GetLexer()->YYString());
       node->SetLine(parm->GetLexer()->line_number());
       (yyval.string_node_type) = node; }
-#line 1875 "main/parser.cc"
+#line 1868 "main/parser.cc"
     break;
 
   case 62: /* quoted_string: tQSTRING  */
-#line 430 "main/parser.yy"
+#line 432 "main/parser.yy"
     { StringNode* node = new StringNode(parm->GetLexer()->YYString());
       node->SetLine(parm->GetLexer()->line_number());
       (yyval.string_node_type) = node; }
-#line 1883 "main/parser.cc"
+#line 1876 "main/parser.cc"
     break;
 
   case 63: /* weight: tANGLE_STRING  */
-#line 437 "main/parser.yy"
+#line 439 "main/parser.yy"
     { StringNode* node = new StringNode(parm->GetLexer()->YYString());
       node->SetLine(parm->GetLexer()->line_number());
       (yyval.string_node_type) = node; }
-#line 1891 "main/parser.cc"
+#line 1884 "main/parser.cc"
     break;
 
   case 64: /* import_request: tKEYWORD_IMPORT quoted_string tKEYWORD_AS descriptor tSEMICOLON  */
-#line 444 "main/parser.yy"
+#line 446 "main/parser.yy"
     { ImportNode* node = new ImportNode((yyvsp[-3].string_node_type), (yyvsp[-1].identifier_node_type));
       node->SetLine(parm->GetLexer()->line_number());
       (yyval.import_node_type) = node; }
-#line 1899 "main/parser.cc"
+#line 1892 "main/parser.cc"
     break;
 
   case 65: /* import_request: error tSEMICOLON  */
-#line 448 "main/parser.yy"
+#line 450 "main/parser.yy"
     { parm->Error("Invalid import statement.");
       (yyval.import_node_type) = NULL; }
-#line 1906 "main/parser.cc"
+#line 1899 "main/parser.cc"
     break;
 
   case 66: /* func_decl: tKEYWORD_FUNC descriptor func_arglist func_body  */
-#line 454 "main/parser.yy"
+#line 456 "main/parser.yy"
     { FunctionNode* node = new FunctionNode((yyvsp[-2].identifier_node_type), (yyvsp[-1].collection_node_type), (yyvsp[0].collection_node_type));
       node->SetLine(node->GetName()->getline());  // Use the identifier's location.
       (yyval.function_node_type) = node; }
-#line 1914 "main/parser.cc"
+#line 1907 "main/parser.cc"
     break;
 
   case 67: /* func_decl: error tRBRACE  */
-#line 458 "main/parser.yy"
+#line 460 "main/parser.yy"
     { parm->Error("Invalid function declaration.");
       (yyval.function_node_type) = NULL; }
-#line 1921 "main/parser.cc"
+#line 1914 "main/parser.cc"
     break;
 
   case 68: /* func_arglist: tLBRACKET tRBRACKET  */
-#line 464 "main/parser.yy"
+#line 466 "main/parser.yy"
     { (yyval.collection_node_type) = new CollectionNode(); }
-#line 1927 "main/parser.cc"
+#line 1920 "main/parser.cc"
     break;
 
   case 69: /* func_arglist: tLBRACKET func_arguments tRBRACKET  */
-#line 466 "main/parser.yy"
+#line 468 "main/parser.yy"
     { (yyval.collection_node_type) = (yyvsp[-1].collection_node_type); }
-#line 1933 "main/parser.cc"
+#line 1926 "main/parser.cc"
     break;
 
   case 70: /* func_arguments: descriptor  */
-#line 471 "main/parser.yy"
+#line 473 "main/parser.yy"
     { CollectionNode* node = new CollectionNode();
       node->AddFront((yyvsp[0].identifier_node_type));
       (yyval.collection_node_type) = node; }
-#line 1941 "main/parser.cc"
+#line 1934 "main/parser.cc"
     break;
 
   case 71: /* func_arguments: descriptor tCOMMA func_arguments  */
-#line 475 "main/parser.yy"
+#line 477 "main/parser.yy"
     { (yyvsp[0].collection_node_type)->AddFront((yyvsp[-2].identifier_node_type));
       (yyval.collection_node_type) = (yyvsp[0].collection_node_type); }
-#line 1948 "main/parser.cc"
+#line 1941 "main/parser.cc"
     break;
 
   case 72: /* func_body: tLBRACE stmt_list tRBRACE  */
-#line 481 "main/parser.yy"
+#line 483 "main/parser.yy"
     { (yyval.collection_node_type) = (yyvsp[-1].collection_node_type); }
-#line 1954 "main/parser.cc"
+#line 1947 "main/parser.cc"
     break;
 
 
-#line 1958 "main/parser.cc"
+#line 1951 "main/parser.cc"
 
       default: break;
     }
@@ -2036,6 +2029,7 @@ yyerrorlab:
      label yyerrorlab therefore never appears in user code.  */
   if (0)
     YYERROR;
+  ++yynerrs;
 
   /* Do not reclaim the symbols of the rule whose action triggered
      this YYERROR.  */
@@ -2096,7 +2090,7 @@ yyerrlab1:
 `-------------------------------------*/
 yyacceptlab:
   yyresult = 0;
-  goto yyreturn;
+  goto yyreturnlab;
 
 
 /*-----------------------------------.
@@ -2104,24 +2098,22 @@ yyacceptlab:
 `-----------------------------------*/
 yyabortlab:
   yyresult = 1;
-  goto yyreturn;
+  goto yyreturnlab;
 
 
-#if !defined yyoverflow
-/*-------------------------------------------------.
-| yyexhaustedlab -- memory exhaustion comes here.  |
-`-------------------------------------------------*/
+/*-----------------------------------------------------------.
+| yyexhaustedlab -- YYNOMEM (memory exhaustion) comes here.  |
+`-----------------------------------------------------------*/
 yyexhaustedlab:
   yyerror (parm, YY_("memory exhausted"));
   yyresult = 2;
-  goto yyreturn;
-#endif
+  goto yyreturnlab;
 
 
-/*-------------------------------------------------------.
-| yyreturn -- parsing is finished, clean up and return.  |
-`-------------------------------------------------------*/
-yyreturn:
+/*----------------------------------------------------------.
+| yyreturnlab -- parsing is finished, clean up and return.  |
+`----------------------------------------------------------*/
+yyreturnlab:
   if (yychar != YYEMPTY)
     {
       /* Make sure we have latest lookahead translation.  See comments at
@@ -2148,7 +2140,7 @@ yyreturn:
   return yyresult;
 }
 
-#line 484 "main/parser.yy"
+#line 486 "main/parser.yy"
 
 
 // Local definitions, definitions that need the semantics of the
@@ -2174,7 +2166,7 @@ int yylex(void *, GrmCompilerParserInterface *parm) {
     case Lexer::CONNECTOR: {
       std::string connector = parm->GetLexer()->YYString();
       if (connector.length() != 1) {
-        parm->Error(StringPrintf("Parse error - unknown connector: %s", connector.c_str()));
+        parm->Error(::fst::StrCat("Parse error - unknown connector: ", connector));
         return 0;
       }
       switch (parm->GetLexer()->YYString()[0]) {
@@ -2198,7 +2190,7 @@ int yylex(void *, GrmCompilerParserInterface *parm) {
         case '{': return tLBRACE;
         case '}': return tRBRACE;
         case '|': return tPIPE;
-        default:  parm->Error(StringPrintf("Parse error - unknown connector: %s", connector.c_str()));
+        default:  parm->Error(::fst::StrCat("Parse error - unknown connector: ", connector));
                   return 0;
       }
     }
@@ -2219,7 +2211,7 @@ int yylex(void *, GrmCompilerParserInterface *parm) {
       } else if (keyword == "utf8") {
         return tKEYWORD_UTF8;
       } else {
-        parm->Error(StringPrintf("Parse error - unknown keyword: %s", keyword.c_str()));
+        parm->Error(::fst::StrCat("Parse error - unknown keyword: ", keyword));
         return 0;
       }
     }

@@ -20,6 +20,8 @@
 #include <string>
 #include <vector>
 
+#include <fst/flags.h>
+#include <fst/log.h>
 #include <thrax/compat/utils.h>
 #include <fst/arc.h>
 #include <fst/fst.h>
@@ -29,10 +31,13 @@
 #include <thrax/grm-manager.h>
 #include <../bin/utildefs.h>
 #include <thrax/symbols.h>
+#include <fst/compat.h>
 #define HISTORY_FILE ".rewrite-tester-history"
 #ifdef HAVE_READLINE
 using thrax::File;
 using thrax::Open;
+#include <readline/history.h>
+#include <readline/readline.h>
 #endif  // HAVE_READLINE
 
 using ::fst::StdArc;
@@ -97,16 +102,11 @@ bool RewriteTesterUtils::ReadInput(std::string* s) {
 }
 #endif  // HAVE_READLINE
 
-RewriteTesterUtils::RewriteTesterUtils() :
-    compiler_(nullptr),
-    byte_symtab_(nullptr),
-    utf8_symtab_(nullptr),
-    input_symtab_(nullptr),
-    output_symtab_(nullptr)  { }
+RewriteTesterUtils::RewriteTesterUtils() : type_(TokenType::BYTE) {}
 
 void RewriteTesterUtils::Initialize() {
   CHECK(grm_.LoadArchive(FST_FLAGS_far));
-  rules_ = ::fst::StringSplit(FST_FLAGS_rules, ',');
+  rules_ = ::fst::StrSplit(FST_FLAGS_rules, ',');
   byte_symtab_ = nullptr;
   utf8_symtab_ = nullptr;
   if (rules_.empty()) LOG(FATAL) << "--rules must be specified";
@@ -176,8 +176,8 @@ void RewriteTesterUtils::Initialize() {
   }
 }
 
-const std::string RewriteTesterUtils::ProcessInput(const std::string& input,
-                                                   bool prepend_output) {
+std::string RewriteTesterUtils::ProcessInput(const std::string& input,
+                                             bool prepend_output) const {
   StdVectorFst input_fst;
   StdVectorFst output_fst;
   if (!compiler_->operator()(input, &input_fst)) {
@@ -236,7 +236,7 @@ const std::string RewriteTesterUtils::ProcessInput(const std::string& input,
     }
     return sstrm.str();
   } else {
-    return "Rewrite failed.";
+    return ::fst::StrCat("Rewrite failed for \"", input, "\"");
   }
 }
 

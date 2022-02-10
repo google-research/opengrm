@@ -52,7 +52,7 @@ class SymbolTableBuilder {
 
   inline void GenerateUtf8SymbolTable();
 
-  ::fst::Mutex map_mutex_;
+   ::fst::Mutex map_mutex_;
   std::unique_ptr<::fst::SymbolTable> byte_symbols_;
   std::unique_ptr<::fst::SymbolTable> utf8_symbols_;
 };

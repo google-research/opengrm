@@ -40,13 +40,14 @@ class RewriteTesterUtils {
 
   // Runs the input through the FSTs. Prepends "Output string:" to each line if
   // prepend_output is true
-  const std::string ProcessInput(const std::string& input,
-                                 bool prepend_output = true);
+  std::string ProcessInput(const std::string& input,
+                           bool prepend_output = true) const;
 
  private:
   // Reader for the input in interactive version.
   bool ReadInput(std::string* s);
 
+  ::fst::TokenType type_;
   ::thrax::GrmManagerSpec<::fst::StdArc> grm_;
   std::vector<std::string> rules_;
   std::unique_ptr<::fst::StringCompiler<::fst::StdArc>> compiler_;
@@ -54,7 +55,6 @@ class RewriteTesterUtils {
   std::unique_ptr<::fst::SymbolTable> utf8_symtab_;
   std::unique_ptr<::fst::SymbolTable> generated_symtab_;
   std::unique_ptr<::fst::SymbolTable> input_symtab_;
-  ::fst::TokenType type_;
   std::unique_ptr<::fst::SymbolTable> output_symtab_;
 
   RewriteTesterUtils(const RewriteTesterUtils&) = delete;

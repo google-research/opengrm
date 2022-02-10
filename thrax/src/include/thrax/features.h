@@ -100,9 +100,8 @@
 #ifndef THRAX_FEATURES_H_
 #define THRAX_FEATURES_H_
 
-#include <stddef.h>
-
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <iostream>
 #include <map>
@@ -113,6 +112,7 @@
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
+#include <fst/log.h>
 #include <fst/concat.h>
 #include <fst/rmepsilon.h>
 #include <fst/string.h>
@@ -149,7 +149,7 @@ class Feature : public Function<Arc> {
 
  protected:
   std::unique_ptr<DataType> Execute(
-      const std::vector<std::unique_ptr<DataType>>& args) final {
+      const std::vector<std::unique_ptr<DataType>>& args) const final {
     CHECK_GE(args.size(), 2);
     enum ::fst::TokenType mode = ::fst::TokenType::BYTE;
     const ::fst::SymbolTable* symtab = nullptr;
@@ -345,7 +345,7 @@ class Feature : public Function<Arc> {
 
  private:
   inline void AddLabelForFeatureValuePair(
-      const std::string& feature_value_pair) {
+      const std::string& feature_value_pair) const {
     // Sole purpose is to add the bracketed_feature_value_pair to the generated
     // label set (stringfst.h)
     std::string bracketed_feature_value_pair = "[" + feature_value_pair + "]";
@@ -374,7 +374,7 @@ class Category : public Function<Arc> {
 
  protected:
   std::unique_ptr<DataType> Execute(
-      const std::vector<std::unique_ptr<DataType>>& args) final {
+      const std::vector<std::unique_ptr<DataType>>& args) const final {
     CHECK_GE(args.size(), 1);
     std::vector<std::pair<std::string, std::unique_ptr<Transducer>>> features;
     for (int i = 0; i < args.size(); ++i) {
@@ -436,7 +436,7 @@ class FeatureVector : public Function<Arc> {
 
  protected:
   std::unique_ptr<DataType> Execute(
-      const std::vector<std::unique_ptr<DataType>>& args) final {
+      const std::vector<std::unique_ptr<DataType>>& args) const final {
     // In the minimal case, there are no specifications in this FeatureVector,
     // in which case we just get back an acceptor equivalent to the Category.
     CHECK_GE(args.size(), 1);

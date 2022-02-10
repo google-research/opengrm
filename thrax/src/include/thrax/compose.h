@@ -52,7 +52,7 @@ class Compose : public Function<Arc> {
 
  protected:
   std::unique_ptr<DataType> Execute(
-      const std::vector<std::unique_ptr<DataType>>& args) final {
+      const std::vector<std::unique_ptr<DataType>>& args) const final {
     if (args.size() != 2 && args.size() != 3) {
       std::cout << "Compose: Expected 2 or 3 arguments but got " << args.size()
                 << std::endl;

@@ -1,4 +1,4 @@
-# Copyright 2015-2020 Google LLC.
+# Copyright 2015-2022 Google LLC. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,11 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Bazel build file for OpenGrm Thrax library.
+# Bazel build file for Thrax.
 
 package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])
+
+exports_files(["LICENSE"])
 
 prefix_dir = "src/"
 
@@ -41,17 +43,46 @@ cc_library(
         prefix_dir + "lib/main/grm-compiler.cc",
         prefix_dir + "lib/main/lexer.cc",
         prefix_dir + "lib/main/parser.cc",
+        prefix_dir + "lib/util/getters.cc",
         prefix_dir + "lib/util/stringcompile.cc",
         prefix_dir + "lib/util/stringfile.cc",
         prefix_dir + "lib/util/stringutil.cc",
         prefix_dir + "lib/util/utils.cc",
-        prefix_dir + "lib/walker/evaluator-specializations.cc",
+        prefix_dir + "lib/walker/assert-empty.cc",
+        prefix_dir + "lib/walker/assert-equal.cc",
+        prefix_dir + "lib/walker/assert-null.cc",
+        prefix_dir + "lib/walker/cdrewrite.cc",
+        prefix_dir + "lib/walker/closure.cc",
+        prefix_dir + "lib/walker/compose.cc",
+        prefix_dir + "lib/walker/concat.cc",
+        prefix_dir + "lib/walker/determinize.cc",
+        prefix_dir + "lib/walker/difference.cc",
+        prefix_dir + "lib/walker/evaluator.cc",
+        prefix_dir + "lib/walker/expand.cc",
+        prefix_dir + "lib/walker/features.cc",
         prefix_dir + "lib/walker/identifier-counter.cc",
-        prefix_dir + "lib/walker/loader.cc",
+        prefix_dir + "lib/walker/invert.cc",
+        prefix_dir + "lib/walker/lenientlycompose.cc",
+        prefix_dir + "lib/walker/loadfst.cc",
+        prefix_dir + "lib/walker/loadfstfromfar.cc",
+        prefix_dir + "lib/walker/minimize.cc",
+        prefix_dir + "lib/walker/mpdtcompose.cc",
         prefix_dir + "lib/walker/namespace.cc",
+        prefix_dir + "lib/walker/optimize.cc",
+        prefix_dir + "lib/walker/paradigm.cc",
+        prefix_dir + "lib/walker/pdtcompose.cc",
         prefix_dir + "lib/walker/printer.cc",
+        prefix_dir + "lib/walker/project.cc",
+        prefix_dir + "lib/walker/replace.cc",
+        prefix_dir + "lib/walker/reverse.cc",
+        prefix_dir + "lib/walker/rewrite.cc",
+        prefix_dir + "lib/walker/rmepsilon.cc",
+        prefix_dir + "lib/walker/rmweight.cc",
+        prefix_dir + "lib/walker/stringfile.cc",
         prefix_dir + "lib/walker/stringfst.cc",
         prefix_dir + "lib/walker/symbols.cc",
+        prefix_dir + "lib/walker/symboltable.cc",
+        prefix_dir + "lib/walker/union.cc",
         prefix_dir + "lib/walker/walker.cc",
     ],
     hdrs = [
@@ -60,6 +91,7 @@ cc_library(
         prefix_dir + "include/thrax/algo/checkprops.h",
         prefix_dir + "include/thrax/algo/concatrange.h",
         prefix_dir + "include/thrax/algo/cross.h",
+        prefix_dir + "include/thrax/algo/getters.h",
         prefix_dir + "include/thrax/algo/lenientlycompose.h",
         prefix_dir + "include/thrax/algo/optimize.h",
         prefix_dir + "include/thrax/algo/paths.h",
@@ -69,7 +101,6 @@ cc_library(
         prefix_dir + "include/thrax/algo/stringmap.h",
         prefix_dir + "include/thrax/algo/stringprint.h",
         prefix_dir + "include/thrax/algo/stringutil.h",
-        prefix_dir + "include/thrax/arcsort.h",
         prefix_dir + "include/thrax/assert-empty.h",
         prefix_dir + "include/thrax/assert-equal.h",
         prefix_dir + "include/thrax/assert-null.h",
@@ -77,7 +108,6 @@ cc_library(
         prefix_dir + "include/thrax/closure.h",
         prefix_dir + "include/thrax/collection-node.h",
         prefix_dir + "include/thrax/compat/compat.h",
-        prefix_dir + "include/thrax/compat/registry.h",
         prefix_dir + "include/thrax/compat/stlfunctions.h",
         prefix_dir + "include/thrax/compat/utils.h",
         prefix_dir + "include/thrax/compose.h",
@@ -114,6 +144,7 @@ cc_library(
         prefix_dir + "include/thrax/printer.h",
         prefix_dir + "include/thrax/project.h",
         prefix_dir + "include/thrax/replace.h",
+        prefix_dir + "include/thrax/register.h",
         prefix_dir + "include/thrax/resource-map.h",
         prefix_dir + "include/thrax/return-node.h",
         prefix_dir + "include/thrax/reverse.h",
@@ -135,6 +166,7 @@ cc_library(
     deps = [
         "@org_openfst//:far",
         "@org_openfst//:fst",
+        "@org_openfst//:fstscript",
         "@org_openfst//:mpdt",
         "@org_openfst//:pdt",
     ],

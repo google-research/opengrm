@@ -22,6 +22,7 @@
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
+#include <fst/log.h>
 #include <fst/fst.h>
 
 // This is only needed for (M)PdtCompose and for grammar managers when they use

@@ -23,6 +23,7 @@
 #include <vector>
 
 #include <fst/project.h>
+#include <fst/script/getters.h>
 #include <thrax/datatype.h>
 #include <thrax/function.h>
 
@@ -40,7 +41,7 @@ class Project : public UnaryFstFunction<Arc> {
  protected:
   std::unique_ptr<Transducer> UnaryFstExecute(
       const Transducer& fst,
-      const std::vector<std::unique_ptr<DataType>>& args) final {
+      const std::vector<std::unique_ptr<DataType>>& args) const final {
     if (args.size() != 2) {
       std::cout << "Project: Expected 2 arguments but received " << args.size()
                 << std::endl;
@@ -50,18 +51,14 @@ class Project : public UnaryFstFunction<Arc> {
       std::cout << "Project: Expected string for argument 2" << std::endl;
       return nullptr;
     }
-    const auto& project = *args[1]->get<std::string>();
-    if (project == "input") {
-      return std::make_unique<::fst::ProjectFst<Arc>>(
-          fst, ::fst::ProjectType::INPUT);
-    } else if (project == "output") {
-      return std::make_unique<::fst::ProjectFst<Arc>>(
-          fst, ::fst::ProjectType::OUTPUT);
-    } else {
-      std::cout << "Project: Invalid projection parameter: " << project
+    const auto& project_str = *args[1]->get<std::string>();
+    ::fst::ProjectType project_type;
+    if (!::fst::script::GetProjectType(project_str, &project_type)) {
+      std::cout << "Project: Invalid projection parameter: " << project_str
                 << " (should be 'input' or 'output')" << std::endl;
       return nullptr;
     }
+    return std::make_unique<::fst::ProjectFst<Arc>>(fst, project_type);
   }
 
  private:

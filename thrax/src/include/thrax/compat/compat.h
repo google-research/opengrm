@@ -1,3 +1,5 @@
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -10,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Some commonly needed stuff from std not listed in in fst/compat.h. This is
+// Some commonly needed stuff from std not listed in fst/compat.h. This is
 // included, often redundantly, in most of the files since these things are used
 // scattered around the code.
 
@@ -18,11 +20,11 @@
 #define THRAX_COMPAT_COMPAT_H_
 
 #include <deque>
-#include <map>
-#include <set>
-#include <stack>
 #include <istream>
+#include <map>
 #include <ostream>
+#include <set>
 #include <sstream>
+#include <stack>
 
 #endif  // THRAX_COMPAT_COMPAT_H_

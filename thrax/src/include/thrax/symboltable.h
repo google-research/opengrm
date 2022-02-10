@@ -24,6 +24,7 @@
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
+#include <fst/log.h>
 #include <thrax/compat/utils.h>
 #include <fst/symbol-table.h>
 #include <thrax/datatype.h>
@@ -42,7 +43,7 @@ class SymbolTable : public Function<Arc> {
 
  protected:
   std::unique_ptr<DataType> Execute(
-      const std::vector<std::unique_ptr<DataType>>& args) final {
+      const std::vector<std::unique_ptr<DataType>>& args) const final {
     if (args.size() != 1) {
       std::cout << "SymbolTable: Expected 1 argument but got " << args.size()
                 << std::endl;

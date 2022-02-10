@@ -24,6 +24,7 @@
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
+#include <fst/log.h>
 #include <thrax/compat/utils.h>
 #include <fst/extensions/far/far.h>
 #include <fst/vector-fst.h>
@@ -46,7 +47,7 @@ class LoadFstFromFar : public Function<Arc> {
 
  protected:
   std::unique_ptr<DataType> Execute(
-      const std::vector<std::unique_ptr<DataType>>& args) final {
+      const std::vector<std::unique_ptr<DataType>>& args) const final {
     if (args.size() != 2) {
       std::cout << "LoadFstFromFar: Expected 2 arguments but got "
                 << args.size() << std::endl;

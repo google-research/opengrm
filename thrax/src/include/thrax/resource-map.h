@@ -46,6 +46,7 @@
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
+#include <fst/log.h>
 #include <unordered_map>
 
 namespace thrax {
@@ -65,8 +66,7 @@ class ResourceMap {
   // deleter that frees the object by calling delete.
   template <typename T>
   bool Insert(const std::string& name, std::unique_ptr<T> thing) {
-    const T* thing_ptr = thing.get();
-    auto deleter = [thing_ptr](){ delete thing_ptr; };
+    auto deleter = [thing = thing.get()](){ delete thing; };
     return InsertWithDeleter(name, thing.release(), std::move(deleter));
   }
 
@@ -76,7 +76,7 @@ class ResourceMap {
   template <typename T>
   bool InsertWithDeleter(const std::string& name, T* thing,
                          std::function<void()> deleter) {
-    ::fst::MutexLock lock(&mutex_);
+     ::fst::MutexLock lock(&mutex_);
     // Searches the map for the correct hash position of the new insert.
     // Creates a new Resource container to hold the pointer as well as a deleter
     // functor, which we create now since we only are sure of the type at this
@@ -93,7 +93,7 @@ class ResourceMap {
   // received.
   template <typename T>
   T* Get(const std::string& name) const {
-    ::fst::MutexLock lock(&mutex_);
+     ::fst::MutexLock lock(&mutex_);
     const auto it = map_.find(name);
     if (it == map_.end()) return nullptr;
     CheckType<T>(it, name);
@@ -106,7 +106,7 @@ class ResourceMap {
   // Returns true if the map contains an object with the given name
   // (disregarding the type of the stored object).
   bool Contains(const std::string& name) const {
-    ::fst::MutexLock lock(&mutex_);
+     ::fst::MutexLock lock(&mutex_);
     return map_.find(name) != map_.end();
   }
 
@@ -114,7 +114,7 @@ class ResourceMap {
   // proper type.
   template <typename T>
   bool ContainsType(const std::string& name) const {
-    ::fst::MutexLock lock(&mutex_);
+     ::fst::MutexLock lock(&mutex_);
     const auto it = map_.find(name);
     return it != map_.end() && it->second->type == typeid(T*);
   }
@@ -122,7 +122,7 @@ class ResourceMap {
   // Removes the specified object from the map. Returns true if an object was
   // successfully erased, and false if the object didn't exist.
   bool Erase(const std::string& name) {
-    ::fst::MutexLock lock(&mutex_);
+     ::fst::MutexLock lock(&mutex_);
     auto it = map_.find(name);
     if (it == map_.end()) return false;
     map_.erase(it);
@@ -131,7 +131,7 @@ class ResourceMap {
 
   template <typename T>
   std::unique_ptr<T> Release(const std::string& name) {
-    ::fst::MutexLock lock(&mutex_);
+     ::fst::MutexLock lock(&mutex_);
     std::unique_ptr<T> val = nullptr;
     auto it = map_.find(name);
     if (it != map_.end()) {
@@ -148,13 +148,13 @@ class ResourceMap {
 
   // Returns the number of elements in the map.
   int Size() const {
-    ::fst::MutexLock lock(&mutex_);
+     ::fst::MutexLock lock(&mutex_);
     return map_.size();
   }
 
   // Erases all elements in the current map.
   void Clear() {
-    ::fst::MutexLock lock(&mutex_);
+     ::fst::MutexLock lock(&mutex_);
     map_.clear();
   }
 
@@ -186,7 +186,7 @@ class ResourceMap {
   };
 
   Map map_;
-  mutable ::fst::Mutex mutex_;
+  mutable  ::fst::Mutex mutex_;
 };
 
 };  // namespace thrax

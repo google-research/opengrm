@@ -34,6 +34,9 @@ template <typename Arc>
 class RmWeight : public UnaryFstFunction<Arc> {
  public:
   using Transducer = ::fst::Fst<Arc>;
+  using RmWeightMapper = ::fst::RmWeightMapper<Arc>;
+  using ToArc = typename RmWeightMapper::ToArc;
+  using RmWeightFst = ::fst::ArcMapFst<Arc, ToArc, RmWeightMapper>;
 
   RmWeight() {}
   ~RmWeight() final {}
@@ -41,14 +44,13 @@ class RmWeight : public UnaryFstFunction<Arc> {
  protected:
   std::unique_ptr<Transducer> UnaryFstExecute(
       const Transducer& fst,
-      const std::vector<std::unique_ptr<DataType>>& args) final {
+      const std::vector<std::unique_ptr<DataType>>& args) const final {
     if (args.size() != 1) {
       std::cout << "RmWeight: Expected 1 argument but got " << args.size()
                 << std::endl;
       return nullptr;
     }
-    return fst::WrapUnique(
-        MakeArcMapFst(fst, ::fst::RmWeightMapper<Arc>()).Copy());
+    return std::make_unique<RmWeightFst>(fst);
   }
 
  private:

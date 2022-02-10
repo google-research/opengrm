@@ -21,6 +21,7 @@
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
 #include <fstream>
+#include <string_view>
 
 namespace fst {
 namespace internal {
@@ -30,8 +31,8 @@ namespace internal {
 class StringFile {
  public:
   // Opens a file input stream using the provided filename.
-  explicit StringFile(const std::string &source)
-      : istrm_(source), linenum_(0), source_(source) {
+  explicit StringFile(std::string_view source)
+      : linenum_(0), source_(source), istrm_(source_) {
     Next();
   }
 
@@ -50,18 +51,16 @@ class StringFile {
   bool Error() const { return !istrm_.is_open() || istrm_.bad(); }
 
  private:
-  std::ifstream istrm_;
   std::string line_;
   size_t linenum_;
   const std::string source_;
+  std::ifstream istrm_;
 };
 
 // File iterator expecting multiple columns separated by tab.
 class ColumnStringFile {
  public:
-  explicit ColumnStringFile(const std::string &source) : sf_(source) {
-    Parse();
-  }
+  explicit ColumnStringFile(std::string_view source) : sf_(source) { Parse(); }
 
   void Reset();
 
@@ -70,7 +69,7 @@ class ColumnStringFile {
   bool Done() const { return sf_.Done(); }
 
   // Access to the underlying row vector.
-  const std::vector<std::string> &Row() const { return row_; }
+  const std::vector<std::string_view> &Row() const { return row_; }
 
   size_t LineNumber() const { return sf_.LineNumber(); }
 
@@ -79,10 +78,10 @@ class ColumnStringFile {
   bool Error() const { return sf_.Error(); }
 
  private:
-  void Parse() { row_ = ::fst::StringSplit(sf_.GetString(), '\t'); }
+  void Parse() { row_ = ::fst::StrSplit(sf_.GetString(), '\t'); }
 
   StringFile sf_;
-  std::vector<std::string> row_;
+  std::vector<std::string_view> row_;
 };
 
 }  // namespace internal
