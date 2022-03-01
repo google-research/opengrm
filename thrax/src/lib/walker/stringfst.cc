@@ -16,3 +16,10 @@
 
 #include <thrax/function.h>
 
+namespace thrax {
+namespace function {
+
+REGISTER_GRM_FUNCTION(StringFst);
+
+}  // namespace function
+}  // namespace thrax

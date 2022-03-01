@@ -132,3 +132,8 @@ Thrax - Release 1.3.7
     bracketed numeric symbols.
   * Use OpenFst's type registration module instead of our own
   * Compatibility with OpenFst version 1.8.2
+
+Thrax - Release 1.3.8
+
+  * Fixes StringFile registry bug
+  * Continues compatibility with OpenFst version 1.8.2

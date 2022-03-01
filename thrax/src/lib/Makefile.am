@@ -30,4 +30,4 @@ libthrax_la_SOURCES = ast/collection-node.cc ast/grammar-node.cc \
                       walker/stringfile.cc walker/stringfst.cc \
                       walker/symbols.cc walker/symboltable.cc walker/union.cc \
                       walker/walker.cc
-libthrax_la_LDFLAGS = -version-info 136:0:0
+libthrax_la_LDFLAGS = -version-info 138:0:0

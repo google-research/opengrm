@@ -12,9 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// See www.openfst.org for extensive documentation on this weighted
-// finite-state transducer library.
-//
 // Classes for registering derived FUNCTION for generic reading.
 
 #ifndef THRAX_REGISTER_H_
@@ -48,7 +45,7 @@ const FUNCTION *GetStaticFunctionPointer() {
 }
 
 // This class maintains the correspondence between a string describing
-// an FUNCTION type, and its reader and converter.
+// a FUNCTION type, and its reader and converter.
 template <class Arc>
 class FunctionRegister
     : public ::fst::GenericRegister<std::string, FunctionRegisterEntry<Arc>,
@@ -71,9 +68,11 @@ using FunctionRegisterer = ::fst::GenericRegisterer<FunctionRegister<Arc>>;
 // Convenience macro to generate a static FunctionRegisterer instance.
 // `FUNCTION` and `Arc` must be identifiers (that is, not a qualified type).
 // Users SHOULD NOT register within the thrax namespace. To register
-// a FUNCTION for StdArc, for example, use: namespace example { using
-// fst::StdArc; REGISTER_FUNCTION(MyFunction, StdArc); }  // namespace
-// example
+// a FUNCTION for StdArc, for example, use:
+// namespace example {
+// using fst::StdArc;
+// REGISTER_FUNCTION(MyFunction, StdArc);
+// }  // namespace example
 #define REGISTER_FUNCTION(FUNCTION, Arc)           \
   static thrax::FunctionRegisterer<Arc> \
       FUNCTION##_##Arc##_registerer(#FUNCTION,     \

@@ -87,7 +87,7 @@ class Difference : public BinaryFstFunction<Arc> {
       auto optimized_right =
           Optimize<Arc>::ActuallyOptimizeDifferenceRhs(right, true);
       return std::make_unique<::fst::DifferenceFst<Arc>>(left,
-                                                              *optimized_right);
+                                                             *optimized_right);
     }
   }
 

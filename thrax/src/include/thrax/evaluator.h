@@ -617,10 +617,9 @@ class AstEvaluator : public AstWalker {
         const std::string& text =
             fst::down_cast<StringNode*>(node->GetArgument(0))->Get();
         VLOG(2) << "String Fst: " << text;
-        auto args =
-            std::make_unique<std::vector<std::unique_ptr<DataType>>>(2);
-        (*args)[0] = std::make_unique<DataType>(
-            static_cast<int>(snode->GetParseMode()));
+        auto args = std::make_unique<std::vector<std::unique_ptr<DataType>>>(2);
+        (*args)[0] =
+            std::make_unique<DataType>(static_cast<int>(snode->GetParseMode()));
         (*args)[1] = std::make_unique<DataType>(text);
         if (snode->GetParseMode() == StringFstNode::SYMBOL_TABLE) {
           // In the case of the symbol table, we need to evaluate its node and

@@ -15,6 +15,7 @@
 #include <../bin/rewrite-tester-utils.h>
 
 #include <iostream>
+#include <memory>
 #include <set>
 #include <sstream>
 #include <string>
@@ -159,7 +160,7 @@ void RewriteTesterUtils::Initialize() {
       LOG(FATAL) << "Invalid mode or symbol table path.";
     }
     compiler_ = std::make_unique<StringCompiler<StdArc>>(TokenType::SYMBOL,
-                                                          input_symtab_.get());
+                                                         input_symtab_.get());
   }
   output_symtab_ = nullptr;
   if (FST_FLAGS_output_mode == "byte") {

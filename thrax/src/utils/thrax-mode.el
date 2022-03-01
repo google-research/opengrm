@@ -12,7 +12,7 @@
 ; See the License for the specific language governing permissions and
 ; limitations under the License.
 ;
-;;; package --- Thrax mode for Emacs
+;;; thrax-mode.el --- Thrax mode for Emacs
 ; Assuming you have installed this in /usr/local/share/thrax/utils then put the
 ; following line in your .emacs:
 ;
