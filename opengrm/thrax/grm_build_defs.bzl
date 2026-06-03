@@ -113,7 +113,7 @@ def compile_grm(
     # Following loop copies all the transitive dependencies.
     prep_cmd = ""
     for d in deps:
-        prep_cmd += "\nfor f in $(locations " + d + "_lib); do"
+        prep_cmd += "\nfor f in $(locations " + _rule_to_library(d) + "); do"
         prep_cmd += "\n  if [[ \"$$f\" == *.far ]]; then"
         prep_cmd += "\n    rel_path=$${f#$(GENDIR)/}"
         prep_cmd += "\n    mkdir -p $$(dirname $$rel_path)"
@@ -123,7 +123,7 @@ def compile_grm(
 
     native.genrule(
         name = compiler_rule_name,
-        srcs = [src] + deps + [d + "_lib" for d in deps] + data,
+        srcs = [src] + deps + [_rule_to_library(d) for d in deps] + data,
         outs = [compiler_out],
         cmd = prep_cmd + cmd,
         tools = [grammar_compiler],
@@ -144,7 +144,7 @@ def compile_grm(
 
     # Helper target to collect all files transitively.
     native.filegroup(
-        name = name + "_lib",
-        srcs = [name, src] + [d + "_lib" for d in deps],
+        name = _rule_to_library(name),
+        srcs = [name, src] + [_rule_to_library(d) for d in deps],
         **kwds,
     )
