@@ -1,0 +1,121 @@
+# Copyright 2026 The OpenGrm Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Expansion of digit sequences into sums of products of powers of
+# ten, tuned for Western languages where the M's are 10^3, 10^6 ...
+# This grammar goes up to 10^20.
+#
+# J. Hurford, 1975, The Linguistic Theory of Numerals, Cambridge.
+
+import 'opengrm/thrax/stdlib/byte.grm' as bytelib;
+import 'opengrm/thrax/test/testdata/en_us_numbers/util.grm' as util;
+
+func Cond[c, t1, t2, sigma_star] {
+  inside = Optimize[sigma_star - c];
+  composed = inside @ t2;
+  return c @ t1 | composed;
+}
+
+non_ms = "[E2]" | "[E1]";
+
+ms = "[E18]" | "[E15]" | "[E12]" | "[E9]" | "[E6]" | "[E3]";
+
+powers = RmEpsilon[ms | non_ms];
+
+digit_factorization =
+ RmEpsilon[
+ ((((((((((((((((((((
+  bytelib.kDigit ("" : "[E2]"))?
+   bytelib.kDigit ("" : "[E1]"))?
+    bytelib.kDigit ("" : "[E18]"))?
+  bytelib.kDigit ("" : "[E2]"))?
+   bytelib.kDigit ("" : "[E1]"))?
+    bytelib.kDigit ("" : "[E15]"))?
+  bytelib.kDigit ("" : "[E2]"))?
+   bytelib.kDigit ("" : "[E1]"))?
+    bytelib.kDigit ("" : "[E12]"))?
+     bytelib.kDigit ("" : "[E2]"))?
+      bytelib.kDigit ("" : "[E1]"))?
+  bytelib.kDigit ("" : "[E9]"))?
+   bytelib.kDigit ("" : "[E2]"))?
+    bytelib.kDigit ("" : "[E1]"))?
+     bytelib.kDigit ("" : "[E6]"))?
+      bytelib.kDigit ("" : "[E2]"))?
+       bytelib.kDigit ("" : "[E1]"))?
+        bytelib.kDigit ("" : "[E3]"))?
+         bytelib.kDigit ("" : "[E2]"))?
+     bytelib.kDigit ("" : "[E1]"))?
+ bytelib.kDigit
+ ];
+
+## See below on [Dum]
+sigma_star = Optimize[(bytelib.kDigit | powers | "[Dum]")*];
+
+zeroedit1 = CDRewrite["0" non_ms : "", "", "", sigma_star];
+
+zeroedit2 = CDRewrite["0" : "", "", ms, sigma_star];
+
+zeroedit = (zeroedit1 @ zeroedit2) (util.d1to9 | ("0" : ""));
+
+multi_m_edit = CDRewrite[ms : "", ms, "", sigma_star];
+
+factorization = digit_factorization @ zeroedit @ multi_m_edit;
+
+export western_factorization = Cond["0", "0", factorization, sigma_star];
+
+## Factorization for Germanic languages that allow constructions like "sixteen
+## hundred". All these cases must have four digits, but never a 0 in the second
+## position (you don't say "twenty hundred")
+
+hundreds_factorization =
+  bytelib.kDigit ("" : "[E1]")
+  (bytelib.kDigit - "0") ("" : "[E2]")
+  bytelib.kDigit ("" : "[E1]")
+  bytelib.kDigit
+;
+
+export germanic_hundreds_factorization =
+  Optimize[hundreds_factorization @ zeroedit @ multi_m_edit]
+;
+
+
+## Factorization for languages that retain the old European-style use of 10^9 =
+## 10^3*10^6 -- e.g. (old) British style "thousand million" for "billion". In
+## this case we change [E9] to [E3], inserting a dummy symbol after the [E3] so
+## that multi_m_edit does not get rid of that [E3] if it comes right before an
+## [E6]. Then we remove the dummy symbol after multi_m_edit
+
+old_european_style = CDRewrite[
+  "[E9]" | "[E15]" : "[E3][Dum]", "", "", sigma_star
+];
+deldum = CDRewrite["[Dum]" : "", "", "", sigma_star];
+
+## We also need a cleanup for the sequences [E12][Dum][E6] and [E18][Dum][E12]
+
+cleanup = Optimize[
+  CDRewrite["[E12][Dum][E6]" : "[E12]", "", "", sigma_star] @
+  CDRewrite["[E18][Dum][E12]" : "[E18]", "", "", sigma_star]
+];
+
+oef1 = Optimize[digit_factorization @ old_european_style];
+oef2 = Optimize[oef1 @ zeroedit];
+oef3 = Optimize[oef2 @ multi_m_edit];
+oef4 = Optimize[oef3 @ cleanup];
+oef5 = Optimize[oef4 @ deldum];
+
+old_european_factorization = oef5;
+
+export old_western_factorization =
+  Cond["0", "0", old_european_factorization, sigma_star]
+;

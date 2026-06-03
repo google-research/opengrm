@@ -1,0 +1,258 @@
+# Copyright 2026 The OpenGrm Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+
+package(default_visibility = ["//visibility:public"])
+
+filegroup(
+    name = "google_grm_source",
+    srcs = glob([
+        "*.h",
+        "*.cc",
+    ]),
+    visibility = ["//visibility:private"],
+)
+
+filegroup(
+    name = "testdata",
+    srcs = glob(["testdata/**"]),
+)
+
+cc_library(
+    name = "prefix_tree",
+    hdrs = ["prefix_tree.h"],
+    deps = [
+        "@com_google_absl//absl/container:btree",
+        "@com_google_absl//absl/log:check",
+        "@com_google_openfst//openfst/compat",
+        "@com_google_openfst//openfst/lib:lib_lite",
+    ],
+)
+
+cc_test(
+    name = "prefix_tree_test",
+    size = "small",
+    srcs = ["prefix_tree_test.cc"],
+    deps = [
+        ":prefix_tree",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_library(
+    name = "stringcompile",
+    srcs = ["stringcompile.cc"],
+    hdrs = ["stringcompile.h"],
+    deps = [
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/types:span",
+        "@com_google_openfst//openfst/lib:lib_lite",
+        "@com_google_openfst//openfst/lib:string",
+        "@com_google_openfst//openfst/lib:symbol-table",
+        "@com_google_openfst//openfst/lib:util",
+    ],
+)
+
+cc_library(
+    name = "stringcompilescript",
+    srcs = ["stringcompilescript.cc"],
+    hdrs = ["stringcompilescript.h"],
+    deps = [
+        ":stringcompile",
+        "@com_google_absl//absl/strings",
+        "@com_google_openfst//openfst/lib:lib_lite",
+        "@com_google_openfst//openfst/lib:symbol-table",
+        "@com_google_openfst//openfst/script",
+    ],
+)
+
+cc_test(
+    name = "stringcompile_test",
+    srcs = ["stringcompile_test.cc"],
+    deps = [
+        ":stringcompile",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "defaults",
+    srcs = ["defaults.cc"],
+    hdrs = ["defaults.h"],
+    deps = [
+        "@com_google_absl//absl/base:nullability",
+        "@com_google_openfst//openfst/lib:string",
+        "@com_google_openfst//openfst/lib:symbol-table",
+    ],
+)
+
+cc_library(
+    name = "stringfile",
+    srcs = ["stringfile.cc"],
+    hdrs = ["stringfile.h"],
+    deps = [
+        ":stringutil",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/types:span",
+        "@com_google_openfst//openfst/lib:file-util",
+    ],
+)
+
+cc_test(
+    name = "stringfile_test",
+    size = "small",
+    srcs = ["stringfile_test.cc"],
+    data = [":testdata"],
+    deps = [
+        ":stringfile",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+    ],
+)
+
+cc_library(
+    name = "stringmap",
+    hdrs = ["stringmap.h"],
+    deps = [
+        ":prefix_tree",
+        ":stringcompile",
+        ":stringfile",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/types:span",
+        "@com_google_openfst//openfst/lib:lib_lite",
+        "@com_google_openfst//openfst/lib:symbol-table",
+    ],
+)
+
+cc_library(
+    name = "stringmapscript",
+    srcs = ["stringmapscript.cc"],
+    hdrs = ["stringmapscript.h"],
+    deps = [
+        ":stringmap",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/types:span",
+        "@com_google_openfst//openfst/lib:lib_lite",
+        "@com_google_openfst//openfst/lib:symbol-table",
+        "@com_google_openfst//openfst/script",
+    ],
+)
+
+cc_test(
+    name = "stringmap_test",
+    size = "medium",
+    srcs = ["stringmap_test.cc"],
+    data = [":testdata"],
+    deps = [
+        ":stringmapscript",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/lib:lib_lite",
+        "@com_google_openfst//openfst/lib:symbol-table",
+        "@com_google_openfst//openfst/script",
+        "@com_google_openfst//openfst/script:weight-class",
+    ],
+)
+
+cc_library(
+    name = "stringprint",
+    hdrs = ["stringprint.h"],
+    deps = [
+        "@com_google_openfst//openfst/lib:fst-decl",
+        "@com_google_openfst//openfst/lib:lib_lite",
+    ],
+)
+
+cc_library(
+    name = "stringprintscript",
+    srcs = ["stringprintscript.cc"],
+    hdrs = ["stringprintscript.h"],
+    deps = [
+        ":stringprint",
+        "@com_google_openfst//openfst/lib:fst-decl",
+        "@com_google_openfst//openfst/lib:string",
+        "@com_google_openfst//openfst/lib:symbol-table",
+        "@com_google_openfst//openfst/script",
+    ],
+)
+
+# Other stuff.
+
+cc_library(
+    name = "stringutil",
+    srcs = ["stringutil.cc"],
+    hdrs = ["stringutil.h"],
+    deps = ["@com_google_absl//absl/strings"],
+)
+
+cc_test(
+    name = "stringutil_test",
+    size = "small",
+    srcs = ["stringutil_test.cc"],
+    deps = [
+        ":stringutil",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "string-view-fst",
+    hdrs = ["string-view-fst.h"],
+    deps = [
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/strings",
+        "@com_google_openfst//openfst/lib:lib_lite",
+    ],
+)
+
+# Tests StringCompile and PrintString.
+cc_test(
+    name = "string_test",
+    size = "medium",
+    srcs = ["string_test.cc"],
+    data = [":testdata"],
+    deps = [
+        ":defaults",
+        ":stringcompile",
+        ":stringcompilescript",
+        ":stringprint",
+        ":stringprintscript",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:symbol-table",
+        "@com_google_openfst//openfst/script",
+        "@com_google_openfst//openfst/script:weight-class",
+    ],
+)
+
+# Tests StringViewFst.
+cc_test(
+    name = "string-view-fst_test",
+    size = "medium",
+    srcs = ["string-view-fst_test.cc"],
+    deps = [
+        ":string-view-fst",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/lib",
+    ],
+)

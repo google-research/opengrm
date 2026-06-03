@@ -1,0 +1,132 @@
+ars_maj	песо __ACC,NEU,PLU
+ars_maj	песо __NOM,NEU,PLU
+ars_maj	песо __INS,NEU,PLU
+ars_maj	песо __INS,NEU,SIN
+ars_maj	песо __DAT,NEU,PLU
+ars_maj	песо __GEN,NEU,PLU
+ars_maj	песо __LOC,NEU,PLU
+ars_maj	песо __GEN,NEU,SIN
+ars_maj	песо __ACC,NEU,SIN
+ars_maj	песо __NOM,NEU,SIN
+ars_maj	песо __LOC,NEU,SIN
+ars_maj	песо __DAT,NEU,SIN
+byr_maj	рублі __ACC,MAS,PLU
+byr_maj	рублі __NOM,MAS,PLU
+byr_maj	рубль __ACC,MAS,SIN
+byr_maj	рубль __NOM,MAS,SIN
+byr_maj	рублями __INS,MAS,PLU
+byr_maj	рублем __INS,MAS,SIN
+byr_maj	рублям __DAT,MAS,PLU
+byr_maj	рублів __GEN,MAS,PLU
+byr_maj	рублях __LOC,MAS,PLU
+byr_maj	рубля __GEN,MAS,SIN
+byr_maj	рублі __LOC,MAS,SIN
+byr_maj	рублю __DAT,MAS,SIN
+cny_maj	юані __LOC,MAS,SIN
+cny_maj	юанів __GEN,MAS,PLU
+cny_maj	юанем __INS,MAS,SIN
+cny_maj	юані __ACC,MAS,PLU
+cny_maj	юані __NOM,MAS,PLU
+cny_maj	юань __ACC,MAS,SIN
+cny_maj	юань __NOM,MAS,SIN
+cny_maj	юаню __DAT,MAS,SIN
+cny_maj	юаня __GEN,MAS,SIN
+cny_maj	юаням __DAT,MAS,PLU
+cny_maj	юанями __INS,MAS,PLU
+cny_maj	юанях __LOC,MAS,PLU
+eur_maj	євро __ACC,MAS,SIN
+eur_maj	євро __DAT,MAS,SIN
+eur_maj	євро __GEN,MAS,SIN
+eur_maj	євро __INS,MAS,SIN
+eur_maj	євро __NOM,MAS,SIN
+eur_maj	євро __LOC,MAS,SIN
+eur_maj	євро __ACC,MAS,PLU
+eur_maj	євро __DAT,MAS,PLU
+eur_maj	євро __GEN,MAS,PLU
+eur_maj	євро __INS,MAS,PLU
+eur_maj	євро __NOM,MAS,PLU
+eur_maj	євро __LOC,MAS,PLU
+gbp_maj	фунтами стерлінгів __INS,MAS,PLU
+gbp_maj	фунтам стерлінгів __DAT,MAS,PLU
+gbp_maj	фунта стерлінгів __GEN,MAS,SIN
+gbp_maj	фунтах стерлінгів __LOC,MAS,PLU
+gbp_maj	фунті стерлінгів __LOC,MAS,SIN
+gbp_maj	фунтів стерлінгів __GEN,MAS,PLU
+gbp_maj	фунтом стерлінгів __INS,MAS,SIN
+gbp_maj	фунт стерлінгів __ACC,MAS,SIN
+gbp_maj	фунт стерлінгів __NOM,MAS,SIN
+gbp_maj	фунту стерлінгів __DAT,MAS,SIN
+gbp_maj	фунти стерлінгів __ACC,MAS,PLU
+gbp_maj	фунти стерлінгів __NOM,MAS,PLU
+jpy_maj	єн __GEN,FEM,PLU
+jpy_maj	єни __NOM,FEM,PLU
+jpy_maj	йена __NOM,FEM,SIN
+jpy_maj	єнам __DAT,FEM,PLU
+jpy_maj	єнами __INS,FEM,PLU
+jpy_maj	єнах __LOC,FEM,PLU
+jpy_maj	єні __DAT,FEM,SIN
+jpy_maj	єні __LOC,FEM,SIN
+jpy_maj	єною __INS,FEM,SIN
+jpy_maj	єну __ACC,FEM,SIN
+jpy_maj	єни __GEN,FEM,SIN
+jpy_maj	єни __ACC,FEM,PLU
+rub_maj	рублі __LOC,MAS,SIN
+rub_maj	рублі __ACC,MAS,PLU
+rub_maj	рублів __GEN,MAS,PLU
+rub_maj	рублем __INS,MAS,SIN
+rub_maj	рублі __NOM,MAS,PLU
+rub_maj	рубль __ACC,MAS,SIN
+rub_maj	рубль __NOM,MAS,SIN
+rub_maj	рублю __DAT,MAS,SIN
+rub_maj	рубля __GEN,MAS,SIN
+rub_maj	рублям __DAT,MAS,PLU
+rub_maj	рублями __INS,MAS,PLU
+rub_maj	рублях __LOC,MAS,PLU
+ukr_maj	гривень __GEN,FEM,PLU
+ukr_maj	гривня __NOM,FEM,SIN
+ukr_maj	гривням __DAT,FEM,PLU
+ukr_maj	гривнями __INS,FEM,PLU
+ukr_maj	гривнях __LOC,FEM,PLU
+ukr_maj	гривні __LOC,FEM,SIN
+ukr_maj	гривнею __INS,FEM,SIN
+ukr_maj	гривню __ACC,FEM,SIN
+ukr_maj	гривні __DAT,FEM,SIN
+ukr_maj	гривні __GEN,FEM,SIN
+ukr_maj	гривні __ACC,FEM,PLU
+ukr_maj	гривні __NOM,FEM,PLU
+usd_maj	долара США __GEN,MAS,SIN
+usd_maj	доларами США __INS,MAS,PLU
+usd_maj	доларам США __DAT,MAS,PLU
+usd_maj	доларах США __LOC,MAS,PLU
+usd_maj	доларі США __LOC,MAS,SIN
+usd_maj	доларів США __GEN,MAS,PLU
+usd_maj	доларом США __INS,MAS,SIN
+usd_maj	долар США __ACC,MAS,SIN
+usd_maj	долар США __NOM,MAS,SIN
+usd_maj	долару США __DAT,MAS,SIN
+usd_maj	долари США __ACC,MAS,PLU
+usd_maj	долари США __NOM,MAS,PLU
+dollar_maj	долара __GEN,MAS,SIN
+dollar_maj	доларами __INS,MAS,PLU
+dollar_maj	доларам __DAT,MAS,PLU
+dollar_maj	доларах __LOC,MAS,PLU
+dollar_maj	доларі __LOC,MAS,SIN
+dollar_maj	доларів __GEN,MAS,PLU
+dollar_maj	доларом __INS,MAS,SIN
+dollar_maj	долар __ACC,MAS,SIN
+dollar_maj	долар __NOM,MAS,SIN
+dollar_maj	долару __DAT,MAS,SIN
+dollar_maj	долари __ACC,MAS,PLU
+dollar_maj	долари __NOM,MAS,PLU
+pound_maj	фунтами __INS,MAS,PLU
+pound_maj	фунтам __DAT,MAS,PLU
+pound_maj	фунта __GEN,MAS,SIN
+pound_maj	фунтах __LOC,MAS,PLU
+pound_maj	фунті __LOC,MAS,SIN
+pound_maj	фунтів __GEN,MAS,PLU
+pound_maj	фунтом __INS,MAS,SIN
+pound_maj	фунт __ACC,MAS,SIN
+pound_maj	фунт __NOM,MAS,SIN
+pound_maj	фунту __DAT,MAS,SIN
+pound_maj	фунти __ACC,MAS,PLU
+pound_maj	фунти __NOM,MAS,PLU

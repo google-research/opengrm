@@ -1,0 +1,230 @@
+# Copyright 2026 The OpenGrm Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+load("//:bazel/bison.bzl", "genyacc")
+
+package(default_visibility = ["//visibility:public"])
+
+filegroup(
+    name = "google_grm_source",
+    srcs = glob([
+        "*.cc",
+        "*.h",
+        "*.y",
+    ]),
+    visibility = ["//visibility:private"],
+)
+
+bzl_library(
+    name = "grm_build_defs_bzl",
+    srcs = ["grm_build_defs.bzl"],
+    deps = ["@com_google_openfst//openfst/extensions/far:build_defs_bzl"],
+)
+
+# Register compact FST types used in FARs.
+cc_library(
+    name = "fst_types",
+    alwayslink = 1,
+)
+
+# A lightweight version of //third_party/openfst/static:far for use by compile_grm.
+# Does not include all extensions nor support for all file types,
+# just those in //third_party/opengrm/thrax:fst_types, and only supports local files.
+cc_binary(
+    name = "far",
+    deps = [
+        ":fst_types",
+        "@com_google_openfst//openfst/static:far_main",
+    ],
+)
+
+cc_library(
+    name = "abstract-grm-manager-lib",
+    hdrs = ["abstract-grm-manager.h"],
+    deps = [
+        ":flags",
+        "//opengrm/rewrite:parentheses",
+        "@com_google_absl//absl/container:btree",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/memory",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/types:span",
+        "@com_google_openfst//openfst/extensions/mpdt:compose",
+        "@com_google_openfst//openfst/extensions/pdt:compose",
+        "@com_google_openfst//openfst/extensions/pdt:shortest-path",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_binary(
+    name = "compiler",
+    srcs = [
+        "compiler.cc",
+        "compiler.h",
+        "compiler-log.cc",
+        "compiler-log64.cc",
+        "compiler-stdarc.cc",
+    ],
+    deps = [
+        ":fst_types",
+        ":grm-compiler-lib",
+        ":grm-manager-lib",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_openfst//openfst/compat:init",
+    ],
+)
+
+cc_library(
+    name = "grm-compiler-lib",
+    srcs = [
+        "grm-compiler.cc",
+        "lexer.cc",
+        "parser.cc",
+    ],
+    hdrs = [
+        "grm-compiler.h",
+        "lexer.h",
+        "parser.h",
+    ],
+    deps = [
+        ":flags",
+        ":grm-manager-lib",
+        "//opengrm/thrax/ast",
+        "//opengrm/thrax/ast:collection-node",
+        "//opengrm/thrax/ast:fst-node",
+        "//opengrm/thrax/ast:function-node",
+        "//opengrm/thrax/ast:grammar-node",
+        "//opengrm/thrax/ast:identifier-node",
+        "//opengrm/thrax/ast:import-node",
+        "//opengrm/thrax/ast:node",
+        "//opengrm/thrax/ast:return-node",
+        "//opengrm/thrax/ast:rule-node",
+        "//opengrm/thrax/ast:statement-node",
+        "//opengrm/thrax/ast:string-node",
+        "//opengrm/thrax/compat:file",
+        "//opengrm/thrax/walker:base",
+        "//opengrm/thrax/walker:evaluator",
+        "//opengrm/thrax/walker:identifier-counter",
+        "//opengrm/thrax/walker:printer",
+        "//opengrm/thrax/walker:rule-dependency-extractor",
+        "//opengrm/thrax/walker/util:datatype",
+        "//opengrm/thrax/walker/util:namespace",
+        "//opengrm/thrax/walker/util:resource-map",
+        "//opengrm/thrax/walker/util/function",
+        "@com_google_absl//absl/base",
+        "@com_google_absl//absl/container:btree",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/memory",
+        "@com_google_absl//absl/strings",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_library(
+    name = "grm-manager-lib",
+    hdrs = ["grm-manager.h"],
+    deps = [
+        ":abstract-grm-manager-lib",
+        "//opengrm/thrax/compat:file",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/memory",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/extensions/far:lib",
+        "@com_google_openfst//openfst/lib:lib_lite",
+        "@com_google_openfst//openfst/lib:symbol-table",
+    ],
+)
+
+cc_library(
+    name = "flags",
+    srcs = ["flags.cc"],
+    tags = ["keep_dep"],
+    deps = ["@com_google_absl//absl/flags:flag"],
+)
+
+cc_binary(
+    name = "random-generator",
+    srcs = ["random-generator.cc"],
+    deps = [
+        ":grm-manager-lib",
+        "//opengrm/rewrite",
+        "//opengrm/thrax/walker/util/function",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:check",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:string",
+        "@com_google_openfst//openfst/lib:symbol-table",
+    ],
+)
+
+genyacc(
+    name = "rewrite_parser_yacc",
+    src = "parser.y",
+    header_out = "parser.h",
+    source_out = "parser.cc",
+)
+
+cc_library(
+    name = "rewrite-tester-lib",
+    srcs = ["rewrite-tester.cc"],
+    hdrs = ["rewrite-tester.h"],
+    deps = [
+        ":grm-manager-lib",
+        "//opengrm/paths",
+        "//opengrm/thrax/compat:file",
+        "//opengrm/thrax/walker/util/function",
+        "//opengrm/thrax/walker/util/function:symbols",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/memory",
+        "@com_google_absl//absl/strings",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:string",
+        "@com_google_openfst//openfst/lib:symbol-table",
+        "@readline",
+    ],
+)
+
+cc_binary(
+    name = "rewrite-tester",
+    srcs = ["rewrite-tester-main.cc"],
+    deps = [
+        ":rewrite-tester-lib",
+        "@com_google_openfst//openfst/compat:init",
+    ],
+)
+
+filegroup(
+    name = "rule_cascade_test_fars",
+    data = [
+        "//opengrm/thrax/test:testdata/cap.sttable.far",
+        "//opengrm/thrax/test/testdata/mpdt:mpdt.far",
+        "//opengrm/thrax/test/testdata/pdt:pdt.far",
+    ],
+)

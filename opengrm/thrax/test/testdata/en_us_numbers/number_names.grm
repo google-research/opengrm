@@ -1,0 +1,417 @@
+# Copyright 2026 The OpenGrm Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Basic English number names. Depends upon factorization of
+# digit strings defined in western_factorization.grm.
+
+import 'opengrm/thrax/stdlib/byte.grm' as bytelib;
+import 'opengrm/thrax/test/testdata/en_us_numbers/symbols.grm' as symbols;
+import 'opengrm/thrax/test/testdata/en_us_numbers/thousands_punct.grm' as tp;
+import 'opengrm/thrax/test/testdata/en_us_numbers/util.grm' as nutil;
+import 'opengrm/thrax/test/testdata/en_us_numbers/western_factorization.grm' as wf;
+
+# Legacy code with lots of dependencies, so for now:
+# gthraxlinter: disable=upper-case-exports
+export ins_space = "" : " ";
+export sigma_star = (bytelib.kBytes | symbols.extended_labels)*;
+
+ins_tens_marker = CDRewrite["" : "[tens_marker]", "1[E1]", "", sigma_star];
+del_tens_marker = CDRewrite["[tens_marker]" : "", "", nutil.d1to9, sigma_star];
+mark_tens = Optimize[ins_tens_marker @ del_tens_marker];
+
+cardinal_vocabulary =
+    ("0" : "zero")
+  | ("1" : "one")
+  | ("2" : "two")
+  | ("3" : "three")
+  | ("4" : "four")
+  | ("5" : "five")
+  | ("6" : "six")
+  | ("7" : "seven")
+  | ("8" : "eight")
+  | ("9" : "nine")
+  | ("1[E1][tens_marker]" : "ten")
+  | ("1[E1]1" : "eleven")
+  | ("1[E1]2" : "twelve")
+  | ("1[E1]3" : "thirteen")
+  | ("1[E1]4" : "fourteen")
+  | ("1[E1]5" : "fifteen")
+  | ("1[E1]6" : "sixteen")
+  | ("1[E1]7" : "seventeen")
+  | ("1[E1]8" : "eighteen")
+  | ("1[E1]9" : "nineteen")
+  | ("2[E1]" : "twenty")
+  | ("3[E1]" : "thirty")
+  | ("4[E1]" : "forty")
+  | ("5[E1]" : "fifty")
+  | ("6[E1]" : "sixty")
+  | ("7[E1]" : "seventy")
+  | ("8[E1]" : "eighty")
+  | ("9[E1]" : "ninety")
+  | ("[E2]" : "hundred")
+  | ("[E3]" : "thousand")
+  | ("[E6]" : "million")
+  | ("[E9]" : "billion")
+  | ("[E12]" : "trillion")
+;
+
+ordinal_vocabulary =
+    ("0th" : "zeroth")
+  | ("1st" : "first")
+  | ("2nd" : "second")
+  | ("3rd" : "third")
+  | ("4th" : "fourth")
+  | ("5th" : "fifth")
+  | ("6th" : "sixth")
+  | ("7th" : "seventh")
+  | ("8th" : "eighth")
+  | ("9th" : "ninth")
+  | ("1[E1][tens_marker]th" : "tenth")
+  | ("1[E1]1th" : "eleventh")
+  | ("1[E1]2th" : "twelfth")
+  | ("1[E1]3th" : "thirteenth")
+  | ("1[E1]4th" : "fourteenth")
+  | ("1[E1]5th" : "fifteenth")
+  | ("1[E1]6th" : "sixteenth")
+  | ("1[E1]7th" : "seventeenth")
+  | ("1[E1]8th" : "eighteenth")
+  | ("1[E1]9th" : "nineteenth")
+  | ("2[E1]th" : "twentieth")
+  | ("3[E1]th" : "thirtieth")
+  | ("4[E1]th" : "fortieth")
+  | ("5[E1]th" : "fiftieth")
+  | ("6[E1]th" : "sixtieth")
+  | ("7[E1]th" : "seventieth")
+  | ("8[E1]th" : "eightieth")
+  | ("9[E1]th" : "ninetieth")
+  | ("[E2]th" : "hundredth")
+  | ("[E3]th" : "thousandth")
+  | ("[E6]th" : "millionth")
+  | ("[E9]th" : "billionth")
+  | ("[E12]th" : "trillionth")
+;
+
+export ordinal_endings = ("th" | "nd" | "rd" | "st");
+
+cardinal_vocabulary_string =
+  ((cardinal_vocabulary ins_space)* cardinal_vocabulary)
+;
+
+ordinal_vocabulary_string =
+  ((cardinal_vocabulary ins_space)* ordinal_vocabulary)
+;
+
+export thousands_delimiters = Optimize[
+    tp.no_delimiter
+  | tp.comma_thousands
+  | tp.space_thousands
+];
+
+english_factorization = Optimize[
+    thousands_delimiters
+  @ wf.western_factorization
+];
+
+## Special case of Germanic "sixteen hundred", etc
+
+hundreds_factorization =  Optimize[
+    thousands_delimiters
+  @ wf.germanic_hundreds_factorization
+];
+
+export CARDINAL_PREFACTORED = Optimize[mark_tens @ cardinal_vocabulary_string];
+
+export CARDINAL_NUMBER_NAME = Optimize[
+  english_factorization @
+  CARDINAL_PREFACTORED
+];
+
+# Included for compatibility with verbalization template grammar.
+export CARDINAL_NUMBER_NAME_CANONICAL = CARDINAL_NUMBER_NAME;
+
+export HUNDREDS_CARDINAL_NUMBER_NAME = Optimize[
+  hundreds_factorization @
+  CARDINAL_PREFACTORED
+];
+
+export ORDINAL_PREFACTORED = Optimize[mark_tens @ ordinal_vocabulary_string];
+
+export ORDINAL_NUMBER_NAME = Optimize[
+  english_factorization ordinal_endings @
+  ORDINAL_PREFACTORED
+];
+
+export HUNDREDS_ORDINAL_NUMBER_NAME = Optimize[
+  hundreds_factorization ordinal_endings @
+  ORDINAL_PREFACTORED
+];
+
+insert_ordinal_endings =
+  CDRewrite["" : ("st" | "nd" | "rd" | "th"), "", "[EOS]", sigma_star]
+;
+
+export ORDINAL_NUMBER_NAME_WITHOUT_OVERT_MARKING = Optimize[
+  (english_factorization @ insert_ordinal_endings) @
+  ORDINAL_PREFACTORED
+];
+
+export HUNDREDS_ORDINAL_NUMBER_NAME_WITHOUT_OVERT_MARKING = Optimize[
+  (hundreds_factorization @ insert_ordinal_endings) @
+  ORDINAL_PREFACTORED
+];
+
+# plural form of number
+
+cardinal_plural =
+    ("zero" : "zeros")
+  | ("one" : "ones")
+  | ("two" : "twos")
+  | ("three" : "threes")
+  | ("four" : "fours")
+  | ("five" : "fives")
+  | ("six" : "sixes")
+  | ("seven" : "sevens")
+  | ("eight" : "eights")
+  | ("nine" : "nines")
+  | ("ten" : "tens")
+  | ("eleven" : "elevens")
+  | ("twelve" : "twelves")
+  | ("thirteen" : "thirteens")
+  | ("fourteen" : "fourteens")
+  | ("fifteen" : "fifteens")
+  | ("sixteen" : "sixteens")
+  | ("seventeen" : "seventeens")
+  | ("eighteen" : "eighteens")
+  | ("nineteen" : "nineteens")
+  | ("twenty" : "twenties")
+  | ("thirty" : "thirties")
+  | ("forty" : "forties")
+  | ("fifty" : "fifties")
+  | ("sixty" : "sixties")
+  | ("seventy" : "seventies")
+  | ("eighty" : "eighties")
+  | ("ninety" : "nineties")
+  | ("hundred" : "hundreds")
+  | ("thousand" : "thousands")
+  | ("million" : "millions")
+  | ("billion" : "billions")
+  | ("trillion" : "trillions")
+;
+
+sub_cardinal =
+  CDRewrite[cardinal_plural, " " | "[BOS]", "[EOS]", sigma_star]
+;
+
+export PLURAL_CARDINAL_NUMBER_NAME =
+  Optimize[CARDINAL_NUMBER_NAME @ sub_cardinal]
+;
+
+# digit sequence
+digit_to_word =
+    ("0" : "zero")
+  | ("1" : "one")
+  | ("2" : "two")
+  | ("3" : "three")
+  | ("4" : "four")
+  | ("5" : "five")
+  | ("6" : "six")
+  | ("7" : "seven")
+  | ("8" : "eight")
+  | ("9" : "nine")
+;
+
+# turn digit sequence into 123 --> 'one two three'
+export SINGLE_DIGITS =
+ ((digit_to_word ins_space)* digit_to_word)
+;
+
+consecutive_word =
+    (("zero "{5} "zero") : "triple zero triple zero")
+  | (("zero "{4} "zero") : "triple zero double zero")
+  | (("zero "{3} "zero") : "double zero double zero")
+  | (("zero "{2} "zero") : "triple zero")
+  | (("zero zero") : "double zero")
+  | (("one "{5} "one") : "triple one triple one")
+  | (("one "{4} "one") : "triple one double one")
+  | (("one "{3} "one") : "double one double one")
+  | (("one "{2} "one") : "triple one")
+  | (("one one") : "double one")
+  | (("two "{5} "two") : "triple two triple two")
+  | (("two "{4} "two") : "triple two double two")
+  | (("two "{3} "two") : "double two double two")
+  | (("two "{2} "two") : "triple two")
+  | (("two two") : "double two")
+  | (("three "{5} "three") : "triple three triple three")
+  | (("three "{4} "three") : "triple three double three")
+  | (("three "{3} "three") : "double three double three")
+  | (("three "{2} "three") : "triple three")
+  | (("three three") : "double three")
+  | (("four "{5} "four") : "triple four triple four")
+  | (("four "{4} "four") : "triple four double four")
+  | (("four "{3} "four") : "double four double four")
+  | (("four "{2} "four") : "triple four")
+  | (("four four") : "double four")
+  | (("five "{5} "five") : "triple five triple five")
+  | (("five "{4} "five") : "triple five double five")
+  | (("five "{3} "five") : "double five double five")
+  | (("five "{2} "five") : "triple five")
+  | (("five five") : "double five")
+  | (("six "{5} "six") : "triple six triple six")
+  | (("six "{4} "six") : "triple six double six")
+  | (("six "{3} "six") : "double six double six")
+  | (("six "{2} "six") : "triple six")
+  | (("six six") : "double six")
+  | (("seven "{5} "seven") : "triple seven triple seven")
+  | (("seven "{4} "seven") : "triple seven double seven")
+  | (("seven "{3} "seven") : "double seven double seven")
+  | (("seven "{2} "seven") : "triple seven")
+  | (("seven seven") : "double seven")
+  | (("eight "{5} "eight") : "triple eight triple eight")
+  | (("eight "{4} "eight") : "triple eight double eight")
+  | (("eight "{3} "eight") : "double eight double eight")
+  | (("eight "{2} "eight") : "triple eight")
+  | (("eight eight") : "double eight")
+  | (("nine "{5} "nine") : "triple nine triple nine")
+  | (("nine "{4} "nine") : "triple nine double nine")
+  | (("nine "{3} "nine") : "double nine double nine")
+  | (("nine "{2} "nine") : "triple nine")
+  | (("nine nine") : "double nine")
+;
+
+consecutive_word_sub =
+ CDRewrite[consecutive_word, " " | "[BOS]", " " | "[EOS]", sigma_star]
+;
+
+# turn digit sequence into 11122 -->'triple one double two'
+export CON_DIGITS =
+ Optimize[SINGLE_DIGITS @ consecutive_word_sub]
+;
+
+# change 'zero' to 'oh' in the string
+export ZERO_TO_O =
+ CDRewrite["zero" : "oh", " " | "[BOS]", " " | "[EOS]", sigma_star]
+;
+
+################################################################################
+## Insersion of "and" in British English
+
+small =
+    "one"
+  | "two"
+  | "three"
+  | "four"
+  | "five"
+  | "six"
+  | "seven"
+  | "eight"
+  | "nine"
+  | "ten"
+  | "eleven"
+  | "twelve"
+  | "thirteen"
+  | "fourteen"
+  | "fifteen"
+  | "sixteen"
+  | "seventeen"
+  | "eighteen"
+  | "nineteen"
+  | "twenty"
+  | "thirty"
+  | "forty"
+  | "fifty"
+  | "sixty"
+  | "seventy"
+  | "eighty"
+  | "ninety"
+  | "first"
+  | "second"
+  | "third"
+  | "fourth"
+  | "fifth"
+  | "sixth"
+  | "seventh"
+  | "eighth"
+  | "ninth"
+  | "tenth"
+  | "eleventh"
+  | "twelfth"
+  | "thirteenth"
+  | "fourteenth"
+  | "fifteenth"
+  | "sixteenth"
+  | "seventeenth"
+  | "eighteenth"
+  | "nineteenth"
+  | "twentieth"
+  | "thirtieth"
+  | "fortieth"
+  | "fiftieth"
+  | "sixtieth"
+  | "seventieth"
+  | "eightieth"
+  | "ninetieth"
+;
+
+large = "thousand" | "illion";
+
+insert_and1 = CDRewrite[" " : " and ", "hundred", small, sigma_star];
+
+insert_and2 = CDRewrite[
+  " " : " and ", large, small (" " small)? "[EOS]", sigma_star
+];
+
+export insert_and = Optimize[insert_and1 @ insert_and2];
+
+export UK_CARDINAL_NUMBER_NAME = Optimize[CARDINAL_NUMBER_NAME @ insert_and];
+
+export UK_ORDINAL_NUMBER_NAME = Optimize[ORDINAL_NUMBER_NAME @ insert_and];
+
+export UK_ORDINAL_NUMBER_NAME_WITHOUT_OVERT_MARKING =
+  Optimize[ORDINAL_NUMBER_NAME_WITHOUT_OVERT_MARKING @ insert_and];
+
+# The following is used in Scotish Gaelic number names.
+export UK_ORDINAL_NUMBER_NAME_WITHOUT_OVERT_MARKING_GD_GB =
+  Optimize[UK_ORDINAL_NUMBER_NAME_WITHOUT_OVERT_MARKING];
+
+export UK_HUNDREDS_CARDINAL_NUMBER_NAME = Optimize[
+  HUNDREDS_CARDINAL_NUMBER_NAME @ insert_and
+];
+
+export UK_HUNDREDS_ORDINAL_NUMBER_NAME = Optimize[
+  HUNDREDS_ORDINAL_NUMBER_NAME @ insert_and
+];
+
+export UK_HUNDREDS_ORDINAL_NUMBER_NAME_WITHOUT_OVERT_MARKING =
+  Optimize[HUNDREDS_ORDINAL_NUMBER_NAME_WITHOUT_OVERT_MARKING @ insert_and];
+
+################################################################################
+## Hooks for decimal numbers and other "non-standard" numbers
+
+export PERIOD = "." : "point";
+
+export MINUS = "-" : "minus";
+
+export SINGLE_DIGIT = bytelib.kDigit @ CARDINAL_NUMBER_NAME;
+
+################################################################################
+## Spelled out numbers that are likely to occur with currency amounts over which
+## the currency term should "skip":
+
+## $1,3 million -> 1,3 million $
+
+export SPELLED_NUMBERS =  "million" | "billion" | "trillion";
+
+# Test for cardinal and ordinal prefactored.
+
+export BYTES_TO_EXTENDED_LABELS = symbols.BYTES_TO_EXTENDED_LABELS;

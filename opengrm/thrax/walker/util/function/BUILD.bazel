@@ -1,0 +1,849 @@
+# Copyright 2026 The OpenGrm Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Pre-compiled (i.e., "Standard Library") functions for the GRM language.
+
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+
+package(default_visibility = ["//visibility:public"])
+
+filegroup(
+    name = "google_grm_source",
+    srcs = glob([
+        "*.h",
+        "*.cc",
+    ]),
+    visibility = ["//visibility:private"],
+)
+
+cc_library(
+    name = "base",
+    hdrs = ["function.h"],
+    deps = [
+        "//opengrm/thrax/walker/util:datatype",
+        "//opengrm/thrax/walker/util:register",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_library(
+    name = "function",
+    deps = [
+        ":assert-empty",
+        ":assert-equal",
+        ":assert-null",
+        ":base",
+        ":cdrewrite",
+        ":closure",
+        ":compose",
+        ":concat",
+        ":determinize",
+        ":difference",
+        ":expand",
+        ":features",
+        ":invert",
+        ":lenientlycompose",
+        ":loadfst",
+        ":loadfstfromfar",
+        ":minimize",
+        ":mpdtcompose",
+        ":optimize",
+        ":paradigm",
+        ":pdtcompose",
+        ":project",
+        ":replace",
+        ":reverse",
+        ":rewrite",
+        ":rmepsilon",
+        ":rmweight",
+        ":stringfile",
+        ":stringfst",
+        ":symbols",
+        ":symboltable",
+        ":union",
+    ],
+)
+
+cc_library(
+    name = "assert-empty",
+    srcs = ["assert-empty.cc"],
+    hdrs = ["assert-empty.h"],
+    deps = [
+        ":base",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_openfst//openfst/lib",
+    ],
+    alwayslink = 1,
+)
+
+cc_library(
+    name = "assert-equal",
+    srcs = ["assert-equal.cc"],
+    hdrs = ["assert-equal.h"],
+    deps = [
+        ":base",
+        "//opengrm/thrax:flags",
+        "//opengrm/thrax/walker/util:datatype",
+        "//opengrm/thrax/walker/util:register",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/strings",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:symbol-table",
+    ],
+    alwayslink = 1,
+)
+
+cc_library(
+    name = "assert-null",
+    srcs = ["assert-null.cc"],
+    hdrs = ["assert-null.h"],
+    deps = [
+        ":base",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_openfst//openfst/lib",
+    ],
+    alwayslink = 1,
+)
+
+cc_library(
+    name = "cdrewrite",
+    srcs = ["cdrewrite.cc"],
+    hdrs = ["cdrewrite.h"],
+    deps = [
+        ":base",
+        "//opengrm/operators:cdrewrite",
+        "//opengrm/operators:getters",
+        "//opengrm/string:stringcompile",
+        "//opengrm/thrax:flags",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:symbol-table",
+    ],
+    alwayslink = 1,
+)
+
+cc_library(
+    name = "closure",
+    srcs = ["closure.cc"],
+    hdrs = ["closure.h"],
+    deps = [
+        ":base",
+        "//opengrm/operators:concatrange",
+        "//opengrm/thrax:flags",
+        "//opengrm/thrax/ast:fst-node",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_openfst//openfst/lib",
+    ],
+    alwayslink = 1,
+)
+
+cc_library(
+    name = "compose",
+    srcs = ["compose.cc"],
+    hdrs = ["compose.h"],
+    deps = [
+        ":base",
+        "//opengrm/thrax:flags",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_openfst//openfst/lib",
+    ],
+    alwayslink = 1,
+)
+
+cc_library(
+    name = "concat",
+    srcs = ["concat.cc"],
+    hdrs = ["concat.h"],
+    deps = [
+        ":base",
+        "//opengrm/thrax:flags",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:symbol-table",
+    ],
+    alwayslink = 1,
+)
+
+cc_library(
+    name = "determinize",
+    srcs = ["determinize.cc"],
+    hdrs = ["determinize.h"],
+    deps = [
+        ":base",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_openfst//openfst/lib",
+    ],
+    alwayslink = 1,
+)
+
+cc_library(
+    name = "difference",
+    srcs = ["difference.cc"],
+    hdrs = ["difference.h"],
+    deps = [
+        ":base",
+        ":optimize",
+        "//opengrm/thrax:flags",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:symbol-table",
+    ],
+    alwayslink = 1,
+)
+
+cc_library(
+    name = "expand",
+    srcs = ["expand.cc"],
+    hdrs = ["expand.h"],
+    deps = [
+        ":base",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_openfst//openfst/lib",
+    ],
+    alwayslink = 1,
+)
+
+cc_library(
+    name = "features",
+    srcs = ["features.cc"],
+    hdrs = ["features.h"],
+    deps = [
+        ":base",
+        ":stringfst",
+        ":symbols",
+        "//opengrm/thrax:flags",
+        "//opengrm/thrax/ast:fst-node",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_absl//absl/base",
+        "@com_google_absl//absl/container:btree",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/strings",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:string",
+        "@com_google_openfst//openfst/lib:symbol-table",
+    ],
+    alwayslink = 1,
+)
+
+cc_library(
+    name = "invert",
+    srcs = ["invert.cc"],
+    hdrs = ["invert.h"],
+    deps = [
+        ":base",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_openfst//openfst/lib",
+    ],
+    alwayslink = 1,
+)
+
+cc_library(
+    name = "lenientlycompose",
+    srcs = ["lenientlycompose.cc"],
+    hdrs = ["lenientlycompose.h"],
+    deps = [
+        ":base",
+        "//opengrm/operators:lenientlycompose",
+        "//opengrm/thrax:flags",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:symbol-table",
+    ],
+    alwayslink = 1,
+)
+
+cc_library(
+    name = "loadfstfromfar",
+    srcs = ["loadfstfromfar.cc"],
+    hdrs = ["loadfstfromfar.h"],
+    deps = [
+        ":base",
+        "//opengrm/thrax:flags",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/extensions/far:lib",
+        "@com_google_openfst//openfst/lib",
+    ],
+    alwayslink = 1,
+)
+
+cc_library(
+    name = "loadfst",
+    srcs = ["loadfst.cc"],
+    hdrs = ["loadfst.h"],
+    deps = [
+        ":base",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/memory",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/lib",
+    ],
+    alwayslink = 1,
+)
+
+cc_library(
+    name = "minimize",
+    srcs = ["minimize.cc"],
+    hdrs = ["minimize.h"],
+    deps = [
+        ":base",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_openfst//openfst/lib",
+    ],
+    alwayslink = 1,
+)
+
+cc_library(
+    name = "mpdtcompose",
+    srcs = ["mpdtcompose.cc"],
+    hdrs = ["mpdtcompose.h"],
+    deps = [
+        ":base",
+        "//opengrm/rewrite:parentheses",
+        "//opengrm/thrax:flags",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_openfst//openfst/extensions/mpdt:compose",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:symbol-table",
+    ],
+    alwayslink = 1,
+)
+
+cc_library(
+    name = "optimize",
+    srcs = ["optimize.cc"],
+    hdrs = ["optimize.h"],
+    deps = [
+        ":base",
+        "//opengrm/operators:optimize",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_openfst//openfst/lib",
+    ],
+    alwayslink = 1,
+)
+
+cc_library(
+    name = "paradigm",
+    srcs = ["paradigm.cc"],
+    hdrs = ["paradigm.h"],
+    deps = [
+        ":base",
+        ":optimize",
+        ":stringfst",
+        "//opengrm/thrax:flags",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:check",
+        "@com_google_openfst//openfst/lib",
+    ],
+    alwayslink = 1,
+)
+
+cc_library(
+    name = "pdtcompose",
+    srcs = ["pdtcompose.cc"],
+    hdrs = ["pdtcompose.h"],
+    deps = [
+        ":base",
+        "//opengrm/rewrite:parentheses",
+        "//opengrm/thrax:flags",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_openfst//openfst/extensions/pdt:compose",
+        "@com_google_openfst//openfst/lib",
+    ],
+    alwayslink = 1,
+)
+
+cc_library(
+    name = "project",
+    srcs = ["project.cc"],
+    hdrs = ["project.h"],
+    deps = [
+        ":base",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/script",
+    ],
+    alwayslink = 1,
+)
+
+cc_library(
+    name = "replace",
+    srcs = ["replace.cc"],
+    hdrs = ["replace.h"],
+    deps = [
+        ":base",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_openfst//openfst/lib",
+    ],
+    alwayslink = 1,
+)
+
+cc_library(
+    name = "reverse",
+    srcs = ["reverse.cc"],
+    hdrs = ["reverse.h"],
+    deps = [
+        ":base",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_openfst//openfst/lib",
+    ],
+    alwayslink = 1,
+)
+
+cc_library(
+    name = "rewrite",
+    srcs = ["rewrite.cc"],
+    hdrs = ["rewrite.h"],
+    deps = [
+        ":base",
+        "//opengrm/operators:cross",
+        "//opengrm/thrax:flags",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_openfst//openfst/lib",
+    ],
+    alwayslink = 1,
+)
+
+cc_library(
+    name = "rmepsilon",
+    srcs = ["rmepsilon.cc"],
+    hdrs = ["rmepsilon.h"],
+    deps = [
+        ":base",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_openfst//openfst/lib",
+    ],
+    alwayslink = 1,
+)
+
+cc_library(
+    name = "rmweight",
+    srcs = ["rmweight.cc"],
+    hdrs = ["rmweight.h"],
+    deps = [
+        ":base",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_openfst//openfst/lib",
+    ],
+    alwayslink = 1,
+)
+
+cc_library(
+    name = "stringfile",
+    srcs = ["stringfile.cc"],
+    hdrs = ["stringfile.h"],
+    deps = [
+        ":base",
+        ":symbols",
+        "//opengrm/string:stringmap",
+        "//opengrm/thrax:flags",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:symbol-table",
+    ],
+    alwayslink = 1,
+)
+
+cc_library(
+    name = "stringfst",
+    srcs = ["stringfst.cc"],
+    hdrs = ["stringfst.h"],
+    deps = [
+        ":base",
+        ":symbols",
+        "//opengrm/string:stringcompile",
+        "//opengrm/thrax:flags",
+        "//opengrm/thrax/ast:fst-node",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/memory",
+        "@com_google_absl//absl/strings",
+        "@com_google_openfst//openfst/lib:lib_lite",
+        "@com_google_openfst//openfst/lib:string",
+        "@com_google_openfst//openfst/lib:symbol-table",
+    ],
+    alwayslink = 1,
+)
+
+cc_library(
+    name = "symbols",
+    srcs = ["symbols.cc"],
+    hdrs = ["symbols.h"],
+    deps = [
+        "@com_google_absl//absl/synchronization",
+        "@com_google_openfst//openfst/lib:string",
+        "@com_google_openfst//openfst/lib:symbol-table",
+    ],
+)
+
+cc_library(
+    name = "symboltable",
+    srcs = ["symboltable.cc"],
+    hdrs = ["symboltable.h"],
+    deps = [
+        ":base",
+        "//opengrm/thrax:flags",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/lib:symbol-table",
+    ],
+    alwayslink = 1,
+)
+
+cc_library(
+    name = "union",
+    srcs = ["union.cc"],
+    hdrs = ["union.h"],
+    deps = [
+        ":base",
+        "//opengrm/thrax:flags",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:symbol-table",
+    ],
+    alwayslink = 1,
+)
+
+cc_library(
+    name = "save_symbols",
+    srcs = ["save_symbols.cc"],
+    deps = ["@com_google_absl//absl/flags:flag"],
+)
+
+cc_library(
+    name = "temp_file",
+    testonly = 1,
+    hdrs = ["temp_file.h"],
+    deps = [
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_googletest//:gtest",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/lib:file-util",
+    ],
+)
+
+cc_test(
+    name = "assert-equal_test",
+    size = "small",
+    srcs = ["assert-equal_test.cc"],
+    deps = [
+        ":assert-equal",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:symbol-table",
+    ],
+)
+
+cc_test(
+    name = "assert-empty_test",
+    size = "small",
+    srcs = ["assert-empty_test.cc"],
+    deps = [
+        ":assert-empty",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "assert-null_test",
+    size = "small",
+    srcs = ["assert-null_test.cc"],
+    deps = [
+        ":assert-null",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "closure_test",
+    size = "small",
+    srcs = ["closure_test.cc"],
+    deps = [
+        ":closure",
+        "//opengrm/thrax/ast:fst-node",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "compose_test",
+    size = "small",
+    srcs = ["compose_test.cc"],
+    deps = [
+        ":compose",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "concat_test",
+    size = "small",
+    srcs = ["concat_test.cc"],
+    deps = [
+        ":concat",
+        "//opengrm/thrax:flags",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "determinize_test",
+    size = "small",
+    srcs = ["determinize_test.cc"],
+    deps = [
+        ":determinize",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "difference_test",
+    size = "small",
+    srcs = ["difference_test.cc"],
+    deps = [
+        ":difference",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_absl//absl/memory",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "features_test",
+    size = "small",
+    srcs = ["features_test.cc"],
+    deps = [
+        ":features",
+        ":stringfst",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_absl//absl/base",
+        "@com_google_absl//absl/container:btree",
+        "@com_google_absl//absl/log:check",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:symbol-table",
+    ],
+)
+
+cc_test(
+    name = "lenientlycompose_test",
+    size = "small",
+    srcs = ["lenientlycompose_test.cc"],
+    deps = [
+        ":lenientlycompose",
+        "//opengrm/operators:lenientlycompose",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "mpdtcompose_test",
+    size = "small",
+    srcs = ["mpdtcompose_test.cc"],
+    deps = [
+        ":mpdtcompose",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/extensions/mpdt:compose",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "project_test",
+    size = "small",
+    srcs = ["project_test.cc"],
+    deps = [
+        ":project",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "pdtcompose_test",
+    size = "small",
+    srcs = ["pdtcompose_test.cc"],
+    deps = [
+        ":pdtcompose",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/extensions/pdt:compose",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "replace_test",
+    size = "small",
+    srcs = ["replace_test.cc"],
+    deps = [
+        ":replace",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "rewrite_test",
+    size = "small",
+    srcs = ["rewrite_test.cc"],
+    deps = [
+        ":rewrite",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "rmepsilon_test",
+    size = "small",
+    srcs = ["rmepsilon_test.cc"],
+    deps = [
+        ":rmepsilon",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "rmweight_test",
+    size = "small",
+    srcs = ["rmweight_test.cc"],
+    deps = [
+        ":rmweight",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "stringfile_test",
+    size = "small",
+    srcs = ["stringfile_test.cc"],
+    deps = [
+        ":stringfile",
+        ":temp_file",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "stringfst_test",
+    size = "small",
+    srcs = ["stringfst_test.cc"],
+    deps = [
+        ":stringfst",
+        "//opengrm/thrax/ast:fst-node",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_absl//absl/base",
+        "@com_google_absl//absl/log:check",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "symboltable_test",
+    size = "small",
+    srcs = ["symboltable_test.cc"],
+    deps = [
+        ":symboltable",
+        ":temp_file",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:symbol-table",
+    ],
+)
+
+cc_test(
+    name = "union_test",
+    size = "small",
+    srcs = ["union_test.cc"],
+    deps = [
+        ":union",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/lib",
+    ],
+)

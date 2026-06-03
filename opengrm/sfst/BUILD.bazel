@@ -1,0 +1,632 @@
+# Copyright 2026 The OpenGrm Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+
+package(default_visibility = ["//visibility:public"])
+
+cc_library(
+    name = "sfst",
+    srcs = ["stationary-distrib.cc"],
+    hdrs = [
+        "approx.h",
+        "backoff.h",
+        "canonical.h",
+        "count.h",
+        "equal.h",
+        "info.h",
+        "intersect.h",
+        "ngramapprox.h",
+        "normalize.h",
+        "perplexity.h",
+        "phi2matcher.h",
+        "randgen.h",
+        "rmphi.h",
+        "sfst.h",
+        "sfstlib.h",
+        "shortest-distance.h",
+        "state-weights.h",
+        "stationary-distrib.h",
+        "topology.h",
+        "trim.h",
+    ],
+    deps = [
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/container:node_hash_map",
+        "@com_google_absl//absl/container:node_hash_set",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/random:bit_gen_ref",
+        "@com_google_absl//absl/types:span",
+        "@com_google_openfst//openfst/compat:fastmath",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:util",
+        "@com_google_openfst//openfst/lib:weight",
+    ],
+)
+
+# Binaries.
+
+cc_library(
+    name = "sfstapprox-main",
+    srcs = ["sfstapprox-main.cc"],
+    deps = [
+        ":sfst",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_binary(
+    name = "sfstapprox",
+    srcs = [
+        "sfstapprox.cc",
+    ],
+    linkstatic = 0,
+    deps = [
+        ":sfst",
+        ":sfstapprox-main",  # buildcleaner: keep
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_library(
+    name = "sfstcount-main",
+    srcs = ["sfstcount-main.cc"],
+    deps = [
+        ":sfst",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_binary(
+    name = "sfstcount",
+    srcs = [
+        "sfstcount.cc",
+    ],
+    linkstatic = 0,
+    deps = [
+        ":sfst",
+        ":sfstcount-main",  # buildcleaner: keep
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_library(
+    name = "sfstinfo-main",
+    srcs = ["sfstinfo-main.cc"],
+    deps = [
+        ":sfst",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:fst-decl",
+    ],
+)
+
+cc_binary(
+    name = "sfstinfo",
+    srcs = [
+        "sfstinfo.cc",
+    ],
+    linkstatic = 0,
+    deps = [
+        ":sfstinfo-main",  # buildcleaner: keep
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_library(
+    name = "sfstintersect-main",
+    srcs = ["sfstintersect-main.cc"],
+    deps = [
+        ":sfst",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_binary(
+    name = "sfstintersect",
+    srcs = [
+        "sfstintersect.cc",
+    ],
+    linkstatic = 0,
+    deps = [
+        ":sfstintersect-main",  # buildcleaner: keep
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_library(
+    name = "sfstngramapprox-main",
+    srcs = ["sfstngramapprox-main.cc"],
+    deps = [
+        ":sfst",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_binary(
+    name = "sfstngramapprox",
+    srcs = [
+        "sfstngramapprox.cc",
+    ],
+    linkstatic = 0,
+    deps = [
+        ":sfst",
+        ":sfstngramapprox-main",  # buildcleaner: keep
+        "@com_google_absl//absl/flags:flag",
+    ],
+)
+
+cc_library(
+    name = "sfstnormalize-main",
+    srcs = ["sfstnormalize-main.cc"],
+    deps = [
+        ":sfst",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:fst-decl",
+    ],
+)
+
+cc_binary(
+    name = "sfstnormalize",
+    srcs = [
+        "sfstnormalize.cc",
+    ],
+    linkstatic = 0,
+    deps = [
+        ":sfstnormalize-main",  # buildcleaner: keep
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_library(
+    name = "sfstperplexity-main",
+    srcs = ["sfstperplexity-main.cc"],
+    deps = [
+        ":sfst",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/extensions/far:lib",  # buildcleaner: keep
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:fst-decl",
+        "@com_google_openfst//openfst/lib:util",
+    ],
+)
+
+cc_binary(
+    name = "sfstperplexity",
+    srcs = [
+        "sfstperplexity.cc",
+    ],
+    linkstatic = 0,
+    deps = [
+        ":sfst",
+        ":sfstperplexity-main",  # buildcleaner: keep
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_library(
+    name = "sfstrandgen-main",
+    srcs = ["sfstrandgen-main.cc"],
+    deps = [
+        ":sfst",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_absl//absl/strings",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_binary(
+    name = "sfstrandgen",
+    srcs = [
+        "sfstrandgen.cc",
+    ],
+    linkstatic = 0,
+    deps = [
+        ":sfstrandgen-main",  # buildcleaner: keep
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_library(
+    name = "sfstshortestdistance-main",
+    srcs = ["sfstshortestdistance-main.cc"],
+    deps = [
+        ":sfst",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:fst-decl",
+    ],
+)
+
+cc_binary(
+    name = "sfstshortestdistance",
+    srcs = [
+        "sfstshortestdistance.cc",
+    ],
+    linkstatic = 0,
+    deps = [
+        ":sfstshortestdistance-main",  # buildcleaner: keep
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_library(
+    name = "sfsttopology-main",
+    srcs = ["sfsttopology-main.cc"],
+    deps = [
+        ":sfst",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_binary(
+    name = "sfsttopology",
+    srcs = [
+        "sfsttopology.cc",
+    ],
+    linkstatic = 0,
+    deps = [
+        ":sfsttopology-main",  # buildcleaner: keep
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_library(
+    name = "sfsttrim-main",
+    srcs = ["sfsttrim-main.cc"],
+    deps = [
+        ":sfst",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:fst-decl",
+    ],
+)
+
+cc_binary(
+    name = "sfsttrim",
+    srcs = [
+        "sfsttrim.cc",
+    ],
+    linkstatic = 0,
+    deps = [
+        ":sfsttrim-main",  # buildcleaner: keep
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+# Tests
+
+cc_test(
+    name = "algo_test",
+    size = "medium",
+    srcs = [
+        "algo_test.cc",
+    ],
+    deps = [
+        ":sfst",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_absl//absl/random",
+        "@com_google_absl//absl/random:bit_gen_ref",
+        "@com_google_googletest//:gtest",
+        "@com_google_openfst//openfst/compat:seed_sequences",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:weight",
+        "@com_google_openfst//openfst/test:rand-fst",
+    ],
+)
+
+cc_test(
+    name = "approx_test",
+    size = "medium",
+    srcs = [
+        "approx_test.cc",
+    ],
+    data = [
+        ":testdata/approx10.fst",
+        ":testdata/approx7.fst",
+        ":testdata/approx8.fst",
+        ":testdata/approx9.fst",
+    ],
+    deps = [
+        ":sfst",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_googletest//:gtest",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "backoff_test",
+    size = "small",
+    srcs = [
+        "backoff_test.cc",
+    ],
+    data = [
+        ":testdata/backoff1.fst",
+        ":testdata/count1.fst",
+    ],
+    deps = [
+        ":sfst",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_googletest//:gtest",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "count_test",
+    size = "small",
+    srcs = [
+        "count_test.cc",
+    ],
+    data = [
+        ":testdata/count2.fst",
+        ":testdata/topology1.fst",
+        ":testdata/topology2.fst",
+    ],
+    deps = [
+        ":sfst",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_googletest//:gtest",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "ngramapprox_test",
+    size = "medium",
+    srcs = [
+        "ngramapprox_test.cc",
+    ],
+    data = [
+        ":testdata/approx1.fst",
+        ":testdata/approx2.fst",
+        ":testdata/approx3.fst",
+        ":testdata/approx4.fst",
+        ":testdata/approx5.fst",
+        ":testdata/approx6.fst",
+    ],
+    deps = [
+        ":sfst",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_googletest//:gtest",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "normalize_test",
+    size = "large",
+    srcs = [
+        "normalize_test.cc",
+    ],
+    data = [
+        ":testdata/earnest.mod",
+        ":testdata/earnest2.mod",
+        ":testdata/earnest_plus.mod",
+    ],
+    deps = [
+        ":sfst",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_googletest//:gtest",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "perplexity_test",
+    size = "large",
+    srcs = [
+        "perplexity_test.cc",
+    ],
+    data = [
+        ":testdata/earnest.mod",
+        ":testdata/min_oov_test.fst",
+        ":testdata/min_test.fst",
+        ":testdata/oov_test.far",
+        ":testdata/overflow1.fst",
+        ":testdata/overflow2.fst",
+        ":testdata/test.far",
+    ],
+    deps = [
+        ":sfst",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_googletest//:gtest",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/extensions/far:lib",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "phi2matcher_test",
+    size = "small",
+    srcs = [
+        "phi2matcher_test.cc",
+    ],
+    data = [
+        ":testdata/phi1.fst",
+        ":testdata/phi2.fst",
+        ":testdata/phi3.fst",
+        ":testdata/phi4.fst",
+        ":testdata/phi5.fst",
+        ":testdata/phi6.fst",
+    ],
+    deps = [
+        ":sfst",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_googletest//:gtest",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "randgen_test",
+    size = "small",
+    srcs = ["randgen_test.cc"],
+    data = [
+        ":testdata/rand1.fst",
+        ":testdata/rand2.fst",
+        ":testdata/rand3.fst",
+        ":testdata/rand4.fst",
+        ":testdata/rand5.fst",
+        ":testdata/rand6.fst",
+    ],
+    deps = [
+        ":sfst",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "shortest-distance_test",
+    size = "medium",
+    srcs = [
+        "shortest-distance_test.cc",
+    ],
+    deps = [
+        ":sfst",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_googletest//:gtest",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:weight",
+        "@com_google_openfst//openfst/script",
+    ],
+)
+
+cc_test(
+    name = "topology_test",
+    size = "small",
+    srcs = [
+        "topology_test.cc",
+    ],
+    data = [
+        ":testdata/topology1.fst",
+        ":testdata/topology2.fst",
+    ],
+    deps = [
+        ":sfst",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_googletest//:gtest",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "trim_test",
+    size = "small",
+    srcs = [
+        "trim_test.cc",
+    ],
+    data = [
+        ":testdata/trim1.fst",
+        ":testdata/trim2.fst",
+        ":testdata/trim3.fst",
+        ":testdata/trim4.fst",
+        ":testdata/trim5.fst",
+        ":testdata/trim6.fst",
+    ],
+    deps = [
+        ":sfst",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_googletest//:gtest",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/lib",
+    ],
+)

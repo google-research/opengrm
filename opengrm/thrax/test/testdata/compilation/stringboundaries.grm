@@ -1,0 +1,31 @@
+# Copyright 2026 The OpenGrm Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+## Test the beginning/end-of-string delimiters work
+
+sigma = ("a" | "b" | "c" | "d")*;
+
+## Delete "a" at the beginning of a string
+
+export beg = CDRewrite["a" : "", "[BOS]", "", sigma];
+
+## Delete "a" at the end of a string
+
+export end = CDRewrite["a" : "", "", "[EOS]", sigma];
+
+## Insert an "a" anywhere. Prior to CL 88076596 this would fail because it
+## would insert "a" before the "[BOS]" and after the "[EOS]", which would then
+## fail due to the output filter "[BOS] sigma_star [EOS]"
+
+export ins_a = CDRewrite["" : "a", "", "", sigma];

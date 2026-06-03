@@ -1,0 +1,9 @@
+CURRENCY$PARENS	$30	thirty dollars
+CURRENCY$PARENS	$1	one dollar
+CURRENCY$PARENS	$2902390	two million nine hundred two thousand three hundred ninety dollars
+CURRENCY$PARENS	€3920	three thousand nine hundred twenty euros
+CURRENCY$PARENS	€1	one euro
+CURRENCY$PARENS	¥3	three yen
+CURRENCY$PARENS	¥1	one yen
+CURRENCY$PARENS	£32	thirty two pounds
+CURRENCY$PARENS	£1	one pound

@@ -1,0 +1,54 @@
+# Copyright 2026 The OpenGrm Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Useful function to simplify FSTs.
+func Clean[fst] {
+  return RmEpsilon[Determinize[fst]];
+}
+
+# Generic upper case and lower case ASCII characters.
+export kUpper = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" |
+    "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V" |
+    "W" | "X" | "Y" | "Z";
+export kLower = "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" |
+    "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t" | "u" | "v" |
+    "w" | "x" | "y" | "z";
+
+export b1 = "b";
+export b24 = b1{2,4};
+export b24_clean = Clean[b24];
+
+a1 = "a".byte;
+export a_to_b = a1 : b1 <4>;
+
+symtab_file = 'opengrm/thrax/test/testdata/regression/symtab';
+symtab = SymbolTable[symtab_file];
+fb = "fairy bears".symtab;
+pb = "polar bears".symtab;
+export fb_to_pb = fb : pb;
+
+export concat = "a" "b";
+export union = "a" | "b";
+export diff = union - "b";
+export rep_plus = "a"+;
+export rep_star = "a"*;
+export rep_int = "a"{1,2};
+export rep_question = "a"?;
+export comp = "a" @ a_to_b;
+
+export escaped_symbols = "\"a\"\b\"";
+export escaped_symbols_2 = "a\\b\\";
+
+# It is very important that there is no space around the minus sign below.
+export minus_sign_and_space = ("a"|"b")-"b";

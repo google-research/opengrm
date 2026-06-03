@@ -1,0 +1,73 @@
+# Copyright 2026 The OpenGrm Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Expansion of digit sequences into sums of products of powers of ten, tuned for Western languages where the M's are 10^3, 10^6... This grammar goes up to 10^14.
+#
+# J. Hurford. 1975. The Linguistic Theory of Numerals. Cambridge.
+
+import 'opengrm/thrax/stdlib/byte.grm' as bytelib;
+import 'opengrm/thrax/test/testdata/ru_numbers/util.grm' as util;
+
+func Cond[c, t1, t2, sigma_star] {
+  inside = Optimize[sigma_star - c];
+  composed = inside @ t2;
+  return c @ t1 | composed;
+}
+
+#nonMs = [E2] | [E1] ;
+nonMs = "[E2]" | "[E1]" ;
+
+#Ms = [E12] | [E9] | [E6] | [E3] ;
+Ms = "[E12]" | "[E9]" | "[E6]" | "[E3]" ;
+
+powers = RmEpsilon[Ms | nonMs];
+
+digit_factorization =
+ RmEpsilon[
+ ((((((((((((((
+  bytelib.kDigit ("" : "[E2]"))?
+   bytelib.kDigit ("" : "[E1]"))?
+    bytelib.kDigit ("" : "[E12]"))?
+     bytelib.kDigit ("" : "[E2]"))?
+      bytelib.kDigit ("" : "[E1]"))?
+  bytelib.kDigit ("" : "[E9]"))?
+   bytelib.kDigit ("" : "[E2]"))?
+    bytelib.kDigit ("" : "[E1]"))?
+     bytelib.kDigit ("" : "[E6]"))?
+      bytelib.kDigit ("" : "[E2]"))?
+       bytelib.kDigit ("" : "[E1]"))?
+        bytelib.kDigit ("" : "[E3]"))?
+         bytelib.kDigit ("" : "[E2]"))?
+     bytelib.kDigit ("" : "[E1]"))?
+ bytelib.kDigit
+ ];
+
+sigma_star = Optimize[(bytelib.kDigit | powers)*];
+
+# zeroedit1 = "0" nonMs : "" / _ ;
+zeroedit1 = CDRewrite["0" nonMs : "", "", "", sigma_star];
+
+# zeroedit2 = "0" : "" / _ Ms ;
+zeroedit2 = CDRewrite["0" : "", "", Ms, sigma_star];
+
+# zeroedit = (zeroedit1 @ zeroedit2) ("[1-9]" | ("0" : ""));
+zeroedit = (zeroedit1 @ zeroedit2) (util.d1to9 | ("0" : ""));
+
+# multi_m_edit = Ms : "" / Ms _ ;
+multi_m_edit = CDRewrite[Ms : "", Ms, "", sigma_star];
+
+factorization = digit_factorization @ zeroedit @ multi_m_edit;
+
+# export western_factorization = (factorization <1>) | "0";
+export western_factorization = Cond["0", "0", factorization, sigma_star];

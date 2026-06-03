@@ -1,0 +1,5 @@
+# Small test for features, categories, feature vectors.
+WORDS	canis	canis[case=nom][gender=mas][number=sg]
+WORDS	canem	canem[case=acc][gender=mas][number=sg]
+WORDS	canibus	canibus[case=dat][gender=mas][number=pl]
+WORDS	feminis	feminis[case=dat][gender=fem][number=pl]

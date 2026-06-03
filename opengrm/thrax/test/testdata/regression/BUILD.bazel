@@ -1,0 +1,57 @@
+# Copyright 2026 The OpenGrm Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Grammar files and test compilation rules.
+
+load("@com_google_openfst//openfst/extensions/far:build_defs.bzl", "extract_fsts_from_far")
+load("//opengrm/thrax:grm_build_defs.bzl", "compile_grm")
+
+package(default_visibility = ["//visibility:public"])
+
+compile_grm(
+    name = "basic",
+    data = ["symtab"],
+)
+
+compile_grm(
+    name = "advanced",
+    src = "advanced.grm",  # Check that we can specify our own input.
+    deps = [":basic"],
+)
+
+compile_grm(
+    name = "import",
+    deps = [
+        ":advanced",
+        ":basic",
+    ],
+)
+
+extract_fsts_from_far(
+    name = "basic-fsts",
+    far = "basic.far",
+    far_binary_rule = "//opengrm/thrax:far",
+    fsts = [
+        "concat.fst",
+        "union.fst",
+    ],
+)
+
+exports_files(
+    [
+        "symtab",
+        "golden/concat.fst",
+        "golden/union.fst",
+    ],
+)

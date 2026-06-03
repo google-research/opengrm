@@ -1,0 +1,375 @@
+# Unit test for Russian number names.
+
+# Counting forms
+
+CARDINAL_NUMBER_NAME	0	нуль
+CARDINAL_NUMBER_NAME	1	раз
+CARDINAL_NUMBER_NAME	2	два
+CARDINAL_NUMBER_NAME	3	три
+CARDINAL_NUMBER_NAME	4	четыре
+CARDINAL_NUMBER_NAME	5	пять
+CARDINAL_NUMBER_NAME	6	шесть
+CARDINAL_NUMBER_NAME	7	семь
+CARDINAL_NUMBER_NAME	8	восемь
+CARDINAL_NUMBER_NAME	9	девять
+CARDINAL_NUMBER_NAME	10	десять
+CARDINAL_NUMBER_NAME	11	одиннадцать
+CARDINAL_NUMBER_NAME	12	двенадцать
+CARDINAL_NUMBER_NAME	13	тринадцать
+CARDINAL_NUMBER_NAME	14	четырнадцать
+CARDINAL_NUMBER_NAME	15	пятнадцать
+CARDINAL_NUMBER_NAME	16	шестнадцать
+CARDINAL_NUMBER_NAME	17	семнадцать
+CARDINAL_NUMBER_NAME	18	восемнадцать
+CARDINAL_NUMBER_NAME	19	девятнадцать
+CARDINAL_NUMBER_NAME	20	двадцать
+CARDINAL_NUMBER_NAME	21	двадцать один
+CARDINAL_NUMBER_NAME	32	тридцать два
+CARDINAL_NUMBER_NAME	43	сорок три
+CARDINAL_NUMBER_NAME	54	пятьдесять четыре
+CARDINAL_NUMBER_NAME	65	шестьдесять пять
+CARDINAL_NUMBER_NAME	76	семьдесять шесть
+CARDINAL_NUMBER_NAME	87	восемьдесять семь
+CARDINAL_NUMBER_NAME	98	девяносто восемь
+CARDINAL_NUMBER_NAME	100	сто
+CARDINAL_NUMBER_NAME	101	сто один
+CARDINAL_NUMBER_NAME	102	сто два
+CARDINAL_NUMBER_NAME	110	сто десять
+CARDINAL_NUMBER_NAME	112	сто двенадцать
+CARDINAL_NUMBER_NAME	120	сто двадцать
+CARDINAL_NUMBER_NAME	128	сто двадцать восемь
+CARDINAL_NUMBER_NAME	1000	тысяча
+CARDINAL_NUMBER_NAME	10000	десять тысяч
+CARDINAL_NUMBER_NAME	12000	двенадцать тысяч
+CARDINAL_NUMBER_NAME	21000	двадцать одна тысяча
+CARDINAL_NUMBER_NAME	100000	сто тысяч
+CARDINAL_NUMBER_NAME	100100	сто тысяч сто
+CARDINAL_NUMBER_NAME	101000	сто одна тысяча
+CARDINAL_NUMBER_NAME	1000000	миллион
+CARDINAL_NUMBER_NAME	2000000	два миллиона
+CARDINAL_NUMBER_NAME	10000000	десять миллионов
+CARDINAL_NUMBER_NAME	900000000	девятьсот миллионов
+CARDINAL_NUMBER_NAME	901000000	девятьсот один миллион
+CARDINAL_NUMBER_NAME	987654321	девятьсот восемьдесять семь миллионов шестьсот пятьдесять четыре тысячи триста двадцать один
+CARDINAL_NUMBER_NAME	1000000000	миллиард
+CARDINAL_NUMBER_NAME	2000000000	два миллиарда
+CARDINAL_NUMBER_NAME	9876543291	девять миллиардов восемьсот семьдесять шесть миллионов пятьсот сорок три тысячи двести девяносто один
+CARDINAL_NUMBER_NAME	10000000000	десять миллиардов
+CARDINAL_NUMBER_NAME	100000000000	сто миллиардов
+CARDINAL_NUMBER_NAME	100000000001	сто миллиардов один
+CARDINAL_NUMBER_NAME	101000000000	сто один миллиард
+CARDINAL_NUMBER_NAME	102000000000	сто два миллиарда
+
+# Test the various ways of delimiting thousands
+
+CARDINAL_NUMBER_NAME	21.000	двадцать одна тысяча
+CARDINAL_NUMBER_NAME	100.000	сто тысяч
+CARDINAL_NUMBER_NAME	1.000.000	миллион
+CARDINAL_NUMBER_NAME	2.000.000	два миллиона
+CARDINAL_NUMBER_NAME	21 000	двадцать одна тысяча
+CARDINAL_NUMBER_NAME	100 000	сто тысяч
+CARDINAL_NUMBER_NAME	1 000 000	миллион
+CARDINAL_NUMBER_NAME	2 000 000	два миллиона
+
+# Test inflected forms
+
+CARDINAL_NUMBER_NAME_INFLECTED	1 __PLU,NOM	одни __PLU,NOM
+CARDINAL_NUMBER_NAME_INFLECTED	23 __MAS,GEN	двадцати трех __MAS,GEN
+# These two rules rely on some random path so don't always work.
+#CARDINAL_NUMBER_NAME_INFLECTED	21.231 __FEM,INS	двадцатью одной тысячей двумястами тридцатью одной __FEM,INS
+#CARDINAL_NUMBER_NAME_INFLECTED	22.231 __FEM,INS	двадцатью двумя тысячами двумястами тридцатью одной __FEM,INS
+CARDINAL_NUMBER_NAME_INFLECTED	2.001 __MAS,INS	двумя тысячами одним __MAS,INS
+CARDINAL_NUMBER_NAME_INFLECTED	200 __FEM,PRE	двухстах __FEM,PRE
+CARDINAL_NUMBER_NAME_INFLECTED	233 __FEM,PRE	двухстах тридцати трех __FEM,PRE
+CARDINAL_NUMBER_NAME_INFLECTED	2.000 __FEM,PRE	двух тысячах __FEM,PRE
+CARDINAL_NUMBER_NAME_INFLECTED	2.000.000 __FEM,PRE	двух миллионах __FEM,PRE
+CARDINAL_NUMBER_NAME_INFLECTED	2.000.001 __PLU,PRE	двух миллионах одних __PLU,PRE
+CARDINAL_NUMBER_NAME_INFLECTED	521 122 321 321 __FEM,ACC	пятьсот двадцать один миллиард сто двадцать два миллиона триста двадцать одну тысячу триста двадцать одну __FEM,ACC
+CARDINAL_NUMBER_NAME_INFLECTED	521 122 321 321 __MAS,GEN	пятисот двадцати одного миллиарда ста двадцати двух миллионов трехсот двадцати одной тысячи трехсот двадцати одного __MAS,GEN
+CARDINAL_NUMBER_NAME_INFLECTED	521 122 321 321 __FEM,GEN	пятисот двадцати одного миллиарда ста двадцати двух миллионов трехсот двадцати одной тысячи трехсот двадцати одной __FEM,GEN
+
+# Test ordinal base:
+
+ordinal_number_name_base	0	нулев__OJ
+ordinal_number_name_base	1	перв__YJ
+ordinal_number_name_base	2	втор__OJ
+ordinal_number_name_base	3	трет__IJ
+ordinal_number_name_base	4	четверт__YJ
+ordinal_number_name_base	5	пят__YJ
+ordinal_number_name_base	6	шест__OJ
+ordinal_number_name_base	7	седьм__OJ
+ordinal_number_name_base	8	восьм__OJ
+ordinal_number_name_base	9	девят__YJ
+ordinal_number_name_base	10	десят__YJ
+ordinal_number_name_base	11	одиннадцат__YJ
+ordinal_number_name_base	12	двенадцат__YJ
+ordinal_number_name_base	13	тринадцат__YJ
+ordinal_number_name_base	14	четырнадцат__YJ
+ordinal_number_name_base	15	пятнадцат__YJ
+ordinal_number_name_base	16	шестнадцат__YJ
+ordinal_number_name_base	17	семнадцат__YJ
+ordinal_number_name_base	18	восемнадцат__YJ
+ordinal_number_name_base	19	девятнадцат__YJ
+ordinal_number_name_base	20	двадцат__YJ
+ordinal_number_name_base	21	двадцать перв__YJ
+ordinal_number_name_base	32	тридцать втор__OJ
+ordinal_number_name_base	43	сорок трет__IJ
+ordinal_number_name_base	54	пятьдесять четверт__YJ
+ordinal_number_name_base	65	шестьдесять пят__YJ
+ordinal_number_name_base	76	семьдесять шест__OJ
+ordinal_number_name_base	87	восемьдесять седьм__OJ
+ordinal_number_name_base	98	девяносто восьм__OJ
+ordinal_number_name_base	100	сот__YJ
+ordinal_number_name_base	101	сто перв__YJ
+ordinal_number_name_base	102	сто втор__OJ
+ordinal_number_name_base	110	сто десят__YJ
+ordinal_number_name_base	112	сто двенадцат__YJ
+ordinal_number_name_base	120	сто двадцат__YJ
+ordinal_number_name_base	128	сто двадцать восьм__OJ
+ordinal_number_name_base	1000	тысячн__YJ
+ordinal_number_name_base	10000	десяти тысячн__YJ
+ordinal_number_name_base	12000	двенадцати тысячн__YJ
+ordinal_number_name_base	21000	двадцати одно тысячн__YJ
+ordinal_number_name_base	100000	ста тысячн__YJ
+ordinal_number_name_base	100100	сто тысяч сот__YJ
+ordinal_number_name_base	101000	ста одно тысячн__YJ
+ordinal_number_name_base	1000000	миллионн__YJ
+ordinal_number_name_base	2000000	двух миллионн__YJ
+ordinal_number_name_base	10000000	десяти миллионн__YJ
+ordinal_number_name_base	900000000	девятисот миллионн__YJ
+ordinal_number_name_base	901000000	девятисот одно миллионн__YJ
+ordinal_number_name_base	987654321	девятьсот восемьдесять семь миллионов шестьсот пятьдесять четыре тысячи триста двадцать перв__YJ
+ordinal_number_name_base	1000000000	миллиардн__YJ
+ordinal_number_name_base	2000000000	двух миллиардн__YJ
+ordinal_number_name_base	9876543291	девять миллиардов восемьсот семьдесять шесть миллионов пятьсот сорок три тысячи двести девяносто перв__YJ
+ordinal_number_name_base	10000000000	десяти миллиардн__YJ
+ordinal_number_name_base	100000000000	ста миллиардн__YJ
+ordinal_number_name_base	100000000001	сто миллиардов перв__YJ
+ordinal_number_name_base	101000000000	ста одно миллиардн__YJ
+ordinal_number_name_base	102000000000	ста двух миллиардн__YJ
+
+## Test ordinal number names in context
+
+ORDINAL_NUMBER_NAME	100000000001 __NEU,NOM	сто миллиардов первое __NEU,NOM
+ORDINAL_NUMBER_NAME	9 __PLU,INS	девятыми __PLU,INS
+ORDINAL_NUMBER_NAME	76 __NEU,GEN	семьдесять шестого __NEU,GEN
+ORDINAL_NUMBER_NAME	1000 __MAS,INS	тысячным __MAS,INS
+ORDINAL_NUMBER_NAME	100000 __NEU,INS	ста тысячным __NEU,INS
+ORDINAL_NUMBER_NAME	20 __PLU,ACC	двадцатые __PLU,ACC
+ORDINAL_NUMBER_NAME	100000000001 __FEM,NOM	сто миллиардов первая __FEM,NOM
+ORDINAL_NUMBER_NAME	98 __PLU,PRE	девяносто восьмых __PLU,PRE
+ORDINAL_NUMBER_NAME	1 __NEU,INS	первым __NEU,INS
+ORDINAL_NUMBER_NAME	19 __FEM,ACC	девятнадцатую __FEM,ACC
+ORDINAL_NUMBER_NAME	1000000 __FEM,DAT	миллионной __FEM,DAT
+ORDINAL_NUMBER_NAME	17 __FEM,DAT	семнадцатой __FEM,DAT
+ORDINAL_NUMBER_NAME	16 __FEM,NOM	шестнадцатая __FEM,NOM
+ORDINAL_NUMBER_NAME	76 __NEU,NOM	семьдесять шестое __NEU,NOM
+ORDINAL_NUMBER_NAME	15 __PLU,GEN	пятнадцатых __PLU,GEN
+ORDINAL_NUMBER_NAME	128 __PLU,INS	сто двадцать восьмыми __PLU,INS
+ORDINAL_NUMBER_NAME	102 __FEM,ACC	сто вторую __FEM,ACC
+ORDINAL_NUMBER_NAME	100 __FEM,DAT	сотой __FEM,DAT
+ORDINAL_NUMBER_NAME	101000 __PLU,NOM	ста одно тысячные __PLU,NOM
+ORDINAL_NUMBER_NAME	21000 __NEU,ACC	двадцати одно тысячное __NEU,ACC
+ORDINAL_NUMBER_NAME	101000 __MAS,ACC	ста одно тысячный __MAS,ACC
+ORDINAL_NUMBER_NAME	101000000000 __MAS,DAT	ста одно миллиардному __MAS,DAT
+ORDINAL_NUMBER_NAME	2000000000 __MAS,PRE	двух миллиардном __MAS,PRE
+ORDINAL_NUMBER_NAME	10 __PLU,ACC	десятые __PLU,ACC
+ORDINAL_NUMBER_NAME	12 __FEM,ACC	двенадцатую __FEM,ACC
+ORDINAL_NUMBER_NAME	12 __NEU,INS	двенадцатым __NEU,INS
+ORDINAL_NUMBER_NAME	3 __NEU,PRE	третьем __NEU,PRE
+ORDINAL_NUMBER_NAME	0 __MAS,ACC	нулевой __MAS,ACC
+ORDINAL_NUMBER_NAME	1000 __FEM,INS	тысячной __FEM,INS
+ORDINAL_NUMBER_NAME	102 __NEU,GEN	сто второго __NEU,GEN
+ORDINAL_NUMBER_NAME	100000000001 __PLU,ACC	сто миллиардов первые __PLU,ACC
+ORDINAL_NUMBER_NAME	18 __FEM,GEN	восемнадцатой __FEM,GEN
+ORDINAL_NUMBER_NAME	6 __NEU,DAT	шестому __NEU,DAT
+ORDINAL_NUMBER_NAME	20 __PLU,DAT	двадцатым __PLU,DAT
+ORDINAL_NUMBER_NAME	101 __MAS,NOM	сто первый __MAS,NOM
+ORDINAL_NUMBER_NAME	987654321 __FEM,ACC	девятьсот восемьдесять семь миллионов шестьсот пятьдесять четыре тысячи триста двадцать первую __FEM,ACC
+ORDINAL_NUMBER_NAME	3 __MAS,NOM	третий __MAS,NOM
+ORDINAL_NUMBER_NAME	7 __PLU,DAT	седьмым __PLU,DAT
+ORDINAL_NUMBER_NAME	102 __PLU,PRE	сто вторых __PLU,PRE
+ORDINAL_NUMBER_NAME	1000000 __MAS,NOM	миллионный __MAS,NOM
+ORDINAL_NUMBER_NAME	13 __MAS,DAT	тринадцатому __MAS,DAT
+ORDINAL_NUMBER_NAME	3 __PLU,NOM	третьи __PLU,NOM
+ORDINAL_NUMBER_NAME	120 __FEM,ACC	сто двадцатую __FEM,ACC
+ORDINAL_NUMBER_NAME	54 __FEM,INS	пятьдесять четвертой __FEM,INS
+ORDINAL_NUMBER_NAME	2000000 __NEU,DAT	двух миллионному __NEU,DAT
+ORDINAL_NUMBER_NAME	7 __MAS,ACC	седьмой __MAS,ACC
+ORDINAL_NUMBER_NAME	98 __MAS,ACC	девяносто восьмой __MAS,ACC
+ORDINAL_NUMBER_NAME	1000 __MAS,GEN	тысячного __MAS,GEN
+ORDINAL_NUMBER_NAME	900000000 __FEM,DAT	девятисот миллионной __FEM,DAT
+ORDINAL_NUMBER_NAME	100000000000 __NEU,GEN	ста миллиардного __NEU,GEN
+ORDINAL_NUMBER_NAME	1 __NEU,NOM	первое __NEU,NOM
+ORDINAL_NUMBER_NAME	0 __MAS,NOM	нулевой __MAS,NOM
+ORDINAL_NUMBER_NAME	102 __FEM,INS	сто второй __FEM,INS
+ORDINAL_NUMBER_NAME	1000000 __PLU,NOM	миллионные __PLU,NOM
+ORDINAL_NUMBER_NAME	120 __PLU,PRE	сто двадцатых __PLU,PRE
+ORDINAL_NUMBER_NAME	10000000000 __MAS,ACC	десяти миллиардный __MAS,ACC
+ORDINAL_NUMBER_NAME	20 __FEM,ACC	двадцатую __FEM,ACC
+ORDINAL_NUMBER_NAME	100000000001 __MAS,DAT	сто миллиардов первому __MAS,DAT
+ORDINAL_NUMBER_NAME	10000 __PLU,PRE	десяти тысячных __PLU,PRE
+ORDINAL_NUMBER_NAME	15 __NEU,GEN	пятнадцатого __NEU,GEN
+ORDINAL_NUMBER_NAME	1000 __PLU,NOM	тысячные __PLU,NOM
+ORDINAL_NUMBER_NAME	110 __MAS,DAT	сто десятому __MAS,DAT
+ORDINAL_NUMBER_NAME	110 __PLU,GEN	сто десятых __PLU,GEN
+ORDINAL_NUMBER_NAME	12 __PLU,INS	двенадцатыми __PLU,INS
+ORDINAL_NUMBER_NAME	901000000 __NEU,ACC	девятисот одно миллионное __NEU,ACC
+ORDINAL_NUMBER_NAME	20 __NEU,INS	двадцатым __NEU,INS
+ORDINAL_NUMBER_NAME	21000 __PLU,PRE	двадцати одно тысячных __PLU,PRE
+ORDINAL_NUMBER_NAME	1000000000 __NEU,PRE	миллиардном __NEU,PRE
+ORDINAL_NUMBER_NAME	102 __FEM,GEN	сто второй __FEM,GEN
+ORDINAL_NUMBER_NAME	10000000 __FEM,PRE	десяти миллионной __FEM,PRE
+ORDINAL_NUMBER_NAME	54 __FEM,NOM	пятьдесять четвертая __FEM,NOM
+ORDINAL_NUMBER_NAME	120 __MAS,GEN	сто двадцатого __MAS,GEN
+ORDINAL_NUMBER_NAME	1000 __FEM,DAT	тысячной __FEM,DAT
+ORDINAL_NUMBER_NAME	32 __PLU,PRE	тридцать вторых __PLU,PRE
+ORDINAL_NUMBER_NAME	9 __PLU,PRE	девятых __PLU,PRE
+ORDINAL_NUMBER_NAME	1 __FEM,GEN	первой __FEM,GEN
+ORDINAL_NUMBER_NAME	10000 __NEU,DAT	десяти тысячному __NEU,DAT
+ORDINAL_NUMBER_NAME	11 __PLU,PRE	одиннадцатых __PLU,PRE
+ORDINAL_NUMBER_NAME	18 __MAS,INS	восемнадцатым __MAS,INS
+ORDINAL_NUMBER_NAME	21 __FEM,PRE	двадцать первой __FEM,PRE
+ORDINAL_NUMBER_NAME	21000 __PLU,GEN	двадцати одно тысячных __PLU,GEN
+ORDINAL_NUMBER_NAME	19 __MAS,ACC	девятнадцатый __MAS,ACC
+ORDINAL_NUMBER_NAME	101000 __NEU,DAT	ста одно тысячному __NEU,DAT
+ORDINAL_NUMBER_NAME	102000000000 __FEM,NOM	ста двух миллиардная __FEM,NOM
+ORDINAL_NUMBER_NAME	901000000 __NEU,DAT	девятисот одно миллионному __NEU,DAT
+ORDINAL_NUMBER_NAME	101000000000 __NEU,ACC	ста одно миллиардное __NEU,ACC
+ORDINAL_NUMBER_NAME	110 __FEM,NOM	сто десятая __FEM,NOM
+ORDINAL_NUMBER_NAME	9876543291 __MAS,GEN	девять миллиардов восемьсот семьдесять шесть миллионов пятьсот сорок три тысячи двести девяносто первого __MAS,GEN
+ORDINAL_NUMBER_NAME	128 __NEU,ACC	сто двадцать восьмое __NEU,ACC
+ORDINAL_NUMBER_NAME	54 __NEU,DAT	пятьдесять четвертому __NEU,DAT
+ORDINAL_NUMBER_NAME	3 __FEM,INS	третьей __FEM,INS
+ORDINAL_NUMBER_NAME	102000000000 __MAS,ACC	ста двух миллиардный __MAS,ACC
+ORDINAL_NUMBER_NAME	13 __NEU,DAT	тринадцатому __NEU,DAT
+ORDINAL_NUMBER_NAME	6 __FEM,ACC	шестую __FEM,ACC
+ORDINAL_NUMBER_NAME	3 __FEM,DAT	третьей __FEM,DAT
+ORDINAL_NUMBER_NAME	100000 __NEU,DAT	ста тысячному __NEU,DAT
+ORDINAL_NUMBER_NAME	102000000000 __NEU,PRE	ста двух миллиардном __NEU,PRE
+ORDINAL_NUMBER_NAME	10000000000 __NEU,DAT	десяти миллиардному __NEU,DAT
+ORDINAL_NUMBER_NAME	32 __FEM,ACC	тридцать вторую __FEM,ACC
+ORDINAL_NUMBER_NAME	18 __MAS,GEN	восемнадцатого __MAS,GEN
+ORDINAL_NUMBER_NAME	10 __PLU,DAT	десятым __PLU,DAT
+ORDINAL_NUMBER_NAME	900000000 __MAS,PRE	девятисот миллионном __MAS,PRE
+ORDINAL_NUMBER_NAME	102 __NEU,INS	сто вторым __NEU,INS
+ORDINAL_NUMBER_NAME	2000000000 __FEM,INS	двух миллиардной __FEM,INS
+ORDINAL_NUMBER_NAME	900000000 __MAS,DAT	девятисот миллионному __MAS,DAT
+ORDINAL_NUMBER_NAME	21 __PLU,GEN	двадцать первых __PLU,GEN
+ORDINAL_NUMBER_NAME	112 __PLU,INS	сто двенадцатыми __PLU,INS
+ORDINAL_NUMBER_NAME	987654321 __NEU,ACC	девятьсот восемьдесять семь миллионов шестьсот пятьдесять четыре тысячи триста двадцать первое __NEU,ACC
+ORDINAL_NUMBER_NAME	15 __MAS,GEN	пятнадцатого __MAS,GEN
+ORDINAL_NUMBER_NAME	3 __FEM,GEN	третьей __FEM,GEN
+ORDINAL_NUMBER_NAME	4 __FEM,ACC	четвертую __FEM,ACC
+ORDINAL_NUMBER_NAME	3 __FEM,ACC	третью __FEM,ACC
+ORDINAL_NUMBER_NAME	10000 __FEM,PRE	десяти тысячной __FEM,PRE
+ORDINAL_NUMBER_NAME	9 __FEM,INS	девятой __FEM,INS
+ORDINAL_NUMBER_NAME	2000000 __MAS,NOM	двух миллионный __MAS,NOM
+ORDINAL_NUMBER_NAME	1000000 __NEU,NOM	миллионное __NEU,NOM
+ORDINAL_NUMBER_NAME	14 __NEU,PRE	четырнадцатом __NEU,PRE
+ORDINAL_NUMBER_NAME	1000 __NEU,ACC	тысячное __NEU,ACC
+ORDINAL_NUMBER_NAME	13 __NEU,PRE	тринадцатом __NEU,PRE
+ORDINAL_NUMBER_NAME	14 __FEM,PRE	четырнадцатой __FEM,PRE
+ORDINAL_NUMBER_NAME	18 __NEU,INS	восемнадцатым __NEU,INS
+ORDINAL_NUMBER_NAME	2 __FEM,INS	второй __FEM,INS
+ORDINAL_NUMBER_NAME	11 __FEM,PRE	одиннадцатой __FEM,PRE
+ORDINAL_NUMBER_NAME	18 __MAS,DAT	восемнадцатому __MAS,DAT
+ORDINAL_NUMBER_NAME	120 __MAS,INS	сто двадцатым __MAS,INS
+ORDINAL_NUMBER_NAME	900000000 __FEM,INS	девятисот миллионной __FEM,INS
+ORDINAL_NUMBER_NAME	21 __PLU,PRE	двадцать первых __PLU,PRE
+ORDINAL_NUMBER_NAME	100000 __PLU,DAT	ста тысячным __PLU,DAT
+ORDINAL_NUMBER_NAME	100000000001 __NEU,INS	сто миллиардов первым __NEU,INS
+ORDINAL_NUMBER_NAME	1000000000 __NEU,DAT	миллиардному __NEU,DAT
+ORDINAL_NUMBER_NAME	101 __PLU,GEN	сто первых __PLU,GEN
+ORDINAL_NUMBER_NAME	7 __NEU,INS	седьмым __NEU,INS
+ORDINAL_NUMBER_NAME	5 __NEU,NOM	пятое __NEU,NOM
+ORDINAL_NUMBER_NAME	7 __MAS,NOM	седьмой __MAS,NOM
+ORDINAL_NUMBER_NAME	32 __FEM,INS	тридцать второй __FEM,INS
+ORDINAL_NUMBER_NAME	6 __FEM,INS	шестой __FEM,INS
+ORDINAL_NUMBER_NAME	6 __PLU,PRE	шестых __PLU,PRE
+ORDINAL_NUMBER_NAME	15 __NEU,ACC	пятнадцатое __NEU,ACC
+ORDINAL_NUMBER_NAME	16 __PLU,PRE	шестнадцатых __PLU,PRE
+ORDINAL_NUMBER_NAME	16 __NEU,PRE	шестнадцатом __NEU,PRE
+ORDINAL_NUMBER_NAME	2000000000 __NEU,DAT	двух миллиардному __NEU,DAT
+ORDINAL_NUMBER_NAME	100000000000 __FEM,ACC	ста миллиардную __FEM,ACC
+ORDINAL_NUMBER_NAME	128 __NEU,DAT	сто двадцать восьмому __NEU,DAT
+ORDINAL_NUMBER_NAME	7 __MAS,INS	седьмым __MAS,INS
+ORDINAL_NUMBER_NAME	65 __NEU,NOM	шестьдесять пятое __NEU,NOM
+ORDINAL_NUMBER_NAME	4 __FEM,GEN	четвертой __FEM,GEN
+ORDINAL_NUMBER_NAME	8 __PLU,GEN	восьмых __PLU,GEN
+ORDINAL_NUMBER_NAME	12 __MAS,DAT	двенадцатому __MAS,DAT
+ORDINAL_NUMBER_NAME	15 __MAS,DAT	пятнадцатому __MAS,DAT
+ORDINAL_NUMBER_NAME	900000000 __NEU,GEN	девятисот миллионного __NEU,GEN
+ORDINAL_NUMBER_NAME	32 __MAS,GEN	тридцать второго __MAS,GEN
+ORDINAL_NUMBER_NAME	7 __FEM,INS	седьмой __FEM,INS
+ORDINAL_NUMBER_NAME	10000000000 __FEM,INS	десяти миллиардной __FEM,INS
+ORDINAL_NUMBER_NAME	9 __NEU,PRE	девятом __NEU,PRE
+ORDINAL_NUMBER_NAME	19 __MAS,DAT	девятнадцатому __MAS,DAT
+ORDINAL_NUMBER_NAME	13 __NEU,NOM	тринадцатое __NEU,NOM
+ORDINAL_NUMBER_NAME	12000 __FEM,PRE	двенадцати тысячной __FEM,PRE
+ORDINAL_NUMBER_NAME	10 __MAS,INS	десятым __MAS,INS
+ORDINAL_NUMBER_NAME	102 __NEU,DAT	сто второму __NEU,DAT
+ORDINAL_NUMBER_NAME	21000 __FEM,NOM	двадцати одно тысячная __FEM,NOM
+ORDINAL_NUMBER_NAME	1 __PLU,INS	первыми __PLU,INS
+ORDINAL_NUMBER_NAME	1000000 __MAS,DAT	миллионному __MAS,DAT
+ORDINAL_NUMBER_NAME	21 __MAS,NOM	двадцать первый __MAS,NOM
+ORDINAL_NUMBER_NAME	20 __MAS,DAT	двадцатому __MAS,DAT
+ORDINAL_NUMBER_NAME	15 __NEU,PRE	пятнадцатом __NEU,PRE
+ORDINAL_NUMBER_NAME	102 __MAS,NOM	сто второй __MAS,NOM
+ORDINAL_NUMBER_NAME	20 __MAS,INS	двадцатым __MAS,INS
+ORDINAL_NUMBER_NAME	101000000000 __PLU,NOM	ста одно миллиардные __PLU,NOM
+ORDINAL_NUMBER_NAME	900000000 __PLU,DAT	девятисот миллионным __PLU,DAT
+ORDINAL_NUMBER_NAME	110 __PLU,INS	сто десятыми __PLU,INS
+ORDINAL_NUMBER_NAME	100100 __PLU,INS	сто тысяч сотыми __PLU,INS
+ORDINAL_NUMBER_NAME	17 __NEU,ACC	семнадцатое __NEU,ACC
+ORDINAL_NUMBER_NAME	5 __MAS,PRE	пятом __MAS,PRE
+ORDINAL_NUMBER_NAME	101000 __NEU,PRE	ста одно тысячном __NEU,PRE
+ORDINAL_NUMBER_NAME	12000 __PLU,DAT	двенадцати тысячным __PLU,DAT
+ORDINAL_NUMBER_NAME	10 __NEU,ACC	десятое __NEU,ACC
+ORDINAL_NUMBER_NAME	18 __FEM,DAT	восемнадцатой __FEM,DAT
+ORDINAL_NUMBER_NAME	7 __FEM,GEN	седьмой __FEM,GEN
+ORDINAL_NUMBER_NAME	987654321 __MAS,ACC	девятьсот восемьдесять семь миллионов шестьсот пятьдесять четыре тысячи триста двадцать первый __MAS,ACC
+ORDINAL_NUMBER_NAME	14 __NEU,INS	четырнадцатым __NEU,INS
+ORDINAL_NUMBER_NAME	112 __PLU,PRE	сто двенадцатых __PLU,PRE
+ORDINAL_NUMBER_NAME	2000000 __FEM,PRE	двух миллионной __FEM,PRE
+ORDINAL_NUMBER_NAME	17 __FEM,NOM	семнадцатая __FEM,NOM
+ORDINAL_NUMBER_NAME	901000000 __FEM,NOM	девятисот одно миллионная __FEM,NOM
+ORDINAL_NUMBER_NAME	987654321 __NEU,GEN	девятьсот восемьдесять семь миллионов шестьсот пятьдесять четыре тысячи триста двадцать первого __NEU,GEN
+ORDINAL_NUMBER_NAME	32 __NEU,PRE	тридцать втором __NEU,PRE
+ORDINAL_NUMBER_NAME	65 __NEU,GEN	шестьдесять пятого __NEU,GEN
+ORDINAL_NUMBER_NAME	15 __MAS,ACC	пятнадцатый __MAS,ACC
+ORDINAL_NUMBER_NAME	2000000 __MAS,GEN	двух миллионного __MAS,GEN
+ORDINAL_NUMBER_NAME	0 __PLU,DAT	нулевым __PLU,DAT
+ORDINAL_NUMBER_NAME	76 __MAS,ACC	семьдесять шестой __MAS,ACC
+ORDINAL_NUMBER_NAME	5 __PLU,NOM	пятые __PLU,NOM
+ORDINAL_NUMBER_NAME	2000000000 __MAS,GEN	двух миллиардного __MAS,GEN
+ORDINAL_NUMBER_NAME	2 __MAS,DAT	второму __MAS,DAT
+ORDINAL_NUMBER_NAME	15 __FEM,INS	пятнадцатой __FEM,INS
+ORDINAL_NUMBER_NAME	0 __NEU,GEN	нулевого __NEU,GEN
+ORDINAL_NUMBER_NAME	4 __PLU,DAT	четвертым __PLU,DAT
+ORDINAL_NUMBER_NAME	987654321 __FEM,PRE	девятьсот восемьдесять семь миллионов шестьсот пятьдесять четыре тысячи триста двадцать первой __FEM,PRE
+ORDINAL_NUMBER_NAME	12000 __PLU,INS	двенадцати тысячными __PLU,INS
+ORDINAL_NUMBER_NAME	120 __NEU,INS	сто двадцатым __NEU,INS
+
+## Test ordinal number names with explicit markers
+
+ORDINAL_NUMBER_NAME_MARKED	4-го	четвертого
+ORDINAL_NUMBER_NAME_MARKED	987654321-го	девятьсот восемьдесять семь миллионов шестьсот пятьдесять четыре тысячи триста двадцать первого
+ORDINAL_NUMBER_NAME_MARKED	17-я	семнадцатая
+ORDINAL_NUMBER_NAME_MARKED	19-му	девятнадцатому
+ORDINAL_NUMBER_NAME_MARKED	23-ей	двадцать третьей
+ORDINAL_NUMBER_NAME_MARKED	2-й	второй
+ORDINAL_NUMBER_NAME_MARKED	2-ю	вторую
+
+## Testing the small grammar of decimals:
+
+DECIMAL	,01 __MAS,NOM	одна сотая __MAS,NOM
+DECIMAL	,322 __FEM,GEN	трехсот двадцати двух тысячных __FEM,GEN
+DECIMAL	,13 __FEM,INS	тринадцатью сотыми __FEM,INS
+DECIMAL	,020 __MAS,ACC	двадцать тысячных __MAS,ACC
+DECIMAL	,021 __MAS,ACC	двадцать одну тысячную __MAS,ACC
+
+## Testing the collectives
+
+COLLECTIVE_NUMBER_NAME	2 __MAS,NOM	двое __MAS,NOM
+COLLECTIVE_NUMBER_NAME	7 __FEM,INS	семерыми __FEM,INS

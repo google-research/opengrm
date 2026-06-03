@@ -1,0 +1,23 @@
+REDUPLICATOR$PARENS$ASSIGNMENTS	aab	aabaab
+REDUPLICATOR$PARENS$ASSIGNMENTS	thechicken	thechickenthechicken
+REDUPLICATOR$PARENS$ASSIGNMENTS	oogabooga#	oogabooga#oogabooga#
+## And now for something a bit more interesting, initial C*V reduplication a la
+##
+## Inkelas, Sharon and Zoll, Cheryl, 2005, Reduplication: Doubling in
+## Morphology. Cambridge University Press
+##
+## whereby reduplication is modeled as a full copy, followed by reduction on the
+## parts.
+PARTIAL_REDUPLICATION$PARENS$ASSIGNMENTS	tamata	tatamata
+PARTIAL_REDUPLICATION$PARENS$ASSIGNMENTS	kidongo	kikidongo
+PARTIAL_REDUPLICATION$PARENS$ASSIGNMENTS	amutu	aamutu
+PARTIAL_REDUPLICATION$PARENS$ASSIGNMENTS	krispikrim	krikrispikrim
+PARTIAL_REDUPLICATION$PARENS$ASSIGNMENTS	wugabuga	wuwugabuga
+## Infixing reduplication examples
+INFIXING_REDUPLICATION$PARENS$ASSIGNMENTS	tamata	tamamata
+INFIXING_REDUPLICATION$PARENS$ASSIGNMENTS	kidongo	kididongo
+INFIXING_REDUPLICATION$PARENS$ASSIGNMENTS	donut	dononut
+## Deduplication examples
+DEDUPLICATOR$PARENS$ASSIGNMENTS	orangorang	orang2
+DEDUPLICATOR$PARENS$ASSIGNMENTS	googoo	goo2
+DEDUPLICATOR$PARENS$ASSIGNMENTS	meme	me2

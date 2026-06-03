@@ -1,0 +1,26 @@
+# Copyright 2026 The OpenGrm Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+maj_mappings =
+  StringFile['opengrm/thrax/test/testdata/difference/money_maj_nouns.tsv'];
+
+export first = Optimize[Project[maj_mappings, 'input']];
+
+adj_maj_units1 =
+ LoadFst['opengrm/thrax/test/testdata/difference/adj_maj_mapping_adjfirst.fst']
+;
+
+export second = Optimize[Project[adj_maj_units1, 'input']];
+
+export NO_ADJ_UNITS = Optimize[first - second];

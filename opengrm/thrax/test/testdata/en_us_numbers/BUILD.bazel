@@ -1,0 +1,58 @@
+# Copyright 2026 The OpenGrm Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+load("//opengrm/thrax:grm_build_defs.bzl", "compile_grm")
+
+package(default_visibility = ["//visibility:public"])
+
+compile_grm(
+    name = "number_names",
+    deps = [
+        ":symbols",
+        ":thousands_punct",
+        ":util",
+        ":western_factorization",
+        "//opengrm/thrax/stdlib:byte",
+    ],
+)
+
+compile_grm(
+    name = "western_factorization",
+    deps = [
+        ":symbols",
+        ":util",
+        "//opengrm/thrax/stdlib:byte",
+    ],
+)
+
+compile_grm(
+    name = "thousands_punct",
+    deps = [
+        ":util",
+        "//opengrm/thrax/stdlib:byte",
+    ],
+)
+
+compile_grm(
+    name = "symbols",
+    deps = [
+        ":util",
+        "//opengrm/thrax/stdlib:byte",
+    ],
+)
+
+compile_grm(
+    name = "util",
+    deps = ["//opengrm/thrax/stdlib:byte"],
+)

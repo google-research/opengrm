@@ -1,0 +1,145 @@
+# Copyright 2026 The OpenGrm Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+filegroup(
+    name = "google_grm_source",
+    srcs = glob([
+        "*.h",
+        "*.cc",
+    ]),
+    visibility = ["//experimental/thrax/open:__pkg__"],
+)
+
+cc_library(
+    name = "base",
+    srcs = ["walker.cc"],
+    hdrs = ["walker.h"],
+)
+
+cc_library(
+    name = "printer",
+    srcs = ["printer.cc"],
+    hdrs = ["printer.h"],
+    deps = [
+        ":base",
+        "//opengrm/thrax/ast:collection-node",
+        "//opengrm/thrax/ast:fst-node",
+        "//opengrm/thrax/ast:function-node",
+        "//opengrm/thrax/ast:grammar-node",
+        "//opengrm/thrax/ast:identifier-node",
+        "//opengrm/thrax/ast:import-node",
+        "//opengrm/thrax/ast:node",
+        "//opengrm/thrax/ast:return-node",
+        "//opengrm/thrax/ast:rule-node",
+        "//opengrm/thrax/ast:statement-node",
+        "//opengrm/thrax/ast:string-node",
+        "@com_google_absl//absl/base",
+    ],
+)
+
+cc_library(
+    name = "rule-dependency-extractor",
+    srcs = ["rule-dependency-extractor.cc"],
+    hdrs = ["rule-dependency-extractor.h"],
+    deps = [
+        ":base",
+        "//opengrm/thrax/ast:collection-node",
+        "//opengrm/thrax/ast:fst-node",
+        "//opengrm/thrax/ast:function-node",
+        "//opengrm/thrax/ast:grammar-node",
+        "//opengrm/thrax/ast:identifier-node",
+        "//opengrm/thrax/ast:import-node",
+        "//opengrm/thrax/ast:node",
+        "//opengrm/thrax/ast:return-node",
+        "//opengrm/thrax/ast:rule-node",
+        "//opengrm/thrax/ast:statement-node",
+        "//opengrm/thrax/ast:string-node",
+        "@com_google_absl//absl/base",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:string_view",
+    ],
+)
+
+cc_library(
+    name = "identifier-counter",
+    srcs = ["identifier-counter.cc"],
+    hdrs = ["identifier-counter.h"],
+    deps = [
+        ":base",
+        "//opengrm/thrax/ast:collection-node",
+        "//opengrm/thrax/ast:fst-node",
+        "//opengrm/thrax/ast:grammar-node",
+        "//opengrm/thrax/ast:identifier-node",
+        "//opengrm/thrax/ast:rule-node",
+        "//opengrm/thrax/ast:statement-node",
+        "@com_google_absl//absl/base",
+        "@com_google_absl//absl/container:node_hash_map",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/strings:string_view",
+    ],
+)
+
+cc_library(
+    name = "evaluator",
+    srcs = ["evaluator.cc"],
+    hdrs = ["evaluator.h"],
+    deps = [
+        ":base",
+        ":identifier-counter",
+        ":printer",
+        "//opengrm/thrax/ast:collection-node",
+        "//opengrm/thrax/ast:fst-node",
+        "//opengrm/thrax/ast:function-node",
+        "//opengrm/thrax/ast:grammar-node",
+        "//opengrm/thrax/ast:identifier-node",
+        "//opengrm/thrax/ast:import-node",
+        "//opengrm/thrax/ast:node",
+        "//opengrm/thrax/ast:return-node",
+        "//opengrm/thrax/ast:rule-node",
+        "//opengrm/thrax/ast:statement-node",
+        "//opengrm/thrax/ast:string-node",
+        "//opengrm/thrax/compat:file",
+        "//opengrm/thrax/walker/util:datatype",
+        "//opengrm/thrax/walker/util:namespace",
+        "//opengrm/thrax/walker/util:register",
+        "//opengrm/thrax/walker/util/function",
+        "//opengrm/thrax/walker/util/function:base",
+        "//opengrm/thrax/walker/util/function:optimize",
+        "//opengrm/thrax/walker/util/function:stringfst",
+        "//opengrm/thrax/walker/util/function:symbols",
+        "@com_google_absl//absl/base",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/container:node_hash_set",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/log:vlog_is_on",
+        "@com_google_absl//absl/memory",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/extensions/far:lib",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:util",
+    ],
+)

@@ -1,0 +1,1120 @@
+# Copyright 2026 The OpenGrm Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+
+package(default_visibility = ["//visibility:public"])
+
+filegroup(
+    name = "google_fst_grammar_ngram_source",
+    srcs = glob(
+        [
+            "*.h",
+            "*.cc",
+            "*.sh",
+            "testdata/*",
+        ],
+    ),
+)
+
+filegroup(
+    name = "testdata",
+    srcs = glob(["testdata/*"]),
+    visibility = ["//third_party/py/opengrm/pynini/examples/testdata:__pkg__"],
+)
+
+# Shared script functions for testing distributed ngram functionality.
+filegroup(
+    name = "disttestsetup",
+    srcs = ["disttestsetup.sh"],
+)
+
+cc_library(
+    name = "opengrm-ngram-lib",
+    srcs = [
+        "ngram-absolute.cc",
+        "ngram-context.cc",
+        "ngram-count.cc",
+        "ngram-count-prune.cc",
+        "ngram-input.cc",
+        "ngram-kneser-ney.cc",
+        "ngram-list-prune.cc",
+        "ngram-make.cc",
+        "ngram-marginalize.cc",
+        "ngram-output.cc",
+        "ngram-shrink.cc",
+        "util.cc",
+    ],
+    hdrs = [
+        "hist-arc.h",
+        "hist-mapper.h",
+        "lexicographic-map.h",
+        "ngram-absolute.h",
+        "ngram-bayes-model-merge.h",
+        "ngram-complete.h",
+        "ngram-context.h",
+        "ngram-context-merge.h",
+        "ngram-context-prune.h",
+        "ngram-count.h",
+        "ngram-count-merge.h",
+        "ngram-count-of-counts.h",
+        "ngram-count-prune.h",
+        "ngram-hist-merge.h",
+        "ngram-input.h",
+        "ngram-katz.h",
+        "ngram-kneser-ney.h",
+        "ngram-list-prune.h",
+        "ngram-make.h",
+        "ngram-marginalize.h",
+        "ngram-merge.h",
+        "ngram-model.h",
+        "ngram-model-merge.h",
+        "ngram-mutable-model.h",
+        "ngram-output.h",
+        "ngram-randgen.h",
+        "ngram-relentropy.h",
+        "ngram-replace-merge.h",
+        "ngram-seymore-shrink.h",
+        "ngram-shrink.h",
+        "ngram-split.h",
+        "ngram-transfer.h",
+        "ngram-unsmoothed.h",
+        "ngram-witten-bell.h",
+        "util.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_google_absl//absl/base:log_severity",
+        "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/container:btree",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/container:node_hash_map",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_absl//absl/log:vlog_is_on",
+        "@com_google_absl//absl/random:bit_gen_ref",
+        "@com_google_absl//absl/random:distributions",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/types:span",
+        "@com_google_openfst//openfst/extensions/far:lib",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:symbol-table",
+        "@com_google_openfst//openfst/lib:util",
+        "@com_google_openfst//openfst/lib:weight",
+        "@com_google_openfst//openfst/script",
+    ],
+)
+
+cc_library(
+    name = "hist-arc",
+    srcs = ["hist-arc.cc"],
+    hdrs = ["hist-arc.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:register",
+        "@com_google_openfst//openfst/script",
+        "@com_google_openfst//openfst/script:fstscript",
+    ],
+    alwayslink = 1,
+)
+
+### Binaries
+
+cc_binary(
+    name = "hist-arc.so",
+    linkshared = 1,
+    linkstatic = 0,
+    deps = [
+        ":hist-arc",
+        "@com_google_openfst//openfst/lib:lib_export_dynamic",
+        "@com_google_openfst//openfst/script",
+        "@com_google_openfst//openfst/script:fstscript",
+    ],
+)
+
+cc_library(
+    name = "ngramapply-main",
+    srcs = ["ngramapply-main.cc"],
+    tags = ["keep_dep"],
+    deps = [
+        ":opengrm-ngram-lib",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_absl//absl/log:vlog_is_on",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/extensions/far:lib",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:symbol-table",
+    ],
+)
+
+cc_library(
+    name = "ngramcontext-main",
+    srcs = ["ngramcontext-main.cc"],
+    tags = ["keep_dep"],
+    deps = [
+        ":opengrm-ngram-lib",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_library(
+    name = "ngramcount-main",
+    srcs = ["ngramcount-main.cc"],
+    tags = ["keep_dep"],
+    deps = [
+        ":hist-arc",
+        ":opengrm-ngram-lib",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/log",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/extensions/far:lib",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_library(
+    name = "ngramhisttest-main",
+    srcs = ["ngramhisttest-main.cc"],
+    tags = ["keep_dep"],
+    deps = [
+        ":hist-arc",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/log",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/lib:symbol-table",
+        "@com_google_openfst//openfst/script",
+    ],
+)
+
+cc_library(
+    name = "ngraminfo-main",
+    srcs = ["ngraminfo-main.cc"],
+    tags = ["keep_dep"],
+    deps = [
+        ":opengrm-ngram-lib",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/strings",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/lib:lib_lite",
+        "@com_google_openfst//openfst/lib:util",
+    ],
+)
+
+cc_library(
+    name = "ngrammake-main",
+    srcs = ["ngrammake-main.cc"],
+    tags = ["keep_dep"],
+    deps = [
+        ":hist-arc",
+        ":opengrm-ngram-lib",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/memory",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/lib:lib_lite",
+    ],
+)
+
+cc_library(
+    name = "ngrammarginalize-main",
+    srcs = ["ngrammarginalize-main.cc"],
+    tags = ["keep_dep"],
+    deps = [
+        ":opengrm-ngram-lib",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/lib:lib_lite",
+    ],
+)
+
+cc_library(
+    name = "ngrammerge-main",
+    srcs = ["ngrammerge-main.cc"],
+    tags = ["keep_dep"],
+    deps = [
+        ":hist-arc",
+        ":opengrm-ngram-lib",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/log",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/lib:lib_lite",
+    ],
+)
+
+cc_library(
+    name = "ngramperplexity-main",
+    srcs = ["ngramperplexity-main.cc"],
+    tags = ["keep_dep"],
+    deps = [
+        ":opengrm-ngram-lib",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_absl//absl/log:vlog_is_on",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/extensions/far:lib",
+        "@com_google_openfst//openfst/lib:lib_lite",
+    ],
+)
+
+cc_library(
+    name = "ngramprint-main",
+    srcs = ["ngramprint-main.cc"],
+    tags = ["keep_dep"],
+    deps = [
+        ":opengrm-ngram-lib",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/log",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/lib:lib_lite",
+        "@com_google_openfst//openfst/lib:symbol-table",
+    ],
+)
+
+cc_library(
+    name = "ngramrandgen-main",
+    srcs = ["ngramrandgen-main.cc"],
+    tags = ["keep_dep"],
+    deps = [
+        ":opengrm-ngram-lib",
+        "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/strings",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/extensions/far:far-type",
+        "@com_google_openfst//openfst/extensions/far:far-writer",
+        "@com_google_openfst//openfst/extensions/far:lib",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_library(
+    name = "ngramrandtest-main",
+    srcs = ["ngramrandtest-main.cc"],
+    tags = ["keep_dep"],
+    deps = [
+        ":opengrm-ngram-lib",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/random",
+        "@com_google_absl//absl/random:bit_gen_ref",
+        "@com_google_absl//absl/strings",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/extensions/far:far-type",
+        "@com_google_openfst//openfst/extensions/far:far-writer",
+        "@com_google_openfst//openfst/extensions/far:lib",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:symbol-table",
+        "@com_google_openfst//openfst/lib:weight",
+    ],
+)
+
+cc_library(
+    name = "ngramread-main",
+    srcs = ["ngramread-main.cc"],
+    tags = ["keep_dep"],
+    deps = [
+        ":opengrm-ngram-lib",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/log",
+        "@com_google_openfst//openfst/compat:init",
+    ],
+)
+
+cc_library(
+    name = "ngramshrink-main",
+    srcs = ["ngramshrink-main.cc"],
+    tags = ["keep_dep"],
+    deps = [
+        ":opengrm-ngram-lib",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/log",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/lib:lib_lite",
+    ],
+)
+
+cc_library(
+    name = "ngramsort-main",
+    srcs = ["ngramsort-main.cc"],
+    tags = ["keep_dep"],
+    deps = [
+        ":opengrm-ngram-lib",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/lib:lib_lite",
+    ],
+)
+
+cc_library(
+    name = "ngramsplit-main",
+    srcs = ["ngramsplit-main.cc"],
+    tags = ["keep_dep"],
+    deps = [
+        ":hist-arc",
+        ":opengrm-ngram-lib",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/types:span",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/extensions/far:lib",
+        "@com_google_openfst//openfst/lib:lib_lite",
+    ],
+)
+
+cc_library(
+    name = "ngramsymbols-main",
+    srcs = ["ngramsymbols-main.cc"],
+    tags = ["keep_dep"],
+    deps = [
+        ":opengrm-ngram-lib",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/log",
+        "@com_google_openfst//openfst/compat:init",
+    ],
+)
+
+cc_library(
+    name = "ngramtransfer-main",
+    srcs = ["ngramtransfer-main.cc"],
+    tags = ["keep_dep"],
+    deps = [
+        ":hist-arc",
+        ":opengrm-ngram-lib",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/log",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/lib:lib_lite",
+    ],
+)
+
+cc_binary(
+    name = "ngramapply",
+    srcs = ["ngramapply.cc"],
+    linkstatic = 0,
+    visibility = ["//visibility:public"],
+    deps = [
+        ":ngramapply-main",
+        "@com_google_absl//absl/flags:flag",
+    ],
+)
+
+cc_binary(
+    name = "ngramcontext",
+    srcs = ["ngramcontext.cc"],
+    linkstatic = 0,
+    visibility = ["//visibility:public"],
+    deps = [
+        ":ngramcontext-main",
+        "@com_google_absl//absl/flags:flag",
+    ],
+)
+
+cc_binary(
+    name = "ngramcount",
+    srcs = ["ngramcount.cc"],
+    linkstatic = 0,
+    visibility = ["//visibility:public"],
+    deps = [
+        ":ngramcount-main",
+        ":opengrm-ngram-lib",
+        "@com_google_absl//absl/flags:flag",
+    ],
+)
+
+cc_binary(
+    name = "ngramhisttest",
+    srcs = ["ngramhisttest.cc"],
+    linkstatic = 0,
+    visibility = ["//visibility:public"],
+    deps = [
+        ":ngramhisttest-main",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_openfst//openfst/lib:weight",
+    ],
+)
+
+cc_binary(
+    name = "ngraminfo",
+    srcs = ["ngraminfo.cc"],
+    linkstatic = 0,
+    visibility = ["//visibility:public"],
+    deps = [
+        ":ngraminfo-main",
+        ":opengrm-ngram-lib",
+        "@com_google_absl//absl/flags:flag",
+    ],
+)
+
+cc_binary(
+    name = "ngrammake",
+    srcs = ["ngrammake.cc"],
+    linkstatic = 0,
+    visibility = ["//visibility:public"],
+    deps = [
+        ":ngrammake-main",
+        ":opengrm-ngram-lib",
+        "@com_google_absl//absl/flags:flag",
+    ],
+)
+
+cc_binary(
+    name = "ngrammarginalize",
+    srcs = ["ngrammarginalize.cc"],
+    linkstatic = 0,
+    visibility = ["//visibility:public"],
+    deps = [
+        ":ngrammarginalize-main",
+        ":opengrm-ngram-lib",
+        "@com_google_absl//absl/flags:flag",
+    ],
+)
+
+cc_binary(
+    name = "ngrammerge",
+    srcs = ["ngrammerge.cc"],
+    linkstatic = 0,
+    visibility = ["//visibility:public"],
+    deps = [
+        ":ngrammerge-main",
+        ":opengrm-ngram-lib",
+        "@com_google_absl//absl/flags:flag",
+    ],
+)
+
+cc_binary(
+    name = "ngramperplexity",
+    srcs = ["ngramperplexity.cc"],
+    linkstatic = 0,
+    visibility = ["//visibility:public"],
+    deps = [
+        ":ngramperplexity-main",
+        "@com_google_absl//absl/flags:flag",
+    ],
+)
+
+cc_binary(
+    name = "ngramprint",
+    srcs = ["ngramprint.cc"],
+    linkstatic = 0,
+    visibility = ["//visibility:public"],
+    deps = [
+        ":ngramprint-main",
+        "@com_google_absl//absl/flags:flag",
+    ],
+)
+
+cc_binary(
+    name = "ngramrandgen",
+    srcs = ["ngramrandgen.cc"],
+    linkstatic = 0,
+    visibility = ["//visibility:public"],
+    deps = [
+        ":ngramrandgen-main",
+        "@com_google_absl//absl/flags:flag",
+    ],
+)
+
+cc_binary(
+    name = "ngramrandtest",
+    srcs = ["ngramrandtest.cc"],
+    linkstatic = 0,
+    visibility = ["//visibility:public"],
+    deps = [
+        ":ngramrandtest-main",
+        "@com_google_absl//absl/flags:flag",
+    ],
+)
+
+cc_binary(
+    name = "ngramread",
+    srcs = ["ngramread.cc"],
+    linkstatic = 0,
+    visibility = ["//visibility:public"],
+    deps = [
+        ":ngramread-main",
+        "@com_google_absl//absl/flags:flag",
+    ],
+)
+
+cc_binary(
+    name = "ngramshrink",
+    srcs = ["ngramshrink.cc"],
+    linkstatic = 0,
+    visibility = ["//visibility:public"],
+    deps = [
+        ":ngramshrink-main",
+        ":opengrm-ngram-lib",
+        "@com_google_absl//absl/flags:flag",
+    ],
+)
+
+cc_binary(
+    name = "ngramsort",
+    srcs = ["ngramsort.cc"],
+    linkstatic = 0,
+    visibility = ["//visibility:public"],
+    deps = [
+        ":ngramsort-main",
+        ":opengrm-ngram-lib",
+        "@com_google_absl//absl/flags:flag",
+    ],
+)
+
+cc_binary(
+    name = "ngramsplit",
+    srcs = ["ngramsplit.cc"],
+    linkstatic = 0,
+    visibility = ["//visibility:public"],
+    deps = [
+        ":ngramsplit-main",
+        ":opengrm-ngram-lib",
+        "@com_google_absl//absl/flags:flag",
+    ],
+)
+
+cc_binary(
+    name = "ngramsymbols",
+    srcs = ["ngramsymbols.cc"],
+    linkstatic = 0,
+    visibility = ["//visibility:public"],
+    deps = [
+        ":ngramsymbols-main",
+        "@com_google_absl//absl/flags:flag",
+    ],
+)
+
+cc_binary(
+    name = "ngramtransfer",
+    srcs = ["ngramtransfer.cc"],
+    linkstatic = 0,
+    visibility = ["//visibility:public"],
+    deps = [
+        ":ngramtransfer-main",
+        "@com_google_absl//absl/flags:flag",
+    ],
+)
+
+sh_binary(
+    name = "ngramdisttrain",
+    srcs = ["ngramdisttrain.sh"],
+    data = [
+        ":ngramcount",
+        ":ngrammake",
+        ":ngrammerge",
+        ":ngramshrink",
+        ":ngramsplit",
+        ":ngramtransfer",
+    ],
+)
+
+sh_binary(
+    name = "ngramfractrain",
+    srcs = ["ngramfractrain.sh"],
+    data = [
+        ":hist-arc.so",
+        ":ngramcount",
+        ":ngrammake",
+        ":ngrammerge",
+        ":ngramshrink",
+        ":ngramsplit",
+        ":ngramtransfer",
+    ],
+)
+
+sh_binary(
+    name = "ngramdistrand",
+    srcs = ["ngramdistrand.sh"],
+    data = [
+        ":ngramdisttrain",
+        ":ngramsort",
+        "@com_google_openfst//openfst/bin:fstequal",
+    ],
+)
+
+### Tests
+
+sh_test(
+    name = "ngramapply_test",
+    size = "large",
+    srcs = ["ngramapply_test.sh"],
+    data = [
+        ":ngramapply",
+        ":testdata/earnest.randgen.apply.FSTtxt.tgz",
+        ":testdata/earnest.randgen.apply.sym",
+        ":testdata/earnest.randgen.sym",
+        ":testdata/earnest.randgen.txt",
+        ":testdata/earnest-witten_bell.mod.sym",
+        ":testdata/earnest-witten_bell.mod.txt",
+        "@com_google_openfst//openfst/bin:fstcompile",
+        "@com_google_openfst//openfst/bin:setup",
+        "@com_google_openfst//openfst/extensions/far:farcompilestrings",
+        "@com_google_openfst//openfst/extensions/far:farcreate",
+        "@com_google_openfst//openfst/extensions/far:farequal",
+    ],
+)
+
+sh_test(
+    name = "ngramcount_test",
+    size = "large",
+    srcs = ["ngramcount_test.sh"],
+    data = [
+        ":ngramcount",
+        ":testdata/earnest.cnt_of_cnts.sym",
+        ":testdata/earnest.cnt_of_cnts.txt",
+        ":testdata/earnest.cnts.sym",
+        ":testdata/earnest.cnts.txt",
+        ":testdata/earnest.det.sym",
+        ":testdata/earnest.det.txt",
+        ":testdata/earnest.fst.sym",
+        ":testdata/earnest.fst.txt",
+        ":testdata/earnest.min.sym",
+        ":testdata/earnest.min.txt",
+        ":testdata/earnest.sym",
+        ":testdata/earnest.txt",
+        ":testdata/earnest-det.cnts.sym",
+        ":testdata/earnest-det.cnts.txt",
+        ":testdata/earnest-fst.cnts.sym",
+        ":testdata/earnest-fst.cnts.txt",
+        ":testdata/earnest-min.cnts.sym",
+        ":testdata/earnest-min.cnts.txt",
+        "@com_google_openfst//openfst/bin:fstcompile",
+        "@com_google_openfst//openfst/bin:fstequal",
+        "@com_google_openfst//openfst/bin:setup",
+        "@com_google_openfst//openfst/extensions/far:farcompilestrings",
+        "@com_google_openfst//openfst/extensions/far:farcreate",
+    ],
+)
+
+cc_test(
+    name = "ngram-count_test",
+    srcs = ["ngram-count_test.cc"],
+    deps = [
+        ":opengrm-ngram-lib",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:symbol-table",
+    ],
+)
+
+sh_test(
+    name = "ngrammerge_test",
+    size = "large",
+    srcs = ["ngrammerge_test.sh"],
+    data = [
+        ":ngrammerge",
+        ":testdata/earnest.mrg.norm.sym",
+        ":testdata/earnest.mrg.norm.txt",
+        ":testdata/earnest.mrg.smooth.norm.sym",
+        ":testdata/earnest.mrg.smooth.norm.txt",
+        ":testdata/earnest.mrg.smooth.sym",
+        ":testdata/earnest.mrg.smooth.txt",
+        ":testdata/earnest.mrg.sym",
+        ":testdata/earnest.mrg.txt",
+        ":testdata/earnest-absolute.mod.sym",
+        ":testdata/earnest-absolute.mod.txt",
+        ":testdata/earnest-seymore.pru.sym",
+        ":testdata/earnest-seymore.pru.txt",
+        "@com_google_openfst//openfst/bin:fstcompile",
+        "@com_google_openfst//openfst/bin:fstequal",
+        "@com_google_openfst//openfst/bin:setup",
+    ],
+)
+
+sh_test(
+    name = "ngrammake_test",
+    size = "large",
+    srcs = ["ngrammake_test.sh"],
+    data = [
+        ":hist-arc.so",
+        ":ngramcount",
+        ":ngrammake",
+        ":testdata/earnest.cnts.sym",
+        ":testdata/earnest.cnts.txt",
+        ":testdata/earnest.mod.sym",
+        ":testdata/earnest.mod.txt",
+        ":testdata/earnest.sym",
+        ":testdata/earnest.txt",
+        ":testdata/earnest-absolute.mod.sym",
+        ":testdata/earnest-absolute.mod.txt",
+        ":testdata/earnest-katz.mod.sym",
+        ":testdata/earnest-katz.mod.txt",
+        ":testdata/earnest-kneser_ney.mod.sym",
+        ":testdata/earnest-kneser_ney.mod.txt",
+        ":testdata/earnest-unsmoothed.mod.sym",
+        ":testdata/earnest-unsmoothed.mod.txt",
+        ":testdata/earnest-witten_bell.mod.sym",
+        ":testdata/earnest-witten_bell.mod.txt",
+        "@com_google_openfst//openfst/bin:fstcompile",
+        "@com_google_openfst//openfst/bin:fstequal",
+        "@com_google_openfst//openfst/bin:setup",
+        "@com_google_openfst//openfst/extensions/far:farcompilestrings",
+    ],
+)
+
+sh_test(
+    name = "ngrammarginalize_test",
+    size = "large",
+    srcs = ["ngrammarginalize_test.sh"],
+    data = [
+        ":ngrammarginalize",
+        ":testdata/earnest-katz.marg.mod.sym",
+        ":testdata/earnest-katz.marg.mod.txt",
+        ":testdata/earnest-katz.mod.sym",
+        ":testdata/earnest-katz.mod.txt",
+        "@com_google_openfst//openfst/bin:fstcompile",
+        "@com_google_openfst//openfst/bin:fstequal",
+        "@com_google_openfst//openfst/bin:setup",
+    ],
+)
+
+sh_test(
+    name = "ngramprint_test",
+    size = "medium",
+    srcs = ["ngramprint_test.sh"],
+    data = [
+        ":ngramprint",
+        ":ngramread",
+        ":testdata/earnest.arpa",
+        ":testdata/earnest.cnt.print",
+        ":testdata/earnest.cnts.sym",
+        ":testdata/earnest.cnts.txt",
+        ":testdata/earnest.sym",
+        ":testdata/earnest-witten_bell.mod.sym",
+        ":testdata/earnest-witten_bell.mod.txt",
+        "@com_google_openfst//openfst/bin:fstcompile",
+        "@com_google_openfst//openfst/bin:fstequal",
+        "@com_google_openfst//openfst/bin:setup",
+    ],
+)
+
+sh_test(
+    name = "ngramperplexity_test",
+    size = "medium",
+    srcs = ["ngramperplexity_test.sh"],
+    data = [
+        ":ngramperplexity",
+        ":testdata/earnest.perp",
+        ":testdata/earnest.sym",
+        ":testdata/earnest.txt",
+        ":testdata/earnest-witten_bell.mod.sym",
+        ":testdata/earnest-witten_bell.mod.txt",
+        "@com_google_openfst//openfst/bin:fstcompile",
+        "@com_google_openfst//openfst/bin:setup",
+        "@com_google_openfst//openfst/extensions/far:farcompilestrings",
+    ],
+)
+
+cc_test(
+    name = "ngram-shrink_test",
+    size = "small",
+    srcs = ["ngram-shrink_test.cc"],
+    deps = [
+        ":opengrm-ngram-lib",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+sh_test(
+    name = "ngramshrink_test",
+    size = "large",
+    srcs = ["ngramshrink_test.sh"],
+    data = [
+        ":ngramshrink",
+        ":testdata/earnest-count_prune.pru.sym",
+        ":testdata/earnest-count_prune.pru.txt",
+        ":testdata/earnest-relative_entropy.pru.sym",
+        ":testdata/earnest-relative_entropy.pru.txt",
+        ":testdata/earnest-seymore.pru.sym",
+        ":testdata/earnest-seymore.pru.txt",
+        ":testdata/earnest-witten_bell.mod.sym",
+        ":testdata/earnest-witten_bell.mod.txt",
+        "@com_google_openfst//openfst/bin:fstcompile",
+        "@com_google_openfst//openfst/bin:fstequal",
+        "@com_google_openfst//openfst/bin:setup",
+    ],
+)
+
+sh_test(
+    name = "ngramcount_histograms_test",
+    size = "medium",
+    srcs = ["ngramcount_histograms_test.sh"],
+    data = [
+        ":hist-arc.so",
+        ":ngramcount",
+        ":ngramhisttest",
+        ":testdata/ab.sym",
+        ":testdata/fst1.hist.txt",
+        ":testdata/fst2.hist.txt",
+        ":testdata/hist.ref.txt",
+        ":testdata/single_fst.txt",
+        ":testdata/single_fst_ref.txt",
+        "@com_google_openfst//openfst/bin:fstcompile",
+        "@com_google_openfst//openfst/bin:setup",
+        "@com_google_openfst//openfst/extensions/far:farcreate",
+    ],
+)
+
+cc_test(
+    name = "ngram-bayes-model-merge_test",
+    size = "medium",
+    srcs = ["ngram-bayes-model-merge_test.cc"],
+    data = [
+        ":testdata/earnest.bayes",
+        ":testdata/earnest1.mod",
+        ":testdata/earnest2.mod",
+    ],
+    deps = [
+        ":opengrm-ngram-lib",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "ngram-replace-merge_test",
+    size = "small",
+    srcs = ["ngram-replace-merge_test.cc"],
+    deps = [
+        ":opengrm-ngram-lib",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:symbol-table",
+        "@com_google_openfst//openfst/lib:weight",
+    ],
+)
+
+sh_test(
+    name = "ngramdistcount_test",
+    size = "large",
+    srcs = ["ngramdistcount_test.sh"],
+    data = [
+        ":disttestsetup.sh",
+        ":ngramcount",
+        ":ngramdisttrain",
+        ":ngrammake",
+        ":ngrammerge",
+        ":ngramshrink",
+        ":ngramsort",
+        ":ngramsplit",
+        ":ngramtransfer",
+        ":testdata/earnest.sym",
+        ":testdata/earnest.txt",
+        "@com_google_openfst//openfst/bin:fstequal",
+        "@com_google_openfst//openfst/bin:setup",
+        "@com_google_openfst//openfst/extensions/far:farcompilestrings",
+    ],
+)
+
+sh_test(
+    name = "ngramdistmake_test",
+    size = "large",
+    srcs = ["ngramdistmake_test.sh"],
+    data = [
+        ":disttestsetup.sh",
+        ":ngramcount",
+        ":ngramdisttrain",
+        ":ngrammake",
+        ":ngrammerge",
+        ":ngramshrink",
+        ":ngramsort",
+        ":ngramsplit",
+        ":ngramtransfer",
+        ":testdata/earnest.sym",
+        ":testdata/earnest.txt",
+        "@com_google_openfst//openfst/bin:fstequal",
+        "@com_google_openfst//openfst/bin:setup",
+        "@com_google_openfst//openfst/extensions/far:farcompilestrings",
+    ],
+)
+
+sh_test(
+    name = "ngramdistshrink_test",
+    size = "large",
+    srcs = ["ngramdistshrink_test.sh"],
+    data = [
+        ":disttestsetup.sh",
+        ":ngramcount",
+        ":ngramdisttrain",
+        ":ngrammake",
+        ":ngrammerge",
+        ":ngramshrink",
+        ":ngramsort",
+        ":ngramsplit",
+        ":ngramtransfer",
+        ":testdata/earnest.sym",
+        ":testdata/earnest.txt",
+        "@com_google_openfst//openfst/bin:fstequal",
+        "@com_google_openfst//openfst/bin:setup",
+        "@com_google_openfst//openfst/extensions/far:farcompilestrings",
+    ],
+)
+
+sh_test(
+    name = "ngramdistwittenbell_test",
+    size = "large",
+    srcs = ["ngramdistwittenbell_test.sh"],
+    data = [
+        ":disttestsetup.sh",
+        ":ngramcount",
+        ":ngramdisttrain",
+        ":ngrammake",
+        ":ngrammerge",
+        ":ngramshrink",
+        ":ngramsort",
+        ":ngramsplit",
+        ":ngramtransfer",
+        ":testdata/earnest.sym",
+        ":testdata/earnest.txt",
+        "@com_google_openfst//openfst/bin:fstequal",
+        "@com_google_openfst//openfst/bin:setup",
+        "@com_google_openfst//openfst/extensions/far:farcompilestrings",
+    ],
+)
+
+sh_test(
+    name = "ngramfracdistmake_test",
+    size = "large",
+    srcs = ["ngramfracdistmake_test.sh"],
+    data = [
+        ":disttestsetup.sh",
+        ":hist-arc.so",
+        ":ngramcount",
+        ":ngramdisttrain",
+        ":ngramfractrain",
+        ":ngrammake",
+        ":ngrammerge",
+        ":ngramshrink",
+        ":ngramsort",
+        ":ngramsplit",
+        ":ngramtransfer",
+        ":testdata/earnest.sym",
+        ":testdata/earnest.txt",
+        "@com_google_openfst//openfst/bin:fstequal",
+        "@com_google_openfst//openfst/bin:setup",
+        "@com_google_openfst//openfst/extensions/far:farcompilestrings",
+    ],
+)
+
+sh_test(
+    name = "ngramfracdistshrink_test",
+    size = "large",
+    srcs = ["ngramfracdistshrink_test.sh"],
+    data = [
+        ":disttestsetup.sh",
+        ":hist-arc.so",
+        ":ngramcount",
+        ":ngramdisttrain",
+        ":ngramfractrain",
+        ":ngrammake",
+        ":ngrammerge",
+        ":ngramshrink",
+        ":ngramsort",
+        ":ngramsplit",
+        ":ngramtransfer",
+        ":testdata/earnest.sym",
+        ":testdata/earnest.txt",
+        "@com_google_openfst//openfst/bin:fstequal",
+        "@com_google_openfst//openfst/bin:setup",
+        "@com_google_openfst//openfst/extensions/far:farcompilestrings",
+    ],
+)
+
+sh_test(
+    name = "ngraminfo_test",
+    size = "medium",
+    srcs = ["ngraminfo_test.sh"],
+    data = [
+        ":ngraminfo",
+        ":testdata/earnest.info",
+        ":testdata/earnest.mod.sym",
+        ":testdata/earnest.mod.txt",
+        "@com_google_openfst//openfst/bin:fstcompile",
+        "@com_google_openfst//openfst/bin:setup",
+    ],
+)
+
+sh_test(
+    name = "ngramrand_test",
+    size = "enormous",
+    timeout = "eternal",
+    srcs = ["ngramrand_test.sh"],
+    data = [
+        ":ngramdistrand",
+        ":ngramdisttrain",
+        ":ngramrandtest",
+        "@com_google_openfst//openfst/bin:setup",
+    ],
+)
+
+sh_test(
+    name = "ngramrandgen_test",
+    size = "medium",
+    srcs = ["ngramrandgen_test.sh"],
+    data = [
+        ":ngramrandgen",
+        ":testdata/earnest.mod.sym",
+        ":testdata/earnest.mod.txt",
+        "@com_google_openfst//openfst/bin:fstcompile",
+        "@com_google_openfst//openfst/bin:setup",
+        "@com_google_openfst//openfst/extensions/far:farequal",
+    ],
+)
+
+sh_test(
+    name = "ngramsymbols_test",
+    size = "medium",
+    srcs = ["ngramsymbols_test.sh"],
+    data = [
+        ":ngramsymbols",
+        ":testdata/earnest.sym",
+        ":testdata/earnest.txt",
+        "@com_google_openfst//openfst/bin:setup",
+    ],
+)

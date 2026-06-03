@@ -1,0 +1,332 @@
+# Copyright 2026 The OpenGrm Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+
+package(default_visibility = ["//visibility:public"])
+
+exports_files(["testdata/cap.sttable.far"])
+
+cc_library(
+    name = "total-sort-lib",
+    hdrs = ["total-sort.h"],
+    deps = ["@com_google_openfst//openfst/lib"],
+)
+
+cc_test(
+    name = "basic-regression_test",
+    size = "small",
+    srcs = ["basic-regression_test.cc"],
+    data = [
+        "//opengrm/thrax/test/testdata/regression:basic",
+        "//opengrm/thrax/test/testdata/regression:basic-fsts",
+        "//opengrm/thrax/test/testdata/regression:golden/concat.fst",
+        "//opengrm/thrax/test/testdata/regression:golden/union.fst",
+        "//opengrm/thrax/test/testdata/regression:symtab",
+    ],
+    deps = [
+        ":total-sort-lib",
+        "//opengrm/thrax:grm-manager-lib",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/memory",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:string",
+        "@com_google_openfst//openfst/lib:symbol-table",
+    ],
+)
+
+cc_test(
+    name = "advanced-regression_test",
+    size = "small",
+    srcs = ["advanced-regression_test.cc"],
+    data = ["//opengrm/thrax/test/testdata/regression:advanced"],
+    deps = [
+        "//opengrm/thrax:grm-manager-lib",
+        "@com_google_absl//absl/log:check",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "import-regression_test",
+    size = "small",
+    srcs = ["import-regression_test.cc"],
+    data = ["//opengrm/thrax/test/testdata/regression:import"],
+    deps = [
+        "//opengrm/thrax:grm-manager-lib",
+        "@com_google_absl//absl/log:check",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+genrule(
+    name = "copy_basic_far",
+    srcs = ["testdata/compilation/basic.sttable.far"],
+    outs = ["testdata/compilation/basic.far"],
+    cmd = "cp $< $@",
+)
+
+genrule(
+    name = "copy_advanced_far",
+    srcs = ["testdata/compilation/advanced.sttable.far"],
+    outs = ["testdata/compilation/advanced.far"],
+    cmd = "cp $< $@",
+)
+
+cc_test(
+    name = "compilation_test",
+    size = "small",
+    srcs = ["compilation_test.cc"],
+    data = [
+        "testdata/compilation/advanced.grm",
+        "testdata/compilation/advanced.sttable.far",
+        "testdata/compilation/ast.grm",
+        "testdata/compilation/ast.txt",
+        "testdata/compilation/basic.grm",
+        "testdata/compilation/basic.sttable.far",
+        "testdata/compilation/import.grm",
+        "testdata/compilation/import.sttable.far",
+        "testdata/compilation/stringboundaries.grm",
+        "testdata/compilation/stringboundaries.sttable.far",
+        "testdata/compilation/symtab",
+        ":copy_advanced_far",
+        ":copy_basic_far",
+    ],
+    deps = [
+        ":total-sort-lib",
+        "//opengrm/thrax:grm-compiler-lib",
+        "//opengrm/thrax:grm-manager-lib",
+        "//opengrm/thrax/ast:node",
+        "//opengrm/thrax/compat:file",
+        "//opengrm/thrax/walker:base",
+        "//opengrm/thrax/walker:printer",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/extensions/far:lib",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "difference_test",
+    size = "small",
+    srcs = ["difference_test.cc"],
+    data = [
+        "//opengrm/thrax/test/testdata/difference",
+        "//opengrm/thrax/test/testdata/difference:difference.tsv",
+    ],
+    deps = [
+        "//opengrm/thrax:grm-manager-lib",
+        "//opengrm/thrax/compat:file",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "features_test",
+    size = "small",
+    srcs = ["features_test.cc"],
+    data = [
+        "//opengrm/thrax/test/testdata/features:features.txt",
+        "//opengrm/thrax/test/testdata/features:features2",
+    ],
+    deps = [
+        "//opengrm/thrax:grm-manager-lib",
+        "//opengrm/thrax/compat:file",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "mpdt_test",
+    size = "small",
+    srcs = ["mpdt_test.cc"],
+    data = [
+        "//opengrm/thrax/test/testdata/mpdt",
+        "//opengrm/thrax/test/testdata/mpdt:mpdt.txt",
+    ],
+    deps = [
+        "//opengrm/thrax:grm-manager-lib",
+        "//opengrm/thrax/compat:file",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "paradigm_test",
+    size = "small",
+    srcs = ["paradigm_test.cc"],
+    data = [
+        "//opengrm/thrax/test/testdata/paradigm",
+        "//opengrm/thrax/test/testdata/paradigm:paradigm.txt",
+    ],
+    deps = [
+        "//opengrm/thrax:grm-manager-lib",
+        "//opengrm/thrax/compat:file",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "pdt_test",
+    size = "small",
+    srcs = ["pdt_test.cc"],
+    data = [
+        "//opengrm/thrax/test/testdata/pdt",
+        "//opengrm/thrax/test/testdata/pdt:pdt.txt",
+    ],
+    deps = [
+        "//opengrm/thrax:grm-manager-lib",
+        "//opengrm/thrax/compat:file",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "ru-numbers_test",
+    size = "small",
+    srcs = ["ru-numbers_test.cc"],
+    data = [
+        "//opengrm/thrax/test/testdata/ru_numbers:number_names",
+        "//opengrm/thrax/test/testdata/ru_numbers:number_names.txt",
+    ],
+    deps = [
+        "//opengrm/thrax:grm-manager-lib",
+        "//opengrm/thrax/compat:file",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "labels_test",
+    size = "small",
+    srcs = ["labels_test.cc"],
+    data = [
+        "//opengrm/thrax/test/testdata/labels:test1",
+        "//opengrm/thrax/test/testdata/labels:test1.grm",
+        "//opengrm/thrax/test/testdata/labels:test2",
+        "//opengrm/thrax/test/testdata/labels:test3.grm",
+    ],
+    deps = [
+        "//opengrm/thrax:grm-compiler-lib",
+        "//opengrm/thrax:grm-manager-lib",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "grm-manager_test",
+    size = "small",
+    srcs = ["grm-manager_test.cc"],
+    data = ["testdata/cap.sttable.far"],
+    deps = [
+        "//opengrm/thrax:grm-manager-lib",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "rule-cascade_test",
+    size = "small",
+    srcs = ["rule-cascade_test.cc"],
+    data = [
+        "testdata/cap.sttable.far",
+        "//opengrm/thrax/test/testdata/mpdt:mpdt.far",
+        "//opengrm/thrax/test/testdata/pdt:pdt.far",
+    ],
+    deps = [
+        "//opengrm/thrax:abstract-grm-manager-lib",
+        "//opengrm/thrax:grm-manager-lib",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "symbol_tables_test",
+    size = "small",
+    srcs = ["symbol_tables_test.cc"],
+    data = ["//opengrm/thrax/test/testdata/symbol_tables:test2"],
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/extensions/far:lib",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:symbol-table",
+    ],
+)
+
+cc_test(
+    name = "lexer_test",
+    srcs = ["lexer_test.cc"],
+    data = [
+        "testdata/compilation/advanced.grm",
+        "testdata/compilation/ast.grm",
+        "testdata/compilation/basic.grm",
+        "testdata/compilation/import.grm",
+        "testdata/compilation/stringboundaries.grm",
+    ],
+    deps = [
+        "//opengrm/thrax:grm-compiler-lib",
+        "//opengrm/thrax/compat:file",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+    ],
+)

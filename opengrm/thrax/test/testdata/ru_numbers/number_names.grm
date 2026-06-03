@@ -1,0 +1,1418 @@
+# Copyright 2026 The OpenGrm Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# RUSSIAN NUMBER NAMES.
+#
+################################################################################
+
+# We adopt the following naming conventions:
+
+# Target CARDINAL_NUMBER_NAME is the *counting form*
+
+# Target CARDINAL_NUMBER_NAME_INFLECTED is the *inflected form*
+
+# Target ORDINAL_NUMBER_NAME is the ordinal number name, with inflectional
+# endings: if a language inflects ordinals, then one has to pick some inflected
+# ending.
+
+# Russian details:
+
+# This grammar allows thousands factorings using periods or spaces. It does not
+# deal with decimal numbers, but it provides hooks for constructing those.
+
+# Russian number name inflection is extremely complicated. Number names are in
+# general inflected for up to six cases, three genders and two
+# numbers. "Thousand", "million", "billion" and so forth are nouns, when these
+# are modified before them ("fifty two thousand", "nine million") they occur in
+# various cases depending upon the case of the modifier. See below.
+#
+# As with German we model the inflectional environments by having strings --
+# e.g. __MAS,GEN after the number. We assume that this information will be
+# available from some other source in order to tell which form you want in a
+# given context.
+#
+# See below on ordinal numbers
+#
+# Grammar is based on:
+#
+# Wade, Terence. 1992. A Comprehensive Russian Grammar. Oxford, Blackwell.
+
+################################################################################
+
+import 'opengrm/thrax/stdlib/byte.grm' as bytelib;
+import 'opengrm/thrax/test/testdata/ru_numbers/thousands_punct.grm' as tp;
+import 'opengrm/thrax/test/testdata/ru_numbers/util.grm' as util;
+import 'opengrm/thrax/test/testdata/ru_numbers/western_factorization.grm' as wf;
+
+################################################################################
+
+##
+ins_space = "" : " " ;
+pass_space = " " ;
+pass_space_star = pass_space*;
+
+## Basic cardinal number vocabulary.
+
+cardinal_vocabulary = Optimize[
+    ("0" : "нуль")
+  | ("0" : "нуля")
+  | ("0" : "нулю")
+  | ("0" : "нулем")
+  | ("0" : "нуле")
+## I(f some of these forms for zero are preferred we can switch around the weights.)
+  | ("0" : "ноль" <1.0>)
+  | ("0" : "ноля" <1.0>)
+  | ("0" : "нолю" <1.0>)
+  | ("0" : "нолем" <1.0>)
+  | ("0" : "ноле" <1.0>)
+  | ("1" : "один")
+  | ("1" : "одного")
+  | ("1" : "одному")
+  | ("1" : "одним")
+  | ("1" : "одном")
+  | ("1" : "одна")
+  | ("1" : "одну")
+  | ("1" : "одной")
+  | ("1" : "одною")
+  | ("1" : "одно")
+  | ("1" : "одни")
+  | ("1" : "одних")
+  | ("1" : "одними")
+  | ("2" : "два")
+  | ("2" : "две")
+  | ("2" : "двух")
+  | ("2" : "двум")
+  | ("2" : "двумя")
+  | ("3" : "три")
+  | ("3" : "трех")
+  | ("3" : "трем")
+  | ("3" : "тремя")
+  | ("4" : "четыре")
+  | ("4" : "четырех")
+  | ("4" : "четырем")
+  | ("4" : "четырьмя")
+  | ("5" : "пять")
+  | ("5" : "пяти")
+  | ("5" : "пятью")
+  | ("6" : "шесть")
+  | ("6" : "шести")
+  | ("6" : "шестью")
+  | ("7" : "семь")
+  | ("7" : "семи")
+  | ("7" : "семью")
+  | ("8" : "восемь")
+  | ("8" : "восьми")
+  | ("8" : "восьмью")
+  | ("9" : "девять")
+  | ("9" : "девяти")
+  | ("9" : "девятью")
+  | (("1[E1]") : "десять")
+  | (("1[E1]") : "десяти")
+  | (("1[E1]") : "десятью")
+  | (("1[E1]1") : "одиннадцать" <-1>)
+  | (("1[E1]1") : "одиннадцати" <-1>)
+  | (("1[E1]1") : "одиннадцатью" <-1>)
+  | (("1[E1]2") : "двенадцать" <-1>)
+  | (("1[E1]2") : "двенадцати" <-1>)
+  | (("1[E1]2") : "двенадцатью" <-1>)
+  | (("1[E1]3") : "тринадцать" <-1>)
+  | (("1[E1]3") : "тринадцати" <-1>)
+  | (("1[E1]3") : "тринадцатью" <-1>)
+  | (("1[E1]4") : "четырнадцать" <-1>)
+  | (("1[E1]4") : "четырнадцати" <-1>)
+  | (("1[E1]4") : "четырнадцатью" <-1>)
+  | (("1[E1]5") : "пятнадцать" <-1>)
+  | (("1[E1]5") : "пятнадцати" <-1>)
+  | (("1[E1]5") : "пятнадцатью" <-1>)
+  | (("1[E1]6") : "шестнадцать" <-1>)
+  | (("1[E1]6") : "шестнадцати" <-1>)
+  | (("1[E1]6") : "шестнадцатью" <-1>)
+  | (("1[E1]7") : "семнадцать" <-1>)
+  | (("1[E1]7") : "семнадцати" <-1>)
+  | (("1[E1]7") : "семнадцатью" <-1>)
+  | (("1[E1]8") : "восемнадцать" <-1>)
+  | (("1[E1]8") : "восемнадцати" <-1>)
+  | (("1[E1]8") : "восемнадцатью" <-1>)
+  | (("1[E1]9") : "девятнадцать" <-1>)
+  | (("1[E1]9") : "девятнадцати" <-1>)
+  | (("1[E1]9") : "девятнадцатью" <-1>)
+  | (("2[E1]") : "двадцати")
+  | (("2[E1]") : "двадцать")
+  | (("2[E1]") : "двадцатью")
+  | (("3[E1]") : "тридцати")
+  | (("3[E1]") : "тридцать")
+  | (("3[E1]") : "тридцатью")
+  | (("4[E1]") : "сорок")
+  | (("4[E1]") : "сорока")
+  | (("5[E1]") : "пятидесяти")
+  | (("5[E1]") : "пятьдесять")
+  | (("5[E1]") : "пятьюдесятью")
+  | (("6[E1]") : "шестидесяти")
+  | (("6[E1]") : "шестьдесять")
+  | (("6[E1]") : "шестьюдесятью")
+  | (("7[E1]") : "семидесяти")
+  | (("7[E1]") : "семьдесять")
+  | (("7[E1]") : "семьюдесятью")
+  | (("8[E1]") : "восьмидесяти")
+  | (("8[E1]") : "восемьдесять")
+  | (("8[E1]") : "восьмьюдесятью")
+  | (("9[E1]") : "девяноста")
+  | (("9[E1]") : "девяносто")
+  | (("1[E2]") : "сто")
+  | (("1[E2]") : "ста")
+  | (("2[E2]") : "двести")
+  | (("2[E2]") : "двумстам")
+  | (("2[E2]") : "двумястами")
+  | (("2[E2]") : "двухсот")
+  | (("2[E2]") : "двухстах")
+  | (("3[E2]") : "тремстам")
+  | (("3[E2]") : "тремястами")
+  | (("3[E2]") : "трехсот")
+  | (("3[E2]") : "трехстах")
+  | (("3[E2]") : "триста")
+  | (("4[E2]") : "четыремстам")
+  | (("4[E2]") : "четыреста")
+  | (("4[E2]") : "четырехсот")
+  | (("4[E2]") : "четырехстах")
+  | (("4[E2]") : "четырьмястами")
+  | (("5[E2]") : "пятисот")
+  | (("5[E2]") : "пятистам")
+  | (("5[E2]") : "пятистах")
+  | (("5[E2]") : "пятьсот")
+  | (("5[E2]") : "пятьюстами")
+  | (("6[E2]") : "шестисот")
+  | (("6[E2]") : "шестистам")
+  | (("6[E2]") : "шестистах")
+  | (("6[E2]") : "шестьсот")
+  | (("6[E2]") : "шестьюстами")
+  | (("7[E2]") : "семисот")
+  | (("7[E2]") : "семистам")
+  | (("7[E2]") : "семистах")
+  | (("7[E2]") : "семьсот")
+  | (("7[E2]") : "семьюстами")
+  | (("8[E2]") : "восемьсот")
+  | (("8[E2]") : "восемьюстами")
+  | (("8[E2]") : "восьмисот")
+  | (("8[E2]") : "восьмистам")
+  | (("8[E2]") : "восьмистах")
+  | (("8[E2]") : "восьмьюстами")
+  | (("9[E2]") : "девятисот")
+  | (("9[E2]") : "девятистам")
+  | (("9[E2]") : "девятистах")
+  | (("9[E2]") : "девятьсот")
+  | (("9[E2]") : "девятьюстами")
+  | ("[E3]" : "тысячи")
+  | ("[E3]" : "тысяч")
+  | ("[E3]" : "тысячам")
+  | ("[E3]" : "тысячами")
+  | ("[E3]" : "тысячах")
+  | ("[E3]" : "тысяча")
+  | ("[E3]" : "тысячу")
+  | ("[E3]" : "тысяче")
+  | ("[E3]" : "тысячей")
+  | ("[E3]" : "тысячью")
+  | ("[E6]" : "миллионы")
+  | ("[E6]" : "миллионов")
+  | ("[E6]" : "миллионам")
+  | ("[E6]" : "миллионами")
+  | ("[E6]" : "миллионах")
+  | ("[E6]" : "миллион")
+  | ("[E6]" : "миллиона")
+  | ("[E6]" : "миллиону")
+  | ("[E6]" : "миллионом")
+  | ("[E6]" : "миллионе")
+  | ("[E9]" : "миллиарды")
+  | ("[E9]" : "миллиардов")
+  | ("[E9]" : "миллиардам")
+  | ("[E9]" : "миллиардами")
+  | ("[E9]" : "миллиардах")
+  | ("[E9]" : "миллиард")
+  | ("[E9]" : "миллиарда")
+  | ("[E9]" : "миллиарду")
+  | ("[E9]" : "миллиардом")
+  | ("[E9]" : "миллиарде")
+];
+
+cardinal_vocabulary_string =
+  (cardinal_vocabulary ins_space)* cardinal_vocabulary
+;
+
+## Combinatorics of number-name formation.
+## This forms the core grammar for controlling concord.
+
+## Nominative/accusative are non-oblique cases, all others non-oblique. This
+## distinction is critical for describing how numbers combine with nouns --
+## including тысача "thousand", миллион "million" and миллиард "billion", which
+## are nouns. In non-oblique cases the noun is in the same case (and number and
+## gender) as the numeral if the numeral ends in один "one"; in the genitive
+## singular if the numeral ends in the paucal numbers "2", "3", "4". Otherwise
+## genitive plural. In oblique cases, the noun and the number are in the same
+## case regardless.  So "24 million" in the nominative is двадцать четыре
+## миллиона ("million" in genitive singular), whereas in the instrumental it's
+## двадцатью четырьмя миллионами ("million" in instrumental plural).
+
+## Animate masculine and plural nouns have an accusative case form identical
+## with the genitive. However from the point of view of the number name
+## behavior, these behave as obliques. So they are morphologically genitive
+## while acting as accusative only at the level of sentential syntax.
+
+one_nom_mas = "один" ;
+one_acc_mas = "один" ;
+one_nom_neu = "одно" ;
+one_acc_neu = "одно" ;
+one_nom_fem = "одна" ;
+one_acc_fem = "одну" ;
+one_nom_plu = "одни" ;
+one_acc_plu = "одни" ;
+
+## "two" is paucal, but it distinguishes gender in the nominative/accusative
+
+two_nom_acc_mas = "два" ;
+two_nom_acc_fem = "две" ;
+
+paucal_nom_acc = "три" | "четыре" ;
+
+non_paucal_nom_acc =
+    "пять"
+  | "шесть"
+  | "семь"
+  | "восемь"
+  | "девять"
+  | "десять"
+  | "одиннадцать"
+  | "двенадцать"
+  | "тринадцать"
+  | "четырнадцать"
+  | "пятнадцать"
+  | "шестнадцать"
+  | "семнадцать"
+  | "восемнадцать"
+  | "девятнадцать"
+  | "двадцать"
+  | "тридцать"
+  | "сорок"
+  | "пятьдесять"
+  | "шестьдесять"
+  | "семьдесять"
+  | "восемьдесять"
+  | "девяносто"
+  | "сто"
+  | "двести"
+  | "триста"
+  | "четыреста"
+  | "пятьсот"
+  | "шестьсот"
+  | "семьсот"
+  | "восемьсот"
+  | "девятьсот" ;
+
+one_gen_mas = "одного" ;
+one_gen_neu = "одного" ;
+one_gen_fem = "одной" ;
+one_gen_plu = "одних" ;
+
+basic_words_gen =
+    "двух"
+  | "трех"
+  | "четырех"
+  | "пяти"
+  | "шести"
+  | "семи"
+  | "восьми"
+  | "девяти"
+  | "десяти"
+  | "одиннадцати"
+  | "двенадцати"
+  | "тринадцати"
+  | "четырнадцати"
+  | "пятнадцати"
+  | "шестнадцати"
+  | "семнадцати"
+  | "восемнадцати"
+  | "девятнадцати"
+  | "двадцати"
+  | "тридцати"
+  | "сорока"
+  | "пятидесяти"
+  | "шестидесяти"
+  | "семидесяти"
+  | "восьмидесяти"
+  | "девяноста"
+  | "ста"
+  | "двухсот"
+  | "трехсот"
+  | "четырехсот"
+  | "пятисот"
+  | "шестисот"
+  | "семисот"
+  | "восьмисот"
+  | "девятисот"
+;
+
+one_dat_mas = "одному" ;
+one_dat_neu = "одному" ;
+one_dat_fem = "одной" ;
+one_dat_plu = "одним" ;
+
+basic_words_dat =
+    "двум"
+  | "трем"
+  | "четырем"
+  | "пяти"
+  | "шести"
+  | "семи"
+  | "восьми"
+  | "девяти"
+  | "десяти"
+  | "одиннадцати"
+  | "двенадцати"
+  | "тринадцати"
+  | "четырнадцати"
+  | "пятнадцати"
+  | "шестнадцати"
+  | "семнадцати"
+  | "восемнадцати"
+  | "девятнадцати"
+  | "двадцати"
+  | "тридцати"
+  | "сорока"
+  | "пятидесяти"
+  | "шестидесяти"
+  | "семидесяти"
+  | "восьмидесяти"
+  | "девяноста"
+  | "ста"
+  | "двумстам"
+  | "тремстам"
+  | "четыремстам"
+  | "пятистам"
+  | "шестистам"
+  | "семистам"
+  | "восьмистам"
+  | "девятистам"
+;
+
+one_ins_mas = "одним" ;
+one_ins_neu = "одним" ;
+one_ins_fem = "одной" | "одною" ;
+one_ins_plu = "одними" ;
+
+basic_words_ins =
+    "двумя"
+  | "тремя"
+  | "четырьмя"
+  | "пятью"
+  | "шестью"
+  | "семью"
+  | "восьмью"
+  | "девятью"
+  | "десятью"
+  | "одиннадцатью"
+  | "двенадцатью"
+  | "тринадцатью"
+  | "четырнадцатью"
+  | "пятнадцатью"
+  | "шестнадцатью"
+  | "семнадцатью"
+  | "восемнадцатью"
+  | "девятнадцатью"
+  | "двадцатью"
+  | "тридцатью"
+  | "сорока"
+  | "пятьюдесятью"
+  | "шестьюдесятью"
+  | "семьюдесятью"
+  | "восьмьюдесятью"
+  | "девяноста"
+  | "ста"
+  | "двумястами"
+  | "тремястами"
+  | "четырьмястами"
+  | "пятьюстами"
+  | "шестьюстами"
+  | "семьюстами"
+  | "восьмьюстами"
+  | "восемьюстами"
+  | "девятьюстами"
+;
+
+one_pre_mas = "одном" ;
+one_pre_neu = "одном" ;
+one_pre_fem = "одной" ;
+one_pre_plu = "одних" ;
+
+basic_words_pre =
+    "двух"
+  | "трех"
+  | "четырех"
+  | "пяти"
+  | "шести"
+  | "семи"
+  | "восьми"
+  | "девяти"
+  | "десяти"
+  | "одинадцати"
+  | "двенадцати"
+  | "тринадцати"
+  | "четырнадцати"
+  | "пятнадцати"
+  | "шестнадцати"
+  | "семнадцати"
+  | "восемнадцати"
+  | "девятнадцати"
+  | "двадцати"
+  | "тридцати"
+  | "сорока"
+  | "пятидесяти"
+  | "шестидесяти"
+  | "семидесяти"
+  | "восьмидесяти"
+  | "девяноста"
+  | "ста"
+  | "двухстах"
+  | "трехстах"
+  | "четырехстах"
+  | "пятистах"
+  | "шестистах"
+  | "семистах"
+  | "восьмистах"
+  | "девятистах"
+;
+
+## Blocks of words up to 999 at the end of a number
+
+hundreds_block_nom =
+   ((non_paucal_nom_acc pass_space)* one_nom_mas " __MAS,NOM")
+ | ((non_paucal_nom_acc pass_space)* one_nom_fem " __FEM,NOM")
+ | ((non_paucal_nom_acc pass_space)* one_nom_neu " __NEU,NOM")
+ | ((non_paucal_nom_acc pass_space)* one_nom_plu " __PLU,NOM")
+ | ((non_paucal_nom_acc pass_space)* two_nom_acc_mas " __MAS,NOM")
+ | ((non_paucal_nom_acc pass_space)* two_nom_acc_mas " __NEU,NOM")
+ | ((non_paucal_nom_acc pass_space)* two_nom_acc_fem " __FEM,NOM")
+ | ((non_paucal_nom_acc pass_space)* two_nom_acc_mas " __PLU,NOM")
+ | ((non_paucal_nom_acc pass_space)* paucal_nom_acc " __MAS,NOM")
+ | ((non_paucal_nom_acc pass_space)* paucal_nom_acc " __FEM,NOM")
+ | ((non_paucal_nom_acc pass_space)* paucal_nom_acc " __NEU,NOM")
+ | ((non_paucal_nom_acc pass_space)* paucal_nom_acc " __PLU,NOM")
+ | ((non_paucal_nom_acc pass_space)* non_paucal_nom_acc " __MAS,NOM")
+ | ((non_paucal_nom_acc pass_space)* non_paucal_nom_acc " __FEM,NOM")
+ | ((non_paucal_nom_acc pass_space)* non_paucal_nom_acc " __NEU,NOM")
+ | ((non_paucal_nom_acc pass_space)* non_paucal_nom_acc " __PLU,NOM")
+;
+
+## Counting form is nom/acc mas:
+
+hundreds_block_count =
+   ((non_paucal_nom_acc pass_space)* one_nom_mas)
+ | ((non_paucal_nom_acc pass_space)* two_nom_acc_mas)
+ | ((non_paucal_nom_acc pass_space)* paucal_nom_acc)
+ | ((non_paucal_nom_acc pass_space)* non_paucal_nom_acc)
+;
+
+hundreds_block_acc =
+   ((non_paucal_nom_acc pass_space)* one_acc_mas " __MAS,ACC")
+ | ((non_paucal_nom_acc pass_space)* one_acc_fem " __FEM,ACC")
+ | ((non_paucal_nom_acc pass_space)* one_acc_neu " __NEU,ACC")
+ | ((non_paucal_nom_acc pass_space)* one_acc_plu " __PLU,ACC")
+ | ((non_paucal_nom_acc pass_space)* two_nom_acc_mas " __MAS,ACC")
+ | ((non_paucal_nom_acc pass_space)* two_nom_acc_mas " __NEU,ACC")
+ | ((non_paucal_nom_acc pass_space)* two_nom_acc_fem " __FEM,ACC")
+ | ((non_paucal_nom_acc pass_space)* two_nom_acc_mas " __PLU,ACC")
+ | ((non_paucal_nom_acc pass_space)* paucal_nom_acc " __MAS,ACC")
+ | ((non_paucal_nom_acc pass_space)* paucal_nom_acc " __FEM,ACC")
+ | ((non_paucal_nom_acc pass_space)* paucal_nom_acc " __NEU,ACC")
+ | ((non_paucal_nom_acc pass_space)* paucal_nom_acc " __PLU,ACC")
+ | ((non_paucal_nom_acc pass_space)* non_paucal_nom_acc " __MAS,ACC")
+ | ((non_paucal_nom_acc pass_space)* non_paucal_nom_acc " __FEM,ACC")
+ | ((non_paucal_nom_acc pass_space)* non_paucal_nom_acc " __NEU,ACC")
+ | ((non_paucal_nom_acc pass_space)* non_paucal_nom_acc " __PLU,ACC")
+;
+
+hundreds_block_gen =
+   ((basic_words_gen pass_space)* one_gen_mas " __MAS,GEN")
+ | ((basic_words_gen pass_space)* one_gen_neu " __NEU,GEN")
+ | ((basic_words_gen pass_space)* one_gen_fem " __FEM,GEN")
+ | ((basic_words_gen pass_space)* one_gen_plu " __PLU,GEN")
+ | ((basic_words_gen pass_space)* basic_words_gen " __MAS,GEN")
+ | ((basic_words_gen pass_space)* basic_words_gen " __NEU,GEN")
+ | ((basic_words_gen pass_space)* basic_words_gen " __FEM,GEN")
+ | ((basic_words_gen pass_space)* basic_words_gen " __PLU,GEN")
+;
+
+hundreds_block_dat =
+   ((basic_words_dat pass_space)* one_dat_mas " __MAS,DAT")
+ | ((basic_words_dat pass_space)* one_dat_neu " __NEU,DAT")
+ | ((basic_words_dat pass_space)* one_dat_fem " __FEM,DAT")
+ | ((basic_words_dat pass_space)* one_dat_plu " __PLU,DAT")
+ | ((basic_words_dat pass_space)* basic_words_dat " __MAS,DAT")
+ | ((basic_words_dat pass_space)* basic_words_dat " __NEU,DAT")
+ | ((basic_words_dat pass_space)* basic_words_dat " __FEM,DAT")
+ | ((basic_words_dat pass_space)* basic_words_dat " __PLU,DAT")
+;
+
+hundreds_block_ins =
+   ((basic_words_ins pass_space)* one_ins_mas " __MAS,INS")
+ | ((basic_words_ins pass_space)* one_ins_neu " __NEU,INS")
+ | ((basic_words_ins pass_space)* one_ins_fem " __FEM,INS")
+ | ((basic_words_ins pass_space)* one_ins_plu " __PLU,INS")
+ | ((basic_words_ins pass_space)* basic_words_ins " __MAS,INS")
+ | ((basic_words_ins pass_space)* basic_words_ins " __NEU,INS")
+ | ((basic_words_ins pass_space)* basic_words_ins " __FEM,INS")
+ | ((basic_words_ins pass_space)* basic_words_ins " __PLU,INS")
+;
+
+hundreds_block_pre =
+   ((basic_words_pre pass_space)* one_pre_mas " __MAS,PRE")
+ | ((basic_words_pre pass_space)* one_pre_neu " __NEU,PRE")
+ | ((basic_words_pre pass_space)* one_pre_fem " __FEM,PRE")
+ | ((basic_words_pre pass_space)* one_pre_plu " __PLU,PRE")
+ | ((basic_words_pre pass_space)* basic_words_pre " __MAS,PRE")
+ | ((basic_words_pre pass_space)* basic_words_pre " __NEU,PRE")
+ | ((basic_words_pre pass_space)* basic_words_pre " __FEM,PRE")
+ | ((basic_words_pre pass_space)* basic_words_pre " __PLU,PRE")
+;
+
+##
+one =
+    one_acc_fem | one_acc_mas | one_acc_neu | one_acc_plu | one_dat_fem
+  | one_dat_mas | one_dat_neu | one_dat_plu | one_gen_fem | one_gen_mas
+  | one_gen_neu | one_gen_plu | one_nom_fem | one_nom_mas | one_nom_neu
+  | one_nom_plu
+;
+
+del_one = (one " ") : "" ;
+
+## Thousands
+## Note that for "one" to explicitly appear before "thousand", this must
+## be a compound (e.g. "twenty one"), hence the "+" in the first complex clause
+
+thousands_block_nom =
+    del_one "тысяча"
+  | ((non_paucal_nom_acc pass_space)+ one_nom_fem pass_space "тысяча")
+  | ((non_paucal_nom_acc pass_space)* two_nom_acc_fem pass_space "тысячи")
+  | ((non_paucal_nom_acc pass_space)* paucal_nom_acc pass_space "тысячи")
+  | ((non_paucal_nom_acc pass_space)* non_paucal_nom_acc pass_space "тысяч")
+;
+
+thousands_block_acc =
+    del_one "тысячу"
+  | ((non_paucal_nom_acc pass_space)+ one_acc_fem pass_space "тысячу")
+  | ((non_paucal_nom_acc pass_space)* two_nom_acc_fem pass_space "тысячи")
+  | ((non_paucal_nom_acc pass_space)* paucal_nom_acc pass_space "тысячи")
+  | ((non_paucal_nom_acc pass_space)* non_paucal_nom_acc pass_space "тысяч")
+;
+
+thousands_block_gen =
+    del_one "тысячи"
+  | ((basic_words_gen pass_space)+ one_gen_fem pass_space "тысячи")
+  | ((basic_words_gen pass_space)+ "тысяч")
+;
+
+thousands_block_dat =
+    del_one "тысяче"
+  | ((basic_words_dat pass_space)+ one_dat_fem pass_space "тысяче")
+  | ((basic_words_dat pass_space)+ "тысячам")
+;
+
+thousands_block_ins =
+    del_one "тысячей"
+  | ((basic_words_ins pass_space)+ one_ins_fem pass_space "тысячей")
+  | ((basic_words_ins pass_space)+ "тысячами")
+;
+
+thousands_block_pre =
+    del_one "тысячью"
+  | ((basic_words_pre pass_space)+ one_pre_fem pass_space "тысячью")
+  | ((basic_words_pre pass_space)+ "тысячах")
+;
+
+## Millions
+## Note that for "one" to explicitly appear before "million", this must
+## be a compound (e.g. "twenty one"), hence the "+" in the first complex clause
+
+millions_block_nom =
+    del_one "миллион"
+  | ((non_paucal_nom_acc pass_space)+ one_nom_mas pass_space "миллион")
+  | ((non_paucal_nom_acc pass_space)* two_nom_acc_mas pass_space "миллиона")
+  | ((non_paucal_nom_acc pass_space)* paucal_nom_acc pass_space "миллиона")
+  | ((non_paucal_nom_acc pass_space)* non_paucal_nom_acc pass_space "миллионов")
+;
+
+millions_block_acc = millions_block_nom ;
+
+millions_block_gen =
+    del_one "миллиона"
+  | ((basic_words_gen pass_space)+ one_gen_mas pass_space "миллиона")
+  | ((basic_words_gen pass_space)+ "миллионов")
+;
+
+millions_block_dat =
+    del_one "миллиону"
+  | ((basic_words_dat pass_space)+ one_dat_mas pass_space "миллиону")
+  | ((basic_words_dat pass_space)+ "миллионам")
+;
+
+millions_block_ins =
+    del_one "миллионом"
+  | ((basic_words_ins pass_space)+ one_ins_mas pass_space "миллионом")
+  | ((basic_words_ins pass_space)+ "миллионами")
+;
+
+millions_block_pre =
+    del_one "миллионе"
+  | ((basic_words_pre pass_space)+ one_pre_mas pass_space "миллионе")
+  | ((basic_words_pre pass_space)+ "миллионах")
+;
+
+## Billions
+## Note that for "one" to explicitly appear before "billion", this must
+## be a compound (e.g. "twenty one"), hence the "+" in the first complex clause
+
+billions_block_nom =
+    del_one "миллиард"
+  | ((non_paucal_nom_acc pass_space)+ one_nom_mas pass_space "миллиард")
+  | ((non_paucal_nom_acc pass_space)* two_nom_acc_mas pass_space "миллиарда")
+  | ((non_paucal_nom_acc pass_space)* paucal_nom_acc pass_space "миллиарда")
+  | ((non_paucal_nom_acc pass_space)* non_paucal_nom_acc pass_space "миллиардов")
+;
+
+billions_block_acc = billions_block_nom ;
+
+billions_block_gen =
+    del_one "миллиарда"
+  | ((basic_words_gen pass_space)+ one_gen_mas pass_space "миллиарда")
+  | ((basic_words_gen pass_space)+ "миллиардов")
+;
+
+billions_block_dat =
+    del_one "миллиарду"
+  | ((basic_words_dat pass_space)+ one_dat_mas pass_space "миллиарду")
+  | ((basic_words_dat pass_space)+ "миллиардам")
+;
+
+billions_block_ins =
+    del_one "миллиардом"
+  | ((basic_words_ins pass_space)+ one_ins_mas pass_space "миллиардом")
+  | ((basic_words_ins pass_space)+ "миллиардами")
+;
+
+billions_block_pre =
+    del_one "миллиарде"
+  | ((basic_words_pre pass_space)+ one_pre_mas pass_space "миллиарде")
+  | ((basic_words_pre pass_space)+ "миллиардах")
+;
+
+## Feature combos
+
+feat_nom =  " __" ("MAS" |"NEU" | "FEM" | "PLU") ",NOM" ;
+feat_acc =  " __" ("MAS" |"NEU" | "FEM" | "PLU") ",ACC" ;
+feat_gen =  " __" ("MAS" |"NEU" | "FEM" | "PLU") ",GEN" ;
+feat_dat =  " __" ("MAS" |"NEU" | "FEM" | "PLU") ",DAT" ;
+feat_ins =  " __" ("MAS" |"NEU" | "FEM" | "PLU") ",INS" ;
+feat_pre =  " __" ("MAS" |"NEU" | "FEM" | "PLU") ",PRE" ;
+
+feat = feat_nom | feat_acc | feat_gen | feat_dat | feat_ins | feat_pre ;
+
+##
+
+null_count = "нуль" ;
+null_nom = "нуль"  feat_nom;
+null_acc = "нуль"  feat_acc;
+null_gen = "нуля"  feat_gen;
+null_dat = "нулю"  feat_dat;
+null_ins = "нулем" feat_ins;
+null_pre = "нуле"  feat_pre;
+
+## For the various complex inflected forms these must end either in
+## a hundreds block, which has feature markers, or else we just have
+## a feature marker:
+
+cardinal_number_nom =
+ ((billions_block_nom pass_space_star)?
+  (millions_block_nom pass_space_star)?
+  (thousands_block_nom pass_space_star)? (hundreds_block_nom | feat_nom))
+ | null_nom
+;
+
+cardinal_number_acc =
+ ((billions_block_acc pass_space_star)?
+  (millions_block_acc pass_space_star)?
+  (thousands_block_acc pass_space_star)? (hundreds_block_acc | feat_acc))
+ | null_acc
+;
+
+cardinal_number_gen =
+  ((billions_block_gen pass_space_star)?
+   (millions_block_gen pass_space_star)?
+   (thousands_block_gen pass_space_star)? (hundreds_block_gen | feat_gen))
+ | null_gen
+;
+
+cardinal_number_dat =
+  ((billions_block_dat pass_space_star)?
+   (millions_block_dat pass_space_star)?
+   (thousands_block_dat pass_space_star)? (hundreds_block_dat | feat_dat))
+ | null_dat
+;
+
+cardinal_number_ins =
+  ((billions_block_ins pass_space_star)?
+   (millions_block_ins pass_space_star)?
+   (thousands_block_ins pass_space_star)? (hundreds_block_ins | feat_ins))
+ | null_ins
+;
+
+cardinal_number_pre =
+  ((billions_block_pre pass_space_star)?
+   (millions_block_pre pass_space_star)?
+   (thousands_block_pre pass_space_star)? (hundreds_block_pre | feat_pre))
+ | null_pre
+;
+
+cardinal_number =
+  cardinal_number_nom | cardinal_number_acc | cardinal_number_gen |
+  cardinal_number_dat | cardinal_number_ins | cardinal_number_pre ;
+
+cardinal_number_count = Optimize[
+  ((billions_block_nom pass_space_star)?
+   (millions_block_nom pass_space_star)?
+   (thousands_block_nom pass_space_star)? hundreds_block_count?)
+ | null_count
+];
+
+## Alternatives for grouping digits in long numbers
+
+thousands_delimiters = Optimize[
+    tp.no_delimiter
+  | tp.dot_thousands
+  | tp.space_thousands
+];
+
+## Basic factorization of digit strings possibly interspersed with thousands
+## delimiters into sums of products of powers of ten.
+
+slavic_factorization = Optimize[
+    thousands_delimiters
+  @ wf.western_factorization
+];
+
+################################################################################
+## Main Target: Cardinal number names in counting form. In counting
+## 1 is "раз".
+
+precnn1 = Optimize[cardinal_vocabulary_string];
+precnn2 = Optimize[cardinal_number_count];
+cnn1 = Optimize[precnn1 @ precnn2];
+cnn2 = Optimize[slavic_factorization @ cnn1];
+export CARDINAL_NUMBER_NAME = cnn2 | ("1" : "раз" <-1>);
+
+################################################################################
+##
+
+# Features always look like ABC,DEF: with 7 characters total.
+features = " __" (bytelib.kUpper | ","){7};
+
+################################################################################
+## Main Target: Cardinal number names in counting form
+
+cnni1 = Compose[slavic_factorization, Optimize[cardinal_vocabulary_string], 'both'];
+cnni2 = ConcatDelayed[cnni1, features];
+cnni3 = Compose[Optimize[cnni2], Optimize[cardinal_number], 'both'];
+
+export CARDINAL_NUMBER_NAME_INFLECTED = Optimize[cnni3];
+
+################################################################################
+## Ordinal numbers
+
+## Ordinal numbers are adjectives with the full range of inflection for case,
+## gender and number.
+
+## Only the last word is in the ordinal form, with the remainder being cardinal,
+## but this glosses over the fact that the modifier of last word must be in the
+## genitive case. Thus 50 is пятьдесять and 51st is пятьдесять первый but 50th
+## is пятидесятый --- note the genitive form of пяти.  Similarly 1000th is
+## тысячный but 2000th is двухтысячный --- again "two" is in the genitive.
+
+## Ordinal stems. Most are -ый (hard declension), marked here as __YJ, but
+## some are -ой (hard declension, stress on ending), marked here as __OJ. 3rd is
+## soft declension, marked as __IJ.
+
+ordinal_vocabulary =
+    ("0" : "нулев__OJ")
+  | ("0" : "нолев__OJ" <1.0>)
+  | ("1" : "перв__YJ")
+  | ("2" : "втор__OJ")
+  | ("3" : "трет__IJ")
+  | ("4" : "четверт__YJ")
+  | ("5" : "пят__YJ")
+  | ("6" : "шест__OJ")
+  | ("7" : "седьм__OJ")
+  | ("8" : "восьм__OJ")
+  | ("9" : "девят__YJ")
+  | (("1[E1]") : "десят__YJ")
+  | (("1[E1]" "1") : "одиннадцат__YJ" <-1>)
+  | (("1[E1]" "2") : "двенадцат__YJ" <-1>)
+  | (("1[E1]" "3") : "тринадцат__YJ" <-1>)
+  | (("1[E1]" "4") : "четырнадцат__YJ" <-1>)
+  | (("1[E1]" "5") : "пятнадцат__YJ" <-1>)
+  | (("1[E1]" "6") : "шестнадцат__YJ" <-1>)
+  | (("1[E1]" "7") : "семнадцат__YJ" <-1>)
+  | (("1[E1]" "8") : "восемнадцат__YJ" <-1>)
+  | (("1[E1]" "9") : "девятнадцат__YJ" <-1>)
+  | (("2[E1]") : "двадцат__YJ")
+  | (("3[E1]") : "тридцат__YJ")
+  | (("4[E1]") : "сороков__OJ")
+  | (("5[E1]") : "пятидесят__YJ")
+  | (("6[E1]") : "шестидесят__YJ")
+  | (("7[E1]") : "семидесят__YJ")
+  | (("8[E1]") : "восьмидесят__YJ")
+  | (("9[E1]") : "девяност__YJ")
+  | (("1[E2]") : "сот__YJ")
+  | (("2[E2]") : "двухсот__YJ")
+  | (("3[E2]") : "трехсот__YJ")
+  | (("4[E2]") : "четырехсот__YJ")
+  | (("5[E2]") : "пятисот__YJ")
+  | (("6[E2]") : "шестисот__YJ")
+  | (("7[E2]") : "семисот__YJ")
+  | (("8[E2]") : "восьмисот__YJ")
+  | (("9[E2]") : "девятисот__YJ")
+  | ("[E3]" : "тысячн__YJ")
+  | ("[E6]" : "миллионн__YJ")
+  | ("[E9]" : "миллиардн__YJ")
+;
+
+## Per the discussion above, the last element in an ordinal is the one that's in
+## the ordinal form, but any modifiers of those ordinals must be in the
+## genitive. So similar to what we did for cardinals, we model the thousands,
+## millions and billions in separate blocks.
+
+## The one thing we don't model here is the orthographic practice of writing the
+## modifier together with the head number
+
+## I am betting that the "one" should be "одно" in these compound forms
+## What about 100? сто or ста? This grammar has ста. Similarly for 90.
+
+thousands_block_ordinal =
+    del_one "тысячн__YJ"
+  | ((basic_words_gen pass_space)+ "одно" pass_space "тысячн__YJ")
+  | ((basic_words_gen pass_space)+ "тысячн__YJ")
+;
+
+millions_block_ordinal =
+    del_one "миллионн__YJ"
+  | ((basic_words_gen pass_space)+ "одно" pass_space "миллионн__YJ")
+  | ((basic_words_gen pass_space)+ "миллионн__YJ")
+;
+
+billions_block_ordinal =
+    del_one "миллиардн__YJ"
+  | ((basic_words_gen pass_space)+ "одно" pass_space "миллиардн__YJ")
+  | ((basic_words_gen pass_space)+ "миллиардн__YJ")
+;
+
+hundreds_block_ordinal_words =
+    "перв__YJ"
+  | "втор__OJ"
+  | "трет__IJ"
+  | "четверт__YJ"
+  | "пят__YJ"
+  | "шест__OJ"
+  | "седьм__OJ"
+  | "восьм__OJ"
+  | "девят__YJ"
+  | "десят__YJ"
+  | "одиннадцат__YJ"
+  | "двенадцат__YJ"
+  | "тринадцат__YJ"
+  | "четырнадцат__YJ"
+  | "пятнадцат__YJ"
+  | "шестнадцат__YJ"
+  | "семнадцат__YJ"
+  | "восемнадцат__YJ"
+  | "девятнадцат__YJ"
+  | "двадцат__YJ"
+  | "тридцат__YJ"
+  | "сороков__OJ"
+  | "пятидесят__YJ"
+  | "шестидесят__YJ"
+  | "семидесят__YJ"
+  | "восьмидесят__YJ"
+  | "девяност__YJ"
+  | "сот__YJ"
+  | "двухсот__YJ"
+  | "трехсот__YJ"
+  | "четырехсот__YJ"
+  | "пятисот__YJ"
+  | "шестисот__YJ"
+  | "семисот__YJ"
+  | "восьмисот__YJ"
+  | "девятисот__YJ"
+;
+
+hundreds_block_ordinal =
+  (non_paucal_nom_acc pass_space)* hundreds_block_ordinal_words
+;
+
+ordinal_number =
+  Optimize[
+   billions_block_ordinal
+ | ((billions_block_nom pass_space_star)?
+    millions_block_ordinal)
+ | ((billions_block_nom pass_space_star)?
+    (millions_block_nom pass_space_star)?
+    thousands_block_ordinal)
+ | ((billions_block_nom pass_space_star)?
+    (millions_block_nom pass_space_star)?
+    (thousands_block_nom pass_space_star)?
+    hundreds_block_ordinal)
+ | "нулев__OJ"
+ | "нолев__OJ"
+ ]
+;
+
+ordinal_vocabulary_string =
+  Optimize[
+  (cardinal_vocabulary ins_space)* ordinal_vocabulary]
+;
+
+export ordinal_number_name_base =
+  Optimize[slavic_factorization @ ordinal_vocabulary_string @ ordinal_number]
+;
+
+## Sigma star
+
+sigma_star = Optimize[
+  ("_" | bytelib.kUpper | util.russianLowers | " " | "," | "-" | bytelib.kDigit)*
+  ];
+
+## Now for the inflectional endings that go on these suckers
+
+## Hard adjectives, stem and ending stressed:
+
+hardadj01 = CDRewrite["__YJ" : "ый", "", " __MAS,NOM" | " __MAS,ACC", sigma_star];
+hardadj02 = CDRewrite["__OJ" : "ой", "", " __MAS,NOM" | " __MAS,ACC", sigma_star];
+## After the above we no longer need the distinction
+hardadj03 = CDRewrite["__OJ" : "__YJ", "", "", sigma_star];
+hardadj04 = CDRewrite["__YJ" : "ого", "", " __MAS,GEN" | " __NEU,GEN", sigma_star];
+hardadj05 = CDRewrite["__YJ" : "ому", "", " __MAS,DAT" | " __NEU,DAT", sigma_star];
+hardadj06 = CDRewrite["__YJ" : "ым", "", " __MAS,INS" | " __NEU,INS", sigma_star];
+hardadj07 = CDRewrite["__YJ" : "ом", "", " __MAS,PRE" | " __NEU,PRE", sigma_star];
+hardadj08 = CDRewrite["__YJ" : "ая", "", " __FEM,NOM", sigma_star];
+hardadj09 = CDRewrite["__YJ" : "ую", "", " __FEM,ACC", sigma_star];
+hardadj10 = CDRewrite["__YJ" : "ой", "", " __FEM,GEN" | " __FEM,DAT" | " __FEM,INS" | " __FEM,PRE", sigma_star];
+hardadj11 = CDRewrite["__YJ" : "ое", "", " __NEU,NOM" | " __NEU,ACC", sigma_star];
+hardadj12 = CDRewrite["__YJ" : "ые", "", " __PLU,NOM" | " __PLU,ACC", sigma_star];
+hardadj13 = CDRewrite["__YJ" : "ых", "", " __PLU,GEN" | " __PLU,PRE", sigma_star];
+hardadj14 = CDRewrite["__YJ" : "ым", "", " __PLU,DAT", sigma_star];
+hardadj15 = CDRewrite["__YJ" : "ыми", "", " __PLU,INS", sigma_star];
+
+hardadj_upto2 = Optimize[hardadj01 @ hardadj02];
+hardadj_upto3 = Optimize[hardadj_upto2 @ hardadj03];
+hardadj_upto4 = Optimize[hardadj_upto3 @ hardadj04];
+hardadj_upto5 = Optimize[hardadj_upto4 @ hardadj05];
+hardadj_upto6 = Optimize[hardadj_upto5 @ hardadj06];
+hardadj_upto7 = Optimize[hardadj_upto6 @ hardadj07];
+hardadj_upto8 = Optimize[hardadj_upto7 @ hardadj08];
+hardadj_upto9 = Optimize[hardadj_upto8 @ hardadj09];
+hardadj_upto10 = Optimize[hardadj_upto9 @ hardadj10];
+hardadj_upto11 = Optimize[hardadj_upto10 @ hardadj11];
+hardadj_upto12 = Optimize[hardadj_upto11 @ hardadj12];
+hardadj_upto13 = Optimize[hardadj_upto12 @ hardadj13];
+hardadj_upto14 = Optimize[hardadj_upto13 @ hardadj14];
+hardadj = Optimize[hardadj_upto14 @ hardadj15];
+
+## Soft adjectives, for "third"
+
+softadj01 = CDRewrite["__IJ" : "ий", "", " __MAS,NOM" | " __MAS,ACC", sigma_star];
+softadj02 = CDRewrite["__IJ" : "ьего", "", " __MAS,GEN" | " __NEU,GEN", sigma_star];
+softadj03 = CDRewrite["__IJ" : "ьему", "", " __MAS,DAT" | " __NEU,DAT", sigma_star];
+softadj04 = CDRewrite["__IJ" : "ьим", "", " __MAS,INS" | " __NEU,INS", sigma_star];
+softadj05 = CDRewrite["__IJ" : "ьем", "", " __MAS,PRE" | " __NEU,PRE", sigma_star];
+softadj06 = CDRewrite["__IJ" : "ья", "", " __FEM,NOM", sigma_star];
+softadj07 = CDRewrite["__IJ" : "ью", "", " __FEM,ACC", sigma_star];
+softadj08 = CDRewrite["__IJ" : "ьей", "", " __FEM,GEN" | " __FEM,DAT" | " __FEM,INS" | " __FEM,PRE", sigma_star];
+softadj09 = CDRewrite["__IJ" : "ье", "", " __NEU,NOM" | " __NEU,ACC", sigma_star];
+softadj10 = CDRewrite["__IJ" : "ьи", "", " __PLU,NOM" | " __PLU,ACC", sigma_star];
+softadj11 = CDRewrite["__IJ" : "ьих", "", " __PLU,GEN" | " __PLU,PRE", sigma_star];
+softadj12 = CDRewrite["__IJ" : "ьим", "", " __PLU,DAT", sigma_star];
+softadj13 = CDRewrite["__IJ" : "ьими", "", " __PLU,INS", sigma_star];
+
+softadj_upto2 = Optimize[softadj01 @ softadj02];
+softadj_upto3 = Optimize[softadj_upto2 @ softadj03];
+softadj_upto4 = Optimize[softadj_upto3 @ softadj04];
+softadj_upto5 = Optimize[softadj_upto4 @ softadj05];
+softadj_upto6 = Optimize[softadj_upto5 @ softadj06];
+softadj_upto7 = Optimize[softadj_upto6 @ softadj07];
+softadj_upto8 = Optimize[softadj_upto7 @ softadj08];
+softadj_upto9 = Optimize[softadj_upto8 @ softadj09];
+softadj_upto10 = Optimize[softadj_upto9 @ softadj10];
+softadj_upto11 = Optimize[softadj_upto10 @ softadj11];
+softadj_upto12 = Optimize[softadj_upto11 @ softadj12];
+softadj = Optimize[softadj_upto12 @ softadj13];
+
+## Main target ORDINAL_NUMBER_NAME. This one would be used when one has
+## an ordinal that is not explicitly marked as such and you need to disambiguate
+## from context.
+
+adjs = Optimize[hardadj @ softadj];
+onn_concat = Optimize[ordinal_number_name_base feat];
+export ORDINAL_NUMBER_NAME = Optimize[Compose[onn_concat, adjs]];
+
+## A secondary target is cases where the number is marked with a portion of the
+## ending.
+
+ordinal_markers =
+    "-го"
+  | "-е"
+  | "-ей"
+  | "-ем"
+  | "-и"
+  | "-им"
+  | "-их"
+  | "-й"
+  | "-ми"
+  | "-му"
+  | "-ое"
+  | "-ой"
+  | "-ом"
+  | "-ые"
+  | "-ым"
+  | "-ых"
+  | "-ю"
+  | "-я"
+;
+
+ordinal_marker_endings =
+    ("__YJ-й" : "ый")
+  | ("__OJ-й" : "ой")
+  | ("__YJ-го" : "ого")
+  | ("__YJ-му" : "ому")
+  | ("__YJ-ым" : "ым")
+  | ("__YJ-ом" : "ом")
+  | ("__YJ-я" : "ая")
+  | ("__YJ-ю" : "ую")
+  | ("__YJ-ой" : "ой")
+  | ("__YJ-ое" : "ое")
+  | ("__YJ-ые" : "ые")
+  | ("__YJ-ых" : "ых")
+  | ("__YJ-ым" : "ым")
+  | ("__YJ-ми" : "ыми")
+  | ("__OJ-го" : "ого")
+  | ("__OJ-му" : "ому")
+  | ("__OJ-ым" : "ым")
+  | ("__OJ-ом" : "ом")
+  | ("__OJ-я" : "ая")
+  | ("__OJ-ю" : "ую")
+  | ("__OJ-ой" : "ой")
+  | ("__OJ-ое" : "ое")
+  | ("__OJ-ые" : "ые")
+  | ("__OJ-ых" : "ых")
+  | ("__OJ-ым" : "ым")
+  | ("__OJ-ми" : "ыми")
+  | ("__IJ-й" : "ий")
+  | ("__IJ-го" : "ьего")
+  | ("__IJ-му" : "ьему")
+  | ("__IJ-им" : "ьим")
+  | ("__IJ-ем" : "ьем")
+  | ("__IJ-я" : "ья")
+  | ("__IJ-ю" : "ью")
+  | ("__IJ-ей" : "ьей")
+  | ("__IJ-е" : "ье")
+  | ("__IJ-и" : "ьи")
+  | ("__IJ-их" : "ьих")
+  | ("__IJ-им" : "ьим")
+  | ("__IJ-ми" : "ьими")
+;
+
+ordinal_marker_transducer = sigma_star ordinal_marker_endings ;
+
+## Main target ORDINAL_NUMBER_NAME_MARKED.
+
+export ORDINAL_NUMBER_NAME_MARKED =
+  (ordinal_number_name_base ordinal_markers) @ ordinal_marker_transducer
+;
+
+################################################################################
+## Hooks for decimal numbers.
+## Comma is not read as comma in decimals. Rather целая/целых ("whole" is used)
+##
+## Thus: одна целая и триста семьдесят пять тысячных (1,375); целая (nom, fem,
+## sg) is used after "1", целых (gen, fem, pl) after everything else
+
+## Since this is complex it's worth developing some of this grammar here. We
+## just develop the bit after the decimal to illustrate how to do this.
+
+## We do this up to three decimal places. (It's not clear how many decimal places
+## Russians can easily do this to...)
+
+## Delete comma and any initial zero:
+
+del_init = CDRewrite["," "0"* : "", "", bytelib.kDigit, sigma_star];
+
+## We need to keep the distinction between strings that end in
+## 1 and others since in the nominative/accusative these predict which form of
+## the fraction you are going to get.
+
+one_digit_1 = ",1" @ del_init ;
+two_digit_1 = "," bytelib.kDigit "1" @ del_init ;
+three_digit_1 = "," bytelib.kDigit{2} "1" @ del_init ;
+
+one_digit = "," util.d02to9 @ del_init ;
+two_digit = "," bytelib.kDigit util.d02to9 @ del_init ;
+three_digit = "," bytelib.kDigit{2} util.d02to9 @ del_init ;
+
+tenth_1_nom = "" : " десятая" ;
+tenth_1_dat = "" : " десятой" ;
+tenth_1_gen = "" : " десятой" ;
+tenth_1_ins = "" : " десятой" ;
+tenth_1_pre = "" : " десятой" ;
+tenth_1_acc = "" : " десятую" ;
+tenth_dat = "" : " десятым" ;
+tenth_ins = "" : " десятыми" ;
+tenth_acc = "" : " десятых" ;
+tenth_gen = "" : " десятых" ;
+tenth_pre = "" : " десятых" ;
+hundredth_1_nom = "" : " сотая" ;
+hundredth_1_dat = "" : " сотой" ;
+hundredth_1_gen = "" : " сотой" ;
+hundredth_1_ins = "" : " сотой" ;
+hundredth_1_pre = "" : " сотой" ;
+hundredth_1_acc = "" : " сотую" ;
+hundredth_dat = "" : " сотым" ;
+hundredth_ins = "" : " сотыми" ;
+hundredth_acc = "" : " сотых" ;
+hundredth_gen = "" : " сотых" ;
+hundredth_pre = "" : " сотых" ;
+thousandth_1_nom = "" : " тысячная" ;
+thousandth_1_dat = "" : " тысячной" ;
+thousandth_1_gen = "" : " тысячной" ;
+thousandth_1_ins = "" : " тысячной" ;
+thousandth_1_pre = "" : " тысячной" ;
+thousandth_1_acc = "" : " тысячную" ;
+thousandth_dat = "" : " тысячным" ;
+thousandth_ins = "" : " тысячными" ;
+thousandth_acc = "" : " тысячных" ;
+thousandth_gen = "" : " тысячных" ;
+thousandth_pre = "" : " тысячных" ;
+
+del_features = CDRewrite[features : "", "", "", sigma_star];
+
+one_digit_1_nom = (one_digit_1 ("" : " __FEM,NOM")) @ CARDINAL_NUMBER_NAME_INFLECTED;
+one_digit_nom = (one_digit ("" : " __FEM,NOM")) @ CARDINAL_NUMBER_NAME_INFLECTED;
+two_digit_1_nom = (two_digit_1 ("" : " __FEM,NOM")) @ CARDINAL_NUMBER_NAME_INFLECTED;
+two_digit_nom = (two_digit ("" : " __FEM,NOM")) @ CARDINAL_NUMBER_NAME_INFLECTED;
+three_digit_1_nom = (three_digit_1 ("" : " __FEM,NOM")) @ CARDINAL_NUMBER_NAME_INFLECTED;
+three_digit_nom = (three_digit ("" : " __FEM,NOM")) @ CARDINAL_NUMBER_NAME_INFLECTED;
+
+decimal_nom =
+    (one_digit_1_nom @ del_features) tenth_1_nom
+  | (one_digit_nom @ del_features) tenth_gen
+  | (two_digit_1_nom @ del_features) hundredth_1_nom
+  | (two_digit_nom @ del_features) hundredth_gen
+  | (three_digit_1_nom @ del_features) thousandth_1_nom
+  | (three_digit_nom @ del_features) thousandth_gen
+;
+
+one_digit_1_acc = (one_digit_1 ("" : " __FEM,ACC")) @ CARDINAL_NUMBER_NAME_INFLECTED;
+one_digit_acc = (one_digit ("" : " __FEM,ACC")) @ CARDINAL_NUMBER_NAME_INFLECTED;
+two_digit_1_acc = (two_digit_1 ("" : " __FEM,ACC")) @ CARDINAL_NUMBER_NAME_INFLECTED;
+two_digit_acc = (two_digit ("" : " __FEM,ACC")) @ CARDINAL_NUMBER_NAME_INFLECTED;
+three_digit_1_acc = (three_digit_1 ("" : " __FEM,ACC")) @ CARDINAL_NUMBER_NAME_INFLECTED;
+three_digit_acc = (three_digit ("" : " __FEM,ACC")) @ CARDINAL_NUMBER_NAME_INFLECTED;
+
+decimal_acc =
+    (one_digit_1_acc @ del_features) tenth_1_acc
+  | (one_digit_acc @ del_features) tenth_gen
+  | (two_digit_1_acc @ del_features) hundredth_1_acc
+  | (two_digit_acc @ del_features) hundredth_gen
+  | (three_digit_1_acc @ del_features) thousandth_1_acc
+  | (three_digit_acc @ del_features) thousandth_gen
+;
+
+one_digit_1_gen = (one_digit_1 ("" : " __FEM,GEN")) @ CARDINAL_NUMBER_NAME_INFLECTED;
+one_digit_gen = (one_digit ("" : " __FEM,GEN")) @ CARDINAL_NUMBER_NAME_INFLECTED;
+two_digit_1_gen = (two_digit_1 ("" : " __FEM,GEN")) @ CARDINAL_NUMBER_NAME_INFLECTED;
+two_digit_gen = (two_digit ("" : " __FEM,GEN")) @ CARDINAL_NUMBER_NAME_INFLECTED;
+three_digit_1_gen = (three_digit_1 ("" : " __FEM,GEN")) @ CARDINAL_NUMBER_NAME_INFLECTED;
+three_digit_gen = (three_digit ("" : " __FEM,GEN")) @ CARDINAL_NUMBER_NAME_INFLECTED;
+
+decimal_gen =
+    (one_digit_1_gen @ del_features) tenth_1_gen
+  | (one_digit_gen @ del_features) tenth_gen
+  | (two_digit_1_gen @ del_features) hundredth_1_gen
+  | (two_digit_gen @ del_features) hundredth_gen
+  | (three_digit_1_gen @ del_features) thousandth_1_gen
+  | (three_digit_gen @ del_features) thousandth_gen
+;
+
+one_digit_1_dat = (one_digit_1 ("" : " __FEM,DAT")) @ CARDINAL_NUMBER_NAME_INFLECTED;
+one_digit_dat = (one_digit ("" : " __FEM,DAT")) @ CARDINAL_NUMBER_NAME_INFLECTED;
+two_digit_1_dat = (two_digit_1 ("" : " __FEM,DAT")) @ CARDINAL_NUMBER_NAME_INFLECTED;
+two_digit_dat = (two_digit ("" : " __FEM,DAT")) @ CARDINAL_NUMBER_NAME_INFLECTED;
+three_digit_1_dat = (three_digit_1 ("" : " __FEM,DAT")) @ CARDINAL_NUMBER_NAME_INFLECTED;
+three_digit_dat = (three_digit ("" : " __FEM,DAT")) @ CARDINAL_NUMBER_NAME_INFLECTED;
+
+decimal_dat =
+    (one_digit_1_dat @ del_features) tenth_1_dat
+  | (one_digit_dat @ del_features) tenth_dat
+  | (two_digit_1_dat @ del_features) hundredth_1_dat
+  | (two_digit_dat @ del_features) hundredth_dat
+  | (three_digit_1_dat @ del_features) thousandth_1_dat
+  | (three_digit_dat @ del_features) thousandth_dat
+;
+
+one_digit_1_ins = (one_digit_1 ("" : " __FEM,INS")) @ CARDINAL_NUMBER_NAME_INFLECTED;
+one_digit_ins = (one_digit ("" : " __FEM,INS")) @ CARDINAL_NUMBER_NAME_INFLECTED;
+two_digit_1_ins = (two_digit_1 ("" : " __FEM,INS")) @ CARDINAL_NUMBER_NAME_INFLECTED;
+two_digit_ins = (two_digit ("" : " __FEM,INS")) @ CARDINAL_NUMBER_NAME_INFLECTED;
+three_digit_1_ins = (three_digit_1 ("" : " __FEM,INS")) @ CARDINAL_NUMBER_NAME_INFLECTED;
+three_digit_ins = (three_digit ("" : " __FEM,INS")) @ CARDINAL_NUMBER_NAME_INFLECTED;
+
+decimal_ins =
+    (one_digit_1_ins @ del_features) tenth_1_ins
+  | (one_digit_ins @ del_features) tenth_ins
+  | (two_digit_1_ins @ del_features) hundredth_1_ins
+  | (two_digit_ins @ del_features) hundredth_ins
+  | (three_digit_1_ins @ del_features) thousandth_1_ins
+  | (three_digit_ins @ del_features) thousandth_ins
+;
+
+one_digit_1_pre = (one_digit_1 ("" : " __FEM,PRE")) @ CARDINAL_NUMBER_NAME_INFLECTED;
+one_digit_pre = (one_digit ("" : " __FEM,PRE")) @ CARDINAL_NUMBER_NAME_INFLECTED;
+two_digit_1_pre = (two_digit_1 ("" : " __FEM,PRE")) @ CARDINAL_NUMBER_NAME_INFLECTED;
+two_digit_pre = (two_digit ("" : " __FEM,PRE")) @ CARDINAL_NUMBER_NAME_INFLECTED;
+three_digit_1_pre = (three_digit_1 ("" : " __FEM,PRE")) @ CARDINAL_NUMBER_NAME_INFLECTED;
+three_digit_pre = (three_digit ("" : " __FEM,PRE")) @ CARDINAL_NUMBER_NAME_INFLECTED;
+
+decimal_pre =
+    (one_digit_1_pre @ del_features) tenth_1_pre
+  | (one_digit_pre @ del_features) tenth_pre
+  | (two_digit_1_pre @ del_features) hundredth_1_pre
+  | (two_digit_pre @ del_features) hundredth_pre
+  | (three_digit_1_pre @ del_features) thousandth_1_pre
+  | (three_digit_pre @ del_features) thousandth_pre
+;
+
+## Following a fraction, the following noun is in the genitive singular.
+## The whole number *preceding* the fraction is in the gender of the following noun.
+## So the whole environment is sensitive to the number and gender of the noun.
+
+export DECIMAL =
+   decimal_nom feat_nom
+ | decimal_acc feat_acc
+ | decimal_gen feat_gen
+ | decimal_dat feat_dat
+ | decimal_ins feat_ins
+ | decimal_pre feat_pre
+;
+
+################################################################################
+## Hooks for other "non-standard" numbers
+
+export MINUS = "-" : "минус" ;
+
+export SINGLE_DIGIT = bytelib.kDigit @ CARDINAL_NUMBER_NAME ;
+
+
+################################################################################
+## Spelled out numbers that are likely to occur with currency amounts over which
+## the currency term should "skip":
+
+## $1,3 миллионов -> 1,3 миллионов $
+
+export SPELLED_NUMBERS =
+    "миллионы"
+  | "миллионов"
+  | "миллионам"
+  | "миллионами"
+  | "миллионах"
+  | "миллион"
+  | "миллиона"
+  | "миллиону"
+  | "миллионом"
+  | "миллионе"
+  | "миллиарды"
+  | "миллиардов"
+  | "миллиардам"
+  | "миллиардами"
+  | "миллиардах"
+  | "миллиард"
+  | "миллиарда"
+  | "миллиарду"
+  | "миллиардом"
+  | "миллиарде"
+  | "биллионы"
+  | "биллионов"
+  | "биллионам"
+  | "биллионами"
+  | "биллионах"
+  | "биллион"
+  | "биллиона"
+  | "биллиону"
+  | "биллионом"
+  | "биллионе"
+;
+
+
+################################################################################
+# COLLECTIVE NUMERALS
+
+# Collective numerals are special forms of 2, 3, 4, 5, 6, 7, which tend to be
+# used with inherently plural nouns and in some other constructions. See Wade
+# 207-211. These NEVER occur in compounds, and they govern the genitive plural
+# of the following nouns
+
+export COLLECTIVE_NUMBER_NAME =
+  (("2" : "двое")
+ | ("3" : "трое")
+ | ("4" : "четверо")
+ | ("5" : "пятеро")
+ | ("6" : "шестеро")
+ | ("7" : "семеро"))feat_nom
+
+ |(("2" : "двое")
+ | ("3" : "трое")
+ | ("4" : "четверо")
+ | ("5" : "пятеро")
+ | ("6" : "шестеро")
+ | ("7" : "семеро"))feat_acc
+
+ |(("2" : "двоих")
+ | ("3" : "троих")
+ | ("4" : "четверых")
+ | ("5" : "пятерых")
+ | ("6" : "шестерых")
+ | ("7" : "семерых"))feat_gen
+
+ |(("2" : "двоим")
+ | ("3" : "троим")
+ | ("4" : "четверым")
+ | ("5" : "пятерым")
+ | ("6" : "шестерым")
+ | ("7" : "семерым"))feat_dat
+
+ |(("2" : "двоими")
+ | ("3" : "троими")
+ | ("4" : "четверыми")
+ | ("5" : "пятерыми")
+ | ("6" : "шестерыми")
+ | ("7" : "семерыми"))feat_ins
+
+ |(("2" : "двоих")
+ | ("3" : "троих")
+ | ("4" : "пятерых")
+ | ("5" : "пятерых")
+ | ("6" : "шестерых")
+ | ("7" : "семерых"))feat_pre
+;

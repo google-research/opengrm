@@ -1,0 +1,414 @@
+# Copyright 2026 The OpenGrm Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+
+package(default_visibility = ["//visibility:public"])
+
+filegroup(
+    name = "google_grm_source",
+    srcs = glob(
+        [
+            "*.h",
+            "*.cc",
+        ],
+        exclude = [
+            # Not open-sourcing the tools yet.
+            "fst*.cc",
+        ],
+    ),
+    visibility = ["//experimental/thrax/open:__pkg__"],
+)
+
+# Helper for checking FST properties.
+cc_library(
+    name = "checkprops",
+    hdrs = ["checkprops.h"],
+    deps = ["@com_google_openfst//openfst/lib"],
+)
+
+# Headers.
+
+cc_library(
+    name = "cdrewrite",
+    hdrs = ["cdrewrite.h"],
+    deps = [
+        ":checkprops",
+        ":cross",
+        ":optimize",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/types:span",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:util",
+    ],
+)
+
+cc_library(
+    name = "cross",
+    hdrs = ["cross.h"],
+    deps = ["@com_google_openfst//openfst/lib"],
+)
+
+cc_library(
+    name = "getters",
+    srcs = ["getters.cc"],
+    hdrs = ["getters.h"],
+    deps = [
+        ":cdrewrite",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_library(
+    name = "lenientlycompose",
+    hdrs = ["lenientlycompose.h"],
+    deps = [
+        ":checkprops",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_library(
+    name = "optimize",
+    hdrs = ["optimize.h"],
+    deps = ["@com_google_openfst//openfst/lib"],
+)
+
+cc_library(
+    name = "concatrange",
+    hdrs = ["concatrange.h"],
+    deps = [
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:util",
+    ],
+)
+
+# Scriptland.
+
+cc_library(
+    name = "cdrewritescript",
+    srcs = ["cdrewritescript.cc"],
+    hdrs = ["cdrewritescript.h"],
+    deps = [
+        ":cdrewrite",
+        "@com_google_openfst//openfst/lib:lib_lite",
+        "@com_google_openfst//openfst/script",
+    ],
+)
+
+cc_library(
+    name = "crossscript",
+    srcs = ["crossscript.cc"],
+    hdrs = ["crossscript.h"],
+    deps = [
+        ":cross",
+        "@com_google_openfst//openfst/lib:lib_lite",
+        "@com_google_openfst//openfst/script",
+    ],
+)
+
+cc_library(
+    name = "lenientlycomposescript",
+    srcs = ["lenientlycomposescript.cc"],
+    hdrs = ["lenientlycomposescript.h"],
+    deps = [
+        ":lenientlycompose",
+        "@com_google_openfst//openfst/lib:lib_lite",
+        "@com_google_openfst//openfst/script",
+    ],
+)
+
+cc_library(
+    name = "optimizescript",
+    srcs = ["optimizescript.cc"],
+    hdrs = ["optimizescript.h"],
+    deps = [
+        ":optimize",
+        "@com_google_openfst//openfst/lib:lib_lite",
+        "@com_google_openfst//openfst/script",
+    ],
+)
+
+cc_library(
+    name = "concatrangescript",
+    srcs = ["concatrangescript.cc"],
+    hdrs = ["concatrangescript.h"],
+    deps = [
+        ":concatrange",
+        "@com_google_openfst//openfst/lib:lib_lite",
+        "@com_google_openfst//openfst/script",
+    ],
+)
+
+# Binaries (as libraries).
+
+cc_library(
+    name = "fstcdrewrite-main",
+    srcs = ["fstcdrewrite-main.cc"],
+    deps = [
+        ":cdrewrite",
+        ":cdrewritescript",
+        ":getters",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/script",
+    ],
+)
+
+cc_library(
+    name = "fstcross-main",
+    srcs = ["fstcross-main.cc"],
+    deps = [
+        ":crossscript",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/script",
+    ],
+)
+
+cc_library(
+    name = "fstlenientlycompose-main",
+    srcs = ["fstlenientlycompose-main.cc"],
+    deps = [
+        ":lenientlycomposescript",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/script",
+    ],
+)
+
+cc_library(
+    name = "fstoptimize-main",
+    srcs = ["fstoptimize-main.cc"],
+    deps = [
+        ":optimizescript",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/script",
+    ],
+)
+
+cc_library(
+    name = "fstconcatrange-main",
+    srcs = ["fstconcatrange-main.cc"],
+    deps = [
+        ":concatrangescript",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/script",
+    ],
+)
+
+# Actual binaries.
+
+cc_binary(
+    name = "fstcdrewrite",
+    srcs = ["fstcdrewrite.cc"],
+    linkstatic = 0,
+    deps = [
+        ":fstcdrewrite-main",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_binary(
+    name = "fstcross",
+    srcs = ["fstcross.cc"],
+    linkstatic = 0,
+    deps = [
+        ":fstcross-main",
+        "@com_google_absl//absl/flags:flag",
+    ],
+)
+
+cc_binary(
+    name = "fstlenientlycompose",
+    srcs = ["fstlenientlycompose.cc"],
+    linkstatic = 0,
+    deps = [
+        ":fstlenientlycompose-main",
+        "@com_google_absl//absl/flags:flag",
+    ],
+)
+
+cc_binary(
+    name = "fstoptimize",
+    srcs = ["fstoptimize.cc"],
+    linkstatic = 0,
+    deps = [
+        ":fstoptimize-main",
+        "@com_google_absl//absl/flags:flag",
+    ],
+)
+
+cc_binary(
+    name = "fstconcatrange",
+    srcs = ["fstconcatrange.cc"],
+    linkstatic = 0,
+    deps = [
+        ":fstconcatrange-main",
+        "@com_google_absl//absl/flags:flag",
+    ],
+)
+
+# Tests.
+
+cc_test(
+    name = "cdrewrite_test",
+    size = "medium",
+    srcs = ["cdrewrite_test.cc"],
+    data = [
+        "testdata/a.fst",
+        "testdata/a_bos.fst",
+        "testdata/b.fst",
+        "testdata/bXa.fst",
+        "testdata/b_eos.fst",
+        "testdata/boundary_test.fst",
+        "testdata/l2r.fst",
+        "testdata/l2r.opt.fst",
+        "testdata/mapping.fst",
+        "testdata/r2l.fst",
+        "testdata/r2l.opt.fst",
+        "testdata/s.fst",
+        "testdata/s.opt.fst",
+    ],
+    deps = [
+        ":cdrewrite",
+        ":cdrewritescript",
+        ":crossscript",
+        ":optimize",
+        ":optimizescript",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/lib:lib_lite",
+        "@com_google_openfst//openfst/script",
+        "@com_google_openfst//openfst/script:weight-class",
+    ],
+)
+
+filegroup(
+    name = "cross_testdata",
+    data = [
+        ":testdata/lower.fst",
+        ":testdata/upper.fst",
+        ":testdata/xprod.fst",
+    ],
+)
+
+cc_test(
+    name = "cross_test",
+    size = "medium",
+    srcs = ["cross_test.cc"],
+    data = [":cross_testdata"],
+    deps = [
+        ":cross",
+        ":crossscript",
+        "//opengrm/string:stringcompile",
+        "//opengrm/string:stringcompilescript",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/lib:lib_lite",
+        "@com_google_openfst//openfst/script",
+        "@com_google_openfst//openfst/script:weight-class",
+    ],
+)
+
+filegroup(
+    name = "lenientlycompose_testdata",
+    data = [
+        ":testdata/eggs.fst",
+        ":testdata/noise.fst",
+        ":testdata/sigma.fst",
+        ":testdata/spam.fst",
+        ":testdata/spam2eggs.fst",
+    ],
+)
+
+cc_test(
+    name = "lenientlycompose_test",
+    size = "medium",
+    srcs = ["lenientlycompose_test.cc"],
+    data = [":lenientlycompose_testdata"],
+    deps = [
+        ":lenientlycompose",
+        ":lenientlycomposescript",
+        ":optimize",
+        ":optimizescript",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/lib:lib_lite",
+        "@com_google_openfst//openfst/script",
+    ],
+)
+
+filegroup(
+    name = "optimize_testdata",
+    data = glob(["testdata/ofst*.fst"]),
+)
+
+cc_test(
+    name = "optimize_test",
+    size = "medium",
+    srcs = ["optimize_test.cc"],
+    data = [":optimize_testdata"],
+    deps = [
+        ":optimize",
+        ":optimizescript",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/lib:lib_lite",
+        "@com_google_openfst//openfst/script",
+    ],
+)
+
+cc_test(
+    name = "concatrange_test",
+    size = "medium",
+    srcs = ["concatrange_test.cc"],
+    data = [":testdata/m.fst"],
+    deps = [
+        ":concatrange",
+        ":concatrangescript",
+        "//opengrm/rewrite",
+        "@com_google_absl//absl/log:check",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/script",
+    ],
+)
+
+filegroup(
+    name = "concatrange_testdata",
+    data = [
+        ":testdata/m.fst",
+        ":testdata/m_0-2.fst",
+        ":testdata/m_2-5.fst",
+    ],
+)

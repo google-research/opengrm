@@ -1,0 +1,138 @@
+# Copyright 2026 The OpenGrm Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Enable logging rc options.
+common --announce_rc
+
+# By default, detect the platform and use the platform-specific options below.
+build --enable_platform_specific_config
+
+# Disable C++ exceptions.
+build --features=-exceptions
+
+# ------------------------------------------------------------------------------
+# Compilation-mode options.
+# ------------------------------------------------------------------------------
+
+# Tests are very slow with default `-O0`.
+build:dev --copt=-O1
+
+# ------------------------------------------------------------------------------
+# Per-plaform options for toolchains using GCC or clang.
+# ------------------------------------------------------------------------------
+
+build:gcc_clang --cxxopt=-std=c++17
+build:gcc_clang --cxxopt=-Wno-sign-compare
+build:gcc_clang --cxxopt=-Wno-deprecated-declarations
+build:gcc_clang --cxxopt=-Wno-changes-meaning
+# TODO: b/476056201 - This warning is enabled in Google, so unclear why it is
+# failing here.  Investigate, fix, and re-enable.
+build:gcc_clang --cxxopt=-Wno-overloaded-virtual
+
+# Temporarily disabled warnings that we would like to turn on.
+build:gcc_clang --cxxopt=-Wno-defaulted-function-deleted
+build:gcc_clang --cxxopt=-Wno-nullability-completeness
+
+# WORKAROUND: GCC 15+ assembler generates `.sframe` stack trace sections by
+# default.  The linker fails to handle `.sframe` references correctly during
+# COMDAT section discarding ("relocation refers to local symbol... which is
+# defined in a discarded section").  We disable `.sframe` generation in the
+# assembler to fix the build.  This can be removed when it no longer gives
+# an error on gLinux Rodete.  gcc 15.2.0 and binutils 2.45 gives an error.
+# TOD0: b/491436022 - Try again with binutils 2.46.
+build:host_gcc --cxxopt=-Wa,--gsframe=no
+
+# ------------------------------------------------------------------------------
+# Options for Linux.
+# ------------------------------------------------------------------------------
+
+build:linux --config=gcc_clang
+
+# ------------------------------------------------------------------------------
+# Options for macOS.
+# ------------------------------------------------------------------------------
+
+# Sets the default Apple platform to macOS.
+build --apple_platform_type=macos
+
+build:macos --config=gcc_clang
+build:macos --cxxopt=-Wno-dangling-field
+build:macos --cxxopt=-mmacos-version-min=10.15
+
+# ------------------------------------------------------------------------------
+# Options for Windows.
+# ------------------------------------------------------------------------------
+
+build:windows --cxxopt=/std:c++17
+
+# Force compiler to (1) read the sources in UTF8 instead of Windows system's
+# default local code page and (2) encode all string literals as UTF8 during
+# execution.
+build:windows --cxxopt=-utf-8
+
+# Signed/unsigned mismatch.
+build:windows --cxxopt=/wd4018
+build:windows --cxxopt=/wd4389
+
+# Suppress deprecated declaration warnings.
+build:windows --cxxopt=/wd4996
+
+# Make sure to include as little of <windows.h> as possible.
+build:windows --copt=-DWIN32_LEAN_AND_MEAN
+build:windows --copt=-DNOGDI
+
+# https://learn.microsoft.com/en-us/cpp/c-runtime-library/math-constants?view=msvc-170
+build:windows --copt=/D_USE_MATH_DEFINES
+
+# https://devblogs.microsoft.com/cppblog/announcing-full-support-for-a-c-c-conformant-preprocessor-in-msvc/
+# otherwise, there will be some compiling error due to preprocessing.
+build:windows --copt=/Zc:preprocessor
+
+# Increase linker stack size.
+build:windows --linkopt=/STACK:8388608
+
+# Enable the runfiles tree on Windows. The unit tests cannot find the test data
+# otherwise.
+build:windows --enable_runfiles
+
+# Enable symlinks, per https://bazel.build/configure/windows#symlink.
+startup --windows_enable_symlinks
+
+# ------------------------------------------------------------------------------
+# Options for --config=gcc, gcc_old, llvm, and llvm_old.
+# ------------------------------------------------------------------------------
+# NOTE: GCC toolchains are broken with Bazel 9 until
+# https://github.com/bazelbuild/bazel-central-registry/pull/7391
+# is merged.
+build:gcc --extra_toolchains=@gcc_toolchain_cur//:all
+build:gcc_old --extra_toolchains=@gcc_toolchain_old//:all
+# If `--config=llvm` fails with `libxml2.so.2` errors, install `libxml2`
+# manually using `apt install libxml2` or similar.
+# https://github.com/bazel-contrib/toolchains_llvm/issues/657#issuecomment-3786505615
+build:llvm --extra_toolchains=@llvm_toolchain_cur//:all
+build:llvm --linkopt=-fuse-ld=lld
+build:llvm_old --extra_toolchains=@llvm_toolchain_old//:all
+build:llvm_old --linkopt=-fuse-ld=lld
+
+# ------------------------------------------------------------------------------
+# Options for benchmarking.
+# ------------------------------------------------------------------------------
+
+# It's useless to benchmark a debug build.
+build:benchmark --compilation_mode=opt
+# Link the benchmark binary statically, even if it's a `cc_test`.
+# The default link mode for `cc_test` is dynamic.
+build:benchmark --dynamic_mode=off
+# Generate line table debug info for profiling.
+build:benchmark --copt=-gmlt

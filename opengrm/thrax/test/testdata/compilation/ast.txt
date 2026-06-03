@@ -1,0 +1,160 @@
+GrammarNode
+|-- Imports:
+|-- CollectionNode
+|-- Functions:
+|-- CollectionNode
+|-- Statements:
+|-- CollectionNode
+|   |-- StatementNode
+|   |   |-- RuleNode
+|   |   |   |-- IdentifierNode: compose_chain
+|   |   |   |-- FstNode
+|   |   |   |   |-- Type: COMPOSITION_FSTNODE
+|   |   |   |   |-- Arguments:
+|   |   |   |   | - FstNode
+|   |   |   |   |   |-- Type: COMPOSITION_FSTNODE
+|   |   |   |   |   |-- Arguments:
+|   |   |   |   |   | - FstNode
+|   |   |   |   |   |   |-- Type: STRING_FSTNODE
+|   |   |   |   |   |   |-- Parsing: BYTE
+|   |   |   |   |   |   |-- Arguments:
+|   |   |   |   |   |   | - StringNode: a
+|   |   |   |   |   | - FstNode
+|   |   |   |   |   |   |-- Type: STRING_FSTNODE
+|   |   |   |   |   |   |-- Parsing: BYTE
+|   |   |   |   |   |   |-- Arguments:
+|   |   |   |   |   |   | - StringNode: b
+|   |   |   |   | - FstNode
+|   |   |   |   |   |-- Type: STRING_FSTNODE
+|   |   |   |   |   |-- Parsing: BYTE
+|   |   |   |   |   |-- Arguments:
+|   |   |   |   |   | - StringNode: c
+|   |-- StatementNode
+|   |   |-- RuleNode
+|   |   |   |-- IdentifierNode: concat_chain
+|   |   |   |-- FstNode
+|   |   |   |   |-- Type: CONCAT_FSTNODE
+|   |   |   |   |-- Arguments:
+|   |   |   |   | - FstNode
+|   |   |   |   |   |-- Type: STRING_FSTNODE
+|   |   |   |   |   |-- Parsing: BYTE
+|   |   |   |   |   |-- Arguments:
+|   |   |   |   |   | - StringNode: a
+|   |   |   |   | - FstNode
+|   |   |   |   |   |-- Type: CONCAT_FSTNODE
+|   |   |   |   |   |-- Arguments:
+|   |   |   |   |   | - FstNode
+|   |   |   |   |   |   |-- Type: STRING_FSTNODE
+|   |   |   |   |   |   |-- Parsing: BYTE
+|   |   |   |   |   |   |-- Arguments:
+|   |   |   |   |   |   | - StringNode: b
+|   |   |   |   |   | - FstNode
+|   |   |   |   |   |   |-- Type: STRING_FSTNODE
+|   |   |   |   |   |   |-- Parsing: BYTE
+|   |   |   |   |   |   |-- Arguments:
+|   |   |   |   |   |   | - StringNode: c
+|   |-- StatementNode
+|   |   |-- RuleNode
+|   |   |   |-- IdentifierNode: difference_chain
+|   |   |   |-- FstNode
+|   |   |   |   |-- Type: DIFFERENCE_FSTNODE
+|   |   |   |   |-- Arguments:
+|   |   |   |   | - FstNode
+|   |   |   |   |   |-- Type: DIFFERENCE_FSTNODE
+|   |   |   |   |   |-- Arguments:
+|   |   |   |   |   | - FstNode
+|   |   |   |   |   |   |-- Type: STRING_FSTNODE
+|   |   |   |   |   |   |-- Parsing: BYTE
+|   |   |   |   |   |   |-- Arguments:
+|   |   |   |   |   |   | - StringNode: a
+|   |   |   |   |   | - FstNode
+|   |   |   |   |   |   |-- Type: STRING_FSTNODE
+|   |   |   |   |   |   |-- Parsing: BYTE
+|   |   |   |   |   |   |-- Arguments:
+|   |   |   |   |   |   | - StringNode: b
+|   |   |   |   | - FstNode
+|   |   |   |   |   |-- Type: STRING_FSTNODE
+|   |   |   |   |   |-- Parsing: BYTE
+|   |   |   |   |   |-- Arguments:
+|   |   |   |   |   | - StringNode: c
+|   |-- StatementNode
+|   |   |-- RuleNode
+|   |   |   |-- IdentifierNode: union_chain
+|   |   |   |-- FstNode
+|   |   |   |   |-- Type: UNION_FSTNODE
+|   |   |   |   |-- Arguments:
+|   |   |   |   | - FstNode
+|   |   |   |   |   |-- Type: STRING_FSTNODE
+|   |   |   |   |   |-- Parsing: BYTE
+|   |   |   |   |   |-- Arguments:
+|   |   |   |   |   | - StringNode: a
+|   |   |   |   | - FstNode
+|   |   |   |   |   |-- Type: UNION_FSTNODE
+|   |   |   |   |   |-- Arguments:
+|   |   |   |   |   | - FstNode
+|   |   |   |   |   |   |-- Type: STRING_FSTNODE
+|   |   |   |   |   |   |-- Parsing: BYTE
+|   |   |   |   |   |   |-- Arguments:
+|   |   |   |   |   |   | - StringNode: b
+|   |   |   |   |   | - FstNode
+|   |   |   |   |   |   |-- Type: STRING_FSTNODE
+|   |   |   |   |   |   |-- Parsing: BYTE
+|   |   |   |   |   |   |-- Arguments:
+|   |   |   |   |   |   | - StringNode: c
+|   |-- StatementNode
+|   |   |-- RuleNode
+|   |   |   |-- IdentifierNode: compound
+|   |   |   |-- FstNode
+|   |   |   |   |-- Type: UNION_FSTNODE
+|   |   |   |   |-- Arguments:
+|   |   |   |   | - FstNode
+|   |   |   |   |   |-- Type: REWRITE_FSTNODE
+|   |   |   |   |   |-- Arguments:
+|   |   |   |   |   | - FstNode
+|   |   |   |   |   |   |-- Type: UNION_FSTNODE
+|   |   |   |   |   |   |-- Arguments:
+|   |   |   |   |   |   | - FstNode
+|   |   |   |   |   |   |   |-- Type: STRING_FSTNODE
+|   |   |   |   |   |   |   |-- Parsing: BYTE
+|   |   |   |   |   |   |   |-- Arguments:
+|   |   |   |   |   |   |   | - StringNode: a
+|   |   |   |   |   |   | - FstNode
+|   |   |   |   |   |   |   |-- Type: COMPOSITION_FSTNODE
+|   |   |   |   |   |   |   |-- Arguments:
+|   |   |   |   |   |   |   | - FstNode
+|   |   |   |   |   |   |   |   |-- Type: DIFFERENCE_FSTNODE
+|   |   |   |   |   |   |   |   |-- Arguments:
+|   |   |   |   |   |   |   |   | - FstNode
+|   |   |   |   |   |   |   |   |   |-- Type: CONCAT_FSTNODE
+|   |   |   |   |   |   |   |   |   |-- Arguments:
+|   |   |   |   |   |   |   |   |   | - FstNode
+|   |   |   |   |   |   |   |   |   |   |-- Type: STRING_FSTNODE
+|   |   |   |   |   |   |   |   |   |   |-- Parsing: BYTE
+|   |   |   |   |   |   |   |   |   |   |-- Arguments:
+|   |   |   |   |   |   |   |   |   |   | - StringNode: b
+|   |   |   |   |   |   |   |   |   | - FstNode
+|   |   |   |   |   |   |   |   |   |   |-- Type: STRING_FSTNODE
+|   |   |   |   |   |   |   |   |   |   |-- Parsing: BYTE
+|   |   |   |   |   |   |   |   |   |   |-- Arguments:
+|   |   |   |   |   |   |   |   |   |   | - StringNode: c
+|   |   |   |   |   |   |   |   | - FstNode
+|   |   |   |   |   |   |   |   |   |-- Type: STRING_FSTNODE
+|   |   |   |   |   |   |   |   |   |-- Parsing: BYTE
+|   |   |   |   |   |   |   |   |   |-- Arguments:
+|   |   |   |   |   |   |   |   |   | - StringNode: d
+|   |   |   |   |   |   |   | - FstNode
+|   |   |   |   |   |   |   |   |-- Type: STRING_FSTNODE
+|   |   |   |   |   |   |   |   |-- Parsing: BYTE
+|   |   |   |   |   |   |   |   |-- Arguments:
+|   |   |   |   |   |   |   |   | - StringNode: e
+|   |   |   |   |   | - FstNode
+|   |   |   |   |   |   |-- Type: STRING_FSTNODE
+|   |   |   |   |   |   |-- Parsing: BYTE
+|   |   |   |   |   |   |-- Arguments:
+|   |   |   |   |   |   | - StringNode: a
+|   |   |   |   |   |-- Weight: 4
+|   |   |   |   | - FstNode
+|   |   |   |   |   |-- Type: STRING_FSTNODE
+|   |   |   |   |   |-- Parsing: BYTE
+|   |   |   |   |   |-- Arguments:
+|   |   |   |   |   | - StringNode: d

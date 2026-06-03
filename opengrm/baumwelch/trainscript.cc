@@ -1,0 +1,41 @@
+// Copyright 2026 The OpenGrm Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include "opengrm/baumwelch/trainscript.h"
+
+#include "openfst/extensions/far/far-class.h"
+#include "openfst/lib/properties.h"
+#include "openfst/script/fst-class.h"
+#include "openfst/script/script-impl.h"
+#include "opengrm/baumwelch/train.h"
+
+namespace fst {
+namespace script {
+
+void Train(FarReaderClass& input, FarReaderClass& output,
+           MutableFstClass* model, bool normalize_ilabel,
+           const TrainOptions& opts) {
+  if (!internal::ArcTypesMatch(input, *model, "Train") ||
+      !internal::ArcTypesMatch(output, *model, "Train")) {
+    model->SetProperties(kError, kError);
+    return;
+  }
+  BaumWelchTrainArgs args{input, output, model, normalize_ilabel, opts};
+  Apply<Operation<BaumWelchTrainArgs>>("Train", model->ArcType(), &args);
+}
+
+REGISTER_FST_OPERATION_3ARCS(Train, BaumWelchTrainArgs);
+
+}  // namespace script
+}  // namespace fst

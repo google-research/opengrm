@@ -1,0 +1,554 @@
+# Copyright 2026 The OpenGrm Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+
+package(default_visibility = ["//visibility:public"])
+
+## Libraries.
+
+# Helper for decoding non-path semirings.
+cc_library(
+    name = "a-star",
+    hdrs = ["a-star.h"],
+    deps = [
+        ":util",
+        "@com_google_absl//absl/log",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:fst-decl",
+    ],
+)
+
+cc_test(
+    name = "a-star_test",
+    srcs = ["a-star_test.cc"],
+    data = [
+        ":testdata/a-star/nfa.fst",
+        ":testdata/a-star/shortest.fst",
+    ],
+    deps = [
+        ":a-star",
+        "@com_google_absl//absl/log:check",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+# Helper for constructing input/channel/output cascades.
+cc_library(
+    name = "cascade",
+    hdrs = ["cascade.h"],
+    deps = [
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:fst-decl",
+    ],
+)
+
+# Helper for log-addition.
+cc_library(
+    name = "log-adder",
+    hdrs = ["log-adder.h"],
+    deps = ["@com_google_openfst//openfst/lib:weight"],
+)
+
+cc_test(
+    name = "log-adder_test",
+    srcs = ["log-adder_test.cc"],
+    deps = [
+        ":log-adder",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/lib:weight",
+    ],
+)
+
+# Helper for expectation tables.
+cc_library(
+    name = "expectation-table",
+    hdrs = ["expectation-table.h"],
+    deps = [
+        ":log-adder",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+# Randomization.
+cc_library(
+    name = "randomize",
+    hdrs = ["randomize.h"],
+    deps = [
+        "@com_google_absl//absl/random",
+        "@com_google_absl//absl/random:bit_gen_ref",
+        "@com_google_absl//absl/random:distributions",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+# Helpers.
+cc_library(
+    name = "util",
+    hdrs = ["util.h"],
+)
+
+cc_library(
+    name = "train",
+    hdrs = ["train.h"],
+    deps = [
+        ":cascade",
+        ":expectation-table",
+        ":log-adder",
+        ":util",
+        "@com_google_absl//absl/log",
+        "@com_google_openfst//openfst/extensions/far:lib",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+# Decoding methods for trained models.
+cc_library(
+    name = "decode",
+    hdrs = ["decode.h"],
+    deps = [
+        ":a-star",
+        ":cascade",
+        "@com_google_openfst//openfst/extensions/far:lib",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:fst-decl",
+    ],
+)
+
+# Header that exposes decode and train.
+cc_library(
+    name = "baumwelch",
+    hdrs = ["baumwelch.h"],
+    deps = [
+        ":decode",
+        ":randomize",
+        ":train",
+    ],
+)
+
+# Scoring methods for trained models.
+cc_library(
+    name = "score",
+    hdrs = ["score.h"],
+    deps = [
+        "//opengrm/string:stringprint",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:check",
+        "@com_google_openfst//openfst/extensions/far:lib",
+        "@com_google_openfst//openfst/lib:fst-decl",
+        "@com_google_openfst//openfst/lib:string",
+    ],
+)
+
+## Scriptland.
+
+cc_library(
+    name = "randomizescript",
+    srcs = ["randomizescript.cc"],
+    hdrs = ["randomizescript.h"],
+    deps = [
+        ":randomize",
+        "@com_google_absl//absl/random:bit_gen_ref",
+        "@com_google_openfst//openfst/lib:lib_lite",
+        "@com_google_openfst//openfst/script",
+    ],
+)
+
+cc_library(
+    name = "trainscript",
+    srcs = ["trainscript.cc"],
+    hdrs = ["trainscript.h"],
+    deps = [
+        ":train",
+        "@com_google_openfst//openfst/extensions/far:lib",
+        "@com_google_openfst//openfst/extensions/far:script",
+        "@com_google_openfst//openfst/lib:lib_lite",
+        "@com_google_openfst//openfst/script",
+    ],
+)
+
+cc_library(
+    name = "decodescript",
+    srcs = ["decodescript.cc"],
+    hdrs = ["decodescript.h"],
+    deps = [
+        ":decode",
+        "@com_google_openfst//openfst/extensions/far:lib",
+        "@com_google_openfst//openfst/extensions/far:script",
+        "@com_google_openfst//openfst/lib:lib_lite",
+        "@com_google_openfst//openfst/script",
+    ],
+)
+
+## Binaries.
+
+# Binaries (as libraries).
+
+cc_library(
+    name = "baumwelchrandomize-main",
+    srcs = ["baumwelchrandomize-main.cc"],
+    tags = ["keep_dep"],
+    deps = [
+        ":randomizescript",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/script",
+    ],
+)
+
+cc_library(
+    name = "baumwelchtrain-main",
+    srcs = ["baumwelchtrain-main.cc"],
+    tags = ["keep_dep"],
+    deps = [
+        ":train",
+        ":trainscript",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/extensions/far:script",
+        "@com_google_openfst//openfst/lib:util",
+        "@com_google_openfst//openfst/script",
+    ],
+)
+
+cc_library(
+    name = "baumwelchdecode-main",
+    srcs = ["baumwelchdecode-main.cc"],
+    tags = ["keep_dep"],
+    deps = [
+        ":decodescript",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/extensions/far:script",
+        "@com_google_openfst//openfst/lib:lib_lite",
+        "@com_google_openfst//openfst/lib:util",
+        "@com_google_openfst//openfst/script",
+    ],
+)
+
+# Actual binaries.
+
+cc_binary(
+    name = "baumwelchrandomize",
+    srcs = ["baumwelchrandomize.cc"],
+    linkstatic = 0,
+    deps = [
+        ":baumwelchrandomize-main",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_openfst//openfst/script",
+    ],
+)
+
+cc_binary(
+    name = "baumwelchtrain",
+    srcs = ["baumwelchtrain.cc"],
+    linkstatic = 0,
+    deps = [
+        ":baumwelchtrain-main",
+        ":train",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_openfst//openfst/lib:weight",
+    ],
+)
+
+cc_binary(
+    name = "baumwelchdecode",
+    srcs = ["baumwelchdecode.cc"],
+    linkstatic = 0,
+    deps = [
+        ":baumwelchdecode-main",
+        "@com_google_absl//absl/flags:flag",
+    ],
+)
+
+## Tests and test assets.
+
+cc_library(
+    name = "decipherment-tester",
+    testonly = 1,
+    hdrs = ["decipherment-tester.h"],
+    deps = [
+        ":decode",
+        ":randomize",
+        ":score",
+        ":train",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/random",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/compat:seed_sequences",
+        "@com_google_openfst//openfst/extensions/far:far-reader",
+        "@com_google_openfst//openfst/extensions/far:fst-far-reader",
+        "@com_google_openfst//openfst/extensions/far:fst-far-writer",
+        "@com_google_openfst//openfst/extensions/far:sttable-far-reader",
+        "@com_google_openfst//openfst/extensions/far:sttable-far-writer",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+# 13!-keyspace mono substitution cipher with Baum-Welch training.
+cc_test(
+    name = "mono-13-log_test",
+    timeout = "long",
+    srcs = ["mono_test.cc"],
+    data = [
+        ":testdata/mono/channel-13.fst",
+        ":testdata/mono/ciphertext-log.far",
+        ":testdata/mono/lm.fst",
+        ":testdata/mono/plaintext-log.far",
+    ],
+    defines = [
+        "TEST_13",
+        "TEST_LOG",
+    ],
+    tags = ["notap"],
+    deps = [
+        ":decipherment-tester",
+        ":train",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log:check",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/extensions/far:far-reader",
+        "@com_google_openfst//openfst/extensions/special:phi-fst",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+# 13!-keyspace mono substitution cipher with Viterbi training.
+cc_test(
+    name = "mono-13-std_test",
+    timeout = "long",
+    srcs = ["mono_test.cc"],
+    data = [
+        ":testdata/mono/channel-13.fst",
+        ":testdata/mono/ciphertext.far",
+        ":testdata/mono/lm.fst",
+        ":testdata/mono/plaintext.far",
+    ],
+    defines = [
+        "TEST_13",
+        "TEST_STD",
+    ],
+    tags = ["notap"],
+    deps = [
+        ":decipherment-tester",
+        ":train",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log:check",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/extensions/far:far-reader",
+        "@com_google_openfst//openfst/extensions/special:phi-fst",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+# 26!-keyspace mono substitution cipher with Baum-Welch training.
+cc_test(
+    name = "mono-26-log_test",
+    timeout = "eternal",
+    srcs = ["mono_test.cc"],
+    data = [
+        ":testdata/mono/channel-26.fst",
+        ":testdata/mono/ciphertext-log.far",
+        ":testdata/mono/lm.fst",
+        ":testdata/mono/plaintext-log.far",
+    ],
+    defines = [
+        "TEST_26",
+        "TEST_LOG",
+    ],
+    tags = [
+        "manual",
+        "notap",
+    ],
+    deps = [
+        ":decipherment-tester",
+        ":train",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log:check",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/extensions/far:far-reader",
+        "@com_google_openfst//openfst/extensions/special:phi-fst",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+# 26!-keyspace mono substitution cipher with Viterbi training.
+cc_test(
+    name = "mono-26-std_test",
+    timeout = "eternal",
+    srcs = ["mono_test.cc"],
+    data = [
+        ":testdata/mono/channel-26.fst",
+        ":testdata/mono/ciphertext.far",
+        ":testdata/mono/lm.fst",
+        ":testdata/mono/plaintext.far",
+    ],
+    defines = [
+        "TEST_26",
+        "TEST_STD",
+    ],
+    tags = [
+        "manual",
+        "notap",
+    ],
+    deps = [
+        ":decipherment-tester",
+        ":train",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log:check",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/extensions/far:far-reader",
+        "@com_google_openfst//openfst/extensions/special:phi-fst",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+# 27!-keyspace mono substitution cipher with Baum-Welch training.
+cc_test(
+    name = "mono-27-log_test",
+    timeout = "eternal",
+    srcs = ["mono_test.cc"],
+    data = [
+        ":testdata/mono/channel-27.fst",
+        ":testdata/mono/ciphertext-log.far",
+        ":testdata/mono/lm.fst",
+        ":testdata/mono/plaintext-log.far",
+    ],
+    defines = [
+        "TEST_27",
+        "TEST_LOG",
+    ],
+    tags = [
+        "manual",
+        "notap",
+    ],
+    deps = [
+        ":decipherment-tester",
+        ":train",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log:check",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/extensions/far:far-reader",
+        "@com_google_openfst//openfst/extensions/special:phi-fst",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+# 27!-keyspace mono substitution cipher with Viterbi training.
+cc_test(
+    name = "mono-27-std_test",
+    timeout = "eternal",
+    srcs = ["mono_test.cc"],
+    data = [
+        ":testdata/mono/channel-27.fst",
+        ":testdata/mono/ciphertext.far",
+        ":testdata/mono/lm.fst",
+        ":testdata/mono/plaintext.far",
+    ],
+    defines = [
+        "TEST_27",
+        "TEST_STD",
+    ],
+    tags = [
+        "manual",
+        "notap",
+    ],
+    deps = [
+        ":decipherment-tester",
+        ":train",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log:check",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/extensions/far:far-reader",
+        "@com_google_openfst//openfst/extensions/special:phi-fst",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+# Zodiac cipher 408 with Baum-Welch training.
+cc_test(
+    name = "z408-log_test",
+    timeout = "eternal",
+    srcs = ["z408_test.cc"],
+    data = [
+        ":testdata/z408/channel.fst",
+        ":testdata/z408/ciphertext-log.fst",
+        ":testdata/z408/lm.fst",
+        ":testdata/z408/plaintext-log.fst",
+    ],
+    defines = ["TEST_LOG"],
+    tags = [
+        "manual",
+        "notap",
+    ],
+    deps = [
+        ":decipherment-tester",
+        ":train",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/extensions/far:lib",
+        "@com_google_openfst//openfst/extensions/special:phi-fst",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+# Zodiac cipher 408 with Viterbi training.
+cc_test(
+    name = "z408-std_test",
+    timeout = "eternal",
+    srcs = ["z408_test.cc"],
+    data = [
+        ":testdata/z408/channel.fst",
+        ":testdata/z408/ciphertext.fst",
+        ":testdata/z408/lm.fst",
+        ":testdata/z408/plaintext.fst",
+    ],
+    defines = ["TEST_STD"],
+    tags = [
+        "manual",
+        "notap",
+    ],
+    deps = [
+        ":decipherment-tester",
+        ":train",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/extensions/far:lib",
+        "@com_google_openfst//openfst/extensions/special:phi-fst",
+        "@com_google_openfst//openfst/lib",
+    ],
+)

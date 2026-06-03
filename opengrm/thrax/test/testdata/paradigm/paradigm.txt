@@ -1,0 +1,15 @@
+# Test for paradigm funcionality.
+
+DECL1_ANALYZER	aqua	aqu+a[cas=nom][num=sg]
+DECL1_ANALYZER	aquārum	aqu+ārum[cas=gen][num=pl]
+DECL2_ANALYZER	dominus	domin+us[cas=nom][num=sg]
+DECL2_ANALYZER	dominōrum	domin+ōrum[cas=gen][num=pl]
+DECL2R_ANALYZER	vir	vir+[cas=nom][num=sg]
+DECL2R_ANALYZER	virōrum	vir+ōrum[cas=gen][num=pl]
+DECL1_TAGGER	aqua	aqua[cas=nom][num=sg]
+DECL1_TAGGER	aquārum	aquārum[cas=gen][num=pl]
+DECL2_TAGGER	dominus	dominus[cas=nom][num=sg]
+DECL2_TAGGER	dominōrum	dominōrum[cas=gen][num=pl]
+DECL2R_TAGGER	vir	vir[cas=nom][num=sg]
+DECL2R_TAGGER	virōrum	virōrum[cas=gen][num=pl]
+

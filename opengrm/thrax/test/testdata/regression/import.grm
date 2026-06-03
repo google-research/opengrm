@@ -1,0 +1,23 @@
+# Copyright 2026 The OpenGrm Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import 'opengrm/thrax/test/testdata/regression/basic.grm' as bas;
+import 'opengrm/thrax/test/testdata/regression/advanced.grm' as adv;
+
+# Here, we'll try using secondary imports (i.e., a symbol that's included by an
+# included file).
+export test1 = bas.Clean[adv.UnionWithTriple[bas.kUpper]];
+export test2 = bas.Clean[adv.UnionWithTriple[adv.basic.kUpper]];
+export test3 = adv.basic.Clean[adv.UnionWithTriple[bas.kUpper]];
+export test4 = adv.basic.Clean[adv.UnionWithTriple[adv.basic.kUpper]];

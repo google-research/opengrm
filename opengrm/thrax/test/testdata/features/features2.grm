@@ -1,0 +1,48 @@
+# Copyright 2026 The OpenGrm Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Test of infrastructure for handling features.
+
+import 'opengrm/thrax/stdlib/byte.grm' as bytelib;
+import 'opengrm/thrax/test/testdata/features/features.grm' as features;
+
+neu_nom = FeatureVector[features.noun, 'gender=neu', 'case=nom'];
+
+mapper =
+    ("[case=nom]" : "\[case=nom\]")
+  | ("[case=acc]" : "\[case=acc\]")
+  | ("[case=gen]" : "\[case=gen\]")
+  | ("[case=dat]" : "\[case=dat\]")
+  | ("[number=sg]" : "\[number=sg\]")
+  | ("[number=pl]" : "\[number=pl\]")
+  | ("[gender=mas]" : "\[gender=mas\]")
+  | ("[gender=fem]" : "\[gender=fem\]")
+  | ("[gender=neu]" : "\[gender=neu\]")
+;
+
+all_feats = Project[mapper, 'input'];
+sigma_star = (bytelib.kBytes | all_feats)*;
+
+map = CDRewrite[mapper, "", "", sigma_star];
+
+# Small example of tagged words.
+
+words =
+    "canis" ("" : FeatureVector[features.noun, 'gender=mas', 'number=sg', 'case=nom'])
+  | "canem" ("" : FeatureVector[features.noun, 'gender=mas', 'case=acc', 'number=sg'])
+  | "canibus" ("" : FeatureVector[features.noun, 'gender=mas', 'case=dat', 'number=pl'])
+  | "feminis" ("" : FeatureVector[features.noun, 'gender=fem', 'case=dat', 'number=pl'])
+;
+
+export WORDS = Optimize[words @ map];

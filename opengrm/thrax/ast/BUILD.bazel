@@ -1,0 +1,306 @@
+# Copyright 2026 The OpenGrm Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Abstract syntax tree nodes for the Thrax language.
+
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+
+package(default_visibility = ["//visibility:public"])
+
+filegroup(
+    name = "google_grm_source",
+    srcs = glob([
+        "*.h",
+        "*.cc",
+    ]),
+    visibility = ["//visibility:private"],
+)
+
+# This is the main node library that everyone should depend on.
+cc_library(
+    name = "ast",
+    deps = [
+        ":collection-node",
+        ":fst-node",
+        ":function-node",
+        ":grammar-node",
+        ":identifier-node",
+        ":import-node",
+        ":node",
+        ":return-node",
+        ":rule-node",
+        ":statement-node",
+        ":string-node",
+    ],
+)
+
+# Individidual node libraries that should be linked into the "ast" rule.
+
+cc_library(
+    name = "collection-node",
+    srcs = ["collection-node.cc"],
+    hdrs = ["collection-node.h"],
+    deps = [
+        ":node",
+        "//opengrm/thrax/walker:base",
+    ],
+)
+
+cc_library(
+    name = "fst-node",
+    srcs = ["fst-node.cc"],
+    hdrs = ["fst-node.h"],
+    deps = [
+        ":node",
+        ":string-node",
+        "//opengrm/thrax/walker:base",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_library(
+    name = "function-node",
+    srcs = ["function-node.cc"],
+    hdrs = ["function-node.h"],
+    deps = [
+        ":collection-node",
+        ":identifier-node",
+        ":node",
+        "//opengrm/thrax/walker:base",
+    ],
+)
+
+cc_library(
+    name = "grammar-node",
+    srcs = ["grammar-node.cc"],
+    hdrs = ["grammar-node.h"],
+    deps = [
+        ":collection-node",
+        ":node",
+        "//opengrm/thrax/walker:base",
+    ],
+)
+
+cc_library(
+    name = "identifier-node",
+    srcs = ["identifier-node.cc"],
+    hdrs = ["identifier-node.h"],
+    deps = [
+        ":node",
+        "//opengrm/thrax/walker:base",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_library(
+    name = "import-node",
+    srcs = ["import-node.cc"],
+    hdrs = ["import-node.h"],
+    deps = [
+        ":identifier-node",
+        ":node",
+        ":string-node",
+        "//opengrm/thrax/walker:base",
+    ],
+)
+
+cc_library(
+    name = "node",
+    srcs = ["node.cc"],
+    hdrs = ["node.h"],
+)
+
+cc_library(
+    name = "return-node",
+    srcs = ["return-node.cc"],
+    hdrs = ["return-node.h"],
+    deps = [
+        ":node",
+        "//opengrm/thrax/walker:base",
+    ],
+)
+
+cc_library(
+    name = "rule-node",
+    srcs = ["rule-node.cc"],
+    hdrs = ["rule-node.h"],
+    deps = [
+        ":identifier-node",
+        ":node",
+        "//opengrm/thrax/walker:base",
+    ],
+)
+
+cc_library(
+    name = "statement-node",
+    srcs = ["statement-node.cc"],
+    hdrs = ["statement-node.h"],
+    deps = [
+        ":node",
+        "//opengrm/thrax/walker:base",
+    ],
+)
+
+cc_library(
+    name = "string-node",
+    srcs = ["string-node.cc"],
+    hdrs = ["string-node.h"],
+    deps = [
+        ":node",
+        "//opengrm/thrax/walker:base",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+# Unittests
+
+cc_test(
+    name = "collection-node_test",
+    size = "small",
+    srcs = ["collection-node_test.cc"],
+    deps = [
+        ":collection-node",
+        ":node",
+        ":string-node",
+        "@com_google_absl//absl/base",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "fst-node_test",
+    size = "small",
+    srcs = ["fst-node_test.cc"],
+    deps = [
+        ":fst-node",
+        ":node",
+        ":string-node",
+        "@com_google_absl//absl/base",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "function-node_test",
+    size = "small",
+    srcs = ["function-node_test.cc"],
+    deps = [
+        ":collection-node",
+        ":function-node",
+        ":identifier-node",
+        ":node",
+        ":string-node",
+        "@com_google_absl//absl/base",
+        "@com_google_absl//absl/memory",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "grammar-node_test",
+    size = "small",
+    srcs = ["grammar-node_test.cc"],
+    deps = [
+        ":collection-node",
+        ":grammar-node",
+        ":node",
+        ":string-node",
+        "@com_google_absl//absl/base",
+        "@com_google_absl//absl/memory",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "identifier-node_test",
+    size = "small",
+    srcs = ["identifier-node_test.cc"],
+    deps = [
+        ":identifier-node",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "import-node_test",
+    size = "small",
+    srcs = ["import-node_test.cc"],
+    deps = [
+        ":identifier-node",
+        ":import-node",
+        ":string-node",
+        "@com_google_absl//absl/base",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "return-node_test",
+    size = "small",
+    srcs = ["return-node_test.cc"],
+    deps = [
+        ":fst-node",
+        ":return-node",
+        "@com_google_absl//absl/base",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "rule-node_test",
+    size = "small",
+    srcs = ["rule-node_test.cc"],
+    deps = [
+        ":fst-node",
+        ":identifier-node",
+        ":rule-node",
+        "@com_google_absl//absl/base",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "statement-node_test",
+    size = "small",
+    srcs = ["statement-node_test.cc"],
+    deps = [
+        ":statement-node",
+        ":string-node",
+        "@com_google_absl//absl/base",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "string-node_test",
+    size = "small",
+    srcs = ["string-node_test.cc"],
+    deps = [
+        ":string-node",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
