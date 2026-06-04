@@ -98,15 +98,15 @@ Therefore we use the following algorithm due to Gorman & Allauzen (2024):
 ### Decipherment
 
 In the decipherment scenario, we observe a corpus of ciphertext $$c \in
-{C}^{*}$$. We imagine that there exists a corpus of plaintext $$p \in {P}^{*}$$
-which was used to generate the ciphertext $$c$$. Our goal is to *decode* the
-ciphertext; i.e., to uncover the corresponding plaintext. We assume that the
-ciphertext $$c$$ has been generated (i.e., encoded) by $$\pi_o\left(p \circ
-\gamma\right)$$ where $$\pi_o$$ is the output projection operator and $$\gamma$$
-is the encoder (i.e., inverse key). We further assume that the ciphertext can be
-recovered (i.e., decoded) using $$\pi_i\left(\gamma \circ c\right)$$ where
-$$\pi_i$$ is the input projection operator. However, we do not observe either
-$$\gamma$$, and must instead estimate it from data.
+{C}^{\ast}$$. We imagine that there exists a corpus of plaintext $$p \in
+{P}^{\ast}$$ which was used to generate the ciphertext $$c$$. Our goal is to
+*decode* the ciphertext; i.e., to uncover the corresponding plaintext. We assume
+that the ciphertext $$c$$ has been generated (i.e., encoded) by $$\pi_o\left(p
+\circ \gamma\right)$$ where $$\pi_o$$ is the output projection operator and
+$$\gamma$$ is the encoder (i.e., inverse key). We further assume that the
+ciphertext can be recovered (i.e., decoded) using $$\pi_i\left(\gamma \circ
+c\right)$$ where $$\pi_i$$ is the input projection operator. However, we do not
+observe either $$\gamma$$, and must instead estimate it from data.
 
 #### Probabilistic formulation
 
@@ -127,14 +127,14 @@ $$\hat{p} = \arg\max_p \textrm{P}(p) \textrm{P}(c \mid p).$$
 
 #### Finite-state formulation
 
-We first construct a probabilistic model $$\Lambda \subseteq {P}^{*}$$, a
+We first construct a probabilistic model $$\Lambda \subseteq {P}^{\ast}$$, a
 superset of the true plaintext $$p$$ and a model of $$(p)$$. We henceforth refer
 to this as the *language model*.
 
-We then construct a model of the inverse keyspace, $$ \Gamma \subseteq {P}^{*}
-\times {C}^{*}$$. This is a superset of the true encoder relation $$\gamma$$ and
-serves as an initial (usually uniform) model for $$(c \mid p)$$; we henceforth
-refer to it as the *channel model*.
+We then construct a model of the inverse keyspace, $$ \Gamma \subseteq
+{P}^{\ast} \times {C}^{\ast}$$. This is a superset of the true encoder relation
+$$\gamma$$ and serves as an initial (usually uniform) model for $$(c \mid p)$$;
+we henceforth refer to it as the *channel model*.
 
 Given an estimate for the channel model, $$\hat{\Gamma}$$, we can express
 decoding as
@@ -156,7 +156,7 @@ desired.
 ### Pair modeling
 
 In the pair scenario, we observe a set of paired input/output strings $$(i, o)$$
-where $$i \in {I}^{*}$$ and $$o \in {O}^{*}$$ and wish to construct a
+where $$i \in {I}^{\ast}$$ and $$o \in {O}^{\ast}$$ and wish to construct a
 conditional model. This is useful for many monotonic string-to-string
 transduction problems, such as grapheme-to-phoneme conversion or abbreviation
 expansion (e.g., Gorman et al. 2021).
@@ -170,9 +170,9 @@ pairs, henceforth $$\textrm{P}(o \mid i)$$.
 
 We first construct FARs containing all $$i$$ and all $$o$$ pairs, respectively.
 
-We then construct a model of the alignment $$ \Gamma \subseteq {I}^{*} \times
-{O}^{*}$$. This serves as the initial (usually uniform) model for $$(i, o)$$; we
-henceforth refer to it as the *channel model*.
+We then construct a model of the alignment $$ \Gamma \subseteq {I}^{\ast} \times
+{O}^{\ast}$$. This serves as the initial (usually uniform) model for $$(i, o)$$;
+we henceforth refer to it as the *channel model*.
 
 Given an estimate for the channel model, $$\hat{\Gamma}$$, we can compute the
 best alignment using
