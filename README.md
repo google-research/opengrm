@@ -2,6 +2,7 @@
 
 [![GitHub license](https://img.shields.io/badge/license-Apache2-blue.svg)](https://github.com/google-research/nisaba/blob/main/LICENSE)
 [![C++ version](https://img.shields.io/badge/C++17-blue.svg?style=flat&logo=c%2B%2B)](https://en.cppreference.com/w/cpp/17)
+[![Bazel (x64 Linux)](https://github.com/google-research/opengrm/actions/workflows/bazel_x64_linux.yml/badge.svg)](https://github.com/google-research/opengrm/actions/workflows/bazel_x64_linux.yml)
 
 OpenGrm is a collection of open-source libraries for constructing, combining,
 applying and searching formal grammars and related representations, using the
