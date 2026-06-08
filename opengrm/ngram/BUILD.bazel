@@ -33,7 +33,6 @@ filegroup(
 filegroup(
     name = "testdata",
     srcs = glob(["testdata/*"]),
-    visibility = ["//third_party/py/opengrm/pynini/examples/testdata:__pkg__"],
 )
 
 # Shared script functions for testing distributed ngram functionality.
@@ -95,7 +94,6 @@ cc_library(
         "ngram-witten-bell.h",
         "util.h",
     ],
-    visibility = ["//visibility:public"],
     deps = [
         "@com_google_absl//absl/base:log_severity",
         "@com_google_absl//absl/base:nullability",
@@ -124,7 +122,6 @@ cc_library(
     name = "hist-arc",
     srcs = ["hist-arc.cc"],
     hdrs = ["hist-arc.h"],
-    visibility = ["//visibility:public"],
     deps = [
         "@com_google_openfst//openfst/lib",
         "@com_google_openfst//openfst/lib:register",
@@ -433,7 +430,6 @@ cc_binary(
     name = "ngramapply",
     srcs = ["ngramapply.cc"],
     linkstatic = 0,
-    visibility = ["//visibility:public"],
     deps = [
         ":ngramapply-main",
         "@com_google_absl//absl/flags:flag",
@@ -444,7 +440,6 @@ cc_binary(
     name = "ngramcontext",
     srcs = ["ngramcontext.cc"],
     linkstatic = 0,
-    visibility = ["//visibility:public"],
     deps = [
         ":ngramcontext-main",
         "@com_google_absl//absl/flags:flag",
@@ -455,7 +450,6 @@ cc_binary(
     name = "ngramcount",
     srcs = ["ngramcount.cc"],
     linkstatic = 0,
-    visibility = ["//visibility:public"],
     deps = [
         ":ngramcount-main",
         ":opengrm-ngram-lib",
@@ -467,7 +461,6 @@ cc_binary(
     name = "ngramhisttest",
     srcs = ["ngramhisttest.cc"],
     linkstatic = 0,
-    visibility = ["//visibility:public"],
     deps = [
         ":ngramhisttest-main",
         "@com_google_absl//absl/flags:flag",
@@ -479,7 +472,6 @@ cc_binary(
     name = "ngraminfo",
     srcs = ["ngraminfo.cc"],
     linkstatic = 0,
-    visibility = ["//visibility:public"],
     deps = [
         ":ngraminfo-main",
         ":opengrm-ngram-lib",
@@ -491,7 +483,6 @@ cc_binary(
     name = "ngrammake",
     srcs = ["ngrammake.cc"],
     linkstatic = 0,
-    visibility = ["//visibility:public"],
     deps = [
         ":ngrammake-main",
         ":opengrm-ngram-lib",
@@ -503,7 +494,6 @@ cc_binary(
     name = "ngrammarginalize",
     srcs = ["ngrammarginalize.cc"],
     linkstatic = 0,
-    visibility = ["//visibility:public"],
     deps = [
         ":ngrammarginalize-main",
         ":opengrm-ngram-lib",
@@ -515,7 +505,6 @@ cc_binary(
     name = "ngrammerge",
     srcs = ["ngrammerge.cc"],
     linkstatic = 0,
-    visibility = ["//visibility:public"],
     deps = [
         ":ngrammerge-main",
         ":opengrm-ngram-lib",
@@ -527,7 +516,6 @@ cc_binary(
     name = "ngramperplexity",
     srcs = ["ngramperplexity.cc"],
     linkstatic = 0,
-    visibility = ["//visibility:public"],
     deps = [
         ":ngramperplexity-main",
         "@com_google_absl//absl/flags:flag",
@@ -538,7 +526,6 @@ cc_binary(
     name = "ngramprint",
     srcs = ["ngramprint.cc"],
     linkstatic = 0,
-    visibility = ["//visibility:public"],
     deps = [
         ":ngramprint-main",
         "@com_google_absl//absl/flags:flag",
@@ -549,7 +536,6 @@ cc_binary(
     name = "ngramrandgen",
     srcs = ["ngramrandgen.cc"],
     linkstatic = 0,
-    visibility = ["//visibility:public"],
     deps = [
         ":ngramrandgen-main",
         "@com_google_absl//absl/flags:flag",
@@ -560,7 +546,6 @@ cc_binary(
     name = "ngramrandtest",
     srcs = ["ngramrandtest.cc"],
     linkstatic = 0,
-    visibility = ["//visibility:public"],
     deps = [
         ":ngramrandtest-main",
         "@com_google_absl//absl/flags:flag",
@@ -571,7 +556,6 @@ cc_binary(
     name = "ngramread",
     srcs = ["ngramread.cc"],
     linkstatic = 0,
-    visibility = ["//visibility:public"],
     deps = [
         ":ngramread-main",
         "@com_google_absl//absl/flags:flag",
@@ -582,7 +566,6 @@ cc_binary(
     name = "ngramshrink",
     srcs = ["ngramshrink.cc"],
     linkstatic = 0,
-    visibility = ["//visibility:public"],
     deps = [
         ":ngramshrink-main",
         ":opengrm-ngram-lib",
@@ -594,7 +577,6 @@ cc_binary(
     name = "ngramsort",
     srcs = ["ngramsort.cc"],
     linkstatic = 0,
-    visibility = ["//visibility:public"],
     deps = [
         ":ngramsort-main",
         ":opengrm-ngram-lib",
@@ -606,7 +588,6 @@ cc_binary(
     name = "ngramsplit",
     srcs = ["ngramsplit.cc"],
     linkstatic = 0,
-    visibility = ["//visibility:public"],
     deps = [
         ":ngramsplit-main",
         ":opengrm-ngram-lib",
@@ -618,7 +599,6 @@ cc_binary(
     name = "ngramsymbols",
     srcs = ["ngramsymbols.cc"],
     linkstatic = 0,
-    visibility = ["//visibility:public"],
     deps = [
         ":ngramsymbols-main",
         "@com_google_absl//absl/flags:flag",
@@ -629,7 +609,6 @@ cc_binary(
     name = "ngramtransfer",
     srcs = ["ngramtransfer.cc"],
     linkstatic = 0,
-    visibility = ["//visibility:public"],
     deps = [
         ":ngramtransfer-main",
         "@com_google_absl//absl/flags:flag",

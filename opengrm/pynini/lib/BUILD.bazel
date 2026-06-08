@@ -1,0 +1,224 @@
+# Copyright 2026 The OpenGrm Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+load("@rules_python//python:py_library.bzl", "py_library")
+load("@rules_python//python:py_test.bzl", "py_test")
+
+package(default_visibility = ["//visibility:public"])
+
+py_library(
+    name = "byte",
+    srcs = ["byte.py"],
+    deps = ["//opengrm/pynini"],
+)
+
+py_test(
+    name = "byte_test",
+    size = "small",
+    srcs = ["byte_test.py"],
+    deps = [
+        ":byte",
+        "//opengrm/pynini",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_library(
+    name = "edit_transducer",
+    # This is intended purely for demonstration; implement in C++.
+    testonly = 1,
+    srcs = ["edit_transducer.py"],
+    deps = [
+        ":pynutil",
+        "//opengrm/pynini",
+    ],
+)
+
+py_test(
+    name = "edit_transducer_test",
+    size = "small",
+    srcs = ["edit_transducer_test.py"],
+    deps = [
+        ":edit_transducer",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_library(
+    name = "features",
+    srcs = ["features.py"],
+    deps = [
+        ":byte",
+        ":pynutil",
+        "//opengrm/pynini",
+    ],
+)
+
+py_test(
+    name = "features_test",
+    srcs = ["features_test.py"],
+    deps = [
+        ":features",
+        "//opengrm/pynini",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_library(
+    name = "paradigms",
+    srcs = ["paradigms.py"],
+    deps = [
+        ":byte",
+        ":features",
+        ":pynutil",
+        ":rewrite",
+        "//opengrm/pynini",
+    ],
+)
+
+py_test(
+    name = "paradigms_test",
+    srcs = ["paradigms_test.py"],
+    deps = [
+        ":features",
+        ":paradigms",
+        ":pynutil",
+        ":rewrite",
+        "//opengrm/pynini",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_library(
+    name = "rewrite",
+    srcs = ["rewrite.py"],
+    deps = [
+        "//opengrm/pynini",
+        "@com_google_absl_py//absl/logging",
+    ],
+)
+
+py_test(
+    name = "rewrite_test",
+    size = "small",
+    srcs = ["rewrite_test.py"],
+    deps = [
+        ":pynutil",
+        ":rewrite",
+        "//opengrm/pynini",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_library(
+    name = "rule_cascade",
+    # This is intended purely for demonstration.
+    testonly = 1,
+    srcs = ["rule_cascade.py"],
+    deps = [
+        ":rewrite",
+        "//opengrm/pynini",
+    ],
+)
+
+py_test(
+    name = "rule_cascade_test",
+    size = "small",
+    srcs = ["rule_cascade_test.py"],
+    deps = [
+        ":rule_cascade",
+        "//opengrm/pynini",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_library(
+    name = "pynutil",
+    srcs = ["pynutil.py"],
+    deps = ["//opengrm/pynini"],
+)
+
+py_test(
+    name = "pynutil_test",
+    size = "small",
+    srcs = ["pynutil_test.py"],
+    deps = [
+        ":pynutil",
+        ":rewrite",
+        "//opengrm/pynini",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_library(
+    name = "stringfile",
+    srcs = ["stringfile.py"],
+    deps = [
+        "//opengrm/pynini",
+        "@com_google_absl_py//absl/logging",
+    ],
+)
+
+py_test(
+    name = "stringfile_test",
+    srcs = ["stringfile_test.py"],
+    deps = [
+        ":stringfile",
+        "//opengrm/pynini",
+        "@com_google_absl_py//absl/logging",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_library(
+    name = "tagger",
+    # This is intended purely for demonstration; implement in C++.
+    testonly = 1,
+    srcs = ["tagger.py"],
+    deps = [
+        ":pynutil",
+        ":rewrite",
+        "//opengrm/pynini",
+    ],
+)
+
+py_test(
+    name = "tagger_test",
+    size = "small",
+    srcs = ["tagger_test.py"],
+    deps = [
+        ":rewrite",
+        ":tagger",
+        "//opengrm/pynini",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_library(
+    name = "utf8",
+    srcs = ["utf8.py"],
+    deps = ["//opengrm/pynini"],
+)
+
+py_test(
+    name = "utf8_test",
+    timeout = "long",
+    srcs = ["utf8_test.py"],
+    deps = [
+        ":byte",
+        ":utf8",
+        "//opengrm/pynini",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)

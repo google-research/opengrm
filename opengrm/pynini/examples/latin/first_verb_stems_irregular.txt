@@ -1,0 +1,27 @@
+# https://en.wiktionary.org/wiki/Category:Latin_first_conjugation_verbs_with_irregular_perfect
+# Note that some of the verbs on that page seem to be regular and have
+# been moved to first_verb_stems.txt
+abstō, abstitī, —
+adiuvō, adiūvī, adiūt-
+adstō, adstetī, adstat-
+antestō, antestitī, —
+astō, astetī, astāt-
+circumstō, circumstetī, circumstāt-
+constō, cōnstitī, cōnstāt-
+distō, distitī, — 
+effricō, effrixī, effricāt-
+extō, extitī, —
+īnstō, īnstitī, īnstāt-
+interstō,interstetī, interstāt-
+iuvō, iūvī, iūt-
+lavō, lāvī, lavāt-
+obstō, obstitī, obstāt-
+perstō, perstitī, perstāt-
+praestō, praestitī, praestit-
+prostō, prōstitī, prōstit-
+restō, restitī, restāt-
+salivō, — ,salīvāt-
+stō, stetī, stāt-
+superstō, superstetī, superstāt-
+
+

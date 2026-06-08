@@ -16,11 +16,6 @@ load("//opengrm/thrax:grm_build_defs.bzl", "compile_grm")
 
 package(default_visibility = ["//visibility:public"])
 
-package_group(
-    name = "mpdt_pkg",
-    packages = ["//third_party/opengrm/thrax/test/testdata/mpdt/..."],
-)
-
 compile_grm(
     name = "mpdt",
     deps = [

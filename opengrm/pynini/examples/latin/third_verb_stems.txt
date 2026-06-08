@@ -1,0 +1,189 @@
+# http://dcc.dickinson.edu/grammar/latin/classified-lists-verbs-3rd-conjugation
+# From Allen and Greenough's Latin Grammar.
+# -cendō, -cendī, -cēns-  kindle
+# -cumbō, -cubuī, -cubit-  lie down
+# -cutiō, -cussī, -cuss-  shake
+# -dō, -didī, -dit- (as in ab-dō, etc., with crēdō, vēndō)  put
+# -fendō, -fendī, -fēns-  ward off
+# -flīgō, -flīxī, -flīct-, —  smite
+# -liciō, -lexī, -lect-, (ēlicuī, -licit-)  entice
+# -nuō, -nuī, —  nod
+# -spiciō, -spexī, -spect-  view
+# -stinguō, -stīnxī, -stīnct-  quench
+incendō, incendī, incēns-  kindle
+discutiō, discussī, discuss-  shake
+offendō, offendī, offēns-  ward off
+inflīgō, inflīxī, inflīct- smite
+deliciō, delexī, delect-  entice
+inspiciō, inspexī, inspect-  view
+distinguō, distīnxī, distīnct-  quench
+acuō, acuī, acūt-  sharpen
+adolēscō, adolēvī, adult-  grow up
+agō, ēgī, āct- drive
+alō, aluī, alt- (alit-)  nourish
+angō, ānxī, —  choke
+arcessō, arcessīvī, arcessīt- summon
+arguō, arguī, argūt-  accuse
+bibō, bibī, (pōtus)  drink
+cadō, cecidī, cās-  fall
+caedō, cecīdī, caes-  cut
+canō, cecinī, —  sing
+capessō, capessīvī, — undertake
+capiō, cēpī, capt- take
+carpō, carpsī, carpt-  pluck
+cernō, crēvī, crēt-  decree
+cingō, cīnxī, cīnct-  bind
+claudō, clausī, claus-  shut
+colō, coluī, cult-  dwell; till
+compēscō, compēscuī, —  restrain
+congruō, congruī, —  agree
+coquō, coxī, coct-  cook
+crēscō, crēvī, crēt-  increase
+cupiō, cupīvī, cupīt- desire
+currō, cucurrī, curs-  run
+cēdō, cessī, cess-  yield
+cōmō, cōmpsī, cōmpt-  comb; deck
+cōnsulō, cōnluī, cōnsult-  consult
+cūdō, cūdī, cūs-  forge
+depsō, depsuī, depst-  knead
+discō, didicī, —  learn
+dēmō, dēmpsī, dēmpt-  take away
+dīcō, dīxī, dict-  say
+dīvidō, dīvīsī, dīvīs-  divide
+dūcō, dūxī, duct-  guide
+edō, ēdī, ēsum eat
+emō, ēmī, ēmpt- buy
+exuō, exuī, exūt-  put off
+facessō, facessī, facessīt-  execute
+faciō, fēcī, fact- make
+fallō, fefellī, fals-  deceive
+findō, fidī,3 fiss-  split
+fingō, fīnxī, fict-  fashion
+flectō, flexī, flex-  bend
+fluō, flūxī, flux-  flow
+fodiō, fōdī, foss- dig
+frangō, frēgī, frāct- break
+fremō, fremuī, —  roar
+frendō, —, frēs-  gnash
+frīgō, frīxī, frīct-  fry
+fugiō, fūgī, (fugitūrus) flee
+fundō, fūdī, fūs- pour
+fīgō, fīxī, fīx-  fix
+gemō, gemuī, —  groan
+gerō, gessī, gest-  carry
+gignō, genuī, genit-  beget
+iaciō, iēcī, iact- throw
+imbuō, imbuī, imbūt-  give a taste of
+incessō, incessīvī, — attack
+iungō, iūnxī, iūnct-  join
+lacessō, lacessīvī, lacessīt- provoke
+laedō, laesī, laes-  hurt
+lavō, lāvī, lōt- (laut-) wash
+legō, lēgī, lēct- gather
+linquō, līquī, lict- leave
+linō, lēvī, lit- smear
+luō, luī, lūt-  wash
+lūdo, lūsī, lūs-  play
+mandō, mandī, māns-  chew
+mergō, mersī, mers-  plunge
+metuō, metuī, metūt  fear
+metō, messuī, mess-  reap
+minuō, minuī, minūt-  lessen
+mittō, mīsī, miss-  send
+molō, moluī, molit-  grind
+nectō, nexī, nex-  weave
+nōscō, nōvī, nōt-  know
+nūbō, nūpsi, nūpt-  marry
+occulō, occuluī, occult-  hide
+pandō, pandī, pāns-  open
+pangō, pepigī, pāct-  fasten; fix; bargain
+#parcō, pepercī (parsī), (parsūrus)  spare
+pariō, peperī, part-  bring forth
+pectō, pexī, pex-  comb
+pellō, pepulī, puls-  drive
+pendō, pependī, pēns-  weigh
+percellō, perculī, perculs-  upset
+pergō, perrēxī, perrēct-  go on
+petō, petīvī, petīt- seek
+pingō, pīnxī, pict-  paint
+plangō, plānxī, plānct-  beat
+plaudō, plausī, plaus-  applaud
+plectō, plexī, plex-  braid
+poscō, poposcī, —  demand
+prehendō, prehendī, prehēns-  seize
+premō, pressī, press-  press
+prōmō, prōmpsī, prōmpt  bring out
+pungō, pupugī, pūnct-  prick
+pāscō, pāvī, pāst-  feed
+pīnsō, pīnsī, pīns-  bruise
+pōnō, posuī, posit-  put
+quaerō, quaesīvī, quaesīt- seek
+#quatiō, (-cussī), quass-  shake
+quiēscō, quiēvī, quiēt-  rest
+rapiō, rapuī, rapt-  seize
+regō, rēxī, rēct-  rule
+rudō, rudīvī, — bray
+rumpō, rūpī, rupt- burst
+ruō, ruī, rut-  fall
+rādō, rāsī, rās-  scrape
+rēpō, rēpsī, —  creep
+rōdō, rōsī, rōs-  gnaw
+sapiō, sapīvī, — be wise
+scabō, scābī, — scratch
+scalpō, scalpsī, scalpt-  scrape
+scandō, scendī, scēnsus  climb
+scindō, scidī, sciss-  tear
+scrībō, scrīpsī, scrīpt-  write
+sculpō, sculpsī, sculpt-  carve
+scīscō, scīvī, scīt-  decree
+serpō, serpsī, —  crawl
+serō, seruī, sert-  entwine
+serō, sēvī, sat-  sow
+sinō, sīvī, sit-  permit
+sistō, stitī, stat-  stop
+solvō, solvī, solūt-  loose; pay
+spargō, sparsī, spars-  scatter
+spernō, sprēvī, sprēt-  scorn
+spuō, spuī, —  spit
+statuō, statuī, statūt-  establish
+sternuo, sternuī, —  sneeze
+sternō, strāvī, strāt-  strew
+stertō, stertuī, —  snore
+strepō, strepuī, —  sound
+stringō, strīnxī, strict-  bind
+struō, strūxī, strūct-  build
+strīdō, strīdī, —  whiz
+surgō, surrēxī, surrēct-  rise
+suēscō, suēvī, suēt-  be wont
+suō, suī, sūt-  sew
+sīdō, sīdī, sess-  settle
+sūgō, sūxī, sūct-  suck
+sūmō, sūmpsī, sūmpt-  take
+tangō, tetigī, tāct-  touch
+tegō, tēxī, tēct-  shelter
+temnō, tempsī, tempt-  despise
+tendō, tetendī, tent-  stretch
+tergō, tersī, ters-  wipe
+terō, trīvī, trīt- rub
+texō, texuī, text-  weave
+tingō, tīnxī, tīnct-  stain
+trahō, trāxī, trāct-  drag
+tremō, tremuī, —  tremble
+tribuō, tribuī, tribūt-  assign
+trūdō, trūsī, trūs-  thrust
+tundō, tutudī, tūns-  beat
+unguō, ūnxī, ūnct-  anoint
+vehō, vēxī, vect-  draw
+vellō, vellī, vuls-  pluck
+verrō, verrī, vers-  sweep
+vertō, vertī, vers-  turn
+vincō, vīcī, vict- conquer
+volvō, volvī, volūt-  turn
+vomō, vomuī, —  vomit
+vādō, vāsī, vās-  go
+vīsō, vīsī, vīs-  visit
+vīvō, vīxī, vīct-  live
+ēmungō, ēmūnxī, ēmūnct-  clean out
+īcō, īcī, ict-  hit
+ūrō, ussī, ust-  burn
+ferō, tulī, lāt  bear
