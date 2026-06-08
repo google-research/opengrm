@@ -30,19 +30,21 @@ from openfst.extensions.python.cpywrapfst cimport CLOSURE_PLUS
 from openfst.extensions.python.cpywrapfst cimport CLOSURE_STAR
 from openfst.extensions.python.cpywrapfst cimport Compose
 from openfst.extensions.python.cpywrapfst cimport ComposeOptions
+from openfst.extensions.python.cpywrapfst cimport FLAGS_fst_error_fatal
 from openfst.extensions.python.cpywrapfst cimport FstClass
 from openfst.extensions.python.cpywrapfst cimport GetTokenType
+from openfst.extensions.python.cpywrapfst cimport LabelFstClassPair
+from openfst.extensions.python.cpywrapfst cimport MutableFstClass
+from openfst.extensions.python.cpywrapfst cimport SetFlag
+from openfst.extensions.python.cpywrapfst cimport VectorFstClass
+from openfst.extensions.python.cpywrapfst cimport WeightClass
 from openfst.extensions.python.cpywrapfst cimport kDelta
 from openfst.extensions.python.cpywrapfst cimport kError
+from openfst.extensions.python.cpywrapfst cimport kILabelSorted
 from openfst.extensions.python.cpywrapfst cimport kNoLabel
 from openfst.extensions.python.cpywrapfst cimport kNoStateId
 from openfst.extensions.python.cpywrapfst cimport kNoSymbol
-from openfst.extensions.python.cpywrapfst cimport kILabelSorted
 from openfst.extensions.python.cpywrapfst cimport kOLabelSorted
-from openfst.extensions.python.cpywrapfst cimport LabelFstClassPair
-from openfst.extensions.python.cpywrapfst cimport MutableFstClass
-from openfst.extensions.python.cpywrapfst cimport VectorFstClass
-from openfst.extensions.python.cpywrapfst cimport WeightClass
 
 from openfst.extensions.python.pywrapfst cimport FarReader
 from openfst.extensions.python.pywrapfst cimport FarWriter
@@ -2781,13 +2783,10 @@ from openfst.extensions.python.pywrapfst import SortType
 from openfst.extensions.python.pywrapfst import StateMapType
 from openfst.extensions.python.pywrapfst import WeightLike
 
-
 # These definitions only ensure that these are defined to avoid attribute
 # errors, but don't actually contain the type definitions.
 
-
 import typing
-
 
 CDRewriteDirection = """typing.Literal["ltr", "rtl", "sim"]"""
 CDRewriteMode = """typing.Literal["obl", "opt"]"""
@@ -2795,3 +2794,6 @@ FarFileMode = """typing.Literal["r", "w"]"""
 
 FstLike = """typing.Union[Fst, str]"""
 TokenType = """typing.Union[SymbolTableView, typing.Literal["byte", "utf8"]]"""
+
+# Masks `fst_error_fatal` in-module.
+SetFlag(&FLAGS_fst_error_fatal, False)
