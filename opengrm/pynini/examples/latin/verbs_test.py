@@ -10,7 +10,7 @@ from absl.testing import absltest
 from opengrm.pynini import pynini
 
 FLAGS = flags.FLAGS
-BASE = "opengrm/pynini/examples/latin/"
+BASE = "opengrm/pynini/examples/latin"
 
 TestParadigm = collections.namedtuple(
     "Paradigm",
@@ -46,7 +46,7 @@ class TestFirstConjugation(InflectionTester):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    far = pynini.Far(os.path.join(FLAGS.test_srcdir, BASE + "latin_verbs.far"))
+    far = pynini.Far(os.path.join(FLAGS.test_srcdir, BASE, "latin_verbs.far"))
     cls.paradigm = TestParadigm(
         analyzer=far["FirstConjugationAnalyzer"],
         inflector=far["FirstConjugationInflector"],
@@ -98,7 +98,7 @@ class TestSecondConjugation(InflectionTester):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    far = pynini.Far(os.path.join(FLAGS.test_srcdir, BASE + "latin_verbs.far"))
+    far = pynini.Far(os.path.join(FLAGS.test_srcdir, BASE, "latin_verbs.far"))
     cls.paradigm = TestParadigm(
         analyzer=far["SecondConjugationAnalyzer"],
         inflector=far["SecondConjugationInflector"],
@@ -223,7 +223,7 @@ class TestThirdConjugation(InflectionTester):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    far = pynini.Far(os.path.join(FLAGS.test_srcdir, BASE + "latin_verbs.far"))
+    far = pynini.Far(os.path.join(FLAGS.test_srcdir, BASE, "latin_verbs.far"))
     cls.paradigm = TestParadigm(
         analyzer=far["ThirdConjugationAnalyzer"],
         inflector=far["ThirdConjugationInflector"],
