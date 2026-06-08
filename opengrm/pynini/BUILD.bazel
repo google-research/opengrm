@@ -52,12 +52,12 @@ pyx_library(
         "@com_google_openfst//openfst/extensions/pdt:script",
         "@com_google_openfst//openfst/lib:util",
     ],
+    # Canonical Bzlmod external repository path.
+    cython_includes = ["external/openfst+"],
     pxd_deps = [
         "@com_google_openfst//openfst/extensions/python:pywrapfst_pxds",
     ],
     py_deps = ["@com_google_openfst//openfst:pywrapfst"],
-    py_extension_rule = pytype_extension,
-    py_library_rule = py_library,
     pyi_deps = ["@com_google_openfst//openfst:pywrapfst"],
     pyi_srcs = ["pynini.pyi"],
 )
@@ -70,7 +70,7 @@ py_test(
     data = [":testdata"],
     deps = [
         ":pynini",
-        "@com_google_absl_py//absl/flags",
+        ":runfiles",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
         "@com_google_openfst//openfst:pywrapfst",
@@ -118,5 +118,25 @@ filegroup(
         "//opengrm/operators:cross_testdata",
         "//opengrm/operators:optimize_testdata",
         "//opengrm/string:testdata",
+    ],
+)
+
+py_library(
+    name = "runfiles",
+    srcs = ["runfiles.py"],
+    deps = [
+        "@com_google_absl_py//absl/testing:absltest",
+        "@rules_python//python/runfiles",
+    ],
+)
+
+py_test(
+    name = "runfiles_test",
+    size = "small",
+    srcs = ["runfiles_test.py"],
+    data = [":testdata"],
+    deps = [
+        ":runfiles",
+        "@com_google_absl_py//absl/testing:absltest",
     ],
 )

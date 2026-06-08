@@ -2,14 +2,12 @@
 """Tests for Latin 3rd Conjugation."""
 
 import collections
-import os
 
 from absl import app
-from absl import flags
 from absl.testing import absltest
 from opengrm.pynini import pynini
+from opengrm.pynini import runfiles
 
-FLAGS = flags.FLAGS
 BASE = "opengrm/pynini/examples/latin"
 
 TestParadigm = collections.namedtuple(
@@ -46,15 +44,15 @@ class TestFirstConjugation(InflectionTester):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    far = pynini.Far(os.path.join(FLAGS.test_srcdir, BASE, "latin_verbs.far"))
-    cls.paradigm = TestParadigm(
-        analyzer=far["FirstConjugationAnalyzer"],
-        inflector=far["FirstConjugationInflector"],
-        lemmatizer=far["FirstConjugationLemmatizer"],
-        tagger=far["FirstConjugationTagger"],
-        feature_label_rewriter=far["FirstFeatureLabelRewriter"],
-        feature_label_encoder=far["FirstFeatureLabelEncoder"],
-    )
+    with pynini.Far(runfiles.test_src_path(BASE, "latin_verbs.far")) as far:
+      cls.paradigm = TestParadigm(
+          analyzer=far["FirstConjugationAnalyzer"],
+          inflector=far["FirstConjugationInflector"],
+          lemmatizer=far["FirstConjugationLemmatizer"],
+          tagger=far["FirstConjugationTagger"],
+          feature_label_rewriter=far["FirstFeatureLabelRewriter"],
+          feature_label_encoder=far["FirstFeatureLabelEncoder"],
+      )
 
   def testAnalyzer(self):
     form = (
@@ -98,15 +96,15 @@ class TestSecondConjugation(InflectionTester):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    far = pynini.Far(os.path.join(FLAGS.test_srcdir, BASE, "latin_verbs.far"))
-    cls.paradigm = TestParadigm(
-        analyzer=far["SecondConjugationAnalyzer"],
-        inflector=far["SecondConjugationInflector"],
-        lemmatizer=far["SecondConjugationLemmatizer"],
-        tagger=far["SecondConjugationTagger"],
-        feature_label_rewriter=far["SecondFeatureLabelRewriter"],
-        feature_label_encoder=far["FirstFeatureLabelEncoder"],
-    )
+    with pynini.Far(runfiles.test_src_path(BASE, "latin_verbs.far")) as far:
+      cls.paradigm = TestParadigm(
+          analyzer=far["SecondConjugationAnalyzer"],
+          inflector=far["SecondConjugationInflector"],
+          lemmatizer=far["SecondConjugationLemmatizer"],
+          tagger=far["SecondConjugationTagger"],
+          feature_label_rewriter=far["SecondFeatureLabelRewriter"],
+          feature_label_encoder=far["FirstFeatureLabelEncoder"],
+      )
 
   def testAnalyzer(self):
     form = (
@@ -223,15 +221,15 @@ class TestThirdConjugation(InflectionTester):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    far = pynini.Far(os.path.join(FLAGS.test_srcdir, BASE, "latin_verbs.far"))
-    cls.paradigm = TestParadigm(
-        analyzer=far["ThirdConjugationAnalyzer"],
-        inflector=far["ThirdConjugationInflector"],
-        lemmatizer=far["ThirdConjugationLemmatizer"],
-        tagger=far["ThirdConjugationTagger"],
-        feature_label_rewriter=far["ThirdFeatureLabelRewriter"],
-        feature_label_encoder=far["ThirdFeatureLabelEncoder"],
-    )
+    with pynini.Far(runfiles.test_src_path(BASE, "latin_verbs.far")) as far:
+      cls.paradigm = TestParadigm(
+          analyzer=far["ThirdConjugationAnalyzer"],
+          inflector=far["ThirdConjugationInflector"],
+          lemmatizer=far["ThirdConjugationLemmatizer"],
+          tagger=far["ThirdConjugationTagger"],
+          feature_label_rewriter=far["ThirdFeatureLabelRewriter"],
+          feature_label_encoder=far["ThirdFeatureLabelEncoder"],
+      )
 
   def testAnalyzer(self):
     form = (

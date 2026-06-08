@@ -57,13 +57,11 @@ genrule(
 py_test(
     name = "verbs_test",
     srcs = ["verbs_test.py"],
-    data = [
-        ":latin_verbs_far",
-    ],
+    data = [":latin_verbs_far"],
     deps = [
         "//opengrm/pynini",
+        "//opengrm/pynini:runfiles",
         "@com_google_absl_py//absl:app",
-        "@com_google_absl_py//absl/flags",
         "@com_google_absl_py//absl/testing:absltest",
     ],
 )

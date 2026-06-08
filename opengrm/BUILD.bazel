@@ -12,15 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("@rules_license//rules:license.bzl", "license")
+load("@rules_python//python:py_library.bzl", "py_library")
+load("@rules_python//python:py_test.bzl", "py_test")
 
 package(default_visibility = ["//visibility:public"])
 
-license(
-    name = "license",
-    package_name = "opengrm",
+py_library(
+    name = "opengrm",
+    srcs = ["__init__.py"],
+    visibility = ["//visibility:public"],
+    deps = ["//opengrm/pynini"],
 )
 
-licenses(["notice"])
-
-exports_files(["LICENSE"])
+py_test(
+    name = "import_test",
+    size = "small",
+    srcs = ["import_test.py"],
+    deps = [
+        ":opengrm",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)

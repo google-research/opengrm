@@ -2,13 +2,9 @@
 # pynini.opengrm.org.
 """Tests for the chatspeak model in combination with the LM."""
 
-import os
-
-from absl import flags
 from absl.testing import absltest
+from opengrm.pynini import runfiles
 from opengrm.pynini.examples import chatspeak_model
-
-FLAGS = flags.FLAGS
 
 
 class ChatspeakModelTest(absltest.TestCase):
@@ -32,13 +28,11 @@ class ChatspeakModelTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    chat_lexicon_path = os.path.join(
-        FLAGS.test_srcdir,
-        "opengrm/pynini/examples/"
-        "testdata/chatspeak_lexicon.tsv",
+    chat_lexicon_path = runfiles.test_src_path(
+        "opengrm/pynini/examples/testdata",
+        "chatspeak_lexicon.tsv",
     )
-    lm_path = os.path.join(
-        FLAGS.test_srcdir,
+    lm_path = runfiles.test_src_path(
         "opengrm/pynini/examples/testdata/earnest.fst",
     )
     cls.chatspeak_model = chatspeak_model.ChatspeakModel(

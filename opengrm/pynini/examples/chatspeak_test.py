@@ -2,15 +2,11 @@
 # pynini.opengrm.org.
 """Tests for the chatspeak model."""
 
-import os
-
-from absl import flags
 from absl.testing import absltest
 from opengrm.pynini import pynini
+from opengrm.pynini import runfiles
 from opengrm.pynini.examples import chatspeak
 from opengrm.pynini.lib import rewrite
-
-FLAGS = flags.FLAGS
 
 
 class ChatspeakTest(absltest.TestCase):
@@ -39,10 +35,9 @@ class ChatspeakTest(absltest.TestCase):
     cls.regexps = chatspeak.Regexps()
     # Set the directory to org_opengrm_pynini/tests/testdata" for Bazel testing.
     cls.lexicon = chatspeak.Lexicon(
-        os.path.join(
-            FLAGS.test_srcdir,
-            "opengrm/pynini/examples/"
-            "testdata/chatspeak_lexicon.tsv",
+        runfiles.test_src_path(
+            "opengrm/pynini/examples/testdata",
+            "chatspeak_lexicon.tsv",
         )
     )
 

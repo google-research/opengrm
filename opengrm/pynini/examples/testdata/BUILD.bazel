@@ -35,10 +35,10 @@ py_binary(
         "@com_google_openfst//openfst/extensions/far:farcompilestrings",
     ],
     deps = [
+        "//opengrm/pynini:runfiles",
         "@com_google_absl_py//absl:app",
         "@com_google_absl_py//absl/flags",
         "@com_google_absl_py//absl/logging",
-        "@rules_python//python/runfiles",
     ],
 )
 

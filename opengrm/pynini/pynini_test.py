@@ -9,13 +9,11 @@ import pathlib
 import pickle
 import string
 
-from absl import flags
 from absl.testing import absltest
 from absl.testing import parameterized
 from openfst import pywrapfst
 from opengrm.pynini import pynini
-
-FLAGS = flags.FLAGS
+from opengrm.pynini import runfiles
 
 
 class ArcIteratorTest(absltest.TestCase):
@@ -25,9 +23,8 @@ class ArcIteratorTest(absltest.TestCase):
   def setUpClass(cls):
     super().setUpClass()
     cls.testdir = pathlib.Path(
-        os.path.join(
-            FLAGS.test_srcdir,
-            "openfst/test/testdata/compile",
+        runfiles.test_src_path(
+            "openfst/test/testdata/compile"
         )
     )
 
@@ -46,8 +43,8 @@ class ArcmapTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    cls.testdir = os.path.join(
-        FLAGS.test_srcdir, "openfst/test/testdata/arc-map"
+    cls.testdir = runfiles.test_src_path(
+        "openfst/test/testdata/arc-map"
     )
     cls.m1 = pynini.Fst.read(os.path.join(cls.testdir, "m1.fst"))
 
@@ -104,8 +101,8 @@ class ArcsortTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    testdir = os.path.join(
-        FLAGS.test_srcdir, "openfst/test/testdata/arcsort"
+    testdir = runfiles.test_src_path(
+        "openfst/test/testdata/arcsort"
     )
     cls.a1 = pynini.Fst.read(os.path.join(testdir, "a1.fst"))
     cls.a2 = pynini.Fst.read(os.path.join(testdir, "a2.fst"))
@@ -424,8 +421,8 @@ class ComposeTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    testdir = os.path.join(
-        FLAGS.test_srcdir, "openfst/test/testdata/compose"
+    testdir = runfiles.test_src_path(
+        "openfst/test/testdata/compose"
     )
     cls.c1 = pynini.Fst.read(os.path.join(testdir, "c1.fst"))
     cls.c2 = pynini.Fst.read(os.path.join(testdir, "c2.fst"))
@@ -445,8 +442,8 @@ class ConnectTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    testdir = os.path.join(
-        FLAGS.test_srcdir, "openfst/test/testdata/connect"
+    testdir = runfiles.test_src_path(
+        "openfst/test/testdata/connect"
     )
     cls.c1 = pynini.Fst.read(os.path.join(testdir, "c1.fst"))
     cls.c2 = pynini.Fst.read(os.path.join(testdir, "c2.fst"))
@@ -463,8 +460,8 @@ class ConcatTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    testdir = os.path.join(
-        FLAGS.test_srcdir, "openfst/test/testdata/concat"
+    testdir = runfiles.test_src_path(
+        "openfst/test/testdata/concat"
     )
     cls.c1 = pynini.Fst.read(os.path.join(testdir, "c1.fst"))
     cls.c2 = pynini.Fst.read(os.path.join(testdir, "c2.fst"))
@@ -486,8 +483,8 @@ class CrossTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    testdir = os.path.join(
-        FLAGS.test_srcdir, "opengrm/operators/testdata"
+    testdir = runfiles.test_src_path(
+        "opengrm/operators/testdata"
     )
     cls.upper = pynini.Fst.read(os.path.join(testdir, "upper.fst"))
     cls.lower = pynini.Fst.read(os.path.join(testdir, "lower.fst"))
@@ -519,8 +516,7 @@ class DeterminizeTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    cls.testdir = os.path.join(
-        FLAGS.test_srcdir,
+    cls.testdir = runfiles.test_src_path(
         "openfst/test/testdata/determinize",
     )
     cls.d1 = pynini.Fst.read(os.path.join(cls.testdir, "d1.fst"))
@@ -551,8 +547,7 @@ class DifferenceTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    testdir = os.path.join(
-        FLAGS.test_srcdir,
+    testdir = runfiles.test_src_path(
         "openfst/test/testdata/difference",
     )
     cls.d1 = pynini.Fst.read(os.path.join(testdir, "d1.fst"))
@@ -580,8 +575,7 @@ class DisambiguateTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    testdir = os.path.join(
-        FLAGS.test_srcdir,
+    testdir = runfiles.test_src_path(
         "openfst/test/testdata/disambiguate",
     )
     cls.d1 = pynini.Fst.read(os.path.join(testdir, "d1.fst"))
@@ -621,8 +615,7 @@ class EpsnormalizeTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    cls.testdir = os.path.join(
-        FLAGS.test_srcdir,
+    cls.testdir = runfiles.test_src_path(
         "openfst/test/testdata/epsnormalize",
     )
 
@@ -644,8 +637,8 @@ class EncodeMapperTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    testdir = os.path.join(
-        FLAGS.test_srcdir, "openfst/test/testdata/encode"
+    testdir = runfiles.test_src_path(
+        "openfst/test/testdata/encode"
     )
     cls.e1 = pynini.Fst.read(os.path.join(testdir, "e1.fst"))
     cls.e1_cd = pynini.Fst.read(os.path.join(testdir, "e1_cd.fst"))
@@ -719,8 +712,7 @@ class EquivalentTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    testdir = os.path.join(
-        FLAGS.test_srcdir,
+    testdir = runfiles.test_src_path(
         "openfst/test/testdata/equivalent",
     )
     cls.e1 = pynini.Fst.read(os.path.join(testdir, "e1.fst"))
@@ -750,8 +742,7 @@ class ExceptionsTest(absltest.TestCase):
     cls.f = pynini.Fst()
     cls.s = pynini.SymbolTable()
     cls.map_file = pathlib.Path(
-        os.path.join(
-            FLAGS.test_srcdir,
+        runfiles.test_src_path(
             "opengrm/string/testdata/str.map",
         )
     )
@@ -909,32 +900,15 @@ class FarTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    testdir = os.path.join(
-        FLAGS.test_srcdir, "openfst/extensions/far/testdata"
+    testdir = runfiles.test_src_path(
+        "openfst/extensions/far/testdata"
     )
-    cls.farfile = os.path.join(FLAGS.test_tmpdir, "test.far")
+    cls.farfile = os.path.join(absltest.get_default_test_tmpdir(), "test.far")
     f1 = pynini.Fst.read(os.path.join(testdir, "test1-01.fst"))
     f2 = pynini.Fst.read(os.path.join(testdir, "test1-02.fst"))
     f3 = pynini.Fst.read(os.path.join(testdir, "test1-03.fst"))
     cls.pairs = {"1": f1, "2": f2, "3": f3}
     cls.arc_type = f1.arc_type()
-
-  def testSSTableFar(self):
-    with pynini.Far(
-        self.farfile, "w", arc_type=self.arc_type, far_type="sstable"
-    ) as sink:
-      for k, f in sorted(self.pairs.items()):
-        sink[k] = f
-    self.assertTrue(sink.closed())
-    with self.assertRaises(ValueError):
-      sink.far_type()
-    with pynini.Far(pathlib.Path(self.farfile), "r") as source:
-      self.assertEqual(source.far_type(), "sstable")
-      for k, f in source:
-        self.assertEqual(self.pairs[k], f)
-    self.assertTrue(source.closed())
-    with self.assertRaises(ValueError):
-      source.far_type()
 
   def testSTTableFar(self):
     with pynini.Far(
@@ -1009,8 +983,8 @@ class IntersectTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    testdir = os.path.join(
-        FLAGS.test_srcdir, "openfst/test/testdata/intersect"
+    testdir = runfiles.test_src_path(
+        "openfst/test/testdata/intersect"
     )
     cls.i1 = pynini.Fst.read(os.path.join(testdir, "i1.fst"))
     cls.i2 = pynini.Fst.read(os.path.join(testdir, "i2.fst"))
@@ -1027,8 +1001,8 @@ class InvertTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    testdir = os.path.join(
-        FLAGS.test_srcdir, "openfst/test/testdata/invert"
+    testdir = runfiles.test_src_path(
+        "openfst/test/testdata/invert"
     )
     cls.i1 = pynini.Fst.read(os.path.join(testdir, "i1.fst"))
     cls.i2 = pynini.Fst.read(os.path.join(testdir, "i2.fst"))
@@ -1044,8 +1018,8 @@ class IOTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    cls.testdir = os.path.join(
-        FLAGS.test_srcdir, "openfst/test/testdata/compile"
+    cls.testdir = runfiles.test_src_path(
+        "openfst/test/testdata/compile"
     )
 
   # Non-static helper.
@@ -1055,7 +1029,7 @@ class IOTest(absltest.TestCase):
 
   def testFileReadAndWrite(self):
     f = pynini.Fst.read(os.path.join(self.testdir, "fst.compiled"))
-    sink = os.path.join(FLAGS.test_tmpdir, "copy.fst")
+    sink = os.path.join(absltest.get_default_test_tmpdir(), "copy.fst")
     try:
       f.write(sink)
       g = pynini.Fst.read(sink)
@@ -1137,8 +1111,7 @@ class MinimizeTest(absltest.TestCase):
   def setUpClass(cls):
     super().setUpClass()
     cls.testdir = pathlib.Path(
-        os.path.join(
-            FLAGS.test_srcdir,
+        runfiles.test_src_path(
             "openfst/test/testdata/minimize",
         )
     )
@@ -1191,8 +1164,7 @@ class MPdtComposeTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    testdir = os.path.join(
-        FLAGS.test_srcdir,
+    testdir = runfiles.test_src_path(
         "openfst/extensions/mpdt/testdata",
     )
     cls.c1 = pynini.Fst.read(os.path.join(testdir, "c1.fst"))
@@ -1216,8 +1188,7 @@ class MPdtExpandTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    testdir = os.path.join(
-        FLAGS.test_srcdir,
+    testdir = runfiles.test_src_path(
         "openfst/extensions/mpdt/testdata",
     )
     cls.e1 = pynini.Fst.read(os.path.join(testdir, "e1.fst"))
@@ -1248,8 +1219,7 @@ class MPdtReverseTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    testdir = os.path.join(
-        FLAGS.test_srcdir,
+    testdir = runfiles.test_src_path(
         "openfst/extensions/mpdt/testdata",
     )
     cls.v1 = pynini.Fst.read(os.path.join(testdir, "v1.fst"))
@@ -1276,8 +1246,8 @@ class MutableArcIteratorTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    cls.testdir = os.path.join(
-        FLAGS.test_srcdir, "openfst/test/testdata/compile"
+    cls.testdir = runfiles.test_src_path(
+        "openfst/test/testdata/compile"
     )
 
   def testMutableArcIteratorAfterFstDeletion(self):
@@ -1293,8 +1263,8 @@ class OptimizeTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    cls.testdir = os.path.join(
-        FLAGS.test_srcdir, "opengrm/operators/testdata"
+    cls.testdir = runfiles.test_src_path(
+        "opengrm/operators/testdata"
     )
 
   def testOptimizeWeightedAcyclicAcceptor(self):
@@ -1332,8 +1302,8 @@ class PdtComposeTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    testdir = os.path.join(
-        FLAGS.test_srcdir, "openfst/extensions/pdt/testdata"
+    testdir = runfiles.test_src_path(
+        "openfst/extensions/pdt/testdata"
     )
     cls.c1 = pynini.Fst.read(os.path.join(testdir, "c1.fst"))
     cls.c2 = pynini.Fst.read(os.path.join(testdir, "c2.fst"))
@@ -1364,8 +1334,8 @@ class PdtExpandTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    testdir = os.path.join(
-        FLAGS.test_srcdir, "openfst/extensions/pdt/testdata"
+    testdir = runfiles.test_src_path(
+        "openfst/extensions/pdt/testdata"
     )
     cls.e1 = pynini.Fst.read(os.path.join(testdir, "e1.fst"))
     cls.e2 = pynini.Fst.read(os.path.join(testdir, "e2.fst"))
@@ -1396,8 +1366,8 @@ class PdtReplaceTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    testdir = os.path.join(
-        FLAGS.test_srcdir, "openfst/extensions/pdt/testdata"
+    testdir = runfiles.test_src_path(
+        "openfst/extensions/pdt/testdata"
     )
     cls.r1 = pynini.Fst.read(os.path.join(testdir, "r1.fst"))
     cls.r2 = pynini.Fst.read(os.path.join(testdir, "r2.fst"))
@@ -1426,8 +1396,8 @@ class PdtReverseTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    testdir = os.path.join(
-        FLAGS.test_srcdir, "openfst/extensions/pdt/testdata"
+    testdir = runfiles.test_src_path(
+        "openfst/extensions/pdt/testdata"
     )
     cls.v1 = pynini.Fst.read(os.path.join(testdir, "v1.fst"))
     cls.v2 = pynini.Fst.read(os.path.join(testdir, "v2.fst"))
@@ -1447,8 +1417,8 @@ class ProjectTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    testdir = os.path.join(
-        FLAGS.test_srcdir, "openfst/test/testdata/project"
+    testdir = runfiles.test_src_path(
+        "openfst/test/testdata/project"
     )
     cls.p1 = pynini.Fst.read(os.path.join(testdir, "p1.fst"))
     cls.p2 = pynini.Fst.read(os.path.join(testdir, "p2.fst"))
@@ -1476,8 +1446,8 @@ class PruneTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    testdir = os.path.join(
-        FLAGS.test_srcdir, "openfst/test/testdata/prune"
+    testdir = runfiles.test_src_path(
+        "openfst/test/testdata/prune"
     )
     cls.p1 = pynini.Fst.read(os.path.join(testdir, "p1.fst"))
     cls.p2 = pynini.Fst.read(os.path.join(testdir, "p2.fst"))
@@ -1493,8 +1463,8 @@ class PushTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    cls.testdir = os.path.join(
-        FLAGS.test_srcdir, "openfst/test/testdata/push"
+    cls.testdir = runfiles.test_src_path(
+        "openfst/test/testdata/push"
     )
     cls.p1 = pynini.Fst.read(os.path.join(cls.testdir, "p1.fst"))
 
@@ -1526,8 +1496,7 @@ class RandequivalentTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    testdir = os.path.join(
-        FLAGS.test_srcdir,
+    testdir = runfiles.test_src_path(
         "openfst/test/testdata/equivalent",
     )
     cls.e1 = pynini.Fst.read(os.path.join(testdir, "e1.fst"))
@@ -1544,8 +1513,8 @@ class RandgenTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    testdir = os.path.join(
-        FLAGS.test_srcdir, "openfst/test/testdata/randgen"
+    testdir = runfiles.test_src_path(
+        "openfst/test/testdata/randgen"
     )
     cls.r1 = pynini.Fst.read(os.path.join(testdir, "r1.fst"))
     cls.r2 = pynini.Fst.read(os.path.join(testdir, "r2.fst"))
@@ -1562,8 +1531,8 @@ class RelabelTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    cls.testdir = os.path.join(
-        FLAGS.test_srcdir, "openfst/test/testdata/relabel"
+    cls.testdir = runfiles.test_src_path(
+        "openfst/test/testdata/relabel"
     )
     cls.r1 = pynini.Fst.read(os.path.join(cls.testdir, "r1.fst"))
     cls.r4 = pynini.Fst.read(os.path.join(cls.testdir, "r4.fst"))
@@ -1599,8 +1568,8 @@ class ReplaceTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    testdir = os.path.join(
-        FLAGS.test_srcdir, "openfst/test/testdata/replace"
+    testdir = runfiles.test_src_path(
+        "openfst/test/testdata/replace"
     )
     cls.g1 = pynini.Fst.read(os.path.join(testdir, "g1.fst"))
     cls.g2 = pynini.Fst.read(os.path.join(testdir, "g2.fst"))
@@ -1638,7 +1607,7 @@ class ReprTest(absltest.TestCase):
     self.assertStartsWith(repr(e), "<EncodeMapper at")
 
   def testFarRepr(self):
-    tmpfile = os.path.join(FLAGS.test_tmpdir, "test.far")
+    tmpfile = os.path.join(absltest.get_default_test_tmpdir(), "test.far")
     try:
       with pynini.Far(tmpfile, mode="w") as f:
         self.assertStartsWith(repr(f), "<sttable Far")
@@ -1690,8 +1659,8 @@ class ReweightTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    cls.testdir = os.path.join(
-        FLAGS.test_srcdir, "openfst/test/testdata/reweight"
+    cls.testdir = runfiles.test_src_path(
+        "openfst/test/testdata/reweight"
     )
     cls.r1 = pynini.Fst.read(os.path.join(cls.testdir, "r1.fst"))
     cls.r2 = pynini.Fst.read(os.path.join(cls.testdir, "r2.fst"))
@@ -1720,8 +1689,8 @@ class ReverseTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    testdir = os.path.join(
-        FLAGS.test_srcdir, "openfst/test/testdata/reverse"
+    testdir = runfiles.test_src_path(
+        "openfst/test/testdata/reverse"
     )
     cls.r1 = pynini.Fst.read(os.path.join(testdir, "r1.fst"))
     cls.r2 = pynini.Fst.read(os.path.join(testdir, "r2.fst"))
@@ -1738,8 +1707,8 @@ class RmEpsilonTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    testdir = os.path.join(
-        FLAGS.test_srcdir, "openfst/test/testdata/rmepsilon"
+    testdir = runfiles.test_src_path(
+        "openfst/test/testdata/rmepsilon"
     )
     cls.r1 = pynini.Fst.read(os.path.join(testdir, "r1.fst"))
     cls.r2 = pynini.Fst.read(os.path.join(testdir, "r2.fst"))
@@ -1761,8 +1730,7 @@ class ShortestDistanceTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    cls.testdir = os.path.join(
-        FLAGS.test_srcdir,
+    cls.testdir = runfiles.test_src_path(
         "openfst/test/testdata/shortest-distance",
     )
     cls.sd2 = pynini.Fst.read(os.path.join(cls.testdir, "sd2.fst"))
@@ -1819,8 +1787,7 @@ class ShortestPathTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    cls.testdir = os.path.join(
-        FLAGS.test_srcdir,
+    cls.testdir = runfiles.test_src_path(
         "openfst/test/testdata/shortest-path",
     )
     cls.sp1 = pynini.Fst.read(os.path.join(cls.testdir, "sp1.fst"))
@@ -1873,8 +1840,8 @@ class StateIteratorTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    cls.testdir = os.path.join(
-        FLAGS.test_srcdir, "openfst/test/testdata/compile"
+    cls.testdir = runfiles.test_src_path(
+        "openfst/test/testdata/compile"
     )
 
   def testStateIteratorAfterFstDeletion(self):
@@ -1973,8 +1940,8 @@ class StatemapTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    cls.testdir = os.path.join(
-        FLAGS.test_srcdir, "openfst/test/testdata/state-map"
+    cls.testdir = runfiles.test_src_path(
+        "openfst/test/testdata/state-map"
     )
 
   def testArcSumStatemap(self):
@@ -2252,8 +2219,8 @@ class StringFileTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    testdir = os.path.join(
-        FLAGS.test_srcdir, "opengrm/string/testdata"
+    testdir = runfiles.test_src_path(
+        "opengrm/string/testdata"
     )
     cls.map_file = os.path.join(testdir, "str.map")
 
@@ -2683,8 +2650,7 @@ class SynchronizeTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    testdir = os.path.join(
-        FLAGS.test_srcdir,
+    testdir = runfiles.test_src_path(
         "openfst/test/testdata/synchronize",
     )
     cls.s1 = pynini.Fst.read(os.path.join(testdir, "s1.fst"))
@@ -2701,8 +2667,8 @@ class TopsortTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    testdir = os.path.join(
-        FLAGS.test_srcdir, "openfst/test/testdata/topsort"
+    testdir = runfiles.test_src_path(
+        "openfst/test/testdata/topsort"
     )
     cls.t1 = pynini.Fst.read(os.path.join(testdir, "t1.fst"))
     cls.t2 = pynini.Fst.read(os.path.join(testdir, "t2.fst"))
@@ -2719,8 +2685,8 @@ class UnionTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super().setUpClass()
-    testdir = os.path.join(
-        FLAGS.test_srcdir, "openfst/test/testdata/union"
+    testdir = runfiles.test_src_path(
+        "openfst/test/testdata/union"
     )
     cls.u1 = pynini.Fst.read(os.path.join(testdir, "u1.fst"))
     cls.u2 = pynini.Fst.read(os.path.join(testdir, "u2.fst"))

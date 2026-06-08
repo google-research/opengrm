@@ -55,8 +55,8 @@ py_test(
     deps = [
         ":chatspeak",
         "//opengrm/pynini",
+        "//opengrm/pynini:runfiles",
         "//opengrm/pynini/lib:rewrite",
-        "@com_google_absl_py//absl/flags",
         "@com_google_absl_py//absl/testing:absltest",
     ],
 )
@@ -83,7 +83,7 @@ py_test(
     ],
     deps = [
         ":chatspeak_model",
-        "@com_google_absl_py//absl/flags",
+        "//opengrm/pynini:runfiles",
         "@com_google_absl_py//absl/testing:absltest",
     ],
 )

@@ -7,7 +7,6 @@ Usage:
   /var/tmp/earnest.lm
 """
 
-import os
 import pathlib
 import shutil
 import subprocess
@@ -17,9 +16,9 @@ import tempfile
 from absl import app
 from absl import flags
 from absl import logging
+from opengrm.pynini import runfiles
 
 
-from google3.pyglib import resources
 
 _METHOD = flags.DEFINE_string("method", "witten_bell", "Smoothing method")
 _ORDER = flags.DEFINE_integer("order", 3, "N-gram order")
@@ -45,19 +44,18 @@ def main(argv) -> None:
   try:
     # The binaries we invoke are not linked statically. For this scenario,
     # the only API from `resources` that works is `GetARootDirWithAllResources`.
-    resources_root = resources.GetARootDirWithAllResources()
-    farcompilestrings = os.path.join(resources_root, _FARCOMPILESTRINGS_PATH)
-    ngramcount = os.path.join(resources_root, _NGRAMCOUNT_PATH)
-    ngraminfo = os.path.join(resources_root, _NGRAMINFO_PATH)
-    ngrammake = os.path.join(resources_root, _NGRAMMAKE_PATH)
-    ngramsymbols = os.path.join(resources_root, _NGRAMSYMBOLS_PATH)
+    farcompilestrings = runfiles.resource_path(_FARCOMPILESTRINGS_PATH)
+    ngramcount = runfiles.resource_path(_NGRAMCOUNT_PATH)
+    ngraminfo = runfiles.resource_path(_NGRAMINFO_PATH)
+    ngrammake = runfiles.resource_path(_NGRAMMAKE_PATH)
+    ngramsymbols = runfiles.resource_path(_NGRAMSYMBOLS_PATH)
   except (OSError, NotImplementedError):
     logging.error("Failed to find required resources.")
     raise
 
   if len(argv) == 2:
     # Backward-compatible single-argument mode: only output is specified.
-    input_corpus = os.path.join(resources_root, _DEFAULT_INPUT_PATH)
+    input_corpus = runfiles.resource_path(_DEFAULT_INPUT_PATH)
     output_lm = pathlib.Path(argv[1])
   else:
     input_corpus = pathlib.Path(argv[1])
