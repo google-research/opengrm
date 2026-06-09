@@ -18,14 +18,6 @@ load("//opengrm/thrax:grm_build_defs.bzl", "compile_grm")
 
 package(default_visibility = ["//visibility:public"])
 
-filegroup(
-    name = "google_grm_source",
-    srcs = glob([
-        "*.grm",
-    ]),
-    visibility = ["//visibility:private"],
-)
-
 compile_grm(name = "byte")
 
 compile_grm(name = "bytestringcopy")

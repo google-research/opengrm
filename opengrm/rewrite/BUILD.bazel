@@ -16,15 +16,6 @@ load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 
 package(default_visibility = ["//visibility:public"])
 
-filegroup(
-    name = "google_grm_source",
-    srcs = glob([
-        "*.cc",
-        "*.h",
-    ]),
-    visibility = ["//visibility:private"],
-)
-
 cc_library(
     name = "base_rule_cascade",
     hdrs = ["base_rule_cascade.h"],

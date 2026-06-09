@@ -20,12 +20,3 @@ exports_files([
     "thrax-mode.el",
     "thraxgrm.vim",
 ])
-
-filegroup(
-    name = "google_grm_source",
-    srcs = glob([
-        "*.el",
-        "*.vim",
-    ]),
-    visibility = ["//visibility:private"],
-)

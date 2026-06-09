@@ -18,16 +18,6 @@ load("//:bazel/bison.bzl", "genyacc")
 
 package(default_visibility = ["//visibility:public"])
 
-filegroup(
-    name = "google_grm_source",
-    srcs = glob([
-        "*.cc",
-        "*.h",
-        "*.y",
-    ]),
-    visibility = ["//visibility:private"],
-)
-
 bzl_library(
     name = "grm_build_defs_bzl",
     srcs = ["grm_build_defs.bzl"],
