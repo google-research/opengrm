@@ -1,0 +1,19 @@
+# bazel output symlinks
+/bazel-*
+
+# lockfile is updated by automation
+/MODULE.bazel.lock
+
+# default cmake output directory
+/build/
+
+# python
+*.egg-info/
+__pycache__/
+dist/
+venv/
+wheelhouse/
+.python-version
+
+# IDEs
+/.vscode/
