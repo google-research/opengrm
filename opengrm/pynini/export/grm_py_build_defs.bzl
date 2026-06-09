@@ -65,6 +65,7 @@ def compile_grm_py(
         src = None,
         far_type = None,
         fst_type = None,
+        far_binary_rule = None,
         deps = None,
         data = None,
         genrule_flags = [],
@@ -81,6 +82,8 @@ def compile_grm_py(
       fst_type: An optional string specifying the format of the FSTs in the FAR
                 archive.  The type must be supported by
                 @com_google_openfst//openfst/static:extensions.
+      far_binary_rule: An optional string specifying the custom "far" cc_binary
+                       target name to use when converting the FAR to fst_type.
       deps: A list of other grammar targets that we'll need for this grammar.
       data: Extra data dependencies used in the Pynini file.
       genrule_flags: Additional flags to be passed to the Pynini binary.
@@ -153,8 +156,8 @@ def compile_multi_grm_py(
       fst_type: An optional string specifying the format of the FSTs in the FAR
                 archives.  The type must be supported by
                 @com_google_openfst//openfst/static:extensions.
-      far_binary_rule: An optional string specifying the custom "far" cc_binary target name to use
-                       when converting the FAR to fst_type.
+      far_binary_rule: An optional string specifying the custom "far" cc_binary
+                       target name to use when converting the FAR to fst_type.
       deps: A list of other compile_grm rules that we'll need for this grammar.
       data: Extra data dependencies used in the Pynini file.
       genrule_flags: Additional flags to be passed to the Pynini binary.
@@ -221,6 +224,7 @@ def compile_multi_grm_py(
                 far_out = farmap_out,
                 far_type = far_type,
                 fst_type = fst_type,
+                far_binary_rule = far_binary_rule,
                 **kwds
             )
         native.filegroup(
