@@ -41,7 +41,11 @@ class PyniniExporterTest(absltest.TestCase):
 
   def testFilledExporterWithFarTypes(self):
     """Export two FSTs different far types."""
-    for far_type in ['default', 'sstable', 'sttable', 'stlist']:
+    for far_type in [
+        'default',
+        'sttable',
+        'stlist'
+    ]:
       exporter = export.Exporter(self._filename, far_type=far_type)
       exporter['FSTA'] = pynini.accep('1234')
       exporter['FSTB'] = pynini.accep('4321')

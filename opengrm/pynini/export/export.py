@@ -34,8 +34,10 @@ class Exporter:
     Args:
       filename: A string with the filename.
       arc_type: A string with the arc type; one of: "standard", "log", "log64".
-      far_type: A string with the file type; one of: "default", "sstable",
-        "sttable", "stlist".
+      far_type: A string with the file type; one of:
+        "default",
+        "sttable",
+        "stlist".
     """
     logging.info("Setting up exporter for %r", filename)
     self._fsts = {}

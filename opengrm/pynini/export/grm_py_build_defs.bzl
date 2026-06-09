@@ -15,6 +15,8 @@
 """Targets for compiling Pynini files into far files."""
 
 
+load("@rules_python//python:py_binary.bzl", "py_binary")
+load("@rules_python//python:py_library.bzl", "py_library")
 load("@com_google_openfst//openfst/extensions/far:build_defs.bzl", "convert_far_types")
 
 def _compile_grm_py_bin_target(name, src, deps, data, is_multi_target):
