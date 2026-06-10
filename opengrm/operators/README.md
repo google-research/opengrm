@@ -5,7 +5,7 @@ accessed as C++ template functions, or in Python via Pynini.
 
 *For further information, UTSL.*
 
-## `fst::ConcatRange` {#ConcatRange}
+## `fst::ConcatRange` {#concat-range}
 
 The *concat-range operation* is a generalization of
 [*closure*](http://www.openfst.org/twiki/bin/view/FST/ClosureDoc). A path
