@@ -144,9 +144,9 @@ class Phi2Matcher : public fst::MatcherBase<typename M::Arc> {
 
  private:
   fst::PhiMatcher<M> matcher_;
-  bool phi_match_;       // Is Find(phi_label) true (w/ phi_label != 0)?
+  bool phi_match_;  // Is Find(phi_label) true (w/ phi_label != 0)?
   bool phi_match_done_;
-  Arc phi_arc_;          // Loop arc to return when phi_match_ is true.
+  Arc phi_arc_;  // Loop arc to return when phi_match_ is true.
 
   Phi2Matcher& operator=(const Phi2Matcher&) = delete;
 };

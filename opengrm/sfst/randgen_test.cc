@@ -49,9 +49,9 @@ typedef Arc::Label Label;
 class RandGenTest : public testing::Test {
  protected:
   static std::string RandFileN(const int n) {
-    return fst::JoinPath(
-        std::string("."), "opengrm/sfst/testdata",
-        absl::StrCat("rand", n, ".fst"));
+    return fst::JoinPath(std::string("."),
+                          "opengrm/sfst/testdata",
+                          absl::StrCat("rand", n, ".fst"));
   }
 
   void SetUp() override {

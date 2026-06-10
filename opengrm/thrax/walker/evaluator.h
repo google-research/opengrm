@@ -142,7 +142,7 @@ class AstEvaluator : public AstWalker {
     if (run_all_) {
       env_->PopLocalEnvironment();
       delete env_;
-      for (const auto *grammar : loaded_grammars_) delete grammar;
+      for (const auto* grammar : loaded_grammars_) delete grammar;
       loaded_grammars_.clear();
     }
   }

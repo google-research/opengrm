@@ -19,8 +19,8 @@
 #include "openfst/compat/file_path.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "absl/strings/string_view.h"
 #include "absl/status/status_matchers.h"
+#include "absl/strings/string_view.h"
 #include "openfst/lib/string.h"
 
 namespace rewrite {
@@ -31,8 +31,8 @@ constexpr absl::string_view kTestDir =
 
 TEST(RuleCascadeTest, FST) {
   StdRuleCascade cascade;
-  ABSL_ASSERT_OK(cascade.LoadWithStatus(fst::JoinPath(
-      std::string("."), kTestDir, "cap.sttable.far")));
+  ABSL_ASSERT_OK(cascade.LoadWithStatus(
+      fst::JoinPath(std::string("."), kTestDir, "cap.sttable.far")));
   std::string result;
 
   ABSL_ASSERT_OK(cascade.SetRulesWithStatus({"cap", "test"}));
@@ -52,8 +52,8 @@ TEST(RuleCascadeTest, FST) {
 
 TEST(RuleCascadeTest, FSTDeprecatedBoolReturningMethods) {
   StdRuleCascade cascade;
-  ABSL_ASSERT_OK(cascade.LoadWithStatus(fst::JoinPath(
-      std::string("."), kTestDir, "cap.sttable.far")));
+  ABSL_ASSERT_OK(cascade.LoadWithStatus(
+      fst::JoinPath(std::string("."), kTestDir, "cap.sttable.far")));
   std::string result;
 
   ASSERT_TRUE(cascade.SetRules({"cap", "test"}));
@@ -73,8 +73,8 @@ TEST(RuleCascadeTest, FSTDeprecatedBoolReturningMethods) {
 
 TEST(RuleCascadeTest, FSTWithTrivialUtf8) {
   StdRuleCascade cascade(::fst::TokenType::UTF8);
-  ABSL_ASSERT_OK(cascade.LoadWithStatus(fst::JoinPath(
-      std::string("."), kTestDir, "cap.sttable.far")));
+  ABSL_ASSERT_OK(cascade.LoadWithStatus(
+      fst::JoinPath(std::string("."), kTestDir, "cap.sttable.far")));
   std::string result;
 
   ASSERT_TRUE(cascade.SetRules({"cap", "test"}));
@@ -94,8 +94,8 @@ TEST(RuleCascadeTest, FSTWithTrivialUtf8) {
 
 TEST(RuleCascadeTest, PDT) {
   StdRuleCascade cascade;
-  ABSL_ASSERT_OK(cascade.LoadWithStatus(fst::JoinPath(
-      std::string("."), kTestDir, "pdt/pdt.far")));
+  ABSL_ASSERT_OK(cascade.LoadWithStatus(
+      fst::JoinPath(std::string("."), kTestDir, "pdt/pdt.far")));
   std::string result;
 
   ASSERT_TRUE(cascade.SetRules({"CURRENCY$PARENS"}));
@@ -109,8 +109,8 @@ TEST(RuleCascadeTest, PDT) {
 
 TEST(RuleCascadeTest, MPDT) {
   StdRuleCascade cascade;
-  ABSL_ASSERT_OK(cascade.LoadWithStatus(fst::JoinPath(
-      std::string("."), kTestDir, "mpdt/mpdt.far")));
+  ABSL_ASSERT_OK(cascade.LoadWithStatus(
+      fst::JoinPath(std::string("."), kTestDir, "mpdt/mpdt.far")));
   std::string result;
 
   ASSERT_TRUE(cascade.SetRules({"REDUPLICATOR$PARENS$ASSIGNMENTS"}));

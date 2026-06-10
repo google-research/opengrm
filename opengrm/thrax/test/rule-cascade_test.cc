@@ -31,8 +31,8 @@ constexpr absl::string_view kTestDir =
 
 TEST(RuleCascadeTest, FST) {
   GrmManager grm;
-  ASSERT_TRUE(grm.LoadArchive(fst::JoinPath(
-      std::string("."), kTestDir, "cap.sttable.far")));
+  ASSERT_TRUE(grm.LoadArchive(
+      fst::JoinPath(std::string("."), kTestDir, "cap.sttable.far")));
   RuleCascade<StdArc> lower;
   RuleCascade<StdArc> upper;
   ASSERT_TRUE(lower.InitFromDefs(&grm, {"cap", "test"}));
@@ -50,8 +50,8 @@ TEST(RuleCascadeTest, FST) {
 
 TEST(RuleCascadeTest, PDT) {
   GrmManager grm;
-  ASSERT_TRUE(grm.LoadArchive(fst::JoinPath(
-      std::string("."), kTestDir, "pdt/pdt.far")));
+  ASSERT_TRUE(grm.LoadArchive(
+      fst::JoinPath(std::string("."), kTestDir, "pdt/pdt.far")));
   RuleCascade<StdArc> cascade;
   ASSERT_TRUE(cascade.InitFromDefs(&grm, {"CURRENCY$PARENS"}));
   std::string result;
@@ -61,8 +61,8 @@ TEST(RuleCascadeTest, PDT) {
 
 TEST(RuleCascadeTest, PDT_colon) {
   GrmManager grm;
-  ASSERT_TRUE(grm.LoadArchive(fst::JoinPath(
-      std::string("."), kTestDir, "pdt/pdt.far")));
+  ASSERT_TRUE(grm.LoadArchive(
+      fst::JoinPath(std::string("."), kTestDir, "pdt/pdt.far")));
   RuleCascade<StdArc> cascade;
   ASSERT_TRUE(cascade.InitFromDefs(&grm, {"CURRENCY:PARENS"}));
   std::string result;
@@ -72,8 +72,8 @@ TEST(RuleCascadeTest, PDT_colon) {
 
 TEST(RuleCascadeTest, MPDT) {
   GrmManager grm;
-  ASSERT_TRUE(grm.LoadArchive(fst::JoinPath(
-      std::string("."), kTestDir, "mpdt/mpdt.far")));
+  ASSERT_TRUE(grm.LoadArchive(
+      fst::JoinPath(std::string("."), kTestDir, "mpdt/mpdt.far")));
   RuleCascade<StdArc> cascade;
   ASSERT_TRUE(cascade.InitFromDefs(&grm, {"REDUPLICATOR$PARENS$ASSIGNMENTS"}));
   std::string result;
@@ -83,8 +83,8 @@ TEST(RuleCascadeTest, MPDT) {
 
 TEST(RuleCascadeTest, MPDT_colon) {
   GrmManager grm;
-  ASSERT_TRUE(grm.LoadArchive(fst::JoinPath(
-      std::string("."), kTestDir, "mpdt/mpdt.far")));
+  ASSERT_TRUE(grm.LoadArchive(
+      fst::JoinPath(std::string("."), kTestDir, "mpdt/mpdt.far")));
   RuleCascade<StdArc> cascade;
   ASSERT_TRUE(cascade.InitFromDefs(&grm, {"REDUPLICATOR:PARENS:ASSIGNMENTS"}));
   std::string result;

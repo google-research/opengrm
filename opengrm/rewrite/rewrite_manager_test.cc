@@ -42,10 +42,10 @@ using ::fst::StdFst;
 class RewriteManagerTest : public ::testing::Test {
  public:
   RewriteManagerTest()
-      : far_path_(fst::JoinPath(
-          std::string("."),
-          "opengrm/thrax/test/testdata",
-          "cap.sttable.far")) {}
+      : far_path_(
+            fst::JoinPath(std::string("."),
+                           "opengrm/thrax/test/testdata",
+                           "cap.sttable.far")) {}
   // Helpers.
   void TopRewrite(absl::string_view rule, absl::string_view input,
                   absl::string_view expected) {

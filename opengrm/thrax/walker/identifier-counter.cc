@@ -59,7 +59,7 @@ void AstIdentifierCounter::Visit(IdentifierNode* node) {
     const auto [it, inserted] = references_.insert({name, 0});
     if (!inserted) {
       // Only increment the reference count if we had a pre-existing value.
-      int &count = it->second;  // Previous value.
+      int& count = it->second;  // Previous value.
       if (count != -1) ++count;
     }
   }

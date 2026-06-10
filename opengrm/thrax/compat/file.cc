@@ -28,8 +28,8 @@
 #include <utility>
 #include <vector>
 
-#include "absl/status/status.h"
 #include "absl/log/log.h"
+#include "absl/status/status.h"
 #include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_split.h"
@@ -57,8 +57,8 @@ absl::Status ReadFileToString(absl::string_view file, std::string* store) {
     if (file.empty()) {
       return absl::InternalError("No file specified for reading");
     } else {
-      return absl::UnavailableError(absl::StrCat(
-          "Can't open file \"", file, "\" for reading"));
+      return absl::UnavailableError(
+          absl::StrCat("Can't open file \"", file, "\" for reading"));
     }
   }
   istrm.seekg(0, std::ios::end);

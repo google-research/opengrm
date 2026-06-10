@@ -21,12 +21,12 @@
 
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
-#include "opengrm/thrax/walker/util/function/temp_file.h"
 #include "openfst/lib/arc.h"
 #include "openfst/lib/equal.h"
 #include "openfst/lib/fst.h"
 #include "openfst/lib/vector-fst.h"
 #include "opengrm/thrax/walker/util/datatype.h"
+#include "opengrm/thrax/walker/util/function/temp_file.h"
 
 namespace thrax {
 namespace function {

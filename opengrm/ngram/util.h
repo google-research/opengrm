@@ -24,8 +24,9 @@
 
 ABSL_DECLARE_FLAG(bool, ngram_error_fatal);
 
-#define NGRAMERROR()                                                          \
-  LOG(LEVEL(absl::GetFlag(FLAGS_ngram_error_fatal) ? absl::LogSeverity::kFatal \
-                                                   : absl::LogSeverity::kError))
+#define NGRAMERROR()                               \
+  LOG(LEVEL(absl::GetFlag(FLAGS_ngram_error_fatal) \
+                ? absl::LogSeverity::kFatal        \
+                : absl::LogSeverity::kError))
 
 #endif  // OPENGRM_NGRAM_UTIL_H_

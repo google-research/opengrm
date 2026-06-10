@@ -64,8 +64,8 @@ void DeciphermentTests(const Fst<Arc>& lm, FarReader<Arc>& output,
                        const Fst<Arc>& model, const TrainOptions& opts,
                        FarReader<Arc>& goldtext) {
   // Mocks a FarReader for the LM.
-  const std::string input_path = fst::JoinPath(
-      ::testing::TempDir(), "input.far");
+  const std::string input_path =
+      fst::JoinPath(::testing::TempDir(), "input.far");
   internal::TempFile input_far(input_path);
   {
     std::unique_ptr<FstFarWriter<Arc>> writer(
@@ -86,8 +86,8 @@ void DeciphermentTests(const Fst<Arc>& lm, FarReader<Arc>& output,
   output.Reset();
 
   // Mocks a FAR for the hypothesized decipherment.
-  const std::string hypotext_path = fst::JoinPath(
-      ::testing::TempDir(), "hypotext.far");
+  const std::string hypotext_path =
+      fst::JoinPath(::testing::TempDir(), "hypotext.far");
   internal::TempFile hypotext_far(hypotext_path);
   std::unique_ptr<STTableFarWriter<Arc>> hypotext_writer;
   std::unique_ptr<STTableFarReader<Arc>> hypotext_reader;
