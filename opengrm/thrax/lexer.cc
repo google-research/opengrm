@@ -130,7 +130,7 @@ Lexer::TokenClass Lexer::YYLex() {
       }
       if (c != 0) UnGetChar();
 
-      if (kKeywords.find(curr_token_.token_string) != kKeywords.end())
+      if (kKeywords.contains(curr_token_.token_string))
         curr_token_.token_class = KEYWORD;
     } else if (c == '<') {
       curr_token_.token_class = ANGLE_STRING;

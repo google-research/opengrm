@@ -177,8 +177,7 @@ class AstEvaluator : public AstWalker {
       observed_function_names_.insert(name);
       if (!new_add) LOG(FATAL) << "Shadowing existing function: " << name;
     } else {
-      if (observed_function_names_.find(name) !=
-          observed_function_names_.end()) {
+      if (observed_function_names_.contains(name)) {
         LOG(WARNING) << "Duplicate function definition within file for " << name
                      << ". Ignoring.";
       }

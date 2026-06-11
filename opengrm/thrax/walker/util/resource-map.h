@@ -111,7 +111,7 @@ class ResourceMap {
   // (disregarding the type of the stored object).
   bool Contains(absl::string_view name) const {
     absl::MutexLock lock(mutex_);
-    return map_.find(name) != map_.end();
+    return map_.contains(name);
   }
 
   // Returns true if the map contains an object with the given name of the

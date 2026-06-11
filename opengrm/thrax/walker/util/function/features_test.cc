@@ -248,8 +248,7 @@ class FeatureVectorTest : public ::testing::Test {
     for (const auto& pair : feature_names) {
       const auto feat_s = pair.first;
       const auto& feature = pair.second;
-      const auto it = specified_features.find(feature);
-      if (it == specified_features.end()) {
+      if (!specified_features.contains(feature)) {
         CHECK_EQ(fst->NumArcs(feat_s), category_num_arcs[feat_s]);
       } else {
         CHECK_EQ(fst->NumArcs(feat_s), 1);
