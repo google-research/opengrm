@@ -1,9 +1,5 @@
 # Pynini: Grammar compilation in Python
 
-go/pynini
-
-[TOC]
-
 ## Introduction
 
 Pynini (Gorman 2016) is a library for compiling a grammar of strings, regular
