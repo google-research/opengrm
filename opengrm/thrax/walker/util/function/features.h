@@ -490,10 +490,7 @@ class FeatureVector : public Function<Arc> {
                   << std::endl;
         return nullptr;
       }
-      const auto it = feature_label_pairs.find(feature);
-      if (it == feature_label_pairs.end()) {
-        feature_label_pairs[feature] = label;
-      } else {
+      if (!feature_label_pairs.emplace(feature, label).second) {
         std::cout << "Duplicate value for feature: " << feature << std::endl;
         return nullptr;
       }
