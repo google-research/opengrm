@@ -5,7 +5,7 @@ accessed as C++ template functions, or in Python via Pynini.
 
 *For further information, UTSL.*
 
-## `fst::ConcatRange` {#concat-range}
+## `fst::ConcatRange` <a id="concat-range"></a>
 
 The *concat-range operation* is a generalization of
 [*closure*](http://www.openfst.org/twiki/bin/view/FST/ClosureDoc). A path
@@ -24,7 +24,7 @@ We can then derive the following familiar operations as special cases:
 *   To compute "plus"-closure, use arguments `1, 0`.
 *   To generate exactly $$k$$ concatenations of an FST, use arguments `k, k`.
 
-## `fst::Cross` {#cross-product}
+## `fst::Cross` <a id="cross-product"></a>
 
 The _cross-product_ operation generates a transducer from two acceptors $$A$$,
 $$B$$. The resulting transducer represents a relation mapping from any string in
@@ -47,7 +47,7 @@ The algorithm is as follows:
     create a superfinal state with the desired final weight and concatenate it
     with (3).
 
-## `fst::LenientlyCompose` {#leniently-compose}
+## `fst::LenientlyCompose` <a id="leniently-compose"></a>
 
 The _lenient composition_ (Karttunen 1998) of two FSTs $$A$$, $$B$$ is simply
 the _priority union_ (to be defined) of $$(A \circ B)$$ and $$A$$. The priority
@@ -80,7 +80,7 @@ $$(A \circ B), A$$. We can implement this in Thrax as follows:
 
 where `sigma_star` represents the closure over the alphabet.
 
-## `fst::Optimize` {#optimize}
+## `fst::Optimize` <a id="optimize"></a>
 
 There are several ways to "optimize" a weighted finite-state transducer (WFST).
 The C++ template function `fst::Optimize` underlies Pynini's `optimize` instance

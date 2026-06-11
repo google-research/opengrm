@@ -451,7 +451,6 @@ bool NGramCounter<Weight, Label>::CountFromTopSortedFst(
   pair2weight[start_pair] = Arc::Weight::One();
   heap.push_back(start_pair);
   std::push_heap(heap.begin(), heap.end(), compare);
-  size_t i = 0;
   while (!heap.empty()) {
     std::pop_heap(heap.begin(), heap.end(), compare);
     const auto current_pair = heap.back();
@@ -460,7 +459,6 @@ bool NGramCounter<Weight, Label>::CountFromTopSortedFst(
     auto current_weight = pair2weight[current_pair];
     pair2weight.erase(current_pair);
     heap.pop_back();
-    ++i;
     for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, fst_state); !aiter.Done();
          aiter.Next()) {
       const auto& arc = aiter.Value();

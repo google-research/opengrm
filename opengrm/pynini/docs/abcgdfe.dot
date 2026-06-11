@@ -1,0 +1,22 @@
+digraph FST {
+rankdir = LR;
+size = "8.5,11";
+label = "";
+center = 1;
+orientation = Portrait;
+ranksep = "0.4";
+nodesep = "0.25";
+node [fontname = "sans"];
+edge [fontname = "sans"];
+0 [label = "0", shape = circle, style = bold, fontsize = 14]
+	0 -> 1 [label = "a:a", fontsize = 14];
+1 [label = "1", shape = circle, style = solid, fontsize = 14]
+	1 -> 1 [label = "b:b", fontsize = 14];
+	1 -> 2 [label = "c:g", fontsize = 14];
+2 [label = "2", shape = circle, style = solid, fontsize = 14]
+	2 -> 3 [label = "d:f", fontsize = 14];
+3 [label = "3", shape = circle, style = solid, fontsize = 14]
+	3 -> 3 [label = "d:f", fontsize = 14];
+	3 -> 4 [label = "e:e", fontsize = 14];
+4 [label = "4", shape = doublecircle, style = solid, fontsize = 14]
+}
