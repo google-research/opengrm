@@ -1,3 +1,5 @@
+![OpenGrm Logo](docs/images/logo.svg)
+
 # OpenGrm Libraries
 
 [![GitHub license](https://img.shields.io/badge/license-Apache2-blue.svg)](https://github.com/google-research/nisaba/blob/main/LICENSE)
