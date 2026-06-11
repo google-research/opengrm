@@ -199,7 +199,7 @@ class LevenshteinAutomaton(LevenshteinDistance):
     self._l_o = self._e_o @ compiled_lexicon
     self._l_o.optimize(True)
 
-  def lattice(self, query: pynini.FstLike) -> pynini.Fst:
+  def lattice(self, query: pynini.FstLike) -> pynini.Fst:  # pyrefly: ignore[bad-override]
     """Constructs a lattice for a query string.
 
     Args:

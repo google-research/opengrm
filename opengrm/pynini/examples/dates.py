@@ -61,9 +61,12 @@ _month_map = [
 ]
 
 _month_names = pynini.union(
-    *(pynini.cross(pynini.union(*x[1]), x[0]) for x in _month_map)
+    *(
+        pynini.cross(pynini.union(*x[1]), x[0])  # pyrefly: ignore[bad-argument-type]
+        for x in _month_map
+    )
 ).optimize()
-_month_nums = pynini.union(*(m[0] for m in _month_map)).optimize()
+_month_nums = pynini.union(*(m[0] for m in _month_map)).optimize()  # pyrefly: ignore[bad-argument-type]
 
 _space = pynini.accep(" ") ** (1, ...)
 

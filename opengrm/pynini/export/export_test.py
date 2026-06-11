@@ -60,7 +60,7 @@ class PyniniExporterTest(absltest.TestCase):
         'sttable',
         'stlist'
     ]:
-      exporter = export.Exporter(self._filename, far_type=far_type)
+      exporter = export.Exporter(self._filename, far_type=far_type)  # pyrefly: ignore[bad-argument-type]
       exporter['FSTA'] = pynini.accep('1234')
       exporter['FSTB'] = pynini.accep('4321')
       exporter.close()

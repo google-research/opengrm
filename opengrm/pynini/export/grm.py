@@ -64,7 +64,7 @@ def run(generator_main: Callable[[export.Exporter], None]) -> None:
         raise app.UsageError(
             f'Unexpected command line arguments: {unused_argv}'
         )
-      exporter = export.Exporter(_OUTPUT.value)
+      exporter = export.Exporter(_OUTPUT.value)  # pyrefly: ignore[bad-argument-type]
       generator_main(exporter)
       exporter.close()
     except:

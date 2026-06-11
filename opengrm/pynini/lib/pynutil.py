@@ -54,12 +54,12 @@ def add_weight(expr: pynini.FstLike, weight: pynini.WeightLike) -> pynini.Fst:
     if hasattr(weight, "weight_type"):
       weight_fst = weight
     else:
-      weight_fst = pynini.accep("", arc_type=expr.arc_type(), weight=weight)
+      weight_fst = pynini.accep("", arc_type=expr.arc_type(), weight=weight)  # pyrefly: ignore[missing-attribute]
   elif hasattr(weight, "weight_type"):
     weight_fst = weight
   else:
     weight_fst = pynini.accep("", weight=weight)
-  return weight_fst.concat(expr)
+  return weight_fst.concat(expr)  # pyrefly: ignore[missing-attribute]
 
 
 def insert(

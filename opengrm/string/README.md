@@ -53,7 +53,7 @@ the input string is attached to the resulting FSA.
 When printing with `UTF8` mode, each non-0 arc is interpreted as a Unicode
 codepoint and the result is encoded as a UTF-8 bytestring.
 
-Since Unicode guarantees no more than $$2^{32}$$ unique codepoints, this mode is
+Since Unicode guarantees no more than $2^{32}$ unique codepoints, this mode is
 safe (modulo bracket parsing) when the `Label` template parameter has at least
 32 bits of (positive) integer precision. However, in the common case where all
 codepoints in the input fall within the [Basic Multilingual Plane

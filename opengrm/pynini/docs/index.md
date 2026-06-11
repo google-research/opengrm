@@ -81,7 +81,7 @@ states are represented by circles and the transitions between
 states&mdash;henceforth, _arcs_&mdash; are represented by arrows between states.
 Each arc has a pair of labels representing the input consumed, and output
 emitted, respectively, when that arc is traversed. By convention, the Greek
-letter $$\epsilon$$ (_epsilon_) is used to represent null input and/or output
+letter $\epsilon$ (_epsilon_) is used to represent null input and/or output
 along an arc.
 
 ![gumball FST](gumball.dot)
@@ -100,38 +100,38 @@ interested readers are advised to consult that resource for further details.
 
 _finite-state acceptors_ (or FSAs) are the simplest type of FST. Each FSA
 represents a set of strings (henceforth, a _language_), similar to a regular
-expression, as follows. An FSA consists of a five-tuple $$ (Q, S, F, \Sigma,
-\delta) $$ where:
+expression, as follows. An FSA consists of a five-tuple $ (Q, S, F, \Sigma,
+\delta) $ where:
 
-1.  $$ Q $$ is a finite set of states,
-2.  $$ S $$ is the set of _start_ states,
-3.  $$ F $$ is the set of _final_ states,
-4.  $$ \Sigma $$ is the alphabet, and
-5.  $$ \delta : Q \times (\Sigma \cup \epsilon) \rightarrow Q $$ is the
+1.  $ Q $ is a finite set of states,
+2.  $ S $ is the set of _start_ states,
+3.  $ F $ is the set of _final_ states,
+4.  $ \Sigma $ is the alphabet, and
+5.  $ \delta : Q \times (\Sigma \cup \epsilon) \rightarrow Q $ is the
     transition relation.
 
-A _path_ through an FSA $$ (Q, S, F, \Sigma, \delta) $$ is simply a sequence of
-transitions starting with a start state $$ s \in S $$, taking only transitions
-licensed by $$\delta$$, and terminating at a final state $$ f \in F $$. More
-formally, let a path be a sequence $$ P = p_o, p_1, \ldots, p_n $$ where each
-element $$ p \in P $$ is a triple over $$ Q \times (\Sigma \cup \epsilon) \times
-Q $$. Each triple consists of a source state, a _label_ in the alphabet (or the
-null label $$ \epsilon $$), and a destination state. Then, a path is valid if
+A _path_ through an FSA $ (Q, S, F, \Sigma, \delta) $ is simply a sequence of
+transitions starting with a start state $ s \in S $, taking only transitions
+licensed by $\delta$, and terminating at a final state $ f \in F $. More
+formally, let a path be a sequence $ P = p_o, p_1, \ldots, p_n $ where each
+element $ p \in P $ is a triple over $ Q \times (\Sigma \cup \epsilon) \times
+Q $. Each triple consists of a source state, a _label_ in the alphabet (or the
+null label $ \epsilon $), and a destination state. Then, a path is valid if
 and only if all of the following conditions hold:
 
-1.  The source state for $$ p_0 $$ is in $$ S $$,
-2.  $$ \delta(q_i, l_i) = q_{i + 1} $$ for any $$ p_i = (q_i, l_i, q_{i + 1})
-    \in P $$, and
-3.  the destination state for $$ p_n $$ is in $$ F $$.
+1.  The source state for $ p_0 $ is in $ S $,
+2.  $ \delta(q_i, l_i) = q_{i + 1} $ for any $ p_i = (q_i, l_i, q_{i + 1})
+    \in P $, and
+3.  the destination state for $ p_n $ is in $ F $.
 
 The first condition requires that the path begin at a start state, the second
-condition requires that all transitions be licensed by $$ \delta $$ , and the
+condition requires that all transitions be licensed by $ \delta $ , and the
 third condition requires that the final transition be to a final state.
 
-Let the _string_ of a path $$ P = p_o, p_1, \ldots, p_n $$ be the possibly empty
-sequence of labels. For instance, if $$ P $$ is $$ (s, l_0, q_1), (q_1, l_1,
-q_2), (q_2, l_2, q_3) $$, then the string of $$ P $$ is simply $$ l_0, l_1, l_2
-$$. Then the _language_ described by an FSA is simply the union of all strings
+Let the _string_ of a path $ P = p_o, p_1, \ldots, p_n $ be the possibly empty
+sequence of labels. For instance, if $ P $ is $ (s, l_0, q_1), (q_1, l_1,
+q_2), (q_2, l_2, q_3) $, then the string of $ P $ is simply $ l_0, l_1, l_2
+$. Then the _language_ described by an FSA is simply the union of all strings
 of all its paths.
 
 #### Example
@@ -148,12 +148,12 @@ circle labeled `4` indicates the final state.
 #### Definition
 
 _Finite-state transducers_ (FSTs) are generalization of FSAs. In the normal case
-of a _two-way_ transducer, $$ \delta $$ is instead a relation from $$ Q \times
-(\Sigma_i \cup \epsilon) \times (\Sigma_o \cup \epsilon) $$ to $$ Q $$, where $$
-\Sigma_i $$ and $$ \Sigma_o $$ are the input and output alphabets, respectively.
+of a _two-way_ transducer, $ \delta $ is instead a relation from $ Q \times
+(\Sigma_i \cup \epsilon) \times (\Sigma_o \cup \epsilon) $ to $ Q $, where $
+\Sigma_i $ and $ \Sigma_o $ are the input and output alphabets, respectively.
 Paths through a FST are defined similarly to the definition given for FSAs
 above, except that each path corresponds to a set of two strings, an input
-string over $$ \Sigma_i^{*} $$ and an output string over $$ \Sigma_o^{*} $$.
+string over $ \Sigma_i^{*} $ and an output string over $ \Sigma_o^{*} $.
 Whereas FSAs describe sets of strings, FSTs describe relations _between_ sets of
 strings.
 
@@ -171,58 +171,58 @@ The following FST represents the relation `(a:a)(b:b)*(c:g)(d:f)+(e:e)`.
 #### Definition
 
 _Weighted finite-state transducers_ (WFSTs) are generalizations of FSTs which
-use an alternative definition of both $$ F $$ and $$ \delta $$ incorporating the
+use an alternative definition of both $ F $ and $ \delta $ incorporating the
 notion of _weights_. FST weights and their operations can be understood by first
 defining the notion of _semiring_, which require us to first define the notion
 _monoid_.
 
-A monoid is a pair $$ (M, \cdot ) $$ where $$ M $$ is a set and $$ \cdot $$ is a
-binary operation on $$ M $$ such that:
+A monoid is a pair $ (M, \cdot ) $ where $ M $ is a set and $ \cdot $ is a
+binary operation on $ M $ such that:
 
-1.  $$ \cdot $$ is _closed_ over $$ M $$: for all $$ a, b $$ in $$ M $$, $$ a
-    \cdot b \in M $$,
-2.  there is an identity element $$ e \in M $$ such that $$ a \cdot e = e \cdot
-    a = a$$ for all $$ a \in M $$, and
-3.  $$ \cdot $$ is _associative_: for all $$ a, b, c \in M $$, $$ (a \cdot b)
-    \cdot c = a \cdot (b \cdot c) $$.
+1.  $ \cdot $ is _closed_ over $ M $: for all $ a, b $ in $ M $, $ a
+    \cdot b \in M $,
+2.  there is an identity element $ e \in M $ such that $ a \cdot e = e \cdot
+    a = a$ for all $ a \in M $, and
+3.  $ \cdot $ is _associative_: for all $ a, b, c \in M $, $ (a \cdot b)
+    \cdot c = a \cdot (b \cdot c) $.
 
-Finally, a monoid $$ (M, \cdot ) $$ is _commutative_ if for all $$ a, b \in M
-$$, $$ a \cdot b = b \cdot a $$.
+Finally, a monoid $ (M, \cdot ) $ is _commutative_ if for all $ a, b \in M
+$, $ a \cdot b = b \cdot a $.
 
-Then, a semiring is a triple $$ (\mathbb{K}, \oplus, \otimes) $$ such that:
+Then, a semiring is a triple $ (\mathbb{K}, \oplus, \otimes) $ such that:
 
-1.  $$ (\mathbb{K}, \oplus) $$ is a commutative monoid,
-2.  $$ (\mathbb{K}, \otimes) $$ is a monoid,
-3.  for all $$ a, b, c \in \mathbb{K} $$, $$a \otimes (b \oplus c) = (a \otimes
-    b) \oplus (a \otimes c) $$, and
-4.  for all $$ a \in \mathbb{K} $$, $$a \otimes \bar{0} = \bar{0} \otimes a =
-    \bar{0} $$ where $$ \bar{0} $$ is the identity element for the monoid $$
-    (\mathbb{K}, \oplus) $$.
+1.  $ (\mathbb{K}, \oplus) $ is a commutative monoid,
+2.  $ (\mathbb{K}, \otimes) $ is a monoid,
+3.  for all $ a, b, c \in \mathbb{K} $, $a \otimes (b \oplus c) = (a \otimes
+    b) \oplus (a \otimes c) $, and
+4.  for all $ a \in \mathbb{K} $, $a \otimes \bar{0} = \bar{0} \otimes a =
+    \bar{0} $ where $ \bar{0} $ is the identity element for the monoid $
+    (\mathbb{K}, \oplus) $.
 
-In many cases, $$ \mathbb{K} $$ is the set of real numbers, so a semiring can be
-denoted simply by specifying the $$ (\oplus, \otimes) $$ pair. The so-called
-_real semiring_ is then simply $$ (+, \times) $$.
+In many cases, $ \mathbb{K} $ is the set of real numbers, so a semiring can be
+denoted simply by specifying the $ (\oplus, \otimes) $ pair. The so-called
+_real semiring_ is then simply $ (+, \times) $.
 
 When working with probabilities as weights, we often use the _tropical semiring_
-$$ (min, +) $$ and negative log probabilities, taking advantage of the
-logarithmic identity $$ \log(x) + \log(y) = log(x y) $$. The tropical semiring
+$ (min, +) $ and negative log probabilities, taking advantage of the
+logarithmic identity $ \log(x) + \log(y) = log(x y) $. The tropical semiring
 (and the associated `standard` arc type) is the default semiring in Pynini.
 
-At last, we can give the modified definitions for $$ F $$ and $$ \delta $$ for
-WFSTs. Whereas for unweighted FSTs, $$ F $$ is a set of final states, for WFSTs
-$$ F $$ is a set of pairs over $$Q \times \mathbb{K} $$, where the second
-element is the _final weight_ for that state. And, the transition relation $$
-\delta $$ for a WFST is from $$ Q \times (\Sigma_i \cup \epsilon) \times
-(\Sigma_o \cup \epsilon) \times \mathbb{K} $$ to $$ Q $$. The definition of
+At last, we can give the modified definitions for $ F $ and $ \delta $ for
+WFSTs. Whereas for unweighted FSTs, $ F $ is a set of final states, for WFSTs
+$ F $ is a set of pairs over $Q \times \mathbb{K} $, where the second
+element is the _final weight_ for that state. And, the transition relation $
+\delta $ for a WFST is from $ Q \times (\Sigma_i \cup \epsilon) \times
+(\Sigma_o \cup \epsilon) \times \mathbb{K} $ to $ Q $. The definition of
 paths is parallel to those for unweighted FSTs except that each element in the
-path is also associated with a weight in $$ \mathbb{K} $$.
+path is also associated with a weight in $ \mathbb{K} $.
 
 #### Example
 
 WFSTs are a natural representation for conditional probability distributions
 from strings to strings. For example, consider a text normalization rule which
-verbalizes `2:00` as `two` with $$ P = .2 $$ and as `two o'clock` with $$ P = .8
-$$. The following _probability_ (i.e., real-valued) _semiring_ WFST encodes this
+verbalizes `2:00` as `two` with $ P = .2 $ and as `two o'clock` with $ P = .8
+$. The following _probability_ (i.e., real-valued) _semiring_ WFST encodes this
 distribution:
 
 ![time FST](time.dot)
@@ -233,10 +233,10 @@ distribution:
     WFSTs. Thus, for example, a weighted finite-state acceptor (WFSA) is
     represented as a WFST in which input and output labels match in all cases,
     and an unweighted finite-state transducer is represented by a WFST in which
-    all weights are $$ \bar{1} $$ or $$ \bar{0} $$.
+    all weights are $ \bar{1} $ or $ \bar{0} $.
 *   Pynini only permits one state to be designated the start state.
 *   Pynini assigns a final weight to all states; a _nonfinal_ state is just one
-    which has a final weight of $$ \bar{0} $$.
+    which has a final weight of $ \bar{0} $.
 
 ## Getting started with Pynini <a id="intro"></a>
 
@@ -267,7 +267,7 @@ review a few of these methods.
 
 The `acceptor` function compiles a (Unicode or byte) string into a deterministic
 acceptor. The user may specify a final weight using the `weight` keyword
-argument; by default, the final weight is $$ \bar{1} $$. The user may also
+argument; by default, the final weight is $ \bar{1} $. The user may also
 specify the desired arc type using the `arc_type` keyword argument. The user may
 also specify how the characters in the string are to be translated into labels
 of the acceptor. By default (`token_type=None`), which means that the
@@ -384,7 +384,7 @@ string converted into labels, and the shorter of the two will be padded with
 epsilons.
 
 As with `acceptor`, the user may specify a final weight using the `weight`
-keyword argument; the final weight is $$ \bar{1} $$. The user also specify the
+keyword argument; the final weight is $ \bar{1} $. The user also specify the
 desired arc type using the `arc_type` keyword argument. The user may also
 specify how the characters in the input and/or output strings are to be
 translated into labels of the transducer, if strings are passed in place of FST
@@ -576,7 +576,7 @@ composition of a string with a transducer followed by output projection. The
 digits&mdash;to the inverse of the encoder FST (`T9_DECODER`). This creates an
 intermediate lattice of all possible plaintexts consistent with the T9
 ciphertext. This is then scored with&mdash;that is, composed with&mdash;the
-character LM. Finally, this function returns the $$k$$ highest probability
+character LM. Finally, this function returns the $k$ highest probability
 plaintexts in the lattice. For the following example, the highest probability
 plaintext is in fact the correct one:
 

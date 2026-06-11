@@ -1975,7 +1975,7 @@ class StringTest(absltest.TestCase):
   cheese: str
   reply: str
   imported_cheese: str
-  pynini.acceptor_props: pynini.FstProperties
+  pynini.acceptor_props: pynini.FstProperties  # pyrefly: ignore[bad-assignment]
 
   @classmethod
   def setUpClass(cls):

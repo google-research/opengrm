@@ -63,4 +63,4 @@ class T9:
     return pynini.intersect(lattice, self._lexicon)
 
   def encode(self, text: pynini.FstLike) -> str:
-    return rewrite.top_rewrite(text, self._encoder)
+    return rewrite.top_rewrite(text, self._encoder)  # pyrefly: ignore[bad-argument-type]

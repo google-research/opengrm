@@ -97,7 +97,7 @@ def run(generator_main: Callable[[ExporterMapping], None]) -> None:
         raise app.UsageError(
             f'Unexpected command line arguments: {unused_argv}'
         )
-      target_file_pair = _get_target_file_map(_OUTPUTS.value)
+      target_file_pair = _get_target_file_map(_OUTPUTS.value)  # pyrefly: ignore[bad-argument-type]
       if not target_file_pair:
         raise app.UsageError(
             '--outputs must specify at least one name=file pair.'

@@ -77,4 +77,4 @@ class Tagger:
     Returns:
       The tagged string.
     """
-    return rewrite.one_top_rewrite(string, self._tagger)
+    return rewrite.one_top_rewrite(string, self._tagger)  # pyrefly: ignore[bad-argument-type]

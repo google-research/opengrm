@@ -342,18 +342,18 @@ class Paradigm:
         if arc.ilabel:
           feature_labels.add(arc.ilabel)
         aiter.next()
-    self.lemmatizer.set_input_symbols(self.lemmatizer.output_symbols())
-    for s in self.lemmatizer.states():
-      maiter = self.lemmatizer.mutable_arcs(s)
+    self.lemmatizer.set_input_symbols(self.lemmatizer.output_symbols())  # pyrefly: ignore[missing-attribute]
+    for s in self.lemmatizer.states():  # pyrefly: ignore[missing-attribute]
+      maiter = self.lemmatizer.mutable_arcs(s)  # pyrefly: ignore[missing-attribute]
       while not maiter.done():
         arc = maiter.value()
         if arc.olabel in feature_labels:
           # This assertion should always be true by construction.
           assert arc.ilabel == 0, (
               "ilabel = "
-              f"{self.lemmatizer.input_symbols().find(arc.ilabel)},"
+              f"{self.lemmatizer.input_symbols().find(arc.ilabel)},"  # pyrefly: ignore[missing-attribute]
               " olabel = "
-              f"{self.lemmatizer.output_symbols().find(arc.olabel)}"
+              f"{self.lemmatizer.output_symbols().find(arc.olabel)}"  # pyrefly: ignore[missing-attribute]
           )
           arc = pynini.Arc(arc.olabel, arc.ilabel, arc.weight, arc.nextstate)
           maiter.set_value(arc)
@@ -429,7 +429,7 @@ class Paradigm:
       rewrite.Error: composition failure.
     """
     return list(
-        self._parse_lattice(rewrite.rewrite_lattice(word, self.analyzer))
+        self._parse_lattice(rewrite.rewrite_lattice(word, self.analyzer))  # pyrefly: ignore[bad-argument-type]
     )
 
   @property
@@ -443,7 +443,7 @@ class Paradigm:
 
   def _make_tagger(self) -> None:
     """Helper function for constructing tagger."""
-    self._tagger = self._analyzer @ self._boundary_deleter
+    self._tagger = self._analyzer @ self._boundary_deleter  # pyrefly: ignore[unsupported-operation]
     self._tagger.optimize()
 
   def tag(self, word: pynini.FstLike) -> list[Analysis]:
@@ -458,7 +458,7 @@ class Paradigm:
     Raises:
       rewrite.Error: composition failure.
     """
-    return list(self._parse_lattice(rewrite.rewrite_lattice(word, self.tagger)))
+    return list(self._parse_lattice(rewrite.rewrite_lattice(word, self.tagger)))  # pyrefly: ignore[bad-argument-type]
 
   @property
   def lemmatizer(self) -> Optional[pynini.Fst]:
@@ -482,7 +482,7 @@ class Paradigm:
     self._lemmatizer.invert()
     # Maps from the stem side to the lemma. The self._feature_labels is needed
     # to match the features that are now glommed onto the right-hand side.
-    self._lemmatizer @= self._lemma + self.category.feature_labels
+    self._lemmatizer @= self._lemma + self.category.feature_labels  # pyrefly: ignore[unsupported-operation]
     self._lemmatizer.optimize()
 
   def lemmatize(self, word: pynini.FstLike) -> list[Analysis]:
@@ -498,7 +498,7 @@ class Paradigm:
       rewrite.Error: composition failure.
     """
     return list(
-        self._parse_lattice(rewrite.rewrite_lattice(word, self.lemmatizer))
+        self._parse_lattice(rewrite.rewrite_lattice(word, self.lemmatizer))  # pyrefly: ignore[bad-argument-type]
     )
 
   @property
@@ -507,7 +507,7 @@ class Paradigm:
       return None
     if self._inflector is not None:
       return self._inflector
-    self._inflector = pynini.invert(self._lemmatizer)
+    self._inflector = pynini.invert(self._lemmatizer)  # pyrefly: ignore[bad-argument-type]
     return self._inflector
 
   def inflect(
@@ -525,7 +525,7 @@ class Paradigm:
     Raises:
       rewrite.Error: composition failure.
     """
-    return rewrite.rewrites(lemma + featvec.acceptor, self.inflector)
+    return rewrite.rewrites(lemma + featvec.acceptor, self.inflector)  # pyrefly: ignore[bad-argument-type]
 
   @property
   def category(self) -> features.Category:

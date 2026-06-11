@@ -81,14 +81,14 @@ class Feature:
         f"{', '.join(repr(value) for value in self._values)})"
     )
 
-  def __eq__(self, other: Feature) -> bool:
+  def __eq__(self, other: Feature) -> bool:  # pyrefly: ignore[bad-override]
     return (
         isinstance(other, self.__class__)
         and self.name == other.name
         and frozenset(self.values) == frozenset(other.values)
     )
 
-  def __ne__(self, other: Feature) -> bool:
+  def __ne__(self, other: Feature) -> bool:  # pyrefly: ignore[bad-override]
     return not self.__eq__(other)
 
   @property
@@ -200,10 +200,10 @@ class Category:
         f"({', '.join(repr(feature) for feature in self.features)})"
     )
 
-  def __eq__(self, other: Category) -> bool:
+  def __eq__(self, other: Category) -> bool:  # pyrefly: ignore[bad-override]
     return isinstance(other, self.__class__) and self.features == other.features
 
-  def __ne__(self, other: Category) -> bool:
+  def __ne__(self, other: Category) -> bool:  # pyrefly: ignore[bad-override]
     return not self.__eq__(other)
 
   def __lt__(self, other: Category) -> bool:
@@ -281,14 +281,14 @@ class FeatureVector:
         f"""{', '.join(f"'{f}={v}'" for (f, v) in self._values.items())})"""
     )
 
-  def __eq__(self, other: FeatureVector) -> bool:
+  def __eq__(self, other: FeatureVector) -> bool:  # pyrefly: ignore[bad-override]
     return (
         isinstance(other, self.__class__)
         and self.category == other.category
         and self.values == other.values
     )
 
-  def __ne__(self, other: FeatureVector) -> bool:
+  def __ne__(self, other: FeatureVector) -> bool:  # pyrefly: ignore[bad-override]
     return not self.__eq__(other)
 
   def __lt__(self, other: FeatureVector) -> bool:
