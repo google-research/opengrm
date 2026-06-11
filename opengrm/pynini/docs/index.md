@@ -130,8 +130,7 @@ third condition requires that the final transition be to a final state.
 
 Let the _string_ of a path $P = p_o, p_1, \ldots, p_n$ be the possibly empty
 sequence of labels. For instance, if $P$ is $(s, l_0, q_1), (q_1, l_1,
-q_2), (q_2, l_2, q_3)$, then the string of $P$ is simply $l_0, l_1, l_2
-$. Then the _language_ described by an FSA is simply the union of all strings
+q_2), (q_2, l_2, q_3)$, then the string of $P$ is simply $l_0, l_1, l_2$. Then the _language_ described by an FSA is simply the union of all strings
 of all its paths.
 
 #### Example
@@ -149,13 +148,12 @@ circle labeled `4` indicates the final state.
 
 _Finite-state transducers_ (FSTs) are generalization of FSAs. In the normal case
 of a _two-way_ transducer, $\delta$ is instead a relation from $Q \times
-(\Sigma_i \cup \epsilon) \times (\Sigma_o \cup \epsilon)$ to $Q$, where $
-\Sigma_i$ and $\Sigma_o$ are the input and output alphabets, respectively.
+(\Sigma_i \cup \epsilon) \times (\Sigma_o \cup \epsilon)$ to $Q$, where $\Sigma_i$ and $\Sigma_o$ are the input and output alphabets, respectively.
 Paths through a FST are defined similarly to the definition given for FSAs
 above, except that each path corresponds to a set of two strings, an input
-string over $\Sigma_i^{*}$ and an output string over $\Sigma_o^{*}$.
-Whereas FSAs describe sets of strings, FSTs describe relations _between_ sets of
-strings.
+string over $\Sigma_i^{\ast}$ and an output string over
+$\Sigma_o^{\ast}$. Whereas FSAs describe sets of strings, FSTs describe
+relations _between_ sets of strings.
 
 When the relation described by an FST is such that each input string corresponds
 to at most one output string, we say that the FST is _functional_.
@@ -186,8 +184,7 @@ binary operation on $M$ such that:
 3.  $\cdot$ is _associative_: for all $a, b, c \in M$, $(a \cdot b)
     \cdot c = a \cdot (b \cdot c)$.
 
-Finally, a monoid $(M, \cdot )$ is _commutative_ if for all $a, b \in M
-$, $a \cdot b = b \cdot a$.
+Finally, a monoid $(M, \cdot )$ is _commutative_ if for all $a, b \in M$, $a \cdot b = b \cdot a$.
 
 Then, a semiring is a triple $(\mathbb{K}, \oplus, \otimes)$ such that:
 
@@ -196,8 +193,7 @@ Then, a semiring is a triple $(\mathbb{K}, \oplus, \otimes)$ such that:
 3.  for all $a, b, c \in \mathbb{K}$, $a \otimes (b \oplus c) = (a \otimes
     b) \oplus (a \otimes c)$, and
 4.  for all $a \in \mathbb{K}$, $a \otimes \bar{0} = \bar{0} \otimes a =
-    \bar{0}$ where $\bar{0}$ is the identity element for the monoid $
-    (\mathbb{K}, \oplus)$.
+    \bar{0}$ where $\bar{0}$ is the identity element for the monoid $(\mathbb{K}, \oplus)$.
 
 In many cases, $\mathbb{K}$ is the set of real numbers, so a semiring can be
 denoted simply by specifying the $(\oplus, \otimes)$ pair. The so-called
@@ -211,8 +207,7 @@ logarithmic identity $\log(x) + \log(y) = log(x y)$. The tropical semiring
 At last, we can give the modified definitions for $F$ and $\delta$ for
 WFSTs. Whereas for unweighted FSTs, $F$ is a set of final states, for WFSTs
 $F$ is a set of pairs over $Q \times \mathbb{K}$, where the second
-element is the _final weight_ for that state. And, the transition relation $
-\delta$ for a WFST is from $Q \times (\Sigma_i \cup \epsilon) \times
+element is the _final weight_ for that state. And, the transition relation $\delta$ for a WFST is from $Q \times (\Sigma_i \cup \epsilon) \times
 (\Sigma_o \cup \epsilon) \times \mathbb{K}$ to $Q$. The definition of
 paths is parallel to those for unweighted FSTs except that each element in the
 path is also associated with a weight in $\mathbb{K}$.
@@ -221,8 +216,7 @@ path is also associated with a weight in $\mathbb{K}$.
 
 WFSTs are a natural representation for conditional probability distributions
 from strings to strings. For example, consider a text normalization rule which
-verbalizes `2:00` as `two` with $P = .2$ and as `two o'clock` with $P = .8
-$. The following _probability_ (i.e., real-valued) _semiring_ WFST encodes this
+verbalizes `2:00` as `two` with $P = .2$ and as `two o'clock` with $P = .8$. The following _probability_ (i.e., real-valued) _semiring_ WFST encodes this
 distribution:
 
 ![time FST](time.dot)
