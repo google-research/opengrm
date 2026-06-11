@@ -131,7 +131,7 @@ We first construct a probabilistic model $\Lambda \subseteq {P}^{\ast}$, a
 superset of the true plaintext $p$ and a model of $(p)$. We henceforth refer
 to this as the *language model*.
 
-We then construct a model of the inverse keyspace, $ \Gamma \subseteq
+We then construct a model of the inverse keyspace, $\Gamma \subseteq
 {P}^{\ast} \times {C}^{\ast}$. This is a superset of the true encoder relation
 $\gamma$ and serves as an initial (usually uniform) model for $(c \mid p)$;
 we henceforth refer to it as the *channel model*.
@@ -139,8 +139,8 @@ we henceforth refer to it as the *channel model*.
 Given an estimate for the channel model, $\hat{\Gamma}$, we can express
 decoding as
 
-@@@BLOCK_MATH_START@@@\mathrm{ShortestPath}\left[\pi_i\left(\Lambda \circ \hat{\Gamma}
-\circ c\right)\right].@@@BLOCK_MATH_END@@@
+$$\mathrm{ShortestPath}\left[\pi_i\left(\Lambda \circ \hat{\Gamma}
+\circ c\right)\right].$$
 
 #### Sparsity penalties
 
@@ -170,7 +170,7 @@ pairs, henceforth $\textrm{P}(o \mid i)$.
 
 We first construct FARs containing all $i$ and all $o$ pairs, respectively.
 
-We then construct a model of the alignment $ \Gamma \subseteq {I}^{\ast} \times
+We then construct a model of the alignment $\Gamma \subseteq {I}^{\ast} \times
 {O}^{\ast}$. This serves as the initial (usually uniform) model for $(i, o)$;
 we henceforth refer to it as the *channel model*.
 
