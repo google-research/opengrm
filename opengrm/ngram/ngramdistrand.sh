@@ -48,7 +48,7 @@ distributed_test() {
     --ifile="${TEST_TMPDIR}/${RANDF}.tocount.far" \
     --ofile="${TEST_TMPDIR}/${RANDF}.nodist" \
     --symbols="${TEST_TMPDIR}/${RANDF}.sym" \
-    "$@"
+    "${@:+"$@"}"
 
   # Distributed version.
   "$bin/ngramdisttrain" \
@@ -61,7 +61,7 @@ distributed_test() {
     --ifile="${TEST_TMPDIR}/${RANDF}.tocount.far."* \
     --ofile="${TEST_TMPDIR}/${RANDF}.dist" \
     --symbols="${TEST_TMPDIR}/${RANDF}.sym" \
-    "$@"
+    "${@:+"$@"}"
 
   # Verifies non-distributed and distributed versions give the same result.
   ngramequal "${TEST_TMPDIR}/${RANDF}.nodist" "${TEST_TMPDIR}/${RANDF}.dist"

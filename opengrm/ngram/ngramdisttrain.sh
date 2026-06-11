@@ -244,7 +244,7 @@ ngram_transfer_to() {
   while read S J ignore; do
     OUTF="${DIR}/output/s${S}.c"
     "${BIN}/ngramtransfer" \
-        "${@}" \
+        "${@:+"$@"}" \
         --contexts="${CONTEXTS}" \
         --transfer_from=false \
         --index="${J}" \
@@ -264,7 +264,7 @@ ngram_transfer_from() {
   while read C I ignore; do
     OUTF="${DIR}/output/c${C}"
     "${BIN}/ngramtransfer" \
-        "${@}" \
+        "${@:+"$@"}" \
         --contexts="${CONTEXTS}" \
         --transfer_from=true \
         --index="${I}" \
@@ -280,7 +280,7 @@ ngram_transfer_from() {
 ngram_complete() {
   ngram_sub_split
   ngram_transfer_to
-  ngram_transfer_from "${@}"
+  ngram_transfer_from "${@:+"$@"}"
 }
 
 # Counts n-grams.
@@ -339,7 +339,7 @@ ngram_make() {
   for INF in "${DIR}/input/"*; do
     OUTF="${DIR}/output/$(basename "${INF}")"
     "${BIN}/ngrammake" \
-        "${@}" \
+        "${@:+"$@"}" \
         --check_consistency \
         --method="${SMOOTH_METHOD}" \
         --witten_bell_k="${WITTEN_BELL_K}" \

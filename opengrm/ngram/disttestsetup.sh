@@ -67,7 +67,7 @@ distributed_test() {
   "${NODIST_BIN}" \
     --itype=text_sents \
     --symbols="${TESTDATA}/earnest.sym" \
-    "$@" \
+    "${@:+"$@"}" \
     --bins="${NODIST_DISCOUNT_BINS}" \
     --ifile="${TESTDATA}/earnest.txt" \
     --ofile="${TEST_TMPDIR}/earnest.nodist"
@@ -76,7 +76,7 @@ distributed_test() {
   "${DIST_BIN}" \
     --itype=text_sents \
     --symbols="${TESTDATA}/earnest.sym" \
-    "$@" \
+    "${@:+"$@"}" \
     --contexts="${TEST_TMPDIR}/earnest.cntxs" \
     --merge_contexts \
     --ifile="${TEST_TMPDIR}/earnest.txt[12]" \

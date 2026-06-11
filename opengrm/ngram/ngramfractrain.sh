@@ -232,7 +232,7 @@ ngram_transfer_to() {
   while read S J ignore; do
     OUTF="${DIR}/output/s${S}.c"
     "${BIN}/ngramtransfer" \
-      "${@}" \
+      "${@:+"$@"}" \
       --method=histogram_transfer \
       --contexts="${CONTEXTS}" \
       --transfer_from=false \
@@ -253,7 +253,7 @@ ngram_transfer_from() {
   while read C I ignore; do
     OUTF="${DIR}/output/c${C}"
     "${BIN}/ngramtransfer" \
-      "${@}" \
+      "${@:+"$@"}" \
       --method=histogram_transfer \
       --contexts="${CONTEXTS}" \
       --transfer_from=true \
@@ -270,7 +270,7 @@ ngram_transfer_from() {
 ngram_complete() {
   ngram_sub_split
   ngram_transfer_to
-  ngram_transfer_from "${@}"
+  ngram_transfer_from "${@:+"$@"}"
 }
 
 # Counts n-grams.
@@ -328,7 +328,7 @@ ngram_make() {
   for INF in "${DIR}/input/"*; do
     OUTF="${DIR}/output/$(basename "${INF}")"
     "${BIN}/ngrammake" \
-      "$@" \
+      "${@:+"$@"}" \
       --check_consistency \
       --method=katz_frac \
       --bins="${BINS}" \
