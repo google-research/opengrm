@@ -6,4 +6,4 @@ functionality in the
 [OpenFst library](https://github.com/google-research/openfst) to create, access
 and manipulate n-gram models. Operations for counting, smoothing, pruning,
 applying, and evaluating models as well as support for distributed computation
-are mong these provided.
+are among these provided.
