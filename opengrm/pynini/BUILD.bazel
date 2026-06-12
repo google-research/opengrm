@@ -50,10 +50,13 @@ pyx_library(
         "@com_google_openfst//openfst/extensions/pdt:compose",
         "@com_google_openfst//openfst/extensions/pdt:replace",
         "@com_google_openfst//openfst/extensions/pdt:script",
-        "@com_google_openfst//openfst/lib:util",
     ],
     # Canonical Bzlmod external repository path.
     cython_includes = ["external/openfst+"],
+    # Routes distinct Python packages to a single canonical vtable anchor.
+    dynamic_deps = [
+        "@com_google_openfst//openfst/extensions/python:pywrapfst_main_cc_shared",
+    ],
     pxd_deps = [
         "@com_google_openfst//openfst/extensions/python:pywrapfst_pxds",
     ],
