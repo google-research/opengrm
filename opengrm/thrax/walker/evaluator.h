@@ -390,9 +390,9 @@ class AstEvaluator : public AstWalker {
   // grammar). This information gets passed down ultimately to StringFst's
   // GetLabelSymbolTable to determine (assuming --save_symbols is set), whether
   // or not to add generated labels to the byte and utf8 symbol tables.
-  void GetFsts(absl::btree_map<std::string, std::unique_ptr<const Transducer>,
-                               std::less<>>* fsts,
-               bool top_level) {
+  void GetFsts(
+      absl::btree_map<std::string, std::unique_ptr<const Transducer>>* fsts,
+      bool top_level) {
     // Checks if we ever used generated labels. If so, get the symbol table and
     // add it to a unique FST called kStringFstSymtabFst.
     if (auto generated_labels =

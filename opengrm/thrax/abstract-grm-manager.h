@@ -50,8 +50,8 @@ class AbstractGrmManager {
  public:
   using Transducer = ::fst::Fst<Arc>;
   using MutableTransducer = ::fst::VectorFst<Arc>;
-  using FstMap = absl::btree_map<std::string, std::unique_ptr<const Transducer>,
-                                 std::less<>>;
+  using FstMap =
+      absl::btree_map<std::string, std::unique_ptr<const Transducer>>;
   using Label = typename Arc::Label;
 
   virtual ~AbstractGrmManager();
