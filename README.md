@@ -12,6 +12,52 @@ applying and searching formal grammars and related representations, using the
 [OpenFst](https://github.com/google-research/openfst) library for their
 underlying finite-state models.
 
+## Building
+
+### Prerequisites
+
+*   A C++17 compatible compiler such as
+    [gcc >= 7.5.0 or clang >= 14.0.0](https://github.com/google/oss-policies-info/blob/main/foundational-cxx-support-matrix.md#compilers-tools-build-systems).
+
+### Bazel
+
+OpenFst can be built and tested using [Bazel](https://bazel.build) 8 or newer.
+
+```bash
+# Build the entire project
+bazel build //...
+
+# Run all tests
+bazel test //...
+```
+
+Alternatively, [Bazelisk](https://github.com/bazelbuild/bazelisk) can be used
+for building.
+
+#### Example: Baum-Welch trainer
+
+The following example builds Baum-Welch trainer using Bazelisk on macOS:
+
+```shell
+# Get OpenGrm and download Bazelisk.
+BAZELISK_VERSION=...
+git clone https://github.com/google-research/opengrm.git
+wget https://github.com/bazelbuild/bazelisk/releases/download/v${BAZELISK_VERSION}/bazelisk-darwin-arm64
+chmod +x bazelisk-darwin-arm64
+
+# Build all the Baum-Welch tools and libraries, and run the tests.
+cd opengrm
+../bazelisk-darwin-arm64 build -c opt opengrm/baumwelch/...
+../bazelisk-darwin-arm64 test -c opt opengrm/baumwelch/...
+
+# Use the tool.
+bazel-bin/opengrm/baumwelch/baumwelchtrain --help
+```
+
+### CMake
+
+TODO: Complete and document CMake support.
+
 ## Pull Requests
 
 At this time, we do not accept pull requests.
