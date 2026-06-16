@@ -189,6 +189,6 @@ TEST(NonCanonicalShrinkTest, CyclicTopologyRegressionTest) {
 }  // namespace sfst
 
 int main(int argc, char** argv) {
-  fst::InitOpenFst(argv[0], &argc, &argv, true);
+  testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
