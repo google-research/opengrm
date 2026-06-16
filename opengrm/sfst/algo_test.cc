@@ -289,7 +289,6 @@ class AlgoTester {
 
 void AlgoTester::TestShortestDistance(const StdFst& ifst) const {
   using Arc = fst::StdArc;
-  using Weight = Arc::Weight;
   using LArc = fst::Log64Arc;
   using LWeight = LArc::Weight;
   using WCM = fst::WeightConvertMapper<Arc, LArc>;
