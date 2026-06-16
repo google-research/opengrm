@@ -314,15 +314,25 @@ cc_binary(
     ],
 )
 
+cc_library(
+    name = "ngram-count",
+    hdrs = ["ngram-count.h"],
+    deps = [
+        ":sfst",
+        "@com_google_absl//absl/container:node_hash_map",
+        "@com_google_absl//absl/log",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
 # buildifier: disable=no-hdrs-no-alwayslink
 cc_library(
     name = "sfstngramcount-main",
     srcs = [
-        "ngram-count.h",
         "sfstngramcount-main.cc",
     ],
     deps = [
-        "@com_google_absl//absl/container:node_hash_map",
+        ":ngram-count",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/log:flags",
