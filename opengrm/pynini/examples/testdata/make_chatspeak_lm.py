@@ -40,10 +40,10 @@ _ORDER = flags.DEFINE_integer("order", 3, "N-gram order")
 _FARCOMPILESTRINGS_PATH = (
     "openfst/extensions/far/farcompilestrings"
 )
-_NGRAMCOUNT_PATH = "opengrm/ngram/ngramcount"
-_NGRAMINFO_PATH = "opengrm/ngram/ngraminfo"
-_NGRAMMAKE_PATH = "opengrm/ngram/ngrammake"
-_NGRAMSYMBOLS_PATH = "opengrm/ngram/ngramsymbols"
+_NGRAMCOUNT_PATH = "opengrm/sfst/sfstngramcount"
+_NGRAMINFO_PATH = "opengrm/sfst/sfstinfo"
+_NGRAMMAKE_PATH = "opengrm/sfst/sfstsmooth"
+_NGRAMSYMBOLS_PATH = "opengrm/sfst/sfstngramsymbols"
 _DEFAULT_INPUT_PATH = "opengrm/ngram/testdata/earnest.txt"
 
 
