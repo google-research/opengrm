@@ -253,11 +253,11 @@ sfstperplexity earnest.pru.approx eval.far
 
 ## Using the C++ Library
 
-To use SFst in C++, include `third_party/opengrm/sfst/sfstlib.h` (which includes
-most headers) or specific headers like `third_party/opengrm/sfst/trim.h`,
-`third_party/opengrm/sfst/smooth.h`, etc.
+To use SFst in C++, include `opengrm/sfst/sfstlib.h` (which includes
+most headers) or specific headers like `opengrm/sfst/trim.h`,
+`opengrm/sfst/smooth.h`, etc.
 
-Link against `//third_party/opengrm/sfst:sfst`.
+Link against `//opengrm/sfst:sfst`.
 
 All classes and functions are in the `sfst` namespace.
 
@@ -267,7 +267,7 @@ All classes and functions are in the `sfst` namespace.
     transitions. It requires an `ExpandedFst`.
 
     ```cpp
-    #include "third_party/opengrm/sfst/trim.h"
+    #include "opengrm/sfst/trim.h"
     // ...
     sfst::PhiAccess<StdArc> phi_access(fst, phi_label);
     if (!phi_access.Error()) {
@@ -278,7 +278,7 @@ All classes and functions are in the `sfst` namespace.
 *   **`sfst::Trimmer<Arc>`**: Trims transitions in stochastic automata.
 
     ```cpp
-    #include "third_party/opengrm/sfst/trim.h"
+    #include "opengrm/sfst/trim.h"
     // ...
     sfst::Trimmer<StdArc> trimmer(&fst, phi_label, sfst::TRIM_NEEDED_FINAL);
     trimmer.PhiTrim();
@@ -288,7 +288,7 @@ All classes and functions are in the `sfst` namespace.
 *   **`sfst::Trim`**: Helper function for trimming.
 
     ```cpp
-    #include "third_party/opengrm/sfst/trim.h"
+    #include "opengrm/sfst/trim.h"
     // ...
     bool success = sfst::Trim(&fst, phi_label, sfst::TRIM_NEEDED_FINAL);
     ```
@@ -296,7 +296,7 @@ All classes and functions are in the `sfst` namespace.
 *   **`sfst::Intersect`**: Intersects two canonical stochastic FSAs.
 
     ```cpp
-    #include "third_party/opengrm/sfst/intersect.h"
+    #include "opengrm/sfst/intersect.h"
     // ...
     StdVectorFst ofst;
     bool success = sfst::Intersect(ifst1, ifst2, &ofst, phi_label);
