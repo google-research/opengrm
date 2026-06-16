@@ -56,7 +56,68 @@ bazel-bin/opengrm/baumwelch/baumwelchtrain --help
 
 ### CMake
 
-TODO: Complete and document CMake support.
+OpenFst can also be built with [CMake](https://cmake.org) 3.22 or higher.
+
+#### Prerequisites
+
+If you are building Thrax grammar compiler, the required prerequisite is [GNU
+Bison](https://en.wikipedia.org/wiki/GNU_Bison) parser generator (version 3.8 or
+higher), which on Linux can be installed using the system package manager, e.g.,
+`sudo apt-get install bison`.
+
+#### Build and Install
+
+Dependencies like Abseil, GoogleTest, and OpenFst are automatically downloaded
+using `FetchContent` (or `find_package`).
+
+```bash
+# Configure the project.
+# Use -DOPENGRM_BUILD_TESTS=OFF to skip building tests.
+cmake -S . -B build \
+  -DOPENGRM_ENABLE_BAUMWELCH=ON -DOPENGRM_ENABLE_SFST=ON \
+  -DOPENGRM_ENABLE_NGRAM=ON -DOPENGRM_ENABLE_THRAX=ON
+
+# Build the project
+# On Linux, `-j$(nproc)` can be used to reduce typing.
+# https://man7.org/linux/man-pages/man1/nproc.1.html
+cmake --build build -j$(getconf _NPROCESSORS_ONLN)
+
+# Run tests
+ctest --test-dir build --output-on-failure -j$(getconf _NPROCESSORS_ONLN)
+
+# Install the project
+# Use --prefix to specify an installation directory
+cmake --install build --prefix /usr/local
+```
+
+#### Configuration Options
+
+You can enable or disable specific features using CMake options (default is
+`OFF` unless noted):
+
+Option                          | Description                                      | Default
+:------------------------------ | :----------------------------------------------- | :------
+`OPENGRM_ENABLE_BAUMWELCH`      | Build Baum-Welch trainer and decoder components  | `OFF`
+`OPENGRM_ENABLE_NGRAM`          | Build N-gram library and tools                   | `OFF`
+`OPENGRM_ENABLE_SFST`           | Building stochastic finite-state transducers     | `OFF`
+`OPENGRM_ENABLE_THRAX`          | Build Thrax grammar compiler                     | `OFF`
+
+TODO: Pynini is not yet supported.
+
+Additional options include:
+
+Option                          | Description                                      | Default
+:------------------------------ | :----------------------------------------------- | :------
+`BUILD_BUILD_SHARED_LIBS`       | Build shared rather than static libraries        | `OFF`
+`OPENGRM_BUILD_TESTS`           | Build unit tests                                 | `ON`
+`OPENFST_ENABLE_BIN`            | Build command-line executables                   | `ON`
+`OPENGRM_RUN_SLOW_TESTS`        | Run very slow tests as part of `ctest`           | `OFF`
+
+Example usage:
+
+```bash
+cmake -S . -B build -DOPENFST_ENABLE_SFST=ON -DBUILD_SHARED_LIBS=ON
+```
 
 ## Pull Requests
 

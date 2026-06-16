@@ -1,0 +1,206 @@
+# Copyright 2026 The OpenGrm Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+cmake_minimum_required(VERSION 3.22)
+
+# Custom "Dev" build type
+set(CMAKE_CXX_FLAGS_DEV_INIT "-O1")
+
+project(
+  opengrm
+  VERSION 1.4.1
+  LANGUAGES CXX
+)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+# Shared library versioning (arbitrary for now, match version maybe)
+set(OPENGRM_SOVERSION 14)
+
+# Options
+option(OPENGRM_BUILD_TESTS "Enable OpenGrm tests" ON)
+option(OPENGRM_RUN_SLOW_TESTS "Run slow integration tests" OFF)
+option(OPENGRM_ENABLE_BIN "Enable executables" ON)
+option(OPENGRM_ENABLE_INSTALL "Enable installation of OpenGrm" OFF)
+
+# Build static libraries by default. Registration issues in static builds are
+# handled via linker hacks (FORCE_LOAD_START/FORCE_LOAD_END). Set to ON to build
+# shared libraries.
+option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
+
+# Dependency options
+option(OPENGRM_USE_SYSTEM_ABSEIL
+       "Use installed Abseil-cpp instead of downloading" OFF
+)
+option(OPENGRM_USE_SYSTEM_OPENFST
+       "Use installed OpenFst instead of downloading" OFF
+)
+option(OPENGRM_USE_SYSTEM_GTEST
+       "Use installed GoogleTest instead of downloading" OFF
+)
+
+# Component Enable/Disable Options
+option(OPENGRM_ENABLE_BAUMWELCH "Enable Baum-Welch extensions" OFF)
+option(OPENGRM_ENABLE_NGRAM "Enable NGram extensions" OFF)
+option(OPENGRM_ENABLE_SFST "Enable SFST extensions" OFF)
+option(OPENGRM_ENABLE_THRAX "Enable Thrax compilation and tools" OFF)
+
+# Compiler Warnings
+if(MSVC)
+  add_compile_options(/W4)
+else()
+  add_compile_options(
+    -Wall
+    -Wno-deprecated-declarations
+    -Wno-overloaded-virtual
+    -Wno-sign-compare
+    -Wno-changes-meaning
+    # Temporarily disabled warnings that we would like to turn on.
+    -Wno-defaulted-function-deleted
+    -Wno-nullability-completeness
+  )
+endif()
+
+# Linker flags to force loading of static/shared libraries that use
+# self-registering objects. Without these, the linker will optimize out/discard
+# the libraries because no symbols from them are explicitly referenced at
+# compile time.
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  if(BUILD_SHARED_LIBS)
+    set(FORCE_LOAD_START "-Wl,--no-as-needed")
+    set(FORCE_LOAD_END "-Wl,--as-needed")
+  else()
+    set(FORCE_LOAD_START "-Wl,--whole-archive")
+    set(FORCE_LOAD_END "-Wl,--no-whole-archive")
+  endif()
+else()
+  set(FORCE_LOAD_START "")
+  set(FORCE_LOAD_END "")
+endif()
+
+include(FetchContent)
+include(GNUInstallDirs)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/OpenGrmHelpers.cmake)
+
+# Helper macro for conditional installation
+function(opengrm_install)
+  if(OPENGRM_ENABLE_INSTALL)
+    install(${ARGV})
+  endif()
+endfunction()
+
+# Abseil
+if(OPENGRM_USE_SYSTEM_ABSEIL)
+  find_package(absl REQUIRED)
+else()
+  set(ABSL_ENABLE_INSTALL OFF)
+  set(ABSL_PROPAGATE_CXX_STD ON)
+  set(ABSL_BUILD_TESTING OFF)
+  FetchContent_Declare(
+    abseil-cpp
+    URL https://github.com/abseil/abseil-cpp/archive/refs/tags/20260107.0.zip
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+  )
+  FetchContent_MakeAvailable(abseil-cpp)
+endif()
+# Bridge pseudo-target absl::container to actual Abseil container libraries
+add_library(absl::container INTERFACE IMPORTED)
+set_target_properties(
+  absl::container
+  PROPERTIES
+    INTERFACE_LINK_LIBRARIES
+    "absl::flat_hash_map;absl::flat_hash_set;absl::node_hash_map;absl::node_hash_set;absl::btree;absl::inlined_vector"
+)
+
+# OpenFst
+if(OPENGRM_USE_SYSTEM_OPENFST)
+  find_package(openfst REQUIRED)
+else()
+  # Bundle OpenFst
+  set(OPENFST_BUILD_TESTS OFF)
+  set(OPENFST_ENABLE_BIN OFF)
+  set(OPENFST_ENABLE_INSTALL OFF)
+  # We might need to enable FAR or other specific OpenFst extensions if needed
+  # by OpenGrm OpenGrm highly depends on FAR, MPDT, PDT
+  set(OPENFST_ENABLE_GRM ON)
+  set(OPENFST_ENABLE_PDT ON)
+  set(OPENFST_ENABLE_MPDT ON)
+  set(OPENFST_ENABLE_FAR ON)
+  if(OPENGRM_ENABLE_BAUMWELCH)
+    set(OPENFST_ENABLE_SPECIAL ON)
+    set(OPENFST_ENABLE_BIN ON)
+    set(OPENFST_ENABLE_COMPACT_FSTS ON)
+  endif()
+
+  # We use OpenFst from the current HEAD until the first release is cut.
+  FetchContent_Declare(
+    openfst
+    GIT_REPOSITORY https://github.com/google-research/openfst.git
+    GIT_TAG 7b71c3ce75580a05d2298d8b3eaf6f0cfe6541e3
+  )
+  FetchContent_MakeAvailable(openfst)
+endif()
+
+# GoogleTest
+if(OPENGRM_BUILD_TESTS)
+  enable_testing()
+  if(OPENGRM_USE_SYSTEM_GTEST)
+    find_package(GTest REQUIRED)
+  else()
+    set(INSTALL_GTEST OFF)
+    FetchContent_Declare(
+      googletest
+      URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.zip
+      DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+    )
+    FetchContent_MakeAvailable(googletest)
+  endif()
+  include(GoogleTest)
+endif()
+
+# Bison (needed by Thrax)
+if(OPENGRM_ENABLE_THRAX)
+  find_package(BISON REQUIRED)
+endif()
+
+# Core OpenGrm
+add_subdirectory(opengrm)
+
+# Installation of the export set
+opengrm_install(
+  EXPORT OpenGrmTargets
+  FILE OpenGrmTargets.cmake
+  NAMESPACE opengrm::
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/opengrm
+)
+
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+  OpenGrmConfigVersion.cmake
+  VERSION ${PROJECT_VERSION}
+  COMPATIBILITY AnyNewerVersion
+)
+
+configure_package_config_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/cmake/OpenGrmConfig.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/OpenGrmConfig.cmake
+  INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/opengrm
+)
+
+opengrm_install(FILES ${CMAKE_CURRENT_BINARY_DIR}/OpenGrmConfig.cmake
+                      ${CMAKE_CURRENT_BINARY_DIR}/OpenGrmConfigVersion.cmake
+                DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/opengrm
+)
