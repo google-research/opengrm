@@ -24,6 +24,7 @@ ABSL_FLAG(int64_t, phi_label, fst::kNoLabel,
           "Specifies failure label (default: kNoLabel)");
 ABSL_FLAG(bool, epsilon_as_backoff, false,
           "Treat epsilons as backoff transitions in input Fsts");
+ABSL_FLAG(bool, require_symbols, true, "Require symbol tables? (default: yes)");
 
 int sfstngramcount_main(int argc, char** argv);
 int main(int argc, char** argv) { return sfstngramcount_main(argc, argv); }

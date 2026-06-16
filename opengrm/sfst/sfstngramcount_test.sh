@@ -43,4 +43,36 @@ fi
 # Run sfstinfo to verify it can read it.
 "${BIN}/sfstinfo" "${TEST_TMPDIR}/earnest.cnts" > /dev/null
 
+# Compile a FAR without symbols.
+"${TEST_SRCDIR}/openfst+/openfst/extensions/far/farcompilestrings" \
+  --fst_type=compact \
+  --token_type=utf8 \
+  "${TESTDATA}/earnest.txt" \
+  "${TEST_TMPDIR}/earnest_nosyms.far"
+
+# Test 1: require_symbols=true (default) should fail.
+if "${BIN}/sfstngramcount" \
+  --order=5 \
+  "${TEST_TMPDIR}/earnest_nosyms.far" \
+  "${TEST_TMPDIR}/earnest_nosyms.cnts" 2>/dev/null; then
+  echo "Error: sfstngramcount succeeded on FAR without symbols (expected failure)"
+  exit 1
+fi
+
+# Test 2: require_symbols=false should succeed.
+if ! "${BIN}/sfstngramcount" \
+  --require_symbols=false \
+  --order=5 \
+  "${TEST_TMPDIR}/earnest_nosyms.far" \
+  "${TEST_TMPDIR}/earnest_nosyms.cnts"; then
+  echo "Error: sfstngramcount failed on FAR without symbols with require_symbols=false"
+  exit 1
+fi
+
+# Verify output of Test 2 exists and is not empty.
+if [[ ! -s "${TEST_TMPDIR}/earnest_nosyms.cnts" ]]; then
+  echo "Error: Output file for require_symbols=false is empty or does not exist"
+  exit 1
+fi
+
 echo "PASS"

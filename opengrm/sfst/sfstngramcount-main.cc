@@ -36,6 +36,7 @@
 ABSL_DECLARE_FLAG(int64_t, order);
 ABSL_DECLARE_FLAG(int64_t, phi_label);
 ABSL_DECLARE_FLAG(bool, epsilon_as_backoff);
+ABSL_DECLARE_FLAG(bool, require_symbols);
 
 int sfstngramcount_main(int argc, char** argv) {
   std::string usage = "Count n-grams from input FAR file to build SFST.\n\n";
@@ -82,6 +83,10 @@ int sfstngramcount_main(int argc, char** argv) {
       first_fst = false;
     }
     far_reader->Next();
+  }
+  if (absl::GetFlag(FLAGS_require_symbols) && syms.NumSymbols() == 0) {
+    LOG(ERROR) << argv[0] << ": None of the input FSTs had a symbol table";
+    return 1;
   }
   if (counter.Error()) {
     LOG(ERROR) << argv[0] << ": error in counting";
