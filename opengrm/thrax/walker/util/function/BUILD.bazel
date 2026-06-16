@@ -530,12 +530,6 @@ cc_library(
 )
 
 cc_library(
-    name = "save_symbols",
-    srcs = ["save_symbols.cc"],
-    deps = ["@com_google_absl//absl/flags:flag"],
-)
-
-cc_library(
     name = "temp_file",
     testonly = 1,
     hdrs = ["temp_file.h"],
