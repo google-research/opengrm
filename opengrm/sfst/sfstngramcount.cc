@@ -12,23 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Algorithm to approximate a stochastic FST as an n-gram model.
-// The output is a canonical and normalized OpenGrm ngram model.
+// Counts n-grams from an input fst archive (FAR) file and builds SFST topology.
 
 #include <cstdint>
-#include <string>
 
 #include "absl/flags/flag.h"
 #include "openfst/lib/fst.h"
-#include "opengrm/sfst/approx.h"
 
 ABSL_FLAG(int64_t, order, 3, "Set maximal order of ngram model");
 ABSL_FLAG(int64_t, phi_label, fst::kNoLabel,
           "Specifies failure label (default: kNoLabel)");
-ABSL_FLAG(double, delta, sfst::kApproxDelta, "Convergence delta");
-ABSL_FLAG(std::string, norm_type, "kl_min",
-          "Normalization type, one of: "
-          "\"summed\", \"kl_min\", \"kl_min_approximated");
+ABSL_FLAG(bool, epsilon_as_backoff, false,
+          "Treat epsilons as backoff transitions in input Fsts");
 
-int sfstngramapprox_main(int argc, char** argv);
-int main(int argc, char** argv) { return sfstngramapprox_main(argc, argv); }
+int sfstngramcount_main(int argc, char** argv);
+int main(int argc, char** argv) { return sfstngramcount_main(argc, argv); }

@@ -1,0 +1,150 @@
+// Copyright 2026 The OpenGrm Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Unit tests for smoothing algorithms.
+
+#include "opengrm/sfst/smooth.h"
+
+#include <cmath>  // NOLINT(misc-include-cleaner)
+
+#include "openfst/compat/init.h"
+#include "gtest/gtest.h"
+#include "absl/flags/flag.h"
+#include "openfst/lib/arc.h"  // NOLINT(misc-include-cleaner)
+#include "openfst/lib/arcsort.h"
+#include "openfst/lib/fst.h"
+#include "openfst/lib/vector-fst.h"  // NOLINT(misc-include-cleaner)
+
+namespace sfst {
+
+typedef fst::StdArc Arc;
+typedef Arc::StateId StateId;
+typedef Arc::Weight Weight;
+typedef Arc::Label Label;
+
+class SmoothTest : public testing::Test {
+ protected:
+  void SetUp() override {
+    // Create a simple FST with counts.
+    // State 0: start.
+    // Arc 0->1 with label 1, count 10 (log domain: -log(10) = -2.3)
+    // Arc 0->2 with label 2, count 5 (log domain: -log(5) = -1.6)
+    // Phi arc 0->3 with label 0, count 15 (total count).
+    fst_.AddState();
+    fst_.SetStart(0);
+    fst_.AddState();
+    fst_.AddState();
+    fst_.AddState();  // Backoff state
+    fst_.AddState();  // State 4
+    fst_.AddState();  // State 5
+    fst_.AddArc(0, Arc(1, 1, Weight(-std::log(10.0)), 1));
+    fst_.AddArc(0, Arc(2, 2, Weight(-std::log(5.0)), 2));
+    fst_.AddArc(0, Arc(0, 0, Weight(-std::log(15.0)), 3));  // Phi arc
+    fst_.AddArc(3, Arc(1, 1, Weight(-std::log(5.0)), 4));
+    fst_.AddArc(3, Arc(2, 2, Weight(-std::log(2.0)), 5));
+    // State 1: final.
+    fst_.SetFinal(1, Weight::One());
+    // State 2: final.
+    fst_.SetFinal(2, Weight::One());
+    // State 3: backoff state.
+    fst_.SetFinal(3, Weight::One());
+    // State 4: final.
+    fst_.SetFinal(4, Weight::One());
+    // State 5: final.
+    fst_.SetFinal(5, Weight::One());
+    fst::ArcSort(&fst_, fst::StdILabelCompare());
+  }
+
+  fst::VectorFst<Arc> fst_;
+};
+
+TEST_F(SmoothTest, WittenBellTest) {
+  fst::VectorFst<Arc> fst(fst_);
+  ASSERT_TRUE(WittenBell(&fst, 0));
+  // We cannot easily use IsNormalized here because it expects a
+  // backoff-complete FST or specific topology. Let's just check that it runs
+  // and produces non-Zero weights.
+  for (fst::StateIterator<fst::Fst<Arc>> siter(fst); !siter.Done();
+       siter.Next()) {
+    StateId s = siter.Value();
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, s); !aiter.Done();
+         aiter.Next()) {
+      ASSERT_NE(aiter.Value().weight, Weight::Zero());
+    }
+  }
+}
+
+TEST_F(SmoothTest, AbsoluteDiscountingTest) {
+  fst::VectorFst<Arc> fst(fst_);
+  ASSERT_TRUE(AbsoluteDiscounting(&fst, 0));
+  for (fst::StateIterator<fst::Fst<Arc>> siter(fst); !siter.Done();
+       siter.Next()) {
+    StateId s = siter.Value();
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, s); !aiter.Done();
+         aiter.Next()) {
+      ASSERT_NE(aiter.Value().weight, Weight::Zero());
+    }
+  }
+}
+
+TEST_F(SmoothTest, UnsmoothedTest) {
+  fst::VectorFst<Arc> fst(fst_);
+  ASSERT_TRUE(Unsmoothed(&fst, 0));
+}
+
+TEST_F(SmoothTest, PreSmoothedTest) {
+  fst::VectorFst<Arc> fst(fst_);
+  ASSERT_TRUE(PreSmoothed(&fst, 0));
+  for (fst::StateIterator<fst::Fst<Arc>> siter(fst); !siter.Done();
+       siter.Next()) {
+    StateId s = siter.Value();
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, s); !aiter.Done();
+         aiter.Next()) {
+      ASSERT_NE(aiter.Value().weight, Weight::Zero());
+    }
+  }
+}
+
+TEST_F(SmoothTest, KneserNeyTest) {
+  fst::VectorFst<Arc> fst(fst_);
+  ASSERT_TRUE(KneserNey(&fst, 0));
+  for (fst::StateIterator<fst::Fst<Arc>> siter(fst); !siter.Done();
+       siter.Next()) {
+    StateId s = siter.Value();
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, s); !aiter.Done();
+         aiter.Next()) {
+      ASSERT_NE(aiter.Value().weight, Weight::Zero());
+    }
+  }
+}
+
+TEST_F(SmoothTest, KatzTest) {
+  fst::VectorFst<Arc> fst(fst_);
+  ASSERT_TRUE(Katz(&fst, 0));
+  for (fst::StateIterator<fst::Fst<Arc>> siter(fst); !siter.Done();
+       siter.Next()) {
+    StateId s = siter.Value();
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, s); !aiter.Done();
+         aiter.Next()) {
+      ASSERT_NE(aiter.Value().weight, Weight::Zero());
+    }
+  }
+}
+
+}  // namespace sfst
+
+int main(int argc, char** argv) {
+  fst::InitOpenFst(argv[0], &argc, &argv, true);
+  return RUN_ALL_TESTS();
+}

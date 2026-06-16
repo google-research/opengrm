@@ -18,6 +18,14 @@ load("@rules_shell//shell:sh_test.bzl", "sh_test")
 
 package(default_visibility = ["//visibility:public"])
 
+exports_files([
+    "testdata/earnest.arpa",
+    "testdata/earnest.mod.sym",
+    "testdata/earnest.mod.txt",
+    "testdata/earnest.sym",
+    "testdata/earnest.txt",
+])
+
 filegroup(
     name = "google_fst_grammar_ngram_source",
     srcs = glob(
@@ -145,6 +153,7 @@ cc_binary(
     ],
 )
 
+# buildifier: disable=no-hdrs-no-alwayslink
 cc_library(
     name = "ngramapply-main",
     srcs = ["ngramapply-main.cc"],
@@ -163,6 +172,7 @@ cc_library(
     ],
 )
 
+# buildifier: disable=no-hdrs-no-alwayslink
 cc_library(
     name = "ngramcontext-main",
     srcs = ["ngramcontext-main.cc"],
@@ -176,6 +186,7 @@ cc_library(
     ],
 )
 
+# buildifier: disable=no-hdrs-no-alwayslink
 cc_library(
     name = "ngramcount-main",
     srcs = ["ngramcount-main.cc"],
@@ -192,6 +203,7 @@ cc_library(
     ],
 )
 
+# buildifier: disable=no-hdrs-no-alwayslink
 cc_library(
     name = "ngramhisttest-main",
     srcs = ["ngramhisttest-main.cc"],
@@ -207,6 +219,7 @@ cc_library(
     ],
 )
 
+# buildifier: disable=no-hdrs-no-alwayslink
 cc_library(
     name = "ngraminfo-main",
     srcs = ["ngraminfo-main.cc"],
@@ -223,6 +236,7 @@ cc_library(
     ],
 )
 
+# buildifier: disable=no-hdrs-no-alwayslink
 cc_library(
     name = "ngrammake-main",
     srcs = ["ngrammake-main.cc"],
@@ -238,6 +252,7 @@ cc_library(
     ],
 )
 
+# buildifier: disable=no-hdrs-no-alwayslink
 cc_library(
     name = "ngrammarginalize-main",
     srcs = ["ngrammarginalize-main.cc"],
@@ -251,6 +266,7 @@ cc_library(
     ],
 )
 
+# buildifier: disable=no-hdrs-no-alwayslink
 cc_library(
     name = "ngrammerge-main",
     srcs = ["ngrammerge-main.cc"],
@@ -266,6 +282,7 @@ cc_library(
     ],
 )
 
+# buildifier: disable=no-hdrs-no-alwayslink
 cc_library(
     name = "ngramperplexity-main",
     srcs = ["ngramperplexity-main.cc"],
@@ -283,6 +300,7 @@ cc_library(
     ],
 )
 
+# buildifier: disable=no-hdrs-no-alwayslink
 cc_library(
     name = "ngramprint-main",
     srcs = ["ngramprint-main.cc"],
@@ -298,6 +316,7 @@ cc_library(
     ],
 )
 
+# buildifier: disable=no-hdrs-no-alwayslink
 cc_library(
     name = "ngramrandgen-main",
     srcs = ["ngramrandgen-main.cc"],
@@ -317,6 +336,7 @@ cc_library(
     ],
 )
 
+# buildifier: disable=no-hdrs-no-alwayslink
 cc_library(
     name = "ngramrandtest-main",
     srcs = ["ngramrandtest-main.cc"],
@@ -339,6 +359,7 @@ cc_library(
     ],
 )
 
+# buildifier: disable=no-hdrs-no-alwayslink
 cc_library(
     name = "ngramread-main",
     srcs = ["ngramread-main.cc"],
@@ -352,6 +373,7 @@ cc_library(
     ],
 )
 
+# buildifier: disable=no-hdrs-no-alwayslink
 cc_library(
     name = "ngramshrink-main",
     srcs = ["ngramshrink-main.cc"],
@@ -366,6 +388,7 @@ cc_library(
     ],
 )
 
+# buildifier: disable=no-hdrs-no-alwayslink
 cc_library(
     name = "ngramsort-main",
     srcs = ["ngramsort-main.cc"],
@@ -379,6 +402,7 @@ cc_library(
     ],
 )
 
+# buildifier: disable=no-hdrs-no-alwayslink
 cc_library(
     name = "ngramsplit-main",
     srcs = ["ngramsplit-main.cc"],
@@ -398,6 +422,7 @@ cc_library(
     ],
 )
 
+# buildifier: disable=no-hdrs-no-alwayslink
 cc_library(
     name = "ngramsymbols-main",
     srcs = ["ngramsymbols-main.cc"],
@@ -411,6 +436,7 @@ cc_library(
     ],
 )
 
+# buildifier: disable=no-hdrs-no-alwayslink
 cc_library(
     name = "ngramtransfer-main",
     srcs = ["ngramtransfer-main.cc"],

@@ -23,6 +23,7 @@
 #include <string>
 #include <vector>
 
+#include "openfst/lib/expanded-fst.h"
 #include "openfst/lib/fst.h"
 #include "openfst/lib/util.h"
 #include "openfst/lib/weight.h"
@@ -46,7 +47,11 @@ void SfstInfo(const fst::Fst<Arc>& fst, std::ostream& ostrm,
   size_t nphis = 0;
   size_t nfinal = 0;
   bool canonical = IsCanonical(fst, phi_label);
-  bool trim = IsTrim(fst, phi_label);
+  bool trim = false;
+  if (const auto* expanded_fst =
+          dynamic_cast<const fst::ExpandedFst<Arc>*>(&fst)) {
+    trim = IsTrim(*expanded_fst, phi_label);
+  }
   bool backoff = IsBackoffComplete(fst, phi_label);
   bool conservative = IsConservative(fst, delta);
   bool norm = IsNormalized(fst, phi_label, delta);

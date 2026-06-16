@@ -21,9 +21,11 @@
 
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 #include <vector>
 
+#include "openfst/lib/arc.h"  // NOLINT(misc-include-cleaner)
 #include "openfst/lib/float-weight.h"
 #include "openfst/lib/fst.h"
 #include "openfst/lib/matcher.h"
@@ -31,8 +33,48 @@
 
 namespace sfst {
 
-// Matches ngram library choice
 const fst::Log64Weight kApproxZeroWeight(99.0);
+
+constexpr double kNormEps = 0.001;
+constexpr double kFloatEps = 0.000001;
+
+constexpr int64_t kDefaultNGramOrder = 3;
+
+// Calculates -log(exp(a - b) + 1) for use in high precision NegLogSum.
+inline double NegLogDeltaValue(double a, double b, double* c) {
+  const double x = std::exp(a - b);
+  double delta = -std::log(x + 1);
+  if (x < kNormEps) {
+    delta = -x;
+    for (int j = 2; j <= 4; ++j) delta += std::pow(-x, j) / j;
+  }
+  if (c) delta -= *c;
+  return delta;
+}
+
+// Precision method for summing reals and saving negative logs.
+inline double NegLogSum(double a, double b, double* c) {
+  if (a == fst::StdArc::Weight::Zero().Value()) return b;
+  if (b == fst::StdArc::Weight::Zero().Value()) return a;
+  if (a > b) return NegLogSum(b, a, c);
+  const double delta = NegLogDeltaValue(a, b, c), val = a + delta;
+  if (c) *c = (val - a) - delta;
+  return val;
+}
+
+inline double NegLogSum(double a, double b) { return NegLogSum(a, b, nullptr); }
+
+// Negative log of difference: -log(exp^{-a} - exp^{-b}).
+inline double NegLogDiff(double a, double b, bool* error = nullptr) {
+  if (b == fst::StdArc::Weight::Zero().Value()) return a;
+  if (a >= b) {
+    if (a - b >= kNormEps) {
+      if (error) *error = true;
+    }
+    return fst::StdArc::Weight::Zero().Value();
+  }
+  return b - std::log(std::exp(b - a) - 1);
+}
 
 // Order w.r.t. probability: exp(-weight)
 template <class T>
@@ -162,9 +204,9 @@ class FailurePath {
 
   StateId s_;
 
-  std::vector<StateId> faildest_;   // phi destination states.
-  std::vector<Weight> failweight_;  // phi weights.
-  std::vector<size_t> failpos_;     // phi positions.
+  std::vector<StateId> faildest_;   // phi destination states
+  std::vector<Weight> failweight_;  // phi weights
+  std::vector<size_t> failpos_;     // phi positions
 
   FailurePath(const FailurePath&) = delete;
   FailurePath& operator=(const FailurePath&) = delete;

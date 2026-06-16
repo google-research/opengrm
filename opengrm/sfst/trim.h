@@ -30,7 +30,9 @@
 #include "absl/log/log.h"
 #include "openfst/lib/arcsort.h"
 #include "openfst/lib/cc-visitors.h"
+#include "openfst/lib/connect.h"
 #include "openfst/lib/dfs-visit.h"
+#include "openfst/lib/expanded-fst.h"
 #include "openfst/lib/float-weight.h"
 #include "openfst/lib/fst.h"
 #include "openfst/lib/matcher.h"
@@ -68,7 +70,7 @@ class PhiAccess {
     VISITED            // expanded with discovery; dequeued
   };
 
-  PhiAccess(const fst::Fst<Arc>& fst, typename Arc::Label phi_label)
+  PhiAccess(const fst::ExpandedFst<Arc>& fst, typename Arc::Label phi_label)
       : fst_(fst),
         phi_label_(phi_label),
         nstates_(0),
@@ -122,8 +124,8 @@ class PhiAccess {
   class Compare {
    public:
     Compare(const std::vector<Status>& status,
-            const std::vector<StateId>& top_order)
-        : status_(status), top_order_(top_order.size(), fst::kNoStateId) {
+            const std::vector<StateId>& top_order, StateId nstates)
+        : status_(status), top_order_(nstates, fst::kNoStateId) {
       // top_order_ gives the topological position of state id s.
       for (StateId s = 0; s < top_order.size(); ++s) {
         top_order_[top_order[s]] = s;
@@ -148,7 +150,7 @@ class PhiAccess {
     std::vector<StateId> top_order_;
   };
 
-  // Queue for visitation
+  // Queue for visitation.
   using PhiAccessQueue = fst::ShortestFirstQueue<StateId, Compare>;
 
   // Maps from StateId to set of labels that are phi-inaccessible.
@@ -157,10 +159,10 @@ class PhiAccess {
   // Maps from state id to list of newly-allowed labels.
   using AllowedLabels = std::unordered_multimap<StateId, Label>;
 
-  // Maps from state id to list of forbidden positions;
+  // Maps from state id to list of forbidden positions.
   using ForbiddenPositions = std::multimap<StateId, ssize_t>;
 
-  // Explicit matcher (no epsilon loops)
+  // Explicit matcher (no epsilon loops).
   using Matr = fst::ExplicitMatcher<fst::Matcher<fst::Fst<Arc>>>;
 
   // Finds the forbidden label set.
@@ -191,7 +193,7 @@ class PhiAccess {
 
   void SetError() { error_ = true; }
 
-  const fst::Fst<Arc>& fst_;
+  const fst::ExpandedFst<Arc>& fst_;
   Label phi_label_;
   ssize_t nstates_;
   bool error_;
@@ -221,14 +223,17 @@ void PhiAccess<Arc>::FindForbiddenLabels(ForbiddenLabels* forbidden_labels) {
     return;
   }
 
-  nstates_ = top_order.size();
+  nstates_ = fst_.NumStates();
   forbidden_labels->resize(nstates_);
 
-  if (phi_label_ == fst::kNoLabel) return;
+  if (phi_label_ == fst::kNoLabel) {
+    status_.resize(nstates_, DISCOVERED);
+    return;
+  }
 
   AllowedLabels allowed_labels;
   status_.resize(nstates_, UNDISCOVERED);
-  Compare comp(status_, top_order);
+  Compare comp(status_, top_order, nstates_);
   PhiAccessQueue queue(comp);
   StateId initial = fst_.Start();
   status_[initial] = DISCOVERED;
@@ -404,7 +409,7 @@ bool PhiAccess<Arc>::UpdateForbidden(StateId s, StateId source,
 // (irrespective of weights). Assumes (but does not fully check) that
 // the input has the canonical topology (see canonical.h).
 template <class Arc>
-bool IsTrim(const fst::Fst<Arc>& fst, typename Arc::Label phi_label) {
+bool IsTrim(const fst::ExpandedFst<Arc>& fst, typename Arc::Label phi_label) {
   uint64_t props = 0;
   fst::SccVisitor<Arc> scc_visitor(nullptr, nullptr, nullptr, &props);
   fst::DfsVisit(fst, &scc_visitor);
@@ -702,6 +707,10 @@ template <class Arc>
 bool Trim(fst::MutableFst<Arc>* fst,
           typename Arc::Label phi_label = fst::kNoLabel,
           TrimType trim_type = TRIM_NEEDED_FINAL) {
+  if (phi_label == fst::kNoLabel) {
+    fst::Connect(fst);
+    return !fst->Properties(fst::kError, false);
+  }
   if (!IsCanonical(*fst, phi_label)) {
     LOG(ERROR) << "Trim: FST is not canonical";
     return false;

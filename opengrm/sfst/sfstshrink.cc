@@ -12,23 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Algorithm to approximate a stochastic FST as an n-gram model.
-// The output is a canonical and normalized OpenGrm ngram model.
+// Thin wrapper for sfstshrink.
 
 #include <cstdint>
 #include <string>
 
 #include "absl/flags/flag.h"
 #include "openfst/lib/fst.h"
-#include "opengrm/sfst/approx.h"
 
-ABSL_FLAG(int64_t, order, 3, "Set maximal order of ngram model");
+ABSL_FLAG(double, theta, 0.0, "Threshold for shrinking");
 ABSL_FLAG(int64_t, phi_label, fst::kNoLabel,
           "Specifies failure label (default: kNoLabel)");
-ABSL_FLAG(double, delta, sfst::kApproxDelta, "Convergence delta");
-ABSL_FLAG(std::string, norm_type, "kl_min",
-          "Normalization type, one of: "
-          "\"summed\", \"kl_min\", \"kl_min_approximated");
+ABSL_FLAG(std::string, method, "stolcke", "Shrinking method");
+ABSL_FLAG(double, total_unigram_count, -1.0,
+          "Total unigram count (for Seymore)");
+ABSL_FLAG(std::string, count_pattern, "", "Count pattern (for count prune)");
+ABSL_FLAG(std::string, list_file, "", "File containing n-grams to prune");
 
-int sfstngramapprox_main(int argc, char** argv);
-int main(int argc, char** argv) { return sfstngramapprox_main(argc, argv); }
+int sfstshrink_main(int argc, char** argv);
+
+int main(int argc, char** argv) { return sfstshrink_main(argc, argv); }

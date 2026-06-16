@@ -13,6 +13,7 @@
 # limitations under the License.
 
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -59,6 +60,7 @@ cc_library(
 
 # Binaries.
 
+# buildifier: disable=no-hdrs-no-alwayslink
 cc_library(
     name = "sfstapprox-main",
     srcs = ["sfstapprox-main.cc"],
@@ -87,6 +89,7 @@ cc_binary(
     ],
 )
 
+# buildifier: disable=no-hdrs-no-alwayslink
 cc_library(
     name = "sfstcount-main",
     srcs = ["sfstcount-main.cc"],
@@ -115,6 +118,7 @@ cc_binary(
     ],
 )
 
+# buildifier: disable=no-hdrs-no-alwayslink
 cc_library(
     name = "sfstinfo-main",
     srcs = ["sfstinfo-main.cc"],
@@ -138,10 +142,122 @@ cc_binary(
     deps = [
         ":sfstinfo-main",  # buildcleaner: keep
         "@com_google_absl//absl/flags:flag",
+        "@com_google_openfst//openfst/lib:lib_lite",
+    ],
+)
+
+cc_test(
+    name = "sfstinfo_test",
+    srcs = ["sfstinfo_test.cc"],
+    deps = [
+        ":sfst",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest",
+        "@com_google_openfst//openfst/compat:init",
         "@com_google_openfst//openfst/lib",
     ],
 )
 
+cc_library(
+    name = "arpa",
+    srcs = ["arpa.cc"],
+    hdrs = ["arpa.h"],
+    deps = [
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/strings",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:symbol-table",
+    ],
+)
+
+cc_library(
+    name = "merge",
+    hdrs = [
+        "merge.h",
+    ],
+    deps = [
+        ":sfst",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:symbol-table",
+        "@com_google_openfst//openfst/lib:weight",
+    ],
+)
+
+# buildifier: disable=no-hdrs-no-alwayslink
+cc_library(
+    name = "sfstngramread-main",
+    srcs = ["sfstngramread-main.cc"],
+    deps = [
+        ":arpa",
+        "@com_google_absl//absl/log",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_binary(
+    name = "sfstngramread",
+    srcs = ["sfstngramread.cc"],
+    deps = [
+        ":sfstngramread-main",  # buildcleaner: keep
+    ],
+)
+
+# buildifier: disable=no-hdrs-no-alwayslink
+cc_library(
+    name = "sfstngramprint-main",
+    srcs = ["sfstngramprint-main.cc"],
+    deps = [
+        ":arpa",
+        "@com_google_absl//absl/log",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_binary(
+    name = "sfstngramprint",
+    srcs = ["sfstngramprint.cc"],
+    deps = [
+        ":sfstngramprint-main",  # buildcleaner: keep
+    ],
+)
+
+# buildifier: disable=no-hdrs-no-alwayslink
+cc_library(
+    name = "sfstmerge-main",
+    srcs = ["sfstmerge-main.cc"],
+    deps = [
+        ":merge",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_binary(
+    name = "sfstmerge",
+    srcs = ["sfstmerge.cc"],
+    deps = [
+        ":sfstmerge-main",  # buildcleaner: keep
+    ],
+)
+
+cc_test(
+    name = "arpa_test",
+    srcs = ["arpa_test.cc"],
+    deps = [
+        ":arpa",
+        ":sfst",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:symbol-table",
+    ],
+)
+
+# buildifier: disable=no-hdrs-no-alwayslink
 cc_library(
     name = "sfstintersect-main",
     srcs = ["sfstintersect-main.cc"],
@@ -169,6 +285,7 @@ cc_binary(
     ],
 )
 
+# buildifier: disable=no-hdrs-no-alwayslink
 cc_library(
     name = "sfstngramapprox-main",
     srcs = ["sfstngramapprox-main.cc"],
@@ -193,9 +310,177 @@ cc_binary(
         ":sfst",
         ":sfstngramapprox-main",  # buildcleaner: keep
         "@com_google_absl//absl/flags:flag",
+        "@com_google_openfst//openfst/lib:lib_lite",
     ],
 )
 
+# buildifier: disable=no-hdrs-no-alwayslink
+cc_library(
+    name = "sfstngramcount-main",
+    srcs = [
+        "ngram-count.h",
+        "sfstngramcount-main.cc",
+    ],
+    deps = [
+        "@com_google_absl//absl/container:node_hash_map",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/extensions/far:far-reader",
+        "@com_google_openfst//openfst/extensions/far:lib",  # buildcleaner: keep
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:symbol-table",
+        "@com_google_openfst//openfst/lib:weight",
+    ],
+)
+
+cc_binary(
+    name = "sfstngramcount",
+    srcs = [
+        "sfstngramcount.cc",
+    ],
+    linkstatic = 0,
+    deps = [
+        ":sfstngramcount-main",  # buildcleaner: keep
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_openfst//openfst/lib:lib_lite",
+    ],
+)
+
+cc_library(
+    name = "sfstngramsymbols-main",
+    srcs = [
+        "sfstngramsymbols-main.cc",
+    ],
+    deps = [
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/strings",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/lib:symbol-table",
+    ],
+)
+
+cc_binary(
+    name = "sfstngramsymbols",
+    srcs = [
+        "sfstngramsymbols.cc",
+    ],
+    linkstatic = 0,
+    deps = [
+        ":sfstngramsymbols-main",  # buildcleaner: keep
+        "@com_google_absl//absl/flags:flag",
+    ],
+)
+
+cc_library(
+    name = "smooth",
+    hdrs = ["smooth.h"],
+    deps = [
+        ":sfst",
+        "@com_google_absl//absl/log",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:weight",
+    ],
+)
+
+cc_library(
+    name = "shrink",
+    hdrs = ["shrink.h"],
+    deps = [
+        ":sfst",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/strings",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:symbol-table",
+    ],
+)
+
+# buildifier: disable=no-hdrs-no-alwayslink
+cc_library(
+    name = "sfstsmooth-main",
+    srcs = [
+        "sfstsmooth-main.cc",
+    ],
+    deps = [
+        ":smooth",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_binary(
+    name = "sfstsmooth",
+    srcs = [
+        "sfstsmooth.cc",
+    ],
+    linkstatic = 0,
+    deps = [
+        ":sfstsmooth-main",  # buildcleaner: keep
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_openfst//openfst/lib:lib_lite",
+    ],
+)
+
+cc_test(
+    name = "smooth_test",
+    srcs = ["smooth_test.cc"],
+    deps = [
+        ":smooth",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_googletest//:gtest",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+# buildifier: disable=no-hdrs-no-alwayslink
+cc_library(
+    name = "sfstshrink-main",
+    srcs = [
+        "sfstshrink-main.cc",
+    ],
+    deps = [
+        ":shrink",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_binary(
+    name = "sfstshrink",
+    srcs = [
+        "sfstshrink.cc",
+    ],
+    linkstatic = 0,
+    deps = [
+        ":sfstshrink-main",  # buildcleaner: keep
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_openfst//openfst/lib:lib_lite",
+    ],
+)
+
+cc_test(
+    name = "shrink_test",
+    srcs = ["shrink_test.cc"],
+    deps = [
+        ":shrink",
+        ":smooth",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_googletest//:gtest",
+        "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+# buildifier: disable=no-hdrs-no-alwayslink
 cc_library(
     name = "sfstnormalize-main",
     srcs = ["sfstnormalize-main.cc"],
@@ -224,6 +509,7 @@ cc_binary(
     ],
 )
 
+# buildifier: disable=no-hdrs-no-alwayslink
 cc_library(
     name = "sfstperplexity-main",
     srcs = ["sfstperplexity-main.cc"],
@@ -255,6 +541,7 @@ cc_binary(
     ],
 )
 
+# buildifier: disable=no-hdrs-no-alwayslink
 cc_library(
     name = "sfstrandgen-main",
     srcs = ["sfstrandgen-main.cc"],
@@ -283,6 +570,7 @@ cc_binary(
     ],
 )
 
+# buildifier: disable=no-hdrs-no-alwayslink
 cc_library(
     name = "sfstshortestdistance-main",
     srcs = ["sfstshortestdistance-main.cc"],
@@ -310,6 +598,7 @@ cc_binary(
     ],
 )
 
+# buildifier: disable=no-hdrs-no-alwayslink
 cc_library(
     name = "sfsttopology-main",
     srcs = ["sfsttopology-main.cc"],
@@ -337,6 +626,7 @@ cc_binary(
     ],
 )
 
+# buildifier: disable=no-hdrs-no-alwayslink
 cc_library(
     name = "sfsttrim-main",
     srcs = ["sfsttrim-main.cc"],
@@ -362,6 +652,20 @@ cc_binary(
         ":sfsttrim-main",  # buildcleaner: keep
         "@com_google_absl//absl/flags:flag",
         "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
+    name = "merge_test",
+    srcs = ["merge_test.cc"],
+    deps = [
+        ":arpa",
+        ":merge",
+        ":sfst",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:symbol-table",
     ],
 )
 
@@ -628,5 +932,117 @@ cc_test(
         "@com_google_googletest//:gtest",
         "@com_google_openfst//openfst/compat:file_path",
         "@com_google_openfst//openfst/lib",
+    ],
+)
+
+sh_test(
+    name = "sfstinfo_test_sh",
+    srcs = ["sfstinfo_test.sh"],
+    data = [
+        ":sfstinfo",
+        "//opengrm/ngram:testdata/earnest.mod.sym",
+        "//opengrm/ngram:testdata/earnest.mod.txt",
+        "@com_google_openfst//openfst/bin:fstcompile",
+        "@com_google_openfst//openfst/bin:setup",
+    ],
+)
+
+sh_test(
+    name = "sfstngramcount_test_sh",
+    srcs = ["sfstngramcount_test.sh"],
+    data = [
+        ":sfstinfo",
+        ":sfstngramcount",
+        "//opengrm/ngram:testdata/earnest.sym",
+        "//opengrm/ngram:testdata/earnest.txt",
+        "@com_google_openfst//openfst/bin:setup",
+        "@com_google_openfst//openfst/extensions/far:farcompilestrings",
+    ],
+)
+
+sh_test(
+    name = "sfstngramsymbols_test_sh",
+    srcs = ["sfstngramsymbols_test.sh"],
+    data = [
+        ":sfstngramsymbols",
+        "//opengrm/ngram:testdata/earnest.sym",
+        "//opengrm/ngram:testdata/earnest.txt",
+        "@com_google_openfst//openfst/bin:setup",
+    ],
+)
+
+[sh_test(
+    name = "sfstsmooth_%s_test_sh" % method,
+    srcs = ["sfstsmooth_test.sh"],
+    args = [method],
+    data = [
+        ":sfstinfo",
+        ":sfstngramcount",
+        ":sfstsmooth",
+        "//opengrm/ngram:testdata/earnest.sym",
+        "//opengrm/ngram:testdata/earnest.txt",
+        "@com_google_openfst//openfst/bin:setup",
+        "@com_google_openfst//openfst/extensions/far:farcompilestrings",
+    ],
+) for method in [
+    "witten_bell",
+    "absolute",
+    "unsmoothed",
+    "kneser_ney",
+    "katz",
+    "presmoothed",
+]]
+
+[sh_test(
+    name = "sfstshrink_%s_test_sh" % method,
+    srcs = ["sfstshrink_test.sh"],
+    args = [method],
+    data = [
+        ":sfstinfo",
+        ":sfstngramcount",
+        ":sfstshrink",
+        ":sfstsmooth",
+        "//opengrm/ngram:testdata/earnest.sym",
+        "//opengrm/ngram:testdata/earnest.txt",
+        "@com_google_openfst//openfst/bin:setup",
+        "@com_google_openfst//openfst/extensions/far:farcompilestrings",
+    ],
+) for method in [
+    "stolcke",
+    "seymore",
+    "count_prune",
+    "list_prune",
+]]
+
+sh_test(
+    name = "sfstngramread_test_sh",
+    srcs = ["sfstngramread_test.sh"],
+    data = [
+        ":sfstinfo",
+        ":sfstngramread",
+        "//opengrm/ngram:testdata/earnest.arpa",
+        "@com_google_openfst//openfst/bin:setup",
+    ],
+)
+
+sh_test(
+    name = "sfstngramprint_test_sh",
+    srcs = ["sfstngramprint_test.sh"],
+    data = [
+        ":sfstngramprint",
+        ":sfstngramread",
+        "//opengrm/ngram:testdata/earnest.arpa",
+        "@com_google_openfst//openfst/bin:setup",
+    ],
+)
+
+sh_test(
+    name = "sfstmerge_test_sh",
+    srcs = ["sfstmerge_test.sh"],
+    data = [
+        ":sfstmerge",
+        ":sfstngramread",
+        "//opengrm/ngram:testdata/earnest.arpa",
+        "@com_google_openfst//openfst/bin:setup",
     ],
 )
