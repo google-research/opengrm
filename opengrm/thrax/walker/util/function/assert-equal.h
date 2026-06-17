@@ -37,6 +37,7 @@
 #include "absl/flags/declare.h"
 #include "absl/flags/flag.h"
 #include "absl/strings/escaping.h"
+#include "absl/strings/str_cat.h"
 #include "openfst/lib/arc-map.h"
 #include "openfst/lib/determinize.h"
 #include "openfst/lib/fst.h"
@@ -148,16 +149,18 @@ class AssertEqual : public BinaryFstFunction<Arc> {
         lstring = "nullptr";
       } else {
         std::string content;
-        AssertEqual<Arc>::CoerceToString(*mutable_left, &content, symbols);
-        lstring = "\"" + absl::Utf8SafeCEscape(content) + "\"";
+        AssertEqual<Arc>::CoerceToString(*mutable_left, &content, mode,
+                                         symbols);
+        lstring = absl::StrCat("\"", absl::Utf8SafeCEscape(content), "\"");
       }
       std::string rstring;
       if (mutable_right.Start() == ::fst::kNoStateId) {
         rstring = "nullptr";
       } else {
         std::string content;
-        AssertEqual<Arc>::CoerceToString(mutable_right, &content, symbols);
-        rstring = "\"" + absl::Utf8SafeCEscape(content) + "\"";
+        AssertEqual<Arc>::CoerceToString(mutable_right, &content, mode,
+                                         symbols);
+        rstring = absl::StrCat("\"", absl::Utf8SafeCEscape(content), "\"");
       }
       std::cout << "Arguments to AssertEqual are not equivalent:\n"
                 << "  expect: " << rstring << "\n"
@@ -173,8 +176,9 @@ class AssertEqual : public BinaryFstFunction<Arc> {
   // printer. This is necessary so we have exactly one string to show in the
   // debug message.
   static void CoerceToString(const MutableTransducer& fst, std::string* str,
+                             ::fst::TokenType token_type,
                              const ::fst::SymbolTable* symbols = nullptr) {
-    const ::fst::StringPrinter<Arc> printer(::fst::TokenType::BYTE, symbols);
+    const ::fst::StringPrinter<Arc> printer(token_type, symbols);
     if (fst.Properties(::fst::kString, true) == ::fst::kString) {
       printer(fst, str);
     } else {
