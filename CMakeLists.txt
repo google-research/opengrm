@@ -26,6 +26,7 @@ project(
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_GTEST_DISCOVER_TESTS_DISCOVERY_MODE PRE_TEST)
 
 # Shared library versioning (arbitrary for now, match version maybe)
 set(OPENGRM_SOVERSION 14)
@@ -68,11 +69,15 @@ else()
     -Wno-deprecated-declarations
     -Wno-overloaded-virtual
     -Wno-sign-compare
-    -Wno-changes-meaning
     # Temporarily disabled warnings that we would like to turn on.
     -Wno-defaulted-function-deleted
     -Wno-nullability-completeness
   )
+  include(CheckCXXCompilerFlag)
+  check_cxx_compiler_flag("-Wno-changes-meaning" HAS_WNO_CHANGES_MEANING)
+  if(HAS_WNO_CHANGES_MEANING)
+    add_compile_options(-Wno-changes-meaning)
+  endif()
 endif()
 
 # Linker flags to force loading of static/shared libraries that use
@@ -135,22 +140,29 @@ if(OPENGRM_USE_SYSTEM_OPENFST)
   find_package(openfst REQUIRED)
 else()
   # Bundle OpenFst
-  set(OPENFST_BUILD_TESTS OFF)
-  set(OPENFST_ENABLE_BIN OFF)
-  set(OPENFST_ENABLE_INSTALL OFF)
+  set(OPENFST_BUILD_TESTS OFF CACHE BOOL "Build OpenFst tests")
+  set(OPENFST_ENABLE_BIN OFF CACHE BOOL "Enable fst::script and executables")
+  set(OPENFST_ENABLE_INSTALL OFF CACHE BOOL "Enable installation of OpenFst")
+  set(OPENFST_ENABLE_SPECIAL OFF CACHE BOOL "Enable special-matcher extensions")
   # We might need to enable FAR or other specific OpenFst extensions if needed
   # by OpenGrm OpenGrm highly depends on FAR, MPDT, PDT
-  set(OPENFST_ENABLE_GRM ON)
-  set(OPENFST_ENABLE_PDT ON)
-  set(OPENFST_ENABLE_MPDT ON)
-  set(OPENFST_ENABLE_FAR ON)
+  set(OPENFST_ENABLE_GRM ON CACHE BOOL "Enable all dependencies of OpenGrm")
+  set(OPENFST_ENABLE_PDT ON CACHE BOOL "Enable PDT extensions")
+  set(OPENFST_ENABLE_MPDT ON CACHE BOOL "Enable MPDT extensions")
+  set(OPENFST_ENABLE_FAR ON CACHE BOOL "Enable FAR extensions")
   if(OPENGRM_ENABLE_PYNINI)
     set(OPENFST_ENABLE_PYTHON ON CACHE BOOL "Enable Python extension" FORCE)
   endif()
   if(OPENGRM_ENABLE_BAUMWELCH)
-    set(OPENFST_ENABLE_SPECIAL ON)
-    set(OPENFST_ENABLE_BIN ON)
-    set(OPENFST_ENABLE_COMPACT_FSTS ON)
+    set(OPENFST_ENABLE_SPECIAL ON
+        CACHE BOOL "Enable special-matcher extensions" FORCE
+    )
+    set(OPENFST_ENABLE_BIN ON CACHE BOOL "Enable fst::script and executables"
+                                    FORCE
+    )
+    set(OPENFST_ENABLE_COMPACT_FSTS ON
+        CACHE BOOL "Enable CompactFst extensions" FORCE
+    )
   endif()
 
   # We use OpenFst from the current HEAD until the first release is cut.
@@ -181,7 +193,10 @@ endif()
 
 # Bison (needed by Thrax)
 if(OPENGRM_ENABLE_THRAX)
-  find_package(BISON REQUIRED)
+  # Require Bison 3.0+ to support modern Bison directives (e.g. %define
+  # api.pure) used in parser.y, which fail on older versions like macOS default
+  # Bison 2.3.
+  find_package(BISON 3.0 REQUIRED)
 endif()
 
 # Core OpenGrm
