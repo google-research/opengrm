@@ -37,7 +37,7 @@ option(OPENGRM_ENABLE_BIN "Enable executables" ON)
 option(OPENGRM_ENABLE_INSTALL "Enable installation of OpenGrm" OFF)
 
 # Build static libraries by default. Registration issues in static builds are
-# handled via linker hacks (FORCE_LOAD_START/FORCE_LOAD_END). Set to ON to build
+# handled via linker hacks (OPENGRM_ALWAYS_LINK_START/OPENGRM_ALWAYS_LINK_END). Set to ON to build
 # shared libraries.
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 
@@ -78,17 +78,21 @@ endif()
 # self-registering objects. Without these, the linker will optimize out/discard
 # the libraries because no symbols from them are explicitly referenced at
 # compile time.
+# TODO: Around 2027-05-01, when the CMake minimum version can be bumped to 3.24 (per
+# https://github.com/google/oss-policies-info/blob/main/foundational-cxx-support-matrix.md),
+# remove these variables and replace usage in target_link_libraries with
+# $<LINK_LIBRARY:WHOLE_ARCHIVE,lib>.
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   if(BUILD_SHARED_LIBS)
-    set(FORCE_LOAD_START "-Wl,--no-as-needed")
-    set(FORCE_LOAD_END "-Wl,--as-needed")
+    set(OPENGRM_ALWAYS_LINK_START "-Wl,--no-as-needed")
+    set(OPENGRM_ALWAYS_LINK_END "-Wl,--as-needed")
   else()
-    set(FORCE_LOAD_START "-Wl,--whole-archive")
-    set(FORCE_LOAD_END "-Wl,--no-whole-archive")
+    set(OPENGRM_ALWAYS_LINK_START "-Wl,--whole-archive")
+    set(OPENGRM_ALWAYS_LINK_END "-Wl,--no-whole-archive")
   endif()
 else()
-  set(FORCE_LOAD_START "")
-  set(FORCE_LOAD_END "")
+  set(OPENGRM_ALWAYS_LINK_START "")
+  set(OPENGRM_ALWAYS_LINK_END "")
 endif()
 
 include(FetchContent)

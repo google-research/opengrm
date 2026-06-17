@@ -33,7 +33,7 @@ foreach(_test ${THRAX_TESTS})
   target_link_libraries(
     thrax_${_test}_test
     PRIVATE thrax_total-sort
-            ${FORCE_LOAD_START}
+            ${OPENGRM_ALWAYS_LINK_START}
             thrax_compiler_lib
             thrax_walker
             openfst::fst
@@ -41,7 +41,7 @@ foreach(_test ${THRAX_TESTS})
             openfst::fstscript
             openfst::pdt
             openfst::mpdt
-            ${FORCE_LOAD_END}
+            ${OPENGRM_ALWAYS_LINK_END}
             GTest::gmock_main
             absl::strings
             absl::log

@@ -137,12 +137,12 @@ if(OPENGRM_BUILD_TESTS)
     PRIVATE grm_baumwelch
             openfst::far
             openfst::phi-fst
-            ${FORCE_LOAD_START}
+            ${OPENGRM_ALWAYS_LINK_START}
             openfst::fst
             openfst::compact8_string-fst
             openfst::compact16_string-fst
             openfst::compact64_string-fst
-            ${FORCE_LOAD_END}
+            ${OPENGRM_ALWAYS_LINK_END}
             GTest::gtest_main
   )
   grm_configure_test_target(mono-13-log_test)
@@ -160,12 +160,12 @@ if(OPENGRM_BUILD_TESTS)
     PRIVATE grm_baumwelch
             openfst::far
             openfst::phi-fst
-            ${FORCE_LOAD_START}
+            ${OPENGRM_ALWAYS_LINK_START}
             openfst::fst
             openfst::compact8_string-fst
             openfst::compact16_string-fst
             openfst::compact64_string-fst
-            ${FORCE_LOAD_END}
+            ${OPENGRM_ALWAYS_LINK_END}
             GTest::gtest_main
   )
   grm_configure_test_target(mono-13-std_test)
@@ -184,12 +184,12 @@ if(OPENGRM_BUILD_TESTS)
     PRIVATE grm_baumwelch
             openfst::far
             openfst::phi-fst
-            ${FORCE_LOAD_START}
+            ${OPENGRM_ALWAYS_LINK_START}
             openfst::fst
             openfst::compact8_string-fst
             openfst::compact16_string-fst
             openfst::compact64_string-fst
-            ${FORCE_LOAD_END}
+            ${OPENGRM_ALWAYS_LINK_END}
             GTest::gtest_main
   )
   grm_configure_test_target(mono-26-log_test)
@@ -207,12 +207,12 @@ if(OPENGRM_BUILD_TESTS)
     PRIVATE grm_baumwelch
             openfst::far
             openfst::phi-fst
-            ${FORCE_LOAD_START}
+            ${OPENGRM_ALWAYS_LINK_START}
             openfst::fst
             openfst::compact8_string-fst
             openfst::compact16_string-fst
             openfst::compact64_string-fst
-            ${FORCE_LOAD_END}
+            ${OPENGRM_ALWAYS_LINK_END}
             GTest::gtest_main
   )
   grm_configure_test_target(mono-26-std_test)
@@ -231,12 +231,12 @@ if(OPENGRM_BUILD_TESTS)
     PRIVATE grm_baumwelch
             openfst::far
             openfst::phi-fst
-            ${FORCE_LOAD_START}
+            ${OPENGRM_ALWAYS_LINK_START}
             openfst::fst
             openfst::compact8_string-fst
             openfst::compact16_string-fst
             openfst::compact64_string-fst
-            ${FORCE_LOAD_END}
+            ${OPENGRM_ALWAYS_LINK_END}
             GTest::gtest_main
   )
   grm_configure_test_target(mono-27-log_test)

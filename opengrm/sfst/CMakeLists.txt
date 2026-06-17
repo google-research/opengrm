@@ -181,9 +181,9 @@ if(OPENGRM_BUILD_TESTS)
       sfst_${_test}_test
       PRIVATE grm_sfst
               openfst::far
-              ${FORCE_LOAD_START}
+              ${OPENGRM_ALWAYS_LINK_START}
               openfst::fst
-              ${FORCE_LOAD_END}
+              ${OPENGRM_ALWAYS_LINK_END}
               GTest::gtest_main
     ) # Perplexity/merge need far
     grm_configure_test_target(sfst_${_test}_test)

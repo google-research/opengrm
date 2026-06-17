@@ -97,14 +97,14 @@ if(OPENGRM_BUILD_TESTS)
     add_executable(function_${_test}_test util/function/${_test}_test.cc)
     target_link_libraries(
       function_${_test}_test
-      PRIVATE ${FORCE_LOAD_START}
+      PRIVATE ${OPENGRM_ALWAYS_LINK_START}
               thrax_walker
               openfst::fst
               openfst::far
               openfst::fstscript
               openfst::pdt
               openfst::mpdt
-              ${FORCE_LOAD_END}
+              ${OPENGRM_ALWAYS_LINK_END}
               GTest::gtest_main
     )
     grm_configure_test_target(function_${_test}_test)

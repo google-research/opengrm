@@ -43,12 +43,12 @@ if(OPENGRM_BUILD_TESTS)
   add_executable(base_rule_cascade_test base_rule_cascade_test.cc)
   target_link_libraries(
     base_rule_cascade_test
-    PRIVATE ${FORCE_LOAD_START}
+    PRIVATE ${OPENGRM_ALWAYS_LINK_START}
             grm_rewrite
             grm_operators
             openfst::fst
             openfst::far
-            ${FORCE_LOAD_END}
+            ${OPENGRM_ALWAYS_LINK_END}
             GTest::gmock_main
   ) # Wait, depends on operators:optimize
   # We'll need to make sure this links or only build if operators is available
@@ -62,11 +62,11 @@ if(OPENGRM_BUILD_TESTS)
   add_executable(rewrite_test rewrite_test.cc)
   target_link_libraries(
     rewrite_test
-    PRIVATE ${FORCE_LOAD_START}
+    PRIVATE ${OPENGRM_ALWAYS_LINK_START}
             grm_rewrite
             openfst::fst
             openfst::far
-            ${FORCE_LOAD_END}
+            ${OPENGRM_ALWAYS_LINK_END}
             GTest::gmock_main
   )
   grm_configure_test_target(rewrite_test)
@@ -80,11 +80,11 @@ if(OPENGRM_BUILD_TESTS)
     add_executable(rewrite_manager_test rewrite_manager_test.cc)
     target_link_libraries(
       rewrite_manager_test
-      PRIVATE ${FORCE_LOAD_START}
+      PRIVATE ${OPENGRM_ALWAYS_LINK_START}
               grm_rewrite
               openfst::fst
               openfst::far
-              ${FORCE_LOAD_END}
+              ${OPENGRM_ALWAYS_LINK_END}
               GTest::gmock_main
     )
     grm_configure_test_target(rewrite_manager_test)
@@ -96,11 +96,11 @@ if(OPENGRM_BUILD_TESTS)
     add_executable(rule_cascade_test rule_cascade_test.cc)
     target_link_libraries(
       rule_cascade_test
-      PRIVATE ${FORCE_LOAD_START}
+      PRIVATE ${OPENGRM_ALWAYS_LINK_START}
               grm_rewrite
               openfst::fst
               openfst::far
-              ${FORCE_LOAD_END}
+              ${OPENGRM_ALWAYS_LINK_END}
               GTest::gmock_main
     )
     grm_configure_test_target(rule_cascade_test)

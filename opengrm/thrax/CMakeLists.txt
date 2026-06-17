@@ -98,7 +98,7 @@ if(OPENGRM_ENABLE_BIN)
   )
   target_link_libraries(
     thraxcompiler
-    PRIVATE ${FORCE_LOAD_START}
+    PRIVATE ${OPENGRM_ALWAYS_LINK_START}
             thrax_compiler_lib
             thrax_walker
             openfst::fst
@@ -106,7 +106,7 @@ if(OPENGRM_ENABLE_BIN)
             openfst::fstscript
             openfst::pdt
             openfst::mpdt
-            ${FORCE_LOAD_END}
+            ${OPENGRM_ALWAYS_LINK_END}
             absl::flags
   )
   opengrm_install(TARGETS thraxcompiler RUNTIME DESTINATION
@@ -117,13 +117,13 @@ if(OPENGRM_ENABLE_BIN)
   add_executable(thraxrandom-generator random-generator.cc)
   target_link_libraries(
     thraxrandom-generator
-    PRIVATE ${FORCE_LOAD_START}
+    PRIVATE ${OPENGRM_ALWAYS_LINK_START}
             thrax_walker
             grm_rewrite
             openfst::fst
             openfst::far
             openfst::fstscript
-            ${FORCE_LOAD_END}
+            ${OPENGRM_ALWAYS_LINK_END}
             thrax_core
             absl::flags
   )
@@ -135,13 +135,13 @@ if(OPENGRM_ENABLE_BIN)
   add_executable(thraxrewrite-tester rewrite-tester-main.cc)
   target_link_libraries(
     thraxrewrite-tester
-    PRIVATE ${FORCE_LOAD_START}
+    PRIVATE ${OPENGRM_ALWAYS_LINK_START}
             thrax_rewrite-tester_lib
             thrax_walker
             openfst::fst
             openfst::far
             openfst::fstscript
-            ${FORCE_LOAD_END}
+            ${OPENGRM_ALWAYS_LINK_END}
             absl::flags
   )
   opengrm_install(TARGETS thraxrewrite-tester RUNTIME DESTINATION
