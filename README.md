@@ -5,6 +5,7 @@
 [![GitHub license](https://img.shields.io/badge/license-Apache2-blue.svg)](https://github.com/google-research/nisaba/blob/main/LICENSE)
 [![C++ version](https://img.shields.io/badge/C++17-blue.svg?style=flat&logo=c%2B%2B)](https://en.cppreference.com/w/cpp/17)
 [![Bazel (x64 Linux)](https://github.com/google-research/opengrm/actions/workflows/bazel_x64_linux.yml/badge.svg)](https://github.com/google-research/opengrm/actions/workflows/bazel_x64_linux.yml)
+[![CMake (x64 Linux)](https://github.com/google-research/opengrm/actions/workflows/cmake_x64_linux.yml/badge.svg)](https://github.com/google-research/opengrm/actions/workflows/cmake_x64_linux.yml)
 [![Bazel (arm64 macOS)](https://github.com/google-research/opengrm/actions/workflows/bazel_arm64_macos.yml/badge.svg)](https://github.com/google-research/opengrm/actions/workflows/bazel_arm64_macos.yml)
 
 OpenGrm is a collection of open-source libraries for constructing, combining,
@@ -110,13 +111,13 @@ Option                          | Description                                   
 :------------------------------ | :----------------------------------------------- | :------
 `BUILD_BUILD_SHARED_LIBS`       | Build shared rather than static libraries        | `OFF`
 `OPENGRM_BUILD_TESTS`           | Build unit tests                                 | `ON`
-`OPENFST_ENABLE_BIN`            | Build command-line executables                   | `ON`
+`OPENGRM_ENABLE_BIN`            | Build command-line executables                   | `ON`
 `OPENGRM_RUN_SLOW_TESTS`        | Run very slow tests as part of `ctest`           | `OFF`
 
 Example usage:
 
 ```bash
-cmake -S . -B build -DOPENFST_ENABLE_SFST=ON -DBUILD_SHARED_LIBS=ON
+cmake -S . -B build -DOPENGRM_ENABLE_SFST=ON -DBUILD_SHARED_LIBS=ON
 ```
 
 ## Pull Requests
