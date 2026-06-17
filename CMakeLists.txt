@@ -37,8 +37,8 @@ option(OPENGRM_ENABLE_BIN "Enable executables" ON)
 option(OPENGRM_ENABLE_INSTALL "Enable installation of OpenGrm" OFF)
 
 # Build static libraries by default. Registration issues in static builds are
-# handled via linker hacks (OPENGRM_ALWAYS_LINK_START/OPENGRM_ALWAYS_LINK_END). Set to ON to build
-# shared libraries.
+# handled via linker hacks (OPENGRM_ALWAYS_LINK_START/OPENGRM_ALWAYS_LINK_END).
+# Set to ON to build shared libraries.
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 
 # Dependency options
@@ -77,8 +77,8 @@ endif()
 # Linker flags to force loading of static/shared libraries that use
 # self-registering objects. Without these, the linker will optimize out/discard
 # the libraries because no symbols from them are explicitly referenced at
-# compile time.
-# TODO: Around 2027-05-01, when the CMake minimum version can be bumped to 3.24 (per
+# compile time. TODO: Around 2027-05-01, when the CMake minimum version can be
+# bumped to 3.24 (per
 # https://github.com/google/oss-policies-info/blob/main/foundational-cxx-support-matrix.md),
 # remove these variables and replace usage in target_link_libraries with
 # $<LINK_LIBRARY:WHOLE_ARCHIVE,lib>.
@@ -185,10 +185,14 @@ add_subdirectory(opengrm)
 
 # Installation of the export set
 opengrm_install(
-  EXPORT OpenGrmTargets
-  FILE OpenGrmTargets.cmake
-  NAMESPACE opengrm::
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/opengrm
+  EXPORT
+  OpenGrmTargets
+  FILE
+  OpenGrmTargets.cmake
+  NAMESPACE
+  opengrm::
+  DESTINATION
+  ${CMAKE_INSTALL_LIBDIR}/cmake/opengrm
 )
 
 include(CMakePackageConfigHelpers)
@@ -204,7 +208,10 @@ configure_package_config_file(
   INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/opengrm
 )
 
-opengrm_install(FILES ${CMAKE_CURRENT_BINARY_DIR}/OpenGrmConfig.cmake
-                      ${CMAKE_CURRENT_BINARY_DIR}/OpenGrmConfigVersion.cmake
-                DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/opengrm
+opengrm_install(
+  FILES
+  ${CMAKE_CURRENT_BINARY_DIR}/OpenGrmConfig.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/OpenGrmConfigVersion.cmake
+  DESTINATION
+  ${CMAKE_INSTALL_LIBDIR}/cmake/opengrm
 )

@@ -61,11 +61,8 @@ target_include_directories(
   grm_sfst_arpa PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
                        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
-target_link_libraries(
-  grm_sfst_arpa
-  PUBLIC openfst::fst
-         absl::strings
-         absl::container
+target_link_libraries(grm_sfst_arpa PUBLIC openfst::fst absl::strings
+                                           absl::container
 )
 
 # Merge interface library
@@ -74,9 +71,7 @@ target_include_directories(
   grm_sfst_merge INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
                            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
-target_link_libraries(
-  grm_sfst_merge INTERFACE grm_sfst openfst::fst
-)
+target_link_libraries(grm_sfst_merge INTERFACE grm_sfst openfst::fst)
 
 # Smooth interface library
 grm_add_library(grm_sfst_smooth INTERFACE)
@@ -84,9 +79,7 @@ target_include_directories(
   grm_sfst_smooth INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
                             $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
-target_link_libraries(
-  grm_sfst_smooth INTERFACE grm_sfst openfst::fst absl::log
-)
+target_link_libraries(grm_sfst_smooth INTERFACE grm_sfst openfst::fst absl::log)
 
 # Shrink interface library
 grm_add_library(grm_sfst_shrink INTERFACE)
@@ -95,22 +88,35 @@ target_include_directories(
                             $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_link_libraries(
-  grm_sfst_shrink INTERFACE grm_sfst openfst::fst absl::log absl::strings
+  grm_sfst_shrink
+  INTERFACE grm_sfst
+            openfst::fst
+            absl::log
+            absl::strings
 )
 
 opengrm_install(
-  TARGETS grm_sfst
-          grm_sfst_arpa
-          grm_sfst_merge
-          grm_sfst_smooth
-          grm_sfst_shrink
-  EXPORT OpenGrmTargets
-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  TARGETS
+  grm_sfst
+  grm_sfst_arpa
+  grm_sfst_merge
+  grm_sfst_smooth
+  grm_sfst_shrink
+  EXPORT
+  OpenGrmTargets
+  LIBRARY
+  DESTINATION
+  ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE
+  DESTINATION
+  ${CMAKE_INSTALL_LIBDIR}
 )
 
-opengrm_install(FILES ${SFST_HEADERS}
-                DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/opengrm/sfst
+opengrm_install(
+  FILES
+  ${SFST_HEADERS}
+  DESTINATION
+  ${CMAKE_INSTALL_INCLUDEDIR}/opengrm/sfst
 )
 
 if(OPENGRM_ENABLE_BIN)
@@ -138,8 +144,12 @@ if(OPENGRM_ENABLE_BIN)
   foreach(_tool ${SFST_TOOLS})
     add_executable(${_tool} ${_tool}.cc ${_tool}-main.cc)
     target_link_libraries(${_tool} PRIVATE grm_sfst openfst::fst absl::flags)
-    opengrm_install(TARGETS ${_tool} RUNTIME DESTINATION
-                                             ${CMAKE_INSTALL_BINDIR}
+    opengrm_install(
+      TARGETS
+      ${_tool}
+      RUNTIME
+      DESTINATION
+      ${CMAKE_INSTALL_BINDIR}
     )
   endforeach()
   # sfstperplexity requires the OpenFst FAR extension
@@ -196,6 +206,8 @@ if(OPENGRM_BUILD_TESTS)
   # Specific test dependencies
   target_link_libraries(sfst_arpa_test PRIVATE grm_sfst_arpa)
   target_link_libraries(sfst_smooth_test PRIVATE grm_sfst_smooth)
-  target_link_libraries(sfst_shrink_test PRIVATE grm_sfst_shrink grm_sfst_smooth)
+  target_link_libraries(sfst_shrink_test PRIVATE grm_sfst_shrink
+                                                 grm_sfst_smooth
+  )
   target_link_libraries(sfst_merge_test PRIVATE grm_sfst_arpa grm_sfst_merge)
 endif()

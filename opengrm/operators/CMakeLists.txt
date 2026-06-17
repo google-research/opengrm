@@ -61,14 +61,25 @@ target_link_libraries(grm_operatorsscript PUBLIC grm_operators
 )
 
 opengrm_install(
-  TARGETS grm_operators grm_operatorsscript
-  EXPORT OpenGrmTargets
-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  TARGETS
+  grm_operators
+  grm_operatorsscript
+  EXPORT
+  OpenGrmTargets
+  LIBRARY
+  DESTINATION
+  ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE
+  DESTINATION
+  ${CMAKE_INSTALL_LIBDIR}
 )
 
-opengrm_install(FILES ${OPERATORS_HEADERS} ${OPERATORSSCRIPT_HEADERS}
-                DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/opengrm/operators
+opengrm_install(
+  FILES
+  ${OPERATORS_HEADERS}
+  ${OPERATORSSCRIPT_HEADERS}
+  DESTINATION
+  ${CMAKE_INSTALL_INCLUDEDIR}/opengrm/operators
 )
 
 if(OPENGRM_ENABLE_BIN)
@@ -81,8 +92,12 @@ if(OPENGRM_ENABLE_BIN)
             openfst::fst
             absl::flags
   )
-  opengrm_install(TARGETS fstcdrewrite RUNTIME DESTINATION
-                                               ${CMAKE_INSTALL_BINDIR}
+  opengrm_install(
+    TARGETS
+    fstcdrewrite
+    RUNTIME
+    DESTINATION
+    ${CMAKE_INSTALL_BINDIR}
   )
 
   # fstcross
@@ -94,7 +109,13 @@ if(OPENGRM_ENABLE_BIN)
             openfst::fst
             absl::flags
   )
-  opengrm_install(TARGETS fstcross RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+  opengrm_install(
+    TARGETS
+    fstcross
+    RUNTIME
+    DESTINATION
+    ${CMAKE_INSTALL_BINDIR}
+  )
 
   # fstlenientlycompose
   add_executable(fstlenientlycompose fstlenientlycompose.cc
@@ -107,8 +128,12 @@ if(OPENGRM_ENABLE_BIN)
             openfst::fst
             absl::flags
   )
-  opengrm_install(TARGETS fstlenientlycompose RUNTIME DESTINATION
-                                                      ${CMAKE_INSTALL_BINDIR}
+  opengrm_install(
+    TARGETS
+    fstlenientlycompose
+    RUNTIME
+    DESTINATION
+    ${CMAKE_INSTALL_BINDIR}
   )
 
   # fstoptimize
@@ -120,8 +145,12 @@ if(OPENGRM_ENABLE_BIN)
             openfst::fst
             absl::flags
   )
-  opengrm_install(TARGETS fstoptimize RUNTIME DESTINATION
-                                              ${CMAKE_INSTALL_BINDIR}
+  opengrm_install(
+    TARGETS
+    fstoptimize
+    RUNTIME
+    DESTINATION
+    ${CMAKE_INSTALL_BINDIR}
   )
 
   # fstconcatrange
@@ -133,8 +162,12 @@ if(OPENGRM_ENABLE_BIN)
             openfst::fst
             absl::flags
   )
-  opengrm_install(TARGETS fstconcatrange RUNTIME DESTINATION
-                                                 ${CMAKE_INSTALL_BINDIR}
+  opengrm_install(
+    TARGETS
+    fstconcatrange
+    RUNTIME
+    DESTINATION
+    ${CMAKE_INSTALL_BINDIR}
   )
 endif()
 

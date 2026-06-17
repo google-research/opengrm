@@ -67,14 +67,25 @@ target_include_directories(
 target_link_libraries(grm_stringscript PUBLIC grm_string openfst::fstscript)
 
 opengrm_install(
-  TARGETS grm_string grm_stringscript
-  EXPORT OpenGrmTargets
-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  TARGETS
+  grm_string
+  grm_stringscript
+  EXPORT
+  OpenGrmTargets
+  LIBRARY
+  DESTINATION
+  ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE
+  DESTINATION
+  ${CMAKE_INSTALL_LIBDIR}
 )
 
-opengrm_install(FILES ${STRING_HEADERS} ${STRINGSCRIPT_HEADERS}
-                DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/opengrm/string
+opengrm_install(
+  FILES
+  ${STRING_HEADERS}
+  ${STRINGSCRIPT_HEADERS}
+  DESTINATION
+  ${CMAKE_INSTALL_INCLUDEDIR}/opengrm/string
 )
 
 if(OPENGRM_BUILD_TESTS)

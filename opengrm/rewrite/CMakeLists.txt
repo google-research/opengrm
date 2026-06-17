@@ -35,8 +35,11 @@ target_link_libraries(
             grm_string
 )
 
-opengrm_install(FILES ${REWRITE_HEADERS}
-                DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/opengrm/rewrite
+opengrm_install(
+  FILES
+  ${REWRITE_HEADERS}
+  DESTINATION
+  ${CMAKE_INSTALL_INCLUDEDIR}/opengrm/rewrite
 )
 
 if(OPENGRM_BUILD_TESTS)

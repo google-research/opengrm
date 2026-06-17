@@ -98,18 +98,32 @@ set_target_properties(
 ) # Produce hist-arc.so, not libhist-arc.so
 
 opengrm_install(
-  TARGETS grm_ngram grm_hist-arc
-  EXPORT OpenGrmTargets
-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  TARGETS
+  grm_ngram
+  grm_hist-arc
+  EXPORT
+  OpenGrmTargets
+  LIBRARY
+  DESTINATION
+  ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE
+  DESTINATION
+  ${CMAKE_INSTALL_LIBDIR}
 )
 
-opengrm_install(TARGETS hist-arc LIBRARY DESTINATION
-                                         ${CMAKE_INSTALL_LIBDIR}/opengrm
+opengrm_install(
+  TARGETS
+  hist-arc
+  LIBRARY
+  DESTINATION
+  ${CMAKE_INSTALL_LIBDIR}/opengrm
 ) # Or wherever plugins go
 
-opengrm_install(FILES ${NGRAM_HEADERS}
-                DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/opengrm/ngram
+opengrm_install(
+  FILES
+  ${NGRAM_HEADERS}
+  DESTINATION
+  ${CMAKE_INSTALL_INCLUDEDIR}/opengrm/ngram
 )
 
 if(OPENGRM_ENABLE_BIN)
@@ -143,8 +157,12 @@ if(OPENGRM_ENABLE_BIN)
               openfst::fst
               absl::flags
     )
-    opengrm_install(TARGETS ${_tool} RUNTIME DESTINATION
-                                             ${CMAKE_INSTALL_BINDIR}
+    opengrm_install(
+      TARGETS
+      ${_tool}
+      RUNTIME
+      DESTINATION
+      ${CMAKE_INSTALL_BINDIR}
     )
   endforeach()
 endif()

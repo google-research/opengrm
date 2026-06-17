@@ -34,14 +34,24 @@ target_include_directories(
 target_link_libraries(grm_pathsscript PUBLIC grm_paths openfst::fstscript)
 
 opengrm_install(
-  TARGETS grm_pathsscript
-  EXPORT OpenGrmTargets
-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  TARGETS
+  grm_pathsscript
+  EXPORT
+  OpenGrmTargets
+  LIBRARY
+  DESTINATION
+  ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE
+  DESTINATION
+  ${CMAKE_INSTALL_LIBDIR}
 )
 
-opengrm_install(FILES paths.h pathsscript.h
-                DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/opengrm/paths
+opengrm_install(
+  FILES
+  paths.h
+  pathsscript.h
+  DESTINATION
+  ${CMAKE_INSTALL_INCLUDEDIR}/opengrm/paths
 )
 
 if(OPENGRM_BUILD_TESTS)
