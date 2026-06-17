@@ -1,0 +1,158 @@
+# Copyright 2026 The OpenGrm Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+parse:
+  additional_commands:
+    set_target_properties:
+      kwargs:
+        PROPERTIES:
+          kwargs:
+            CROSSCOMPILING_EMULATOR: 1
+            SOVERSION: 1
+      max_subgroups_hwrap: 1
+    set_tests_properties:
+      kwargs:
+        PROPERTIES:
+          kwargs:
+            ENVIRONMENT: 1
+            WILL_FAIL: 1
+            LABELS: 1
+      max_subgroups_hwrap: 1
+    set:
+      kwargs:
+        CACHE: 3
+    openfst_install:
+      kwargs:
+        EXPORT: 1
+        FILE: 1
+        NAMESPACE: 1
+        DESTINATION: 1
+        FILES: "*"
+        TARGETS: "*"
+        LIBRARY: 1
+        ARCHIVE: 1
+        RUNTIME: 1
+    gtest_discover_tests:
+      flags:
+        - NO_PRETTY_TYPES
+        - NO_PRETTY_VALUES
+      kwargs:
+        EXTRA_ARGS: "*"
+        WORKING_DIRECTORY: 1
+        TEST_PREFIX: 1
+        TEST_SUFFIX: 1
+        TEST_FILTER: 1
+        PROPERTIES: "*"
+        TEST_LIST: 1
+        JUNIT_OUTPUT_DIR: 1
+        DISCOVERY_TIMEOUT: 1
+        XML_OUTPUT_DIR: 1
+        DISCOVERY_MODE: 1
+      max_subgroups_hwrap: 1
+    FetchContent_Declare:
+      kwargs:
+        URL: 1
+        URL_HASH: 1
+        GIT_REPOSITORY: 1
+        GIT_TAG: 1
+        DOWNLOAD_EXTRACT_TIMESTAMP: 1
+        PATCH_COMMAND: "+"
+    target_link_libraries:
+      kwargs:
+        PUBLIC: "+"
+        PRIVATE: "+"
+        INTERFACE: "+"
+    target_link_options:
+      kwargs:
+        PUBLIC: "+"
+        PRIVATE: "+"
+        INTERFACE: "+"
+    target_include_directories:
+      kwargs:
+        PUBLIC: "+"
+        PRIVATE: "+"
+        INTERFACE: "+"
+    target_compile_options:
+      kwargs:
+        PUBLIC: "+"
+        PRIVATE: "+"
+        INTERFACE: "+"
+    target_compile_definitions:
+      kwargs:
+        PUBLIC: "+"
+        PRIVATE: "+"
+        INTERFACE: "+"
+    target_compile_features:
+      kwargs:
+        PUBLIC: "+"
+        PRIVATE: "+"
+        INTERFACE: "+"
+    target_link_directories:
+      kwargs:
+        PUBLIC: "+"
+        PRIVATE: "+"
+        INTERFACE: "+"
+    target_sources:
+      kwargs:
+        PUBLIC: "+"
+        PRIVATE: "+"
+        INTERFACE: "+"
+
+format:
+  line_width: 80
+  tab_size: 2
+  max_subgroups_hwrap: 2
+  max_pargs_hwrap: 3
+  dangle_parens: true
+  dangle_align: prefix
+  max_prefix_chars: 80
+
+misc:
+  per_command:
+    set:
+      pargs_hwrap: 10
+      dangle_parens: false
+    option:
+      dangle_parens: false
+      pargs_hwrap: 10
+    add_library:
+      pargs_hwrap: 0
+    add_executable:
+      pargs_hwrap: 0
+    target_link_libraries:
+      pargs_hwrap: 0
+      max_subgroups_hwrap: 0
+    target_link_options:
+      pargs_hwrap: 0
+      max_subgroups_hwrap: 0
+    target_include_directories:
+      pargs_hwrap: 0
+      max_subgroups_hwrap: 0
+    target_compile_options:
+      pargs_hwrap: 0
+      max_subgroups_hwrap: 0
+    target_compile_definitions:
+      pargs_hwrap: 0
+      max_subgroups_hwrap: 0
+    target_compile_features:
+      pargs_hwrap: 0
+      max_subgroups_hwrap: 0
+    target_link_directories:
+      pargs_hwrap: 0
+      max_subgroups_hwrap: 0
+    target_sources:
+      pargs_hwrap: 0
+      max_subgroups_hwrap: 0
+
+
