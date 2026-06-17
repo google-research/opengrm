@@ -32,3 +32,7 @@ endif()
 if(OPENGRM_ENABLE_THRAX)
   add_subdirectory(thrax)
 endif()
+
+if(OPENGRM_ENABLE_PYNINI)
+  add_subdirectory(pynini)
+endif()

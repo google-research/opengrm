@@ -61,10 +61,15 @@ OpenFst can also be built with [CMake](https://cmake.org) 3.22 or higher.
 
 #### Prerequisites
 
-If you are building Thrax grammar compiler, the required prerequisite is [GNU
-Bison](https://en.wikipedia.org/wiki/GNU_Bison) parser generator (version 3.8 or
-higher), which on Linux can be installed using the system package manager, e.g.,
-`sudo apt-get install bison`.
+*   If you are building Thrax grammar compiler, the required prerequisite is
+    [GNU Bison](https://en.wikipedia.org/wiki/GNU_Bison) parser generator
+    (version 3.8 or higher), which on Linux can be installed using the system
+    package manager, e.g., `sudo apt-get install bison`.
+*   For building Python components (e.g., Pynini):
+    *   Python 3.6 or higher and development headers (e.g., `python3-dev`).
+    *   [Cython](https://cython.org/) (`pip install cython`).
+    *   [absl-py](https://github.com/abseil/abseil-py) (`pip install absl-py`)
+        to run tests.
 
 #### Build and Install
 
@@ -91,28 +96,40 @@ ctest --test-dir build --output-on-failure -j$(getconf _NPROCESSORS_ONLN)
 cmake --install build --prefix /usr/local
 ```
 
+Prefer shared libraries when building Python extensions.
+
+```bash
+# Configure Pynini.
+cmake -S . -B build -DOPENGRM_ENABLE_PYNINI=ON -DBUILD_SHARED_LIBS=ON
+
+# Build.
+cmake --build build -j$(getconf _NPROCESSORS_ONLN)
+
+# Run tests.
+ctest --test-dir build --output-on-failure -j$(getconf _NPROCESSORS_ONLN)
+```
+
 #### Configuration Options
 
 You can enable or disable specific features using CMake options (default is
 `OFF` unless noted):
 
-Option                          | Description                                      | Default
-:------------------------------ | :----------------------------------------------- | :------
-`OPENGRM_ENABLE_BAUMWELCH`      | Build Baum-Welch trainer and decoder components  | `OFF`
-`OPENGRM_ENABLE_NGRAM`          | Build N-gram library and tools                   | `OFF`
-`OPENGRM_ENABLE_SFST`           | Building stochastic finite-state transducers     | `OFF`
-`OPENGRM_ENABLE_THRAX`          | Build Thrax grammar compiler                     | `OFF`
-
-TODO: Pynini is not yet supported.
+Option                     | Description                                     | Default
+:------------------------- | :---------------------------------------------- | :------
+`OPENGRM_ENABLE_BAUMWELCH` | Build Baum-Welch trainer and decoder components | `OFF`
+`OPENGRM_ENABLE_NGRAM`     | Build N-gram library and tools                  | `OFF`
+`OPENGRM_ENABLE_SFST`      | Build stochastic finite-state transducers       | `OFF`
+`OPENGRM_ENABLE_PYNINI`    | Build Pynini grammars (Python)                  | `OFF`
+`OPENGRM_ENABLE_THRAX`     | Build Thrax grammar compiler                    | `OFF`
 
 Additional options include:
 
-Option                          | Description                                      | Default
-:------------------------------ | :----------------------------------------------- | :------
-`BUILD_BUILD_SHARED_LIBS`       | Build shared rather than static libraries        | `OFF`
-`OPENGRM_BUILD_TESTS`           | Build unit tests                                 | `ON`
-`OPENGRM_ENABLE_BIN`            | Build command-line executables                   | `ON`
-`OPENGRM_RUN_SLOW_TESTS`        | Run very slow tests as part of `ctest`           | `OFF`
+Option                    | Description                               | Default
+:------------------------ | :---------------------------------------- | :------
+`BUILD_BUILD_SHARED_LIBS` | Build shared rather than static libraries | `OFF`
+`OPENGRM_BUILD_TESTS`     | Build unit tests                          | `ON`
+`OPENGRM_ENABLE_BIN`      | Build command-line executables            | `ON`
+`OPENGRM_RUN_SLOW_TESTS`  | Run very slow tests as part of `ctest`    | `OFF`
 
 Example usage:
 

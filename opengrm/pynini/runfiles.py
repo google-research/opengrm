@@ -12,13 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Utilities for working with resources and runfiles."""
+"""Utilities for working with resources and runfiles.
+
+This module supports resolving resource paths in different environments:
+1. Bazel/Blaze: Uses the official rules_python runfiles library.
+2. CMake: Falls back to using the TEST_SRCDIR environment variable.
+3. Direct Python Interpreter: Falls back to resolving paths relative to the
+   current working directory (using absolute paths).
+"""
 
 import os
 
-from python.runfiles import Runfiles
+try:
+  from python.runfiles import Runfiles  # pylint: disable=g-import-not-at-top
+  _RESOURCES_ROOT = Runfiles.Create()
+except ImportError:
+  _RESOURCES_ROOT = None
 
-_RESOURCES_ROOT = Runfiles.Create()
+_TEST_SRCDIR = os.environ.get("TEST_SRCDIR")
 
 
 def _prepend_workspace(relpath: str) -> str:
@@ -39,7 +50,11 @@ def resource_path(relpath: str) -> str:
   Returns:
     Fully qualified path.
   """
-  return _RESOURCES_ROOT.Rlocation(_prepend_workspace(relpath))
+  if _RESOURCES_ROOT:
+    return _RESOURCES_ROOT.Rlocation(_prepend_workspace(relpath))
+  if _TEST_SRCDIR:
+    return os.path.join(_TEST_SRCDIR, relpath)
+  return os.path.abspath(relpath)
 
 
 def test_src_path(relpath: str, second_rel_path: str | None = None) -> str:
