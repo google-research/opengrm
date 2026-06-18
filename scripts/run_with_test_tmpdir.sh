@@ -24,6 +24,12 @@
 
 set -euo pipefail
 
+# Check if this is the discovery phase (listing tests)
+if [[ "$*" == *"--gtest_list_tests"* ]]; then
+  # Execute directly without wrapping in a temp directory
+  exec "$@"
+fi
+
 # Create a unique temporary directory for this process.
 export TEST_TMPDIR="$(mktemp -d)"
 
