@@ -23,7 +23,8 @@ underlying finite-state models.
 
 ### Bazel
 
-OpenFst can be built and tested using [Bazel](https://bazel.build) 8 or newer.
+OpenGrm can be built and tested using [Bazel](https://bazel.build) 9.1.1 or
+newer.
 
 ```bash
 # Build the entire project
@@ -58,7 +59,7 @@ bazel-bin/opengrm/baumwelch/baumwelchtrain --help
 
 ### CMake
 
-OpenFst can also be built with [CMake](https://cmake.org) 3.22 or higher.
+OpenGrm can also be built with [CMake](https://cmake.org) 3.22 or higher.
 
 #### Prerequisites
 
