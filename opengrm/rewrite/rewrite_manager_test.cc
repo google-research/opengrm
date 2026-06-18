@@ -78,7 +78,7 @@ class RewriteManagerTest : public ::testing::Test {
   }
 
   absl::Status SetUpFromFstMap() {
-    ASSIGN_OR_RETURN(
+    ABSL_ASSIGN_OR_RETURN(
         absl_nonnull std::unique_ptr<STTableFarReader<StdArc>> far_reader,
         STTableFarReader<StdArc>::OpenWithStatus(far_path_));
     manager_.Load(ReadFstMap(std::move(far_reader)));
