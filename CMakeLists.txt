@@ -121,7 +121,7 @@ else()
   set(ABSL_BUILD_TESTING OFF)
   FetchContent_Declare(
     abseil-cpp
-    URL https://github.com/abseil/abseil-cpp/archive/refs/tags/20260107.0.zip
+    URL https://github.com/abseil/abseil-cpp/archive/refs/tags/20260526.0.zip
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE
   )
   FetchContent_MakeAvailable(abseil-cpp)

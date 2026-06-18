@@ -25,7 +25,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/memory/memory.h"
 #include "absl/status/status.h"
-#include "openfst/compat/status_macros.h"
+#include "absl/status/status_macros.h"
 #include "absl/status/status_matchers.h"
 #include "absl/strings/string_view.h"
 #include "openfst/extensions/far/far.h"
