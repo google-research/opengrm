@@ -29,12 +29,12 @@
 #include <vector>
 
 #include "absl/log/log.h"
+#include "absl/memory/memory.h"
 #include "absl/status/status.h"
 #include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
-#include "openfst/compat/compat_memory.h"
 
 // For Cygwin and other installations that do not define ACCESSPERMS (thanks to
 // Damir Cavar).
@@ -64,7 +64,7 @@ absl::Status ReadFileToString(absl::string_view file, std::string* store) {
   istrm.seekg(0, std::ios::end);
   const size_t length = istrm.tellg();
   istrm.seekg(0, std::ios::beg);
-  auto buf = ::fst::make_unique_for_overwrite<char[]>(length);
+  auto buf = absl::make_unique_for_overwrite<char[]>(length);
   istrm.read(buf.get(), length);
   store->append(buf.get(), length);
   if (istrm.fail()) return absl::InternalError("Error reading from file");

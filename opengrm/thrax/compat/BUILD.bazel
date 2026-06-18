@@ -26,9 +26,9 @@ cc_library(
     hdrs = ["file.h"],
     deps = [
         "@com_google_absl//absl/log",
+        "@com_google_absl//absl/memory",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
-        "@com_google_openfst//openfst/compat:compat_memory",
     ],
 )
 
