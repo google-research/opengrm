@@ -7,6 +7,7 @@
 [![Bazel (x64 Linux)](https://github.com/google-research/opengrm/actions/workflows/bazel_x64_linux.yml/badge.svg)](https://github.com/google-research/opengrm/actions/workflows/bazel_x64_linux.yml)
 [![CMake (x64 Linux)](https://github.com/google-research/opengrm/actions/workflows/cmake_x64_linux.yml/badge.svg)](https://github.com/google-research/opengrm/actions/workflows/cmake_x64_linux.yml)
 [![Bazel (arm64 macOS)](https://github.com/google-research/opengrm/actions/workflows/bazel_arm64_macos.yml/badge.svg)](https://github.com/google-research/opengrm/actions/workflows/bazel_arm64_macos.yml)
+[![CMake (arm64 macOS)](https://github.com/google-research/opengrm/actions/workflows/cmake_arm64_macos.yml/badge.svg)](https://github.com/google-research/opengrm/actions/workflows/cmake_arm64_macos.yml)
 
 OpenGrm is a collection of open-source libraries for constructing, combining,
 applying and searching formal grammars and related representations, using the
