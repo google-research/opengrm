@@ -136,11 +136,13 @@ if(OPENGRM_ENABLE_BIN)
 endif()
 
 if(OPENGRM_BUILD_TESTS)
-  add_executable(a-star_test a-star_test.cc)
-  target_link_libraries(a-star_test PRIVATE grm_baumwelch GTest::gtest_main)
-  grm_configure_test_target(a-star_test)
+  # Prefixed with grm_ to avoid target collision with OpenFst's a-star_test when
+  # OPENFST_BUILD_TESTS is enabled.
+  add_executable(grm_a-star_test a-star_test.cc)
+  target_link_libraries(grm_a-star_test PRIVATE grm_baumwelch GTest::gtest_main)
+  grm_configure_test_target(grm_a-star_test)
   gtest_discover_tests(
-    a-star_test
+    grm_a-star_test
     WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
   )
 

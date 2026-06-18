@@ -143,18 +143,20 @@ if(OPENGRM_BUILD_TESTS)
     WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
   )
 
-  add_executable(string_test string_test.cc)
-  target_link_libraries(string_test PRIVATE grm_string grm_stringscript
-                                            GTest::gtest_main
+  # Prefixed with grm_ to avoid target collision with OpenFst's string_test when
+  # OPENFST_BUILD_TESTS is enabled.
+  add_executable(grm_string_test string_test.cc)
+  target_link_libraries(grm_string_test PRIVATE grm_string grm_stringscript
+                                                GTest::gtest_main
   )
-  grm_configure_test_target(string_test)
+  grm_configure_test_target(grm_string_test)
   # Uses add_test instead of gtest_discover_tests because the tests in
   # string_test.cc are order-dependent and rely on shared global compiler state
   # (the generated symbols table) populated by previous tests. Discovery
   # isolates each test case, which breaks these dependencies.
   add_test(
     NAME string_test
-    COMMAND string_test
+    COMMAND grm_string_test
     WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
   )
 endif()
