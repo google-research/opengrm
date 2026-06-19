@@ -20,14 +20,15 @@ echo "--- Running OpenGrm CMake tests ---"
 
 NPROC="$(getconf _NPROCESSORS_ONLN)"
 
-# Enable all switches to ensure we test all components
+# Enable all switches to ensure we test all components.
 cmake -S . -B build \
   -DCMAKE_BUILD_TYPE=Dev \
   -DOPENGRM_ENABLE_BIN=ON \
   -DOPENGRM_BUILD_TESTS=ON \
-  -DOPENGRM_ENABLE_SFST=ON \
-  -DOPENGRM_ENABLE_NGRAM=ON \
   -DOPENGRM_ENABLE_BAUMWELCH=ON \
+  -DOPENGRM_ENABLE_NGRAM=ON \
+  -DOPENGRM_ENABLE_PYNINI=ON \
+  -DOPENGRM_ENABLE_SFST=ON \
   -DOPENGRM_ENABLE_THRAX=ON \
   -DBUILD_SHARED_LIBS=ON
 
