@@ -12,7 +12,25 @@
 OpenGrm is a collection of open-source libraries for constructing, combining,
 applying and searching formal grammars and related representations, using the
 [OpenFst](https://github.com/google-research/openfst) library for their
-underlying finite-state models.
+underlying finite-state models. This collection includes:
+
+*   [Baum-Welch](/opengrm/baumwelch/README.md): parameter estimation and decoding using a
+    channel model represented as weighted finite-state transducers (WFSTs).
+*   [NGram](/opengrm/ngram/README.md): making and modifying n-gram language models
+    encoded as WFSTs.
+*   [Pynini](/opengrm/pynini/README.md): a
+    Python library for compiling a grammar of strings, regular expressions, and
+    context-dependent rewrite rules into WFSTs.
+*   [SFst](/opengrm/sfst/README.md): normalizing, sampling, combining, and approximating
+    stochastic finite-state transducers.
+*   [Thrax](/opengrm/thrax/README.md): a set of tools for compiling grammars expressed as
+    regular expressions and context-dependent rewrite rules into WFSTs.
+*   Several helper libraries for formal grammar compilation
+    [functions](/opengrm/operators/README.md), [path](/opengrm/paths/README.md) iteration,
+    [rewrite](/opengrm/rewrite/README.md) rule operations, and [string](/opengrm/string/README.md)
+    automata manipulation.
+
+Please also see https://www.opengrm.org for extensive documentation.
 
 ## Building
 
