@@ -95,6 +95,7 @@ cc_library(
     deps = [
         ":flags",
         ":grm-manager-lib",
+        "//opengrm/compat:file",
         "//opengrm/thrax/ast",
         "//opengrm/thrax/ast:collection-node",
         "//opengrm/thrax/ast:fst-node",
@@ -107,7 +108,6 @@ cc_library(
         "//opengrm/thrax/ast:rule-node",
         "//opengrm/thrax/ast:statement-node",
         "//opengrm/thrax/ast:string-node",
-        "//opengrm/thrax/compat:file",
         "//opengrm/thrax/walker:base",
         "//opengrm/thrax/walker:evaluator",
         "//opengrm/thrax/walker:identifier-counter",
@@ -135,7 +135,7 @@ cc_library(
     hdrs = ["grm-manager.h"],
     deps = [
         ":abstract-grm-manager-lib",
-        "//opengrm/thrax/compat:file",
+        "//opengrm/compat:file",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/memory",
@@ -185,8 +185,8 @@ cc_library(
     hdrs = ["rewrite-tester.h"],
     deps = [
         ":grm-manager-lib",
+        "//opengrm/compat:file",
         "//opengrm/paths",
-        "//opengrm/thrax/compat:file",
         "//opengrm/thrax/walker/util/function",
         "//opengrm/thrax/walker/util/function:symbols",
         "@com_google_absl//absl/flags:flag",

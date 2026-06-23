@@ -22,7 +22,7 @@
 #include <memory>
 #include <string>
 
-#include "opengrm/thrax/compat/file.h"
+#include "opengrm/compat/file.h"
 #include "openfst/compat/file_path.h"
 #include "absl/flags/declare.h"
 #include "absl/flags/flag.h"
@@ -93,7 +93,7 @@ void GrmManagerSpec<Arc>::ExportFar(absl::string_view filename) const {
   const std::string dir(
       fst::JoinPath(absl::GetFlag(FLAGS_outdir), fst::Dirname(filename)));
   VLOG(1) << "Creating output directory: " << dir;
-  if (!thrax::RecursivelyCreateDir(dir))
+  if (!file::RecursivelyCreateDir(dir))
     LOG(FATAL) << "Unable to create output directory: " << dir;
 
   const std::string out_path(

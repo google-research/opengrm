@@ -26,7 +26,7 @@
 #include <utility>
 #include <vector>
 
-#include "opengrm/thrax/compat/file.h"
+#include "opengrm/compat/file.h"
 #include "openfst/compat/file_path.h"
 #include "absl/base/casts.h"
 #include "absl/container/flat_hash_map.h"
@@ -228,7 +228,7 @@ class AstEvaluator : public AstWalker {
     env_ = env_->AddSubNamespace(path, alias);
     // Loads up the function source into the local environment.
     VLOG(2) << "Opening (and parsing) imported source file: " << path;
-    if (!Readable(path)) {
+    if (!file::Readable(path)) {
       Error(*node, absl::StrCat("Unable to open grm source file: ", path));
       env_ = prev_env;
       return;

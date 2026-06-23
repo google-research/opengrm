@@ -112,10 +112,10 @@ cc_test(
     ],
     deps = [
         ":total-sort-lib",
+        "//opengrm/compat:file",
         "//opengrm/thrax:grm-compiler-lib",
         "//opengrm/thrax:grm-manager-lib",
         "//opengrm/thrax/ast:node",
-        "//opengrm/thrax/compat:file",
         "//opengrm/thrax/walker:base",
         "//opengrm/thrax/walker:printer",
         "@com_google_absl//absl/log:check",
@@ -136,8 +136,8 @@ cc_test(
         "//opengrm/thrax/test/testdata/difference:difference.tsv",
     ],
     deps = [
+        "//opengrm/compat:file",
         "//opengrm/thrax:grm-manager-lib",
-        "//opengrm/thrax/compat:file",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
@@ -155,8 +155,8 @@ cc_test(
         "//opengrm/thrax/test/testdata/features:features2",
     ],
     deps = [
+        "//opengrm/compat:file",
         "//opengrm/thrax:grm-manager-lib",
-        "//opengrm/thrax/compat:file",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
@@ -174,8 +174,8 @@ cc_test(
         "//opengrm/thrax/test/testdata/mpdt:mpdt.txt",
     ],
     deps = [
+        "//opengrm/compat:file",
         "//opengrm/thrax:grm-manager-lib",
-        "//opengrm/thrax/compat:file",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
@@ -193,8 +193,8 @@ cc_test(
         "//opengrm/thrax/test/testdata/paradigm:paradigm.txt",
     ],
     deps = [
+        "//opengrm/compat:file",
         "//opengrm/thrax:grm-manager-lib",
-        "//opengrm/thrax/compat:file",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
@@ -212,8 +212,8 @@ cc_test(
         "//opengrm/thrax/test/testdata/pdt:pdt.txt",
     ],
     deps = [
+        "//opengrm/compat:file",
         "//opengrm/thrax:grm-manager-lib",
-        "//opengrm/thrax/compat:file",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
@@ -231,8 +231,8 @@ cc_test(
         "//opengrm/thrax/test/testdata/ru_numbers:number_names.txt",
     ],
     deps = [
+        "//opengrm/compat:file",
         "//opengrm/thrax:grm-manager-lib",
-        "//opengrm/thrax/compat:file",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
@@ -320,8 +320,8 @@ cc_test(
         "testdata/compilation/stringboundaries.grm",
     ],
     deps = [
+        "//opengrm/compat:file",
         "//opengrm/thrax:grm-compiler-lib",
-        "//opengrm/thrax/compat:file",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status:status_matchers",

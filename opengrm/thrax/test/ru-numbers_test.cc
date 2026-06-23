@@ -18,8 +18,8 @@
 #include <string>
 #include <vector>
 
-#include "opengrm/thrax/compat/file.h"
-#include "opengrm/thrax/compat/file.h"
+#include "opengrm/compat/file.h"
+#include "opengrm/compat/file.h"
 
 #include "openfst/compat/file_path.h"
 #include "gtest/gtest.h"
@@ -55,7 +55,7 @@ class RussianNumbersTest : public ::testing::Test {
 };
 
 TEST_F(RussianNumbersTest, FileTest) {
-  InputBuffer testfile(OpenOrDie(testfile_path_, "r"));
+  file::InputBuffer testfile(file::OpenOrDie(testfile_path_, "r"));
 
   std::string line;
   while (testfile.ReadLine(&line)) {

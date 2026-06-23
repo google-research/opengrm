@@ -48,7 +48,7 @@
 #endif  // HAVE_READLINE
 
 #ifdef HAVE_READLINE
-#include "opengrm/thrax/compat/file.h"
+#include "opengrm/compat/file.h"
 #endif  // HAVE_READLINE
 
 ABSL_FLAG(std::string, far, "", "Path to the FAR.");
@@ -227,13 +227,13 @@ inline void InitializeHistoryFile() {
     return;
   }
   // Creates history file if it doesn't exist.
-  if (!Readable(absl::GetFlag(FLAGS_history_file))) {
+  if (!file::Readable(absl::GetFlag(FLAGS_history_file))) {
     File* fp;
-    if (!(fp = Open(absl::GetFlag(FLAGS_history_file), "w")) != nullptr) {
+    if (!(fp = file::Open(absl::GetFlag(FLAGS_history_file), "w")) != nullptr) {
       fp = nullptr;
     }
     // Fails silently if we can't open it: just don't record history.
-    if (fp) fp->Close();
+    if (fp) fp->file::Close();
   }
   // This will fail silently if history_file doesn't open.
   read_history(absl::GetFlag(FLAGS_history_file).c_str());

@@ -25,7 +25,7 @@
 #include <utility>
 #include <vector>
 
-#include "opengrm/thrax/compat/file.h"
+#include "opengrm/compat/file.h"
 #include "absl/flags/declare.h"
 #include "absl/flags/flag.h"
 #include "absl/log/check.h"
@@ -229,7 +229,7 @@ bool GrmCompilerSpec<Arc>::ParseFile(absl::string_view filename) {
   VLOG(1) << "Parsing file: " << filename;
   file_ = filename;
   std::string contents;
-  CHECK_OK(ReadFileToString(filename, &contents));
+  CHECK_OK(file::ReadFileToString(filename, &contents));
   // Adds a newline in case one was left off. It doesn't hurt to have an extra
   // one (so not worth checking to see if one is already there), but the bison
   // parser fails for cryptic reasons if one is missing.

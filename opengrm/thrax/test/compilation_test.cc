@@ -17,7 +17,7 @@
 #include <string>
 #include <vector>
 
-#include "opengrm/thrax/compat/file.h"
+#include "opengrm/compat/file.h"
 
 #include "openfst/compat/file_path.h"
 #include "gtest/gtest.h"
@@ -173,7 +173,7 @@ TEST_F(CompilationTest, AstTest) {
   root->Accept(&printer);
 
   std::string golden_ast;
-  CHECK_OK(ReadFileToString(ast_txt_path_, &golden_ast));
+  CHECK_OK(file::ReadFileToString(ast_txt_path_, &golden_ast));
 
   // oss.str() should return a string already, but the test macro gets confused,
   // so we'll explicitly specify the type via a cast.
@@ -260,7 +260,7 @@ class IdentifierPosTest : public ::testing::Test {
             "opengrm/thrax/test/testdata/compilation/",
             name, ".grm"));
     std::string source;
-    QCHECK_OK(ReadFileToString(filename, &source));
+    QCHECK_OK(file::ReadFileToString(filename, &source));
 
     GrmCompilerSpec<StdArc> grm;
     ASSERT_TRUE(grm.ParseFile(filename));

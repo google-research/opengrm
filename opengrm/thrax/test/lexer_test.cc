@@ -16,7 +16,7 @@
 
 #include <string>
 
-#include "opengrm/thrax/compat/file.h"
+#include "opengrm/compat/file.h"
 
 #include "openfst/compat/file_path.h"
 #include "gtest/gtest.h"
@@ -34,7 +34,7 @@ class LexerTest : public ::testing::Test {
  protected:
   void Run(const std::string& name) {
     std::string grm;
-    ABSL_ASSERT_OK(ReadFileToString(fst::JoinPath(
+    ABSL_ASSERT_OK(file::ReadFileToString(fst::JoinPath(
             std::string("."),
             "opengrm/thrax/test/testdata/compilation",
             absl::StrCat(name, ".grm")), &grm));
