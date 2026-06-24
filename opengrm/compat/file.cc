@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "opengrm/thrax/compat/file.h"
+#include "opengrm/compat/file.h"
 
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -42,7 +42,7 @@
 #define ACCESSPERMS (S_IRWXU | S_IRWXG | S_IRWXO)
 #endif
 
-namespace thrax {
+namespace file {
 
 bool Readable(absl::string_view filename) {
   const int fdes = open(std::string(filename).c_str(), O_RDONLY);
@@ -106,12 +106,13 @@ File* OpenOrDie(absl::string_view filename, absl::string_view mode) {
   auto* file = Open(filename, mode);
   if (!file) {
     if (filename.empty()) {
-      LOG(FATAL) << "No file specified";
+      LOG(FATAL) << "No file specified";  // Crash OK
     } else {
-      LOG(FATAL) << "Can't open file " << filename << " for reading";
+      LOG(FATAL) << "Can't open file "  // Crash OK
+                 << filename << " for reading";
     }
   }
   return file;
 }
 
-}  // namespace thrax
+}  // namespace file

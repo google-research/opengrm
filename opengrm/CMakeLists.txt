@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_subdirectory(paths)
-add_subdirectory(string)
-add_subdirectory(rewrite)
+add_subdirectory(compat)
 add_subdirectory(operators)
+add_subdirectory(paths)
+add_subdirectory(rewrite)
+add_subdirectory(string)
 
 if(OPENGRM_ENABLE_BAUMWELCH)
   add_subdirectory(baumwelch)

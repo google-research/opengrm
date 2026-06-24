@@ -25,7 +25,7 @@ set(THRAX_HEADERS
 
 # Core lib containing abstract-grm-manager, flags, and compatibility file
 # helpers
-grm_add_library(thrax_core flags.cc compat/file.cc)
+grm_add_library(thrax_core flags.cc)
 target_include_directories(thrax_core
                            PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
 )
@@ -36,6 +36,7 @@ target_link_libraries(
          openfst::pdt
          openfst::mpdt
          grm_rewrite # For parentheses.h
+         grm_compat
          absl::flags
          absl::strings
          absl::status

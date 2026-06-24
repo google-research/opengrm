@@ -14,8 +14,8 @@
 
 // File I/O APIs.
 
-#ifndef OPENGRM_THRAX_COMPAT_FILE_H_
-#define OPENGRM_THRAX_COMPAT_FILE_H_
+#ifndef OPENGRM_COMPAT_FILE_H_
+#define OPENGRM_COMPAT_FILE_H_
 
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -30,7 +30,7 @@
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
 
-namespace thrax {
+namespace file {
 
 bool Readable(absl::string_view filename);
 
@@ -93,6 +93,6 @@ File* Open(absl::string_view filename, absl::string_view mode);
 
 File* OpenOrDie(absl::string_view filename, absl::string_view mode);
 
-}  // namespace thrax
+}  // namespace file
 
-#endif  // OPENGRM_THRAX_COMPAT_FILE_H_
+#endif  // OPENGRM_COMPAT_FILE_H_
