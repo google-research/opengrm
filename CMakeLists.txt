@@ -169,7 +169,7 @@ else()
   FetchContent_Declare(
     openfst
     GIT_REPOSITORY https://github.com/google-research/openfst.git
-    GIT_TAG 8e3e92b38afb8d0b27015bdccbd6f6ef479d9400
+    GIT_TAG e58cf94196863975850f58b13cb7600afb6dcd03
   )
   FetchContent_MakeAvailable(openfst)
 endif()

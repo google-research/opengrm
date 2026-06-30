@@ -135,7 +135,7 @@ bazel_dep(
 # Some modules are not yet available in the bazel central registry. We define
 # a dummy module and then use `git_override` to point it at the specific commit
 # in the respective github repo.
-OPENFST_COMMIT = "8e3e92b38afb8d0b27015bdccbd6f6ef479d9400"  # 18/06/26.
+OPENFST_COMMIT = "e58cf94196863975850f58b13cb7600afb6dcd03"  # 29/06/26.
 bazel_dep(name = "openfst", version = "0.0.0", repo_name = "com_google_openfst")
 git_override(
     module_name = "openfst",
