@@ -26,6 +26,7 @@ cc_library(
         "@com_google_openfst//openfst/lib:lib_lite",
         "@com_google_openfst//openfst/lib:string",
         "@com_google_openfst//openfst/lib:symbol-table",
+        "@com_google_protobuf//:protobuf_lite",
     ],
 )
 
@@ -63,6 +64,7 @@ cc_library(
         "@com_google_openfst//openfst/extensions/pdt:compose",
         "@com_google_openfst//openfst/lib",
         "@com_google_openfst//openfst/lib:symbol-table",
+        "@com_google_protobuf//:protobuf_lite",
     ],
 )
 
@@ -104,6 +106,7 @@ cc_library(
         "@com_google_openfst//openfst/extensions/far:lib",
         "@com_google_openfst//openfst/lib",
         "@com_google_openfst//openfst/lib:fst-decl",
+        "@com_google_protobuf//:protobuf_lite",
     ],
 )
 
@@ -139,6 +142,7 @@ cc_library(
         "@com_google_absl//absl/types:span",
         "@com_google_openfst//openfst/lib:lib_lite",
         "@com_google_openfst//openfst/lib:symbol-table",
+        "@com_google_protobuf//:protobuf_lite",
     ],
 )
 

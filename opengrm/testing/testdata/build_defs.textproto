@@ -1,0 +1,9 @@
+# proto-file: third_party/opengrm/testing/testdata.proto
+# proto-message: Rewrites
+
+rewrite {
+  rule: "ALL_RULES_FOR_TESTING"
+  input: "foo"
+  output: "bar"
+  output: "baz"
+}
