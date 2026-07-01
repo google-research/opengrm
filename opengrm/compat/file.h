@@ -28,6 +28,7 @@
 #include <utility>
 
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 
 namespace file {
@@ -35,6 +36,7 @@ namespace file {
 bool Readable(absl::string_view filename);
 
 absl::Status ReadFileToString(absl::string_view filename, std::string* store);
+absl::StatusOr<std::string> ReadFileToString(absl::string_view filename);
 
 bool RecursivelyCreateDir(absl::string_view path);
 

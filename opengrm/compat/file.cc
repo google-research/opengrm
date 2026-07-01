@@ -31,6 +31,7 @@
 #include "absl/log/log.h"
 #include "absl/memory/memory.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_split.h"
@@ -69,6 +70,15 @@ absl::Status ReadFileToString(absl::string_view file, std::string* store) {
   store->append(buf.get(), length);
   if (istrm.fail()) return absl::InternalError("Error reading from file");
   return absl::OkStatus();
+}
+
+absl::StatusOr<std::string> ReadFileToString(absl::string_view file) {
+  std::string store;
+  if (const absl::Status status = ReadFileToString(file, &store);
+      !status.ok()) {
+    return status;
+  }
+  return store;
 }
 
 // A partial (largely non-) implementation of this functionality.

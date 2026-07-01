@@ -32,6 +32,7 @@ target_link_libraries(
   PUBLIC absl::log
          absl::memory
          absl::status
+         absl::statusor
          absl::strings
 )
 
