@@ -55,3 +55,18 @@ opengrm_install(
   DESTINATION
   ${CMAKE_INSTALL_INCLUDEDIR}/opengrm/compat
 )
+
+if(OPENGRM_BUILD_TESTS)
+  add_executable(file_test file_test.cc)
+  target_link_libraries(
+    file_test
+    PRIVATE grm_compat
+            openfst::fst
+            GTest::gtest_main
+  )
+  grm_configure_test_target(file_test)
+  gtest_discover_tests(
+    file_test
+    WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+  )
+endif()

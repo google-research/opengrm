@@ -15,8 +15,7 @@
 # The special compatibility library for use in the *external* version of this library, Thrax.
 # None of these libraries may be used within google itself.
 
-load("@bazel_skylib//rules:build_test.bzl", "build_test")
-load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -33,7 +32,15 @@ cc_library(
     ],
 )
 
-build_test(
+cc_test(
     name = "file_test",
-    targets = [":file"],
+    size = "small",
+    srcs = ["file_test.cc"],
+    deps = [
+        ":file",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+    ],
 )
