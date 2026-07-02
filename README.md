@@ -18,8 +18,8 @@ underlying finite-state models. This collection includes:
     channel model represented as weighted finite-state transducers (WFSTs).
 *   [NGram](/opengrm/ngram/README.md): making and modifying n-gram language models
     encoded as WFSTs.
-*   [Pynini](/opengrm/pynini/README.md): a
-    Python library for compiling a grammar of strings, regular expressions, and
+*   [Pynini](/opengrm/pynini/README.md): a Python
+    library for compiling a grammar of strings, regular expressions, and
     context-dependent rewrite rules into WFSTs.
 *   [SFst](/opengrm/sfst/README.md): normalizing, sampling, combining, and approximating
     stochastic finite-state transducers.
@@ -29,6 +29,7 @@ underlying finite-state models. This collection includes:
     [functions](/opengrm/operators/README.md), [path](/opengrm/paths/README.md) iteration,
     [rewrite](/opengrm/rewrite/README.md) rule operations, and [string](/opengrm/string/README.md)
     automata manipulation.
+*   Bazel scaffolding for grammar [testing](testing/README.md).
 
 Please also see https://www.opengrm.org for extensive documentation.
 
@@ -93,8 +94,11 @@ OpenGrm can also be built with [CMake](https://cmake.org) 3.22 or higher.
 
 #### Build and Install
 
-Dependencies like Abseil, GoogleTest, and OpenFst are automatically downloaded
-using `FetchContent` (or `find_package`).
+Dependencies like [Abseil](https://github.com/abseil/abseil-cpp),
+[GoogleTest](https://github.com/google/googletest),
+[Google Protocol Buffers](https://github.com/protocolbuffers/protobuf) and
+[OpenFst](https://github.com/google-research/openfst) are automatically
+downloaded using `FetchContent` (or `find_package`).
 
 ```bash
 # Configure the project.

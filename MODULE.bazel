@@ -131,6 +131,11 @@ bazel_dep(
     version = "2.4.0",
     repo_name = "com_google_absl_py",
 )
+bazel_dep(
+    name = "protobuf",
+    version = "35.1",
+    repo_name = "com_google_protobuf"
+)
 
 # Some modules are not yet available in the bazel central registry. We define
 # a dummy module and then use `git_override` to point it at the specific commit
