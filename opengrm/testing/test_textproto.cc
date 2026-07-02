@@ -51,6 +51,7 @@
 #include "gtest/gtest.h"
 #include "absl/algorithm/container.h"
 #include "absl/flags/flag.h"
+#include "absl/flags/parse.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -214,8 +215,8 @@ class RewriteTextprotoTest : public testing::Test {
 
 }  // namespace
 
-// Registers each rewrite test case as a separate test following
-// https://google.github.io/googletest/advanced.html#registering-tests-programmatically.
+// Registers each rewrite test case as a separate test.
+// Documentation: https://google.github.io/googletest/advanced.html#registering-tests-programmatically.
 //
 // This allows the tests to run independently of each other and can therefore
 // be sharded, have accurate source location for each test case, and makes it
@@ -255,9 +256,11 @@ absl::StatusOr<RewriteTestMode> GetMode(absl::string_view mode) {
 
 int main(int argc, char **argv) {
   testing::InitGoogleTest(&argc, argv);
+  absl::ParseCommandLine(argc, argv);
 
   absl::StatusOr<opengrm::RewriteTestMode> mode =
       opengrm::GetMode(absl::GetFlag(FLAGS_mode));
+  QCHECK_OK(mode);  // Crash OK
 
   fst::TokenType token_type;
   QCHECK(opengrm::GetTokenType(absl::GetFlag(FLAGS_token_type),  // Crash OK

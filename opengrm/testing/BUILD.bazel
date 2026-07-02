@@ -17,7 +17,6 @@ load("@com_google_protobuf//bazel:cc_proto_library.bzl", "cc_proto_library")
 load("@com_google_protobuf//bazel:proto_library.bzl", "proto_library")
 load("@com_google_protobuf//bazel:py_proto_library.bzl", "py_proto_library")
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
-load("//net/proto2/util/public:proto2_db.bzl", "proto2_db")
 load("//opengrm/testing:build_defs.bzl", "grm_textproto_test")
 load("//opengrm/thrax:grm_build_defs.bzl", "compile_grm")
 
@@ -48,11 +47,6 @@ py_proto_library(
     deps = [":testdata_proto"],
 )
 
-proto2_db(
-    name = "testdata_proto_db",
-    srcs = [":testdata_proto"],
-)
-
 # Tests testdata for correctness w.r.t. to grammars.
 cc_library(
     name = "test_textproto_lib",
@@ -64,6 +58,7 @@ cc_library(
         "//opengrm/rewrite:rule_cascade",
         "@com_google_absl//absl/algorithm:container",
         "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",

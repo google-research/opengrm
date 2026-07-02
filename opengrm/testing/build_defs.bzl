@@ -94,16 +94,8 @@ def grm_textproto_test(
     ]
 
     tags = [
-        # Running the C++ sanitization tests doesn't make sense when it's the
-        # correctness of the grammars we are verifying.
-        "nosan",  # google3/devtools/blueprint/ncl/sanitizer.ncl
-        "no_asan",
-        "no_msan",
-        "no_tsan",
     ] + kwds.pop("tags", [])  # We pop to avoid providing tags twice.
 
-    # See go/rewrite-modes, or just read the code, for the interpretation of
-    # these modes.
     args.append("--mode=" + mode)
     cc_test(
         name = name,
