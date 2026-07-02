@@ -33,6 +33,7 @@ target_link_libraries(
             openfst::far # Requires FAR extension
             grm_paths
             grm_string
+            protobuf::libprotobuf
 )
 
 opengrm_install(

@@ -36,6 +36,7 @@
 #include "openfst/lib/vector-fst.h"
 #include "opengrm/rewrite/base_rule_cascade.h"
 #include "opengrm/rewrite/rewrite_manager.h"
+#include "google/protobuf/repeated_ptr_field.h"
 
 namespace rewrite {
 namespace internal {
@@ -108,6 +109,12 @@ class RuleCascade : public BaseRuleCascade<Arc> {
   [[deprecated("Use SetRulesWithStatus instead.")]]
   bool SetRules(absl::Span<const std::string> rules);
 
+  // Sets up rule spec; can be called repeatedly.
+  absl::Status SetRulesWithStatus(
+      const google::protobuf::RepeatedPtrField<std::string>& rules);
+
+  [[deprecated("Use SetRulesWithStatus instead.")]]
+  bool SetRules(const google::protobuf::RepeatedPtrField<std::string>& rules);
 
   bool Rewrite(
       const typename BaseRuleCascade<Arc>::Transducer& input,
@@ -147,6 +154,23 @@ bool RuleCascade<Arc>::SetRules(absl::Span<const std::string> rules) {
   return true;
 }
 
+template <class Arc>
+absl::Status RuleCascade<Arc>::SetRulesWithStatus(
+    const google::protobuf::RepeatedPtrField<std::string>& rules) {
+  triples_.clear();
+  for (const auto& rule : rules) triples_.emplace_back(rule);
+  return ValidateRules();
+}
+
+template <class Arc>
+bool RuleCascade<Arc>::SetRules(
+    const google::protobuf::RepeatedPtrField<std::string>& rules) {
+  if (const absl::Status status = SetRulesWithStatus(rules); !status.ok()) {
+    LOG(ERROR) << status;
+    return false;
+  }
+  return true;
+}
 
 template <class Arc>
 bool RuleCascade<Arc>::Rewrite(
