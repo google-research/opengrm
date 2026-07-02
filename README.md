@@ -29,7 +29,7 @@ underlying finite-state models. This collection includes:
     [functions](/opengrm/operators/README.md), [path](/opengrm/paths/README.md) iteration,
     [rewrite](/opengrm/rewrite/README.md) rule operations, and [string](/opengrm/string/README.md)
     automata manipulation.
-*   Bazel scaffolding for grammar [testing](testing/README.md).
+*   Bazel scaffolding for grammar [testing](/opengrm/testing/README.md).
 
 Please also see https://www.opengrm.org for extensive documentation.
 
