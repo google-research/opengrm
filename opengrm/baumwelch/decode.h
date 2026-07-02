@@ -22,6 +22,7 @@
 #include <numeric>
 #include <vector>
 
+#include "absl/strings/str_cat.h"
 #include "openfst/extensions/far/far.h"
 #include "openfst/lib/arc-map.h"
 #include "openfst/lib/compact-fst.h"
@@ -100,10 +101,11 @@ void Decode(FarReader<Arc>& input, FarReader<Arc>& output,
       ArcMap(&tfst, rmweight);
       RmEpsilon(&tfst);
       Encode(&tfst, encoder);
-      hypotext.Add(input.GetKey() + "_" + output.GetKey(),
+      hypotext.Add(absl::StrCat(input.GetKey(), "_", output.GetKey()),
                    CompactStringFst<Arc>(tfst));
     } else {
-      hypotext.Add(input.GetKey() + "_" + output.GetKey(), ConstFst<Arc>(tfst));
+      hypotext.Add(absl::StrCat(input.GetKey(), "_", output.GetKey()),
+                   ConstFst<Arc>(tfst));
     }
     input.Next();
     output.Next();

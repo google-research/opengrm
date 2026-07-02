@@ -22,6 +22,7 @@
 #include <memory>
 #include <string>
 
+#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "openfst/lib/symbol-table.h"
 
@@ -31,8 +32,8 @@ namespace function {
 const ::fst::SymbolTable* GetByteSymbolTable();
 const ::fst::SymbolTable* GetUtf8SymbolTable();
 
-void AddToByteSymbolTable(std::string symbol, int64_t label);
-void AddToUtf8SymbolTable(std::string symbol, int64_t label);
+void AddToByteSymbolTable(absl::string_view symbol, int64_t label);
+void AddToUtf8SymbolTable(absl::string_view symbol, int64_t label);
 
 static const char kByteSymbolTableName[] = "**Byte symbols";
 static const char kUtf8SymbolTableName[] = "**UTF8 symbols";
@@ -44,9 +45,9 @@ class SymbolTableBuilder {
   const ::fst::SymbolTable* GetByteSymbolTable();
   const ::fst::SymbolTable* GetUtf8SymbolTable();
 
-  void AddToByteSymbolTable(std::string symbol, int64_t label);
+  void AddToByteSymbolTable(absl::string_view symbol, int64_t label);
 
-  void AddToUtf8SymbolTable(std::string symbol, int64_t label);
+  void AddToUtf8SymbolTable(absl::string_view symbol, int64_t label);
 
  private:
   void GenerateByteSymbolTable();

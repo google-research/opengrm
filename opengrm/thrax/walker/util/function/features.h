@@ -117,7 +117,9 @@
 #include "absl/flags/flag.h"
 #include "absl/log/check.h"
 #include "absl/log/log.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
+#include "openfst/lib/arc-range.h"
 #include "openfst/lib/concat.h"
 #include "openfst/lib/fst.h"
 #include "openfst/lib/properties.h"
@@ -355,7 +357,8 @@ class Feature : public Function<Arc> {
       const std::string& feature_value_pair) const {
     // Sole purpose is to add the bracketed_feature_value_pair to the generated
     // label set (stringfst.h)
-    std::string bracketed_feature_value_pair = "[" + feature_value_pair + "]";
+    const std::string bracketed_feature_value_pair =
+        absl::StrCat("[", feature_value_pair, "]");
     StringFst<Arc> func;
     auto args = std::make_unique<std::vector<std::unique_ptr<DataType>>>();
     args->push_back(
@@ -509,9 +512,7 @@ class FeatureVector : public Function<Arc> {
       const auto it = feature_label_pairs.find(feature);
       auto next = fst->AddState();
       if (it == feature_label_pairs.end()) {
-        for (::fst::ArcIterator<MutableTransducer> aiter(*category_fst, feat_s);
-             !aiter.Done(); aiter.Next()) {
-          const auto& arc = aiter.Value();
+        for (const auto& arc : fst::GetArcs(*category_fst, feat_s)) {
           fst->EmplaceArc(s, arc.ilabel, arc.olabel, next);
         }
       } else {

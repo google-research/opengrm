@@ -293,7 +293,7 @@ bool RewriteTester::AppendLabel(Label label, std::string* path) const {
     // string is parsed using a user-provided symbol table.
     if (generated_symtab_ && !generated_symtab_->Find(label).empty()) {
       const auto& sym = generated_symtab_->Find(label);
-      *path += "[" + sym + "]";
+      absl::StrAppend(path, "[", sym, "]");
     } else if (type_ == TokenType::SYMBOL) {
       const auto& sym = output_symtab_->Find(label);
       if (sym.empty()) {

@@ -123,6 +123,7 @@ cc_library(
     deps = [
         ":a-star",
         ":cascade",
+        "@com_google_absl//absl/strings",
         "@com_google_openfst//openfst/extensions/far:lib",
         "@com_google_openfst//openfst/lib",
         "@com_google_openfst//openfst/lib:fst-decl",

@@ -72,7 +72,6 @@ cc_library(
     name = "register",
     hdrs = ["register.h"],
     deps = [
-        "@com_google_absl//absl/log",
         "@com_google_absl//absl/strings",
         "@com_google_openfst//openfst/lib:register",
         "@com_google_openfst//openfst/lib:util",

@@ -492,6 +492,7 @@ cc_library(
     srcs = ["symbols.cc"],
     hdrs = ["symbols.h"],
     deps = [
+        "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/synchronization",
         "@com_google_openfst//openfst/lib:string",
         "@com_google_openfst//openfst/lib:symbol-table",
