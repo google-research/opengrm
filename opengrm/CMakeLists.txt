@@ -37,3 +37,7 @@ endif()
 if(OPENGRM_ENABLE_PYNINI)
   add_subdirectory(pynini)
 endif()
+
+if(OPENGRM_BUILD_TESTS AND (OPENGRM_ENABLE_THRAX OR OPENGRM_ENABLE_PYNINI))
+  add_subdirectory(testing)
+endif()

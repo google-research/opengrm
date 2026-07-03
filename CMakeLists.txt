@@ -67,19 +67,22 @@ option(OPENGRM_ENABLE_PYNINI "Enable Pynini extension" OFF)
 if(MSVC)
   add_compile_options(/W4)
 else()
+  add_compile_options(-Wall -Wno-deprecated-declarations -Wno-sign-compare)
   add_compile_options(
-    -Wall
-    -Wno-deprecated-declarations
-    -Wno-overloaded-virtual
-    -Wno-sign-compare
+    "$<$<COMPILE_LANGUAGE:CXX>:-Wno-overloaded-virtual>"
     # Temporarily disabled warnings that we would like to turn on.
-    -Wno-defaulted-function-deleted
-    -Wno-nullability-completeness
+    "$<$<COMPILE_LANGUAGE:CXX>:-Wno-defaulted-function-deleted>"
   )
   include(CheckCXXCompilerFlag)
   check_cxx_compiler_flag("-Wno-changes-meaning" HAS_WNO_CHANGES_MEANING)
   if(HAS_WNO_CHANGES_MEANING)
-    add_compile_options(-Wno-changes-meaning)
+    add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-Wno-changes-meaning>")
+  endif()
+  check_cxx_compiler_flag("-Wno-nullability-completeness" HAS_WNO_NULLABILITY)
+  if(HAS_WNO_NULLABILITY)
+    add_compile_options(
+      "$<$<COMPILE_LANGUAGE:CXX>:-Wno-nullability-completeness>"
+    )
   endif()
 endif()
 
@@ -91,6 +94,7 @@ endif()
 # https://github.com/google/oss-policies-info/blob/main/foundational-cxx-support-matrix.md),
 # remove these variables and replace usage in target_link_libraries with
 # $<LINK_LIBRARY:WHOLE_ARCHIVE,lib>.
+
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   if(BUILD_SHARED_LIBS)
     set(OPENGRM_ALWAYS_LINK_START "-Wl,--no-as-needed")
@@ -146,7 +150,7 @@ if(OPENGRM_USE_SYSTEM_PROTOBUF)
   endif()
 else()
   set(protobuf_BUILD_TESTS OFF CACHE BOOL "Build protobuf tests" FORCE)
-  set(protobuf_BUILD_PROTOC_BINARIES OFF CACHE BOOL "Build protoc" FORCE)
+  set(protobuf_BUILD_PROTOC_BINARIES ON CACHE BOOL "Build protoc" FORCE)
   set(protobuf_INSTALL OFF CACHE BOOL "Install protobuf" FORCE)
   set(protobuf_ABSL_PROVIDER "package" CACHE STRING "Use external Abseil" FORCE)
   if(NOT OPENGRM_USE_SYSTEM_ABSEIL)
