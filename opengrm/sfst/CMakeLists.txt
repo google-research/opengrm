@@ -170,6 +170,7 @@ if(OPENGRM_BUILD_TESTS)
       approx
       backoff
       count
+      equal
       ngramapprox
       normalize
       perplexity

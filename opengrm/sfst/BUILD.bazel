@@ -767,6 +767,27 @@ cc_test(
 )
 
 cc_test(
+    name = "equal_test",
+    size = "small",
+    srcs = [
+        "equal_test.cc",
+    ],
+    data = [
+        ":testdata/earnest.mod",
+        ":testdata/earnest_plus.mod",
+    ],
+    deps = [
+        ":sfst",
+        "@com_google_absl//absl/base:log_severity",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log:globals",
+        "@com_google_googletest//:gtest",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
     name = "ngramapprox_test",
     size = "medium",
     srcs = [
