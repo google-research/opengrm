@@ -177,6 +177,7 @@ if(OPENGRM_BUILD_TESTS)
       phi2matcher
       randgen
       shortest-distance
+      stationary_distrib
       topology
       trim
       sfstinfo

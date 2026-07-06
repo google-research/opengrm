@@ -923,6 +923,23 @@ cc_test(
 )
 
 cc_test(
+    name = "stationary-distrib_test",
+    size = "small",
+    srcs = [
+        "stationary_distrib_test.cc",
+    ],
+    deps = [
+        ":sfst",
+        "@com_google_absl//absl/base:log_severity",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log:globals",
+        "@com_google_googletest//:gtest",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:weight",
+    ],
+)
+
+cc_test(
     name = "topology_test",
     size = "small",
     srcs = [
