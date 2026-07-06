@@ -175,6 +175,7 @@ if(OPENGRM_BUILD_TESTS)
       normalize
       perplexity
       phi2matcher
+      intersect
       randgen
       shortest-distance
       stationary_distrib
