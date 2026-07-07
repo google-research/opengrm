@@ -56,6 +56,16 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "cascade_test",
+    srcs = ["cascade_test.cc"],
+    deps = [
+        ":cascade",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
 # Helper for log-addition.
 cc_library(
     name = "log-adder",

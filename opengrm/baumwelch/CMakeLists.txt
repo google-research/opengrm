@@ -146,6 +146,14 @@ if(OPENGRM_BUILD_TESTS)
     WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
   )
 
+  add_executable(cascade_test cascade_test.cc)
+  target_link_libraries(cascade_test PRIVATE grm_baumwelch GTest::gtest_main)
+  grm_configure_test_target(cascade_test)
+  gtest_discover_tests(
+    cascade_test
+    WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+  )
+
   add_executable(log-adder_test log-adder_test.cc)
   target_link_libraries(log-adder_test PRIVATE grm_baumwelch GTest::gtest_main)
   grm_configure_test_target(log-adder_test)
