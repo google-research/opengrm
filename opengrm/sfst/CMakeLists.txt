@@ -172,6 +172,7 @@ if(OPENGRM_BUILD_TESTS)
       canonical
       count
       equal
+      ngram-count
       ngramapprox
       normalize
       perplexity

@@ -783,6 +783,18 @@ cc_test(
 )
 
 cc_test(
+    name = "ngram-count_test",
+    size = "small",
+    srcs = ["ngram-count_test.cc"],
+    deps = [
+        ":ngram-count",
+        ":sfst",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
     name = "equal_test",
     size = "small",
     srcs = [
