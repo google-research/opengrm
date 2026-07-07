@@ -177,6 +177,7 @@ if(OPENGRM_BUILD_TESTS)
       phi2matcher
       intersect
       randgen
+      rmphi
       shortest-distance
       state-weights
       stationary_distrib
