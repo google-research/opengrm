@@ -111,8 +111,8 @@ TEST(StateWeightsTest, WriteWeightsToStream) {
 
 TEST(StateWeightsTest, WriteWeightsToFile) {
   std::vector<Log64Weight> weights = {Log64Weight(0.5), Log64Weight(1.25)};
-  const std::string filename = fst::JoinPath(
-      absl::GetFlag(::testing::TempDir()), "state_weights_test.txt");
+  const std::string filename =
+      fst::JoinPath(::testing::TempDir(), "state_weights_test.txt");
   EXPECT_TRUE(WriteWeights(filename, weights));
 
   EXPECT_FALSE(
