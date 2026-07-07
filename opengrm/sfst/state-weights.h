@@ -30,6 +30,7 @@
 #include "openfst/lib/signed-log-weight.h"
 #include "openfst/lib/util.h"
 #include "openfst/lib/weight.h"
+#include "opengrm/sfst/canonical.h"
 #include "opengrm/sfst/sfst.h"
 
 namespace sfst {

@@ -178,6 +178,7 @@ if(OPENGRM_BUILD_TESTS)
       intersect
       randgen
       shortest-distance
+      state-weights
       stationary_distrib
       topology
       trim
