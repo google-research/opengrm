@@ -169,6 +169,7 @@ if(OPENGRM_BUILD_TESTS)
       algo
       approx
       backoff
+      canonical
       count
       equal
       ngramapprox
