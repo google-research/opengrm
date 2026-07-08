@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
+#include "absl/hash/hash.h"
 #include "openfst/lib/fst.h"
 #include "opengrm/baumwelch/log-adder.h"
 
@@ -58,13 +59,17 @@ bool operator==(const UnweightedArc<Arc>& left,
          left.nextstate == right.nextstate;
 }
 
+template <class Arc>
+bool operator!=(const UnweightedArc<Arc>& left,
+                const UnweightedArc<Arc>& right) {
+  return !(left == right);
+}
+
 // Portable hash function for the above.
 template <class UArc>
 struct UnweightedArcHash {
   size_t operator()(const UArc& uarc) const {
-    static constexpr auto prime0 = 7853;
-    static constexpr auto prime1 = 7867;
-    return uarc.nextstate + uarc.ilabel * prime0 + uarc.olabel * prime1;
+    return absl::HashOf(uarc.ilabel, uarc.olabel, uarc.nextstate);
   }
 };
 

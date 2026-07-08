@@ -32,8 +32,8 @@ target_include_directories(
                           $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-target_link_libraries(grm_baumwelch INTERFACE openfst::fst openfst::far
-                                              grm_string
+target_link_libraries(
+  grm_baumwelch INTERFACE openfst::fst openfst::far grm_string absl::hash
 )
 
 set(BAUMWELCHSCRIPT_SRCS
@@ -136,31 +136,24 @@ if(OPENGRM_ENABLE_BIN)
 endif()
 
 if(OPENGRM_BUILD_TESTS)
-  # Prefixed with grm_ to avoid target collision with OpenFst's a-star_test when
-  # OPENFST_BUILD_TESTS is enabled.
-  add_executable(grm_a-star_test a-star_test.cc)
-  target_link_libraries(grm_a-star_test PRIVATE grm_baumwelch GTest::gtest_main)
-  grm_configure_test_target(grm_a-star_test)
-  gtest_discover_tests(
-    grm_a-star_test
-    WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
-  )
-
-  add_executable(cascade_test cascade_test.cc)
-  target_link_libraries(cascade_test PRIVATE grm_baumwelch GTest::gtest_main)
-  grm_configure_test_target(cascade_test)
-  gtest_discover_tests(
-    cascade_test
-    WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
-  )
-
-  add_executable(log-adder_test log-adder_test.cc)
-  target_link_libraries(log-adder_test PRIVATE grm_baumwelch GTest::gtest_main)
-  grm_configure_test_target(log-adder_test)
-  gtest_discover_tests(
-    log-adder_test
-    WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
-  )
+  # a-star_test is prefixed with grm_ to avoid target collision with OpenFst's
+  # a-star_test when OPENFST_BUILD_TESTS is enabled.
+  foreach(_test a-star cascade expectation-table log-adder)
+    if(_test STREQUAL "a-star")
+      set(_target grm_a-star_test)
+    else()
+      set(_target ${_test}_test)
+    endif()
+    add_executable(${_target} ${_test}_test.cc)
+    target_link_libraries(
+      ${_target} PRIVATE grm_baumwelch GTest::gtest_main
+    )
+    grm_configure_test_target(${_target})
+    gtest_discover_tests(
+      ${_target}
+      WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+    )
+  endforeach()
 
   # Build decipherment tests (always built if tests are enabled) mono-13
   add_executable(mono-13-log_test mono_test.cc)
