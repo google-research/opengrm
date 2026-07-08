@@ -118,6 +118,19 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "randomize_test",
+    srcs = ["randomize_test.cc"],
+    deps = [
+        ":randomize",
+        "@com_google_absl//absl/random",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:seed_sequences",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:weight",
+    ],
+)
+
 # Helpers.
 cc_library(
     name = "util",
