@@ -79,6 +79,21 @@ if(OPENGRM_BUILD_TESTS)
     WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
   )
 
+  add_executable(parentheses_test parentheses_test.cc)
+  target_link_libraries(
+    parentheses_test
+    PRIVATE ${OPENGRM_ALWAYS_LINK_START}
+            grm_rewrite
+            openfst::fst
+            ${OPENGRM_ALWAYS_LINK_END}
+            GTest::gmock_main
+  )
+  grm_configure_test_target(parentheses_test)
+  gtest_discover_tests(
+    parentheses_test
+    WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+  )
+
   # These tests require Thrax data
   if(OPENGRM_ENABLE_THRAX)
     add_executable(rewrite_manager_test rewrite_manager_test.cc)
