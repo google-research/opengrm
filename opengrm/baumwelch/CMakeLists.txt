@@ -138,7 +138,7 @@ endif()
 if(OPENGRM_BUILD_TESTS)
   # a-star_test is prefixed with grm_ to avoid target collision with OpenFst's
   # a-star_test when OPENFST_BUILD_TESTS is enabled.
-  foreach(_test a-star cascade expectation-table log-adder)
+  foreach(_test a-star cascade expectation-table log-adder score)
     if(_test STREQUAL "a-star")
       set(_target grm_a-star_test)
     else()

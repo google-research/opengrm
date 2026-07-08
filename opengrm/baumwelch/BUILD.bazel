@@ -177,6 +177,21 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "score_test",
+    srcs = ["score_test.cc"],
+    deps = [
+        ":score",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/extensions/far:far-reader",
+        "@com_google_openfst//openfst/extensions/far:far-writer",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:string",
+        "@com_google_openfst//openfst/lib:symbol-table",
+    ],
+)
+
 ## Scriptland.
 
 cc_library(
