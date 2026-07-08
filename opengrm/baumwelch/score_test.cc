@@ -177,7 +177,8 @@ TEST(ScoreTest, HammingDistanceFarCountMismatchDeathTest) {
       FarReader<StdArc>::Open(hyp_path));
   ASSERT_NE(hyp_reader, nullptr);
 
-  EXPECT_DEATH(HammingDistance(*gld_reader, *hyp_reader), "");
+  EXPECT_DEATH(HammingDistance(*gld_reader, *hyp_reader),
+               "FAR reader size mismatch");
 }
 
 }  // namespace

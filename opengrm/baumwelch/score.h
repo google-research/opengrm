@@ -64,11 +64,12 @@ size_t HammingDistance(FarReader<Arc>& gld, FarReader<Arc>& hyp,
                        TokenType ttype = TokenType::BYTE,
                        const SymbolTable* syms = nullptr) {
   size_t dist = 0;
-  while (!gld.Done() || !hyp.Done()) {
+  while (!gld.Done() && !hyp.Done()) {
     dist += HammingDistance(*gld.GetFst(), *hyp.GetFst(), ttype, syms);
     gld.Next();
     hyp.Next();
   }
+  CHECK(gld.Done() && hyp.Done()) << "FAR reader size mismatch";
   gld.Reset();
   hyp.Reset();
   return dist;
