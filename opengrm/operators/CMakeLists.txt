@@ -172,6 +172,14 @@ if(OPENGRM_ENABLE_BIN)
 endif()
 
 if(OPENGRM_BUILD_TESTS)
+  add_executable(checkprops_test checkprops_test.cc)
+  target_link_libraries(checkprops_test PRIVATE grm_operators GTest::gtest_main)
+  grm_configure_test_target(checkprops_test)
+  gtest_discover_tests(
+    checkprops_test
+    WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+  )
+
   add_executable(cdrewrite_test cdrewrite_test.cc)
   target_link_libraries(cdrewrite_test
                         PRIVATE grm_operators grm_operatorsscript

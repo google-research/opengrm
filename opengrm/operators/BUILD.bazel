@@ -265,6 +265,17 @@ cc_binary(
 # Tests.
 
 cc_test(
+    name = "checkprops_test",
+    size = "small",
+    srcs = ["checkprops_test.cc"],
+    deps = [
+        ":checkprops",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
     name = "cdrewrite_test",
     size = "medium",
     srcs = ["cdrewrite_test.cc"],
