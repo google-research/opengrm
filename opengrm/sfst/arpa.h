@@ -32,7 +32,8 @@ void ReadArpa(std::istream& istrm, fst::MutableFst<Arc>* fst);
 // Writes a canonical SFST to ostrm in ARPA format.
 // Returns true on success.
 template <class Arc>
-bool WriteArpa(const fst::Fst<Arc>& fst, std::ostream& ostrm);
+bool WriteArpa(const fst::Fst<Arc>& fst, std::ostream& ostrm,
+               typename Arc::Label phi_label = fst::kNoLabel);
 
 }  // namespace sfst
 

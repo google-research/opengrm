@@ -112,6 +112,58 @@ TEST(ArpaTest, ReadWriteSingleTrigramRoundTrip) {
   EXPECT_TRUE(absl::StrContains(output, "a b c"));
 }
 
+TEST(ArpaTest, WriteSentenceBoundaries) {
+  fst::VectorFst<fst::StdArc> fst;
+  {
+    fst::SymbolTable syms("ARPASymbols");
+    fst.SetInputSymbols(&syms);
+  }
+  auto* isyms = fst.MutableInputSymbols();
+  isyms->AddSymbol("<epsilon>");
+  isyms->AddSymbol("<s>");
+  isyms->AddSymbol("</s>");
+  isyms->AddSymbol("a");
+  fst.SetOutputSymbols(isyms);
+  auto s0 = fst.AddState();
+  fst.SetStart(s0);
+  auto s1 = fst.AddState();
+  fst.AddArc(s0, fst::StdArc(3, 3, 0.5, s1));  // arc labeled 'a'
+  fst.SetFinal(s1, fst::StdArc::Weight(1.0));
+
+  std::stringstream ostrm;
+  EXPECT_TRUE(WriteArpa(fst, ostrm));
+  std::string output = ostrm.str();
+  EXPECT_TRUE(absl::StrContains(output, "<s>"));
+  EXPECT_TRUE(absl::StrContains(output, "</s>"));
+  EXPECT_TRUE(absl::StrContains(output, "a </s>"));
+}
+
+TEST(ArpaTest, WriteSentenceBoundariesFallback) {
+  fst::VectorFst<fst::StdArc> fst;
+  {
+    fst::SymbolTable syms("ARPASymbolsFallback");
+    fst.SetInputSymbols(&syms);
+  }
+  auto* isyms = fst.MutableInputSymbols();
+  isyms->AddSymbol("<epsilon>");
+  isyms->AddSymbol("<S>");
+  isyms->AddSymbol("</S>");
+  isyms->AddSymbol("word");
+  fst.SetOutputSymbols(isyms);
+  auto s0 = fst.AddState();
+  fst.SetStart(s0);
+  auto s1 = fst.AddState();
+  fst.AddArc(s0, fst::StdArc(3, 3, 2.0, s1));  // arc labeled 'word'
+  fst.SetFinal(s1, fst::StdArc::Weight(0.5));
+
+  std::stringstream ostrm;
+  EXPECT_TRUE(WriteArpa(fst, ostrm));
+  std::string output = ostrm.str();
+  EXPECT_TRUE(absl::StrContains(output, "<S>"));
+  EXPECT_TRUE(absl::StrContains(output, "</S>"));
+  EXPECT_TRUE(absl::StrContains(output, "word </S>"));
+}
+
 }  // namespace
 }  // namespace sfst
 

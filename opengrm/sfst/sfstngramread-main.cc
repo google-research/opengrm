@@ -16,15 +16,20 @@
 #include <fstream>
 #include <iostream>
 #include <istream>
+#include <memory>
 #include <ostream>
 #include <string>
 
 #include "openfst/compat/init.h"
+#include "absl/flags/flag.h"
 #include "absl/log/log.h"
 #include "openfst/lib/arc.h"  // NOLINT(misc-include-cleaner)
 #include "openfst/lib/fst.h"
+#include "openfst/lib/symbol-table.h"
 #include "openfst/lib/vector-fst.h"  // NOLINT(misc-include-cleaner)
 #include "opengrm/sfst/arpa.h"
+
+ABSL_FLAG(std::string, symbols, "", "Symbol table file");
 
 int sfstngramread_main(int argc, char** argv) {
   std::string usage = "Transform ARPA text format to FST.\n\n  Usage: ";
@@ -60,7 +65,22 @@ int sfstngramread_main(int argc, char** argv) {
 
   std::ostream& ostrm = ofstrm.is_open() ? ofstrm : std::cout;
 
+  std::unique_ptr<fst::SymbolTable> syms;
+  if (!absl::GetFlag(FLAGS_symbols).empty()) {
+    syms.reset(fst::SymbolTable::ReadText(absl::GetFlag(FLAGS_symbols)));
+    if (!syms) {
+      LOG(ERROR) << argv[0] << ": Error reading symbol table: "
+                 << absl::GetFlag(FLAGS_symbols);
+      return 1;
+    }
+  }
+
   fst::VectorFst<fst::StdArc> fst;
+  if (syms) {
+    fst.SetInputSymbols(syms.get());
+    fst.SetOutputSymbols(syms.get());
+  }
+
   sfst::ReadArpa(istrm, &fst);
 
   if (!fst.Write(ostrm, fst::FstWriteOptions())) {

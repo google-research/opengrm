@@ -189,9 +189,11 @@ cc_library(
     srcs = ["sfstngramread-main.cc"],
     deps = [
         ":arpa",
+        "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/log",
         "@com_google_openfst//openfst/compat:init",
         "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:symbol-table",
     ],
 )
 
@@ -209,6 +211,7 @@ cc_library(
     srcs = ["sfstngramprint-main.cc"],
     deps = [
         ":arpa",
+        "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/log",
         "@com_google_openfst//openfst/compat:init",
         "@com_google_openfst//openfst/lib",

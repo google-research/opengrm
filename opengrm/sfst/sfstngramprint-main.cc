@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstdint>
 #include <cstring>
 #include <fstream>
 #include <iostream>
@@ -20,10 +21,14 @@
 #include <string>
 
 #include "openfst/compat/init.h"
+#include "absl/flags/flag.h"
 #include "absl/log/log.h"
 #include "openfst/lib/arc.h"  // NOLINT(misc-include-cleaner)
 #include "openfst/lib/fst.h"  // NOLINT(misc-include-cleaner)
 #include "opengrm/sfst/arpa.h"
+
+ABSL_FLAG(int64_t, phi_label, fst::kNoLabel,
+          "Specifies failure label (default: kNoLabel)");
 
 int sfstngramprint_main(int argc, char** argv) {
   std::string usage = "Prints an SFST in ARPA format.\n\n  Usage: ";
@@ -57,7 +62,7 @@ int sfstngramprint_main(int argc, char** argv) {
   }
   std::ostream& ostrm = ofstrm.is_open() ? ofstrm : std::cout;
 
-  if (!sfst::WriteArpa(*fst, ostrm)) {
+  if (!sfst::WriteArpa(*fst, ostrm, absl::GetFlag(FLAGS_phi_label))) {
     LOG(ERROR) << argv[0] << ": WriteArpa failed";
     return 1;
   }
