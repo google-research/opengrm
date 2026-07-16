@@ -727,6 +727,22 @@ cc_test(
 )
 
 cc_test(
+    name = "loadfst_test",
+    size = "small",
+    srcs = ["loadfst_test.cc"],
+    deps = [
+        ":loadfst",
+        "//opengrm/thrax:flags",
+        "//opengrm/thrax/walker/util:datatype",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/lib",
+    ],
+)
+
+cc_test(
     name = "minimize_test",
     size = "small",
     srcs = ["minimize_test.cc"],
