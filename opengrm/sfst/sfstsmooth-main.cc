@@ -45,8 +45,10 @@ int sfstsmooth_main(int argc, char** argv) {
     return 1;
   }
 
-  std::string in_name = (argc > 1) ? argv[1] : "";
+  std::string in_name =
+      (argc > 1 && (strcmp(argv[1], "-") != 0)) ? argv[1] : "";
   std::string out_name = (argc > 2) ? argv[2] : "";
+
   std::unique_ptr<fst::MutableFst<fst::StdArc>> fst(
       fst::MutableFst<fst::StdArc>::Read(in_name, true));
   if (!fst) {
