@@ -73,17 +73,24 @@ if(OPENGRM_BUILD_TESTS)
       assert-empty
       assert-equal
       assert-null
+      cdrewrite
       closure
       compose
       concat
       determinize
       difference
       features
+      invert
       lenientlycompose
+      loadfst
+      loadfstfromfar
+      minimize
       mpdtcompose
+      optimize
       pdtcompose
       project
       replace
+      reverse
       rewrite
       rmepsilon
       rmweight
