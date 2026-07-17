@@ -41,7 +41,6 @@ cc_library(
         ":concat",
         ":determinize",
         ":difference",
-        ":expand",
         ":features",
         ":invert",
         ":lenientlycompose",
@@ -193,18 +192,6 @@ cc_library(
         "@com_google_absl//absl/flags:flag",
         "@com_google_openfst//openfst/lib",
         "@com_google_openfst//openfst/lib:symbol-table",
-    ],
-    alwayslink = 1,
-)
-
-cc_library(
-    name = "expand",
-    srcs = ["expand.cc"],
-    hdrs = ["expand.h"],
-    deps = [
-        ":base",
-        "//opengrm/thrax/walker/util:datatype",
-        "@com_google_openfst//openfst/lib",
     ],
     alwayslink = 1,
 )

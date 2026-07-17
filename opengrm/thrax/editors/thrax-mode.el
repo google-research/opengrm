@@ -50,7 +50,7 @@
   (regexp-opt
    '("Analyzer" "AssertEmpty" "AssertEqual" "AssertNull"
      "Category" "CDRewrite" "Closure" "Compose" "Concat"
-     "Determinize" "Difference" "Expand" "Feature" "FeatureVector"
+     "Determinize" "Difference" "Feature" "FeatureVector"
      "Invert" "LoadFst" "LenientlyCompose" "LoadFstFromFar" "Minimize"
      "MPdtCompose" "Optimize" "ParadigmReplace" "PdtCompose"
      "Project" "Replace" "Reverse" "Rewrite" "RmEpsilon" "RmWeight"

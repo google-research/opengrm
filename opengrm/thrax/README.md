@@ -498,14 +498,6 @@ information.
     RmEpsilon[fst]
     ```
 
-*   **Expand** : explicitly expands the provided FST to VectorFst (if the FST
-    was already expanded, this just does a reference counted copy and thus is
-    fast).
-
-    ```
-    Expand[fst]
-    ```
-
 *   **Invert** : inverts the provided FST. This function uses delayed FSTs.
 
     ```
