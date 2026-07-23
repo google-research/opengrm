@@ -1082,8 +1082,8 @@ sh_test(
     srcs = ["sfstinfo_test.sh"],
     data = [
         ":sfstinfo",
-        "//opengrm/ngram:testdata/earnest.mod.sym",
-        "//opengrm/ngram:testdata/earnest.mod.txt",
+        ":testdata/earnest.mod.sym",
+        ":testdata/earnest.mod.txt",
         "@com_google_openfst//openfst/bin:fstcompile",
         "@com_google_openfst//openfst/bin:setup",
     ],
@@ -1095,8 +1095,8 @@ sh_test(
     data = [
         ":sfstinfo",
         ":sfstngramcount",
-        "//opengrm/ngram:testdata/earnest.sym",
-        "//opengrm/ngram:testdata/earnest.txt",
+        ":testdata/earnest.sym",
+        ":testdata/earnest.txt",
         "@com_google_openfst//openfst/bin:setup",
         "@com_google_openfst//openfst/extensions/far:farcompilestrings",
     ],
@@ -1107,8 +1107,8 @@ sh_test(
     srcs = ["sfstngramsymbols_test.sh"],
     data = [
         ":sfstngramsymbols",
-        "//opengrm/ngram:testdata/earnest.sym",
-        "//opengrm/ngram:testdata/earnest.txt",
+        ":testdata/earnest.sym",
+        ":testdata/earnest.txt",
         "@com_google_openfst//openfst/bin:setup",
     ],
 )
@@ -1121,8 +1121,8 @@ sh_test(
         ":sfstinfo",
         ":sfstngramcount",
         ":sfstsmooth",
-        "//opengrm/ngram:testdata/earnest.sym",
-        "//opengrm/ngram:testdata/earnest.txt",
+        ":testdata/earnest.sym",
+        ":testdata/earnest.txt",
         "@com_google_openfst//openfst/bin:setup",
         "@com_google_openfst//openfst/extensions/far:farcompilestrings",
     ],
@@ -1144,8 +1144,8 @@ sh_test(
         ":sfstngramcount",
         ":sfstshrink",
         ":sfstsmooth",
-        "//opengrm/ngram:testdata/earnest.sym",
-        "//opengrm/ngram:testdata/earnest.txt",
+        ":testdata/earnest.sym",
+        ":testdata/earnest.txt",
         "@com_google_openfst//openfst/bin:setup",
         "@com_google_openfst//openfst/extensions/far:farcompilestrings",
     ],
@@ -1162,7 +1162,7 @@ sh_test(
     data = [
         ":sfstinfo",
         ":sfstngramread",
-        "//opengrm/ngram:testdata/earnest.arpa",
+        ":testdata/earnest.arpa",
         "@com_google_openfst//openfst/bin:setup",
     ],
 )
@@ -1173,7 +1173,7 @@ sh_test(
     data = [
         ":sfstngramprint",
         ":sfstngramread",
-        "//opengrm/ngram:testdata/earnest.arpa",
+        ":testdata/earnest.arpa",
         "@com_google_openfst//openfst/bin:setup",
     ],
 )
@@ -1184,7 +1184,7 @@ sh_test(
     data = [
         ":sfstmerge",
         ":sfstngramread",
-        "//opengrm/ngram:testdata/earnest.arpa",
+        ":testdata/earnest.arpa",
         "@com_google_openfst//openfst/bin:setup",
     ],
 )

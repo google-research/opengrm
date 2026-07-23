@@ -19,7 +19,7 @@ set -eou pipefail
 source "${TEST_SRCDIR}/openfst+/openfst/bin/setup.sh" || exit
 
 readonly BIN="${TEST_SRCDIR}/${TEST_WORKSPACE}/opengrm/sfst"
-readonly TESTDATA="${TEST_SRCDIR}/${TEST_WORKSPACE}/opengrm/ngram/testdata"
+readonly TESTDATA="${TEST_SRCDIR}/${TEST_WORKSPACE}/opengrm/sfst/testdata"
 readonly TEST_TMPDIR="${TEST_TMPDIR:-$(mktemp -d)}"
 
 # Run sfstngramread to get an FST from ARPA.

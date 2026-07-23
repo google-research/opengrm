@@ -21,7 +21,7 @@ set -eou pipefail
 source "${TEST_SRCDIR}/openfst+/openfst/bin/setup.sh" || exit
 
 readonly BIN="${TEST_SRCDIR}/${TEST_WORKSPACE}/opengrm/sfst"
-readonly TESTDATA="${TEST_SRCDIR}/${TEST_WORKSPACE}/opengrm/ngram/testdata"
+readonly TESTDATA="${TEST_SRCDIR}/${TEST_WORKSPACE}/opengrm/sfst/testdata"
 readonly TEST_TMPDIR="${TEST_TMPDIR:-$(mktemp -d)}"
 
 "${BIN}/sfstngramsymbols" "${TESTDATA}/earnest.txt" "${TEST_TMPDIR}/earnest.sym"
