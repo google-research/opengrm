@@ -35,6 +35,7 @@
 #include "openfst/lib/mutable-fst.h"
 #include "openfst/lib/symbol-table.h"
 #include "opengrm/sfst/canonical.h"
+#include "opengrm/sfst/normalize.h"
 #include "opengrm/sfst/sfst.h"
 
 namespace sfst {
@@ -127,9 +128,13 @@ void ComputeStateProbs(const fst::ExpandedFst<Arc>& fst,
 // transitions. General SFST models containing loops or back-edges between
 // the same or lower orders are not actively supported for forward probability
 // mass.
-template <class Arc>
+//
+// An optional `filter` callable `bool(StateId s, Label l)` can be passed to
+// skip pruning specific arcs (returning true prevents pruning). By default,
+// filter is nullptr_t and no filtering is applied.
+template <class Arc, class Filter = std::nullptr_t>
 bool StolckeShrink(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
-                   double theta) {
+                   double theta, Filter filter = nullptr) {
   if (!IsCanonical(*fst, phi_label)) {
     LOG(ERROR) << "StolckeShrink: input is not a canonical SFST";
     return false;
@@ -211,6 +216,9 @@ bool StolckeShrink(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
         score += secondterm;
         score *= -std::exp(log_prob_s);
         if (score <= log_theta) {
+          if constexpr (!std::is_same_v<Filter, std::nullptr_t>) {
+            if (filter(s, arc.ilabel)) continue;
+          }
           to_prune.push_back({s, arc.ilabel});
         }
       }
@@ -232,6 +240,7 @@ bool StolckeShrink(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
       fst->AddArc(s, arc);
     }
   }
+  PhiNormalize(fst, phi_label);
   return true;
 }
 
@@ -315,6 +324,7 @@ bool SeymoreShrink(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
     fst->DeleteArcs(s);
     for (const auto& arc : arcs) fst->AddArc(s, arc);
   }
+  PhiNormalize(fst, phi_label);
   return true;
 }
 
