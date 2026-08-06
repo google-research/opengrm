@@ -161,6 +161,44 @@ Example usage:
 cmake -S . -B build -DOPENGRM_ENABLE_SFST=ON -DBUILD_SHARED_LIBS=ON
 ```
 
+## Release History
+
+The `main` branch includes the full historic release lineage of OpenGrm's
+constituent libraries (`ngram`, `thrax`, `pynini`, `sfst`, `baumwelch`) prior to
+their consolidation into a single repository.
+
+### Listing Tags and Releases
+
+To list all historic component release tags:
+
+```bash
+git tag -l
+```
+
+Release tags follow the format `<component>-<version>` (e.g., `thrax-1.3.8`,
+`pynini-2.1.5`, `ngram-1.3.14`).
+
+### Checking Out or Viewing a Specific Release
+
+To check out a specific historic release:
+
+```bash
+git checkout <tag-name>
+```
+
+To view the change history of a specific component:
+
+```bash
+git log --full-history -- <component>/
+```
+
+For example, to trace the commit history of Thrax or Pynini:
+
+```bash
+git log --full-history -- thrax/
+git log --full-history -- pynini/
+```
+
 ## Pull Requests
 
 At this time, we do not accept pull requests.
