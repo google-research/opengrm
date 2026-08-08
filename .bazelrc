@@ -32,17 +32,17 @@ build:dev --copt=-O1
 # Per-plaform options for toolchains using GCC or clang.
 # ------------------------------------------------------------------------------
 
-build:gcc_clang --cxxopt=-std=c++17
-build:gcc_clang --cxxopt=-Wno-sign-compare
-build:gcc_clang --cxxopt=-Wno-deprecated-declarations
-build:gcc_clang --cxxopt=-Wno-changes-meaning
+build:gcc_clang --cxxopt=-std=c++17 --host_cxxopt=-std=c++17
+build:gcc_clang --cxxopt=-Wno-sign-compare --host_cxxopt=-Wno-sign-compare
+build:gcc_clang --cxxopt=-Wno-deprecated-declarations --host_cxxopt=-Wno-deprecated-declarations
+build:gcc_clang --cxxopt=-Wno-changes-meaning --host_cxxopt=-Wno-changes-meaning
 # TODO: b/476056201 - This warning is enabled in Google, so unclear why it is
 # failing here.  Investigate, fix, and re-enable.
-build:gcc_clang --cxxopt=-Wno-overloaded-virtual
+build:gcc_clang --cxxopt=-Wno-overloaded-virtual --host_cxxopt=-Wno-overloaded-virtual
 
 # Temporarily disabled warnings that we would like to turn on.
-build:gcc_clang --cxxopt=-Wno-defaulted-function-deleted
-build:gcc_clang --cxxopt=-Wno-nullability-completeness
+build:gcc_clang --cxxopt=-Wno-defaulted-function-deleted --host_cxxopt=-Wno-defaulted-function-deleted
+build:gcc_clang --cxxopt=-Wno-nullability-completeness --host_cxxopt=-Wno-nullability-completeness
 
 # WORKAROUND: GCC 15+ assembler generates `.sframe` stack trace sections by
 # default.  The linker fails to handle `.sframe` references correctly during
@@ -51,7 +51,7 @@ build:gcc_clang --cxxopt=-Wno-nullability-completeness
 # assembler to fix the build.  This can be removed when it no longer gives
 # an error on gLinux Rodete.  gcc 15.2.0 and binutils 2.45 gives an error.
 # TOD0: b/491436022 - Try again with binutils 2.46.
-build:host_gcc --cxxopt=-Wa,--gsframe=no
+build:host_gcc --cxxopt=-Wa,--gsframe=no --host_cxxopt=-Wa,--gsframe=no
 
 # ------------------------------------------------------------------------------
 # Options for Linux.
@@ -67,37 +67,37 @@ build:linux --config=gcc_clang
 build --apple_platform_type=macos
 
 build:macos --config=gcc_clang
-build:macos --cxxopt=-Wno-dangling-field
-build:macos --cxxopt=-mmacos-version-min=10.15
+build:macos --cxxopt=-Wno-dangling-field --host_cxxopt=-Wno-dangling-field
+build:macos --cxxopt=-mmacos-version-min=10.15 --host_cxxopt=-mmacos-version-min=10.15
 
 # ------------------------------------------------------------------------------
 # Options for Windows.
 # ------------------------------------------------------------------------------
 
-build:windows --cxxopt=/std:c++17
+build:windows --cxxopt=/std:c++17 --host_cxxopt=/std:c++17
 
 # Force compiler to (1) read the sources in UTF8 instead of Windows system's
 # default local code page and (2) encode all string literals as UTF8 during
 # execution.
-build:windows --cxxopt=-utf-8
+build:windows --cxxopt=-utf-8 --host_cxxopt=-utf-8
 
 # Signed/unsigned mismatch.
-build:windows --cxxopt=/wd4018
-build:windows --cxxopt=/wd4389
+build:windows --cxxopt=/wd4018 --host_cxxopt=/wd4018
+build:windows --cxxopt=/wd4389 --host_cxxopt=/wd4389
 
 # Suppress deprecated declaration warnings.
-build:windows --cxxopt=/wd4996
+build:windows --cxxopt=/wd4996 --host_cxxopt=/wd4996
 
 # Make sure to include as little of <windows.h> as possible.
-build:windows --copt=-DWIN32_LEAN_AND_MEAN
-build:windows --copt=-DNOGDI
+build:windows --copt=-DWIN32_LEAN_AND_MEAN --host_copt=-DWIN32_LEAN_AND_MEAN
+build:windows --copt=-DNOGDI --host_copt=-DNOGDI
 
 # https://learn.microsoft.com/en-us/cpp/c-runtime-library/math-constants?view=msvc-170
-build:windows --copt=/D_USE_MATH_DEFINES
+build:windows --copt=/D_USE_MATH_DEFINES --host_copt=/D_USE_MATH_DEFINES
 
 # https://devblogs.microsoft.com/cppblog/announcing-full-support-for-a-c-c-conformant-preprocessor-in-msvc/
 # otherwise, there will be some compiling error due to preprocessing.
-build:windows --copt=/Zc:preprocessor
+build:windows --copt=/Zc:preprocessor --host_copt=/Zc:preprocessor
 
 # Increase linker stack size.
 build:windows --linkopt=/STACK:8388608
