@@ -20,6 +20,7 @@
 #include "absl/flags/flag.h"
 #include "absl/log/log.h"
 #include "absl/memory/memory.h"
+#include "absl/strings/numbers.h"
 #include "absl/strings/str_cat.h"
 #include "opengrm/thrax/ast/collection-node.h"
 #include "opengrm/thrax/ast/fst-node.h"
@@ -432,7 +433,11 @@ fst_with_weight:
 // number.  Compare this to how we handle quoted strings and weights...
 number:
   tINTEGER
-    { $$ = atoi(parm->GetLexer()->YYString().c_str()); }
+    { if (!absl::SimpleAtoi(parm->GetLexer()->YYString(), &$$)) {
+        parm->Error(absl::StrCat("Invalid integer: ",
+                                 parm->GetLexer()->YYString()));
+      }
+    }
 ;
 
 quoted_fst_string:
