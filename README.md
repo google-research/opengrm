@@ -199,6 +199,27 @@ git log --full-history -- thrax/
 git log --full-history -- pynini/
 ```
 
+## Citing OpenGrm
+
+See the directories of individual OpenGrm components, such as Pynini or SFst,
+for component-specific references. To cite OpenGrm as a whole in a publication,
+please cite [Roark et al. (2012)](https://aclanthology.org/P12-3011):
+
+```bibtex
+@inproceedings{roark-etal-2012-opengrm,
+    title = "The {O}pen{G}rm open-source finite-state grammar software libraries",
+    author = "Roark, Brian and Sproat, Richard and Allauzen, Cyril and Riley, Michael and Sorensen, Jeffrey and Tai, Terry",
+    editor = "Zhang, Min",
+    booktitle = "Proceedings of the {ACL} 2012 System Demonstrations",
+    month = jul,
+    year = "2012",
+    address = "Jeju Island, Korea",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/P12-3011/",
+    pages = "61--66"
+}
+```
+
 ## Pull Requests
 
 At this time, we do not accept pull requests.
