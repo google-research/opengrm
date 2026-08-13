@@ -17,20 +17,26 @@
 #ifndef OPENGRM_SFST_SFST_H_
 #define OPENGRM_SFST_SFST_H_
 
-#include <sys/types.h>
-
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
-#include <limits>
+#include <iterator>
+#include <string>
+#include <utility>
 #include <vector>
 
+#include "absl/strings/numbers.h"
+#include "absl/strings/str_split.h"
+#include "absl/strings/string_view.h"
+#include "absl/types/span.h"
 #include "openfst/lib/arc.h"  // NOLINT(misc-include-cleaner)
 #include "openfst/lib/float-weight.h"
 #include "openfst/lib/fst.h"
 #include "openfst/lib/matcher.h"
 #include "openfst/lib/signed-log-weight.h"
+#include "opengrm/sfst/ngram-context.h"
 
 namespace sfst {
 
@@ -38,7 +44,7 @@ const fst::Log64Weight kApproxZeroWeight(99.0);
 
 constexpr double kNormEps = 0.001;
 constexpr double kFloatEps = 0.000001;
-
+constexpr double kInfBackoff = 99.0;
 constexpr int64_t kDefaultNGramOrder = 3;
 
 // Threshold where exp(-delta) drops below double machine epsilon
@@ -147,6 +153,17 @@ inline bool ApproxZero(
   } else {
     return LessOrEqual(weight.Value2(), neg_approx_zero);
   }
+}
+
+// Safely subtracts two Log64Weights (w1 - w2 in Log domain, i.e. p1 - p2),
+// returning kApproxZeroWeight if p1 <= p2 (w1 <= w2 in probability domain)
+// or if w1 and w2 are approximately equal within delta.
+inline fst::Log64Weight SafeMinus(fst::Log64Weight w1, fst::Log64Weight w2,
+                                  float delta = 1.0e-15) {
+  if (LessOrEqual(w1, w2) || ApproxEqual(w1, w2, delta)) {
+    return kApproxZeroWeight;
+  }
+  return fst::Minus(w1, w2);
 }
 
 // Compares w.r.t. exponentiated values ('probabilities' vs
