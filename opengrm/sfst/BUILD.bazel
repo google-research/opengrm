@@ -178,6 +178,7 @@ cc_library(
     ],
     deps = [
         ":sfst",
+        "@com_google_absl//absl/log",
         "@com_google_openfst//openfst/lib",
         "@com_google_openfst//openfst/lib:symbol-table",
         "@com_google_openfst//openfst/lib:weight",
@@ -484,6 +485,7 @@ cc_test(
     name = "shrink_test",
     srcs = ["shrink_test.cc"],
     deps = [
+        ":sfst",
         ":shrink",
         ":smooth",
         "@com_google_absl//absl/flags:flag",

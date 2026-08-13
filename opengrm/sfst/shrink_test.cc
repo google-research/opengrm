@@ -29,6 +29,7 @@
 #include "openfst/lib/arcsort.h"
 #include "openfst/lib/fst.h"
 #include "openfst/lib/vector-fst.h"  // NOLINT(misc-include-cleaner)
+#include "opengrm/sfst/normalize.h"
 #include "opengrm/sfst/smooth.h"
 
 namespace sfst {
@@ -79,6 +80,7 @@ TEST_F(ShrinkTest, StolckeShrinkTest) {
     final_arcs += fst.NumArcs(siter.Value());
   }
   EXPECT_LE(final_arcs, initial_arcs);
+  EXPECT_TRUE(IsNormalized(fst, 0));
 }
 
 TEST_F(ShrinkTest, SeymoreShrinkTest) {
@@ -96,6 +98,7 @@ TEST_F(ShrinkTest, SeymoreShrinkTest) {
     final_arcs += fst.NumArcs(siter.Value());
   }
   EXPECT_LE(final_arcs, initial_arcs);
+  EXPECT_TRUE(IsNormalized(fst, 0));
 }
 
 TEST_F(ShrinkTest, CountPruneTest) {
@@ -111,6 +114,7 @@ TEST_F(ShrinkTest, CountPruneTest) {
   }
   EXPECT_TRUE(found_label_1);
   EXPECT_FALSE(found_label_2);
+  EXPECT_TRUE(IsNormalized(fst, 0));
 }
 
 TEST_F(ShrinkTest, CountPrunePatternValidationTest) {
@@ -167,6 +171,7 @@ TEST_F(ShrinkTest, ListPruneTest) {
     if (aiter.Value().ilabel == 2) found_label_2_from_3 = true;
   }
   EXPECT_FALSE(found_label_2_from_3);
+  EXPECT_TRUE(IsNormalized(fst, 0));
 }
 
 TEST(NonCanonicalShrinkTest, OrphanBehaviorTest) {

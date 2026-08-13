@@ -327,7 +327,7 @@ bool SeymoreShrink(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
     fst->DeleteArcs(s);
     for (const auto& arc : arcs) fst->AddArc(s, arc);
   }
-  return true;
+  return PhiNormalize(fst, phi_label);
 }
 
 // Shrinks the model by pruning transitions below specified count thresholds.
@@ -427,7 +427,7 @@ bool CountPrune(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
       fst->AddArc(s, arc);
     }
   }
-  return true;
+  return PhiNormalize(fst, phi_label);
 }
 
 // Reads a list of n-grams from a file to be used for list pruning.
@@ -617,7 +617,7 @@ bool ListPrune(
     fst->DeleteArcs(s);
     for (const auto& arc : arcs) fst->AddArc(s, arc);
   }
-  return true;
+  return PhiNormalize(fst, phi_label);
 }
 
 }  // namespace sfst
