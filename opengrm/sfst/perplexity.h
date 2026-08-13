@@ -335,7 +335,7 @@ class Perplexity {
 
 template <class Arc>
 void Perplexity<Arc>::SetTarget(const fst::Fst<Arc>& ifst) {
-  if (ifst.Start() == fst::kNoLabel) {
+  if (ifst.Start() == fst::kNoStateId) {
     LOG(ERROR) << "Perplexity: target FST has no states";
     error_ = true;
     return;

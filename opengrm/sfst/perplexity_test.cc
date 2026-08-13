@@ -210,6 +210,12 @@ TEST_F(PerplexityTest, AsanHeapBufferOverflowTest) {
   ASSERT_TRUE(perp.Apply(*overflow2_fst_));
 }
 
+TEST_F(PerplexityTest, EmptyTargetTest) {
+  fst::VectorFst<Arc> empty_fst;
+  Perplexity<Arc> perp(empty_fst, 0);
+  EXPECT_FALSE(perp.Apply(*src_fst_));
+}
+
 }  // namespace sfst
 
 int main(int argc, char** argv) {
