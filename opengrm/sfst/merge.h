@@ -22,6 +22,7 @@
 #include <set>    // NOLINT(misc-include-cleaner)
 #include <vector>
 
+#include "absl/log/log.h"
 #include "openfst/lib/arcsort.h"
 #include "openfst/lib/float-weight.h"
 #include "openfst/lib/fst.h"
@@ -185,6 +186,11 @@ bool MergeModels(const fst::Fst<Arc>& fst1, const fst::Fst<Arc>& fst2,
                  WeightMixer weight_mixer) {
   using Label = typename Arc::Label;
   using Weight = typename Arc::Weight;
+  if (!fst::CompatSymbols(fst1.InputSymbols(), fst2.InputSymbols(),
+                          /*warning=*/false)) {
+    LOG(ERROR) << "MergeModels: Symbol tables of input models do not match";
+    return false;
+  }
   std::set<std::vector<Label>> all_ngrams;
   internal::ExtractExplicitNGrams(fst1, all_ngrams);
   internal::ExtractExplicitNGrams(fst2, all_ngrams);
@@ -195,7 +201,6 @@ bool MergeModels(const fst::Fst<Arc>& fst1, const fst::Fst<Arc>& fst2,
   }
   const fst::SymbolTable* syms =
       fst1.InputSymbols() ? fst1.InputSymbols() : fst2.InputSymbols();
-  if (!syms) return false;
   const double neglog_alpha_global = -std::log(alpha);
   const double neglog_beta_global = -std::log(beta);
   std::map<std::vector<Label>, double> mixed_ngrams;

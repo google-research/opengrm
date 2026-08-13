@@ -212,6 +212,104 @@ TEST(MergeTest, ReadWriteUnigramRoundTrip) {
   EXPECT_TRUE(absl::StrContains(output, "b"));
 }
 
+TEST(MergeTest, IncompatibleSymbolTablesRejected) {
+  fst::SymbolTable syms1("Symbols1");
+  syms1.AddSymbol("<epsilon>");
+  syms1.AddSymbol("a");
+  syms1.AddSymbol("b");
+
+  fst::SymbolTable syms2("Symbols2");
+  syms2.AddSymbol("<epsilon>");
+  syms2.AddSymbol("c");
+  syms2.AddSymbol("d");
+
+  std::string arpa1 = "\\data\\\nngram 1=1\n\n\\1-grams:\n-0.2 a\n\n\\end\\\n";
+  std::stringstream istrm1(arpa1);
+  fst::VectorFst<fst::StdArc> fst1;
+  fst1.SetInputSymbols(&syms1);
+  fst1.SetOutputSymbols(&syms1);
+  ReadArpa(istrm1, &fst1);
+
+  std::string arpa2 = "\\data\\\nngram 1=1\n\n\\1-grams:\n-0.5 c\n\n\\end\\\n";
+  std::stringstream istrm2(arpa2);
+  fst::VectorFst<fst::StdArc> fst2;
+  fst2.SetInputSymbols(&syms2);
+  fst2.SetOutputSymbols(&syms2);
+  ReadArpa(istrm2, &fst2);
+
+  fst::VectorFst<fst::StdArc> out_fst;
+  // Merging models with conflicting symbol tables must fail safely.
+  EXPECT_FALSE(LinearMerge(fst1, fst2, 0.5, 0.5, &out_fst));
+  EXPECT_FALSE(BayesMerge(fst1, fst2, 0.5, 0.5, &out_fst));
+}
+
+TEST(MergeTest, NullSymbolTablesAllowed) {
+  fst::SymbolTable syms("SharedSymbols");
+  syms.AddSymbol("<epsilon>");
+  syms.AddSymbol("a");
+  syms.AddSymbol("b");
+
+  std::string arpa1 = "\\data\\\nngram 1=1\n\n\\1-grams:\n-0.2 a\n\n\\end\\\n";
+  std::stringstream istrm1(arpa1);
+  fst::VectorFst<fst::StdArc> fst1;
+  fst1.SetInputSymbols(&syms);
+  fst1.SetOutputSymbols(&syms);
+  ReadArpa(istrm1, &fst1);
+  fst1.SetInputSymbols(nullptr);
+  fst1.SetOutputSymbols(nullptr);
+
+  std::string arpa2 = "\\data\\\nngram 1=1\n\n\\1-grams:\n-0.5 b\n\n\\end\\\n";
+  std::stringstream istrm2(arpa2);
+  fst::VectorFst<fst::StdArc> fst2;
+  fst2.SetInputSymbols(&syms);
+  fst2.SetOutputSymbols(&syms);
+  ReadArpa(istrm2, &fst2);
+  fst2.SetInputSymbols(nullptr);
+  fst2.SetOutputSymbols(nullptr);
+
+  fst::VectorFst<fst::StdArc> out_fst;
+  // Merging pure integer-labeled FSTs without symbol tables is allowed.
+  EXPECT_TRUE(LinearMerge(fst1, fst2, 0.5, 0.5, &out_fst));
+  EXPECT_TRUE(IsCanonical(out_fst, fst::kNoLabel));
+  EXPECT_EQ(out_fst.InputSymbols(), nullptr);
+
+  EXPECT_TRUE(BayesMerge(fst1, fst2, 0.5, 0.5, &out_fst));
+  EXPECT_TRUE(IsCanonical(out_fst, fst::kNoLabel));
+  EXPECT_EQ(out_fst.InputSymbols(), nullptr);
+}
+
+TEST(MergeTest, OneNullSymbolTableAllowed) {
+  fst::SymbolTable syms("SharedSymbols");
+  syms.AddSymbol("<epsilon>");
+  syms.AddSymbol("a");
+  syms.AddSymbol("b");
+
+  std::string arpa1 = "\\data\\\nngram 1=1\n\n\\1-grams:\n-0.2 a\n\n\\end\\\n";
+  std::stringstream istrm1(arpa1);
+  fst::VectorFst<fst::StdArc> fst1;
+  fst1.SetInputSymbols(&syms);
+  fst1.SetOutputSymbols(&syms);
+  ReadArpa(istrm1, &fst1);
+
+  std::string arpa2 = "\\data\\\nngram 1=1\n\n\\1-grams:\n-0.5 b\n\n\\end\\\n";
+  std::stringstream istrm2(arpa2);
+  fst::VectorFst<fst::StdArc> fst2;
+  fst2.SetInputSymbols(&syms);
+  fst2.SetOutputSymbols(&syms);
+  ReadArpa(istrm2, &fst2);
+  fst2.SetInputSymbols(nullptr);
+  fst2.SetOutputSymbols(nullptr);
+
+  fst::VectorFst<fst::StdArc> out_fst;
+  EXPECT_TRUE(LinearMerge(fst1, fst2, 0.5, 0.5, &out_fst));
+  EXPECT_TRUE(IsCanonical(out_fst, fst::kNoLabel));
+  EXPECT_NE(out_fst.InputSymbols(), nullptr);
+
+  EXPECT_TRUE(BayesMerge(fst1, fst2, 0.5, 0.5, &out_fst));
+  EXPECT_TRUE(IsCanonical(out_fst, fst::kNoLabel));
+  EXPECT_NE(out_fst.InputSymbols(), nullptr);
+}
+
 }  // namespace
 }  // namespace sfst
 
