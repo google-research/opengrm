@@ -22,6 +22,7 @@ set(SFST_HEADERS
     info.h
     intersect.h
     merge.h
+    ngram-context.h
     ngram-count.h
     ngramapprox.h
     normalize.h
@@ -40,7 +41,7 @@ set(SFST_HEADERS
     trim.h
 )
 
-grm_add_library(grm_sfst stationary-distrib.cc)
+grm_add_library(grm_sfst ngram-context.cc stationary-distrib.cc)
 
 target_include_directories(
   grm_sfst PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
@@ -172,6 +173,7 @@ if(OPENGRM_BUILD_TESTS)
       canonical
       count
       equal
+      ngram-context
       ngram-count
       ngramapprox
       normalize
@@ -202,6 +204,7 @@ if(OPENGRM_BUILD_TESTS)
               ${OPENGRM_ALWAYS_LINK_START}
               openfst::fst
               ${OPENGRM_ALWAYS_LINK_END}
+              GTest::gmock
               GTest::gtest_main
     ) # Perplexity/merge need far
     grm_configure_test_target(sfst_${_test}_test)
