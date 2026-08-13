@@ -402,6 +402,16 @@ bool KneserNey(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
 // Katz smoothing.
 // Assumes input FST has counts on arcs, and the sum of counts is stored on the
 // phi arc.
+//
+// Discounts are computed using the normalized Good-Turing formula:
+//   d_r = (r*/r - rnorm) / (1.0 - rnorm)
+// where r* = (r+1) * N_{r+1} / N_r and rnorm = (bins+1) * N_{bins+1} / N_1.
+//
+// When empirical counts produce singular (1 - rnorm <= 0) or out-of-bounds
+// (d_r <= 0 or d_r >= 1) estimates, or when an order lacks singletons
+// (N_1 = 0), a fallback discount `kFallbackDiscount` (1.0 - 0.001 = 0.999,
+// matching OpenGrm NGram's 1.0 - kNormEps) is used to provide a minimal epsilon
+// discount.
 template <class Arc>
 bool Katz(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
           int bins = 5) {
@@ -437,6 +447,7 @@ bool Katz(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
     }
   }
   // Calculates discounts.
+  constexpr double kFallbackDiscount = 1.0 - 0.001;
   std::vector<std::vector<double>> discounts(
       max_order + 1, std::vector<double>(bins + 1, 1.0));
   for (int order = 1; order <= max_order; ++order) {
@@ -444,15 +455,19 @@ bool Katz(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
     double n_bins_plus1 = count_of_counts[order][bins + 1];
     double rnorm = 0.0;
     if (n1 > 0) rnorm = (bins + 1) * n_bins_plus1 / n1;
+    const double denom = 1.0 - rnorm;
+    if (denom <= 0.0 || std::abs(denom) < 1e-6 || std::isnan(rnorm)) {
+      discounts[order].assign(bins + 1, kFallbackDiscount);
+      continue;
+    }
     for (int r = 1; r <= bins; ++r) {
-      double nr = count_of_counts[order][r];
-      double nr_plus1 = count_of_counts[order][r + 1];
+      const double nr = count_of_counts[order][r];
+      const double nr_plus1 = count_of_counts[order][r + 1];
       if (nr > 0) {
-        double rstar = (r + 1) * nr_plus1 / nr;
-        discounts[order][r] = (rstar / r - rnorm) / (1.0 - rnorm);
-        if (discounts[order][r] <= 0.0 || discounts[order][r] >= 1.0) {
-          discounts[order][r] = 1.0 - 0.001;
-        }
+        const double rstar = (r + 1) * nr_plus1 / nr;
+        const double d = (rstar / r - rnorm) / denom;
+        discounts[order][r] =
+            (std::isnan(d) || d <= 0.0 || d >= 1.0) ? kFallbackDiscount : d;
       }
     }
   }
