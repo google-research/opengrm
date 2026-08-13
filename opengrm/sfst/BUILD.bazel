@@ -1054,7 +1054,7 @@ cc_test(
     name = "stationary-distrib_test",
     size = "small",
     srcs = [
-        "stationary_distrib_test.cc",
+        "stationary-distrib_test.cc",
     ],
     deps = [
         ":sfst",

@@ -184,7 +184,7 @@ if(OPENGRM_BUILD_TESTS)
       rmphi
       shortest-distance
       state-weights
-      stationary_distrib
+      stationary-distrib
       topology
       trim
       sfstinfo
