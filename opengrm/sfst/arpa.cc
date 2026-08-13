@@ -36,6 +36,7 @@
 #include "openfst/lib/fst.h"
 #include "openfst/lib/mutable-fst.h"
 #include "openfst/lib/symbol-table.h"
+#include "opengrm/sfst/canonical.h"
 
 namespace sfst {
 namespace internal {
@@ -235,9 +236,10 @@ bool ReadArpa(std::istream& istrm, fst::MutableFst<Arc>* fst) {
   return !error;
 }
 
+namespace internal {
 template <class Arc>
-bool WriteArpa(const fst::Fst<Arc>& fst, std::ostream& ostrm,
-               typename Arc::Label phi_label) {
+bool WriteNGrams(const fst::Fst<Arc>& fst, std::ostream& ostrm,
+                 typename Arc::Label phi_label, bool arpa_format) {
   using StateId = typename Arc::StateId;
   using Label = typename Arc::Label;
   using Weight = typename Arc::Weight;
@@ -248,22 +250,60 @@ bool WriteArpa(const fst::Fst<Arc>& fst, std::ostream& ostrm,
   ostrm.precision(7);
   const StateId start_state = fst.Start();
   if (start_state == fst::kNoStateId) return true;
+  const fst::SymbolTable* syms = fst.InputSymbols();
+  Label bos_label = syms->Find("<s>");
+  if (bos_label == fst::kNoLabel) bos_label = syms->Find("<S>");
+  Label eos_label = syms->Find("</s>");
+  if (eos_label == fst::kNoLabel) eos_label = syms->Find("</S>");
+
+  const std::string bos_str =
+      (bos_label != fst::kNoLabel) ? syms->Find(bos_label) : "<s>";
+  const std::string eos_str =
+      (eos_label != fst::kNoLabel) ? syms->Find(eos_label) : "</s>";
+
+  // Find unigram state from start_state's phi arc.
+  StateId unigram_state = fst::kNoStateId;
+  if (phi_label != fst::kNoLabel) {
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, start_state); !aiter.Done();
+         aiter.Next()) {
+      if (aiter.Value().ilabel == phi_label) {
+        unigram_state = aiter.Value().nextstate;
+        break;
+      }
+    }
+  }
+
+  // Computes state orders via canonical PhiStateOrder.
+  std::vector<int> state_orders;
+  int model_max_order = PhiStateOrder(fst, phi_label, &state_orders);
+
   // Computes shortest word-path distances to determine canonical history
-  // lengths.
+  // vectors for states.
   std::map<StateId, std::vector<Label>> history;
   std::map<StateId, int> dist;
   std::queue<StateId> q;
-  history[start_state] = std::vector<Label>();
-  dist[start_state] = 0;
-  q.push(start_state);
-  int max_hist_len = 0;
-  // Traverses the FST to map each reachable state to its unique history vector.
+
+  if (unigram_state != fst::kNoStateId && unigram_state != start_state) {
+    history[unigram_state] = std::vector<Label>();
+    dist[unigram_state] = 0;
+    q.push(unigram_state);
+
+    history[start_state] = {bos_label != fst::kNoLabel ? bos_label : -2};
+    dist[start_state] = 1;
+    q.push(start_state);
+  } else {
+    history[start_state] = std::vector<Label>();
+    dist[start_state] = 0;
+    q.push(start_state);
+  }
+
+  // Traverses the FST to map each reachable state to its unique history
+  // vector.
   while (!q.empty()) {
     StateId u = q.front();
     q.pop();
     int d = dist[u];
     const auto& H = history[u];
-    if (d > max_hist_len) max_hist_len = d;
     for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, u); !aiter.Done();
          aiter.Next()) {
       const auto& arc = aiter.Value();
@@ -278,7 +318,19 @@ bool WriteArpa(const fst::Fst<Arc>& fst, std::ostream& ostrm,
       }
     }
   }
-  int max_order = max_hist_len + 1;
+
+  // Precomputes backoff weights for all states to avoid O(E * d) inner loops.
+  absl::flat_hash_map<StateId, double> state_backoff_weights;
+  if (phi_label != fst::kNoLabel) {
+    for (const auto& pair : history) {
+      const StateId s = pair.first;
+      double bw = 0.0;
+      if (internal::GetBackoffWeight(fst, s, phi_label, &bw)) {
+        state_backoff_weights[s] = bw;
+      }
+    }
+  }
+
   struct ArpaNgramPrintData {
     std::string text;
     double log_prob;
@@ -286,88 +338,133 @@ bool WriteArpa(const fst::Fst<Arc>& fst, std::ostream& ostrm,
     bool has_backoff = false;
   };
   std::map<int, std::vector<ArpaNgramPrintData>> order_to_ngrams;
-  const fst::SymbolTable* syms = fst.InputSymbols();
-  Label bos_label = syms->Find("<s>");
-  if (bos_label == fst::kNoLabel) bos_label = syms->Find("<S>");
-  Label eos_label = syms->Find("</s>");
-  if (eos_label == fst::kNoLabel) eos_label = syms->Find("</S>");
-  if (bos_label != fst::kNoLabel) {
-    ArpaNgramPrintData data;
-    data.text = syms->Find(bos_label);
-    data.log_prob = -99.0;
-    double start_bo_weight = 0.0;
-    if (internal::GetBackoffWeight(fst, start_state, phi_label,
-                                   &start_bo_weight)) {
-      data.backoff_weight = start_bo_weight / std::log(10.0);
-      data.has_backoff = true;
+
+  if (bos_label != fst::kNoLabel ||
+      (unigram_state != fst::kNoStateId && unigram_state != start_state)) {
+    ArpaNgramPrintData bos_data;
+    bos_data.text = bos_str;
+    bos_data.log_prob = -99.0;
+    auto bo_it = state_backoff_weights.find(start_state);
+    if (bo_it != state_backoff_weights.end()) {
+      bos_data.backoff_weight = bo_it->second / std::log(10.0);
+      bos_data.has_backoff = true;
     } else {
-      data.text += '\t';
+      bos_data.text += '\t';
     }
-    order_to_ngrams[1].push_back(data);
+    order_to_ngrams[1].push_back(bos_data);
   }
+
+  auto label_to_str = [&syms, &bos_str](Label l) -> std::string {
+    if (l == -2) return bos_str;
+    return syms->Find(l);
+  };
+
   // Serializes all word and backoff transitions into the ARPA format data
   // structures.
   for (const auto& pair : history) {
     const StateId s = pair.first;
     const auto& H = pair.second;
-    if (eos_label != fst::kNoLabel && fst.Final(s) != Weight::Zero()) {
-      std::string text = absl::StrJoin(
-          H, " ",
-          [&syms](std::string* out, Label l) { out->append(syms->Find(l)); });
+    int order = H.size() + 1;
+
+    if (fst.Final(s) != Weight::Zero()) {
+      std::string text =
+          absl::StrJoin(H, " ", [&label_to_str](std::string* out, Label l) {
+            out->append(label_to_str(l));
+          });
       if (!text.empty()) absl::StrAppend(&text, " ");
-      absl::StrAppend(&text, syms->Find(eos_label));
+      absl::StrAppend(&text, eos_str);
       ArpaNgramPrintData data;
       data.text = text;
       data.log_prob = -fst.Final(s).Value() / std::log(10.0);
-      order_to_ngrams[H.size() + 1].push_back(data);
+      order_to_ngrams[order].push_back(data);
     }
     for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, s); !aiter.Done();
          aiter.Next()) {
       const auto& arc = aiter.Value();
       if (arc.ilabel == phi_label) continue;
-      std::string text = absl::StrJoin(
-          H, " ",
-          [&syms](std::string* out, Label l) { out->append(syms->Find(l)); });
+      std::string text =
+          absl::StrJoin(H, " ", [&label_to_str](std::string* out, Label l) {
+            out->append(label_to_str(l));
+          });
       if (!text.empty()) absl::StrAppend(&text, " ");
-      absl::StrAppend(&text, syms->Find(arc.ilabel));
+      absl::StrAppend(&text, label_to_str(arc.ilabel));
       ArpaNgramPrintData data;
       data.text = text;
       data.log_prob = -arc.weight.Value() / std::log(10.0);
-      double next_bo_weight = 0.0;
-      bool next_has_bo = internal::GetBackoffWeight(fst, arc.nextstate,
-                                                    phi_label, &next_bo_weight);
-      if (next_has_bo && H.size() + 1 < max_order) {
-        data.backoff_weight = next_bo_weight / std::log(10.0);
+      auto bo_it = state_backoff_weights.find(arc.nextstate);
+      if (bo_it != state_backoff_weights.end()) {
+        data.backoff_weight = bo_it->second / std::log(10.0);
         data.has_backoff = true;
       }
-      order_to_ngrams[H.size() + 1].push_back(data);
+      order_to_ngrams[order].push_back(data);
     }
   }
-  // Prints and formats the final ARPA LM to the output stream.
-  ostrm << "\\data\\" << std::endl;
-  for (int o = 1; o <= max_order; ++o) {
-    ostrm << "ngram " << o << "=" << order_to_ngrams[o].size() << std::endl;
+
+  int max_order = std::max(model_max_order, 1);
+  for (const auto& [order, ngrams] : order_to_ngrams) {
+    if (order > max_order) max_order = order;
   }
-  ostrm << std::endl;
-  for (int o = 1; o <= max_order; ++o) {
-    ostrm << "\\" << o << "-grams:" << std::endl;
-    for (const auto& data : order_to_ngrams[o]) {
-      ostrm << data.log_prob << '\t' << data.text;
-      if (data.has_backoff) {
-        ostrm << '\t' << data.backoff_weight;
+  // Clear backoff from highest order n-grams.
+  if (max_order > 0) {
+    for (auto& data : order_to_ngrams[max_order]) {
+      data.has_backoff = false;
+    }
+  }
+
+  if (arpa_format) {
+    // Prints and formats the final ARPA LM to the output stream.
+    ostrm << "\\data\\" << std::endl;
+    for (int o = 1; o <= max_order; ++o) {
+      ostrm << "ngram " << o << "=" << order_to_ngrams[o].size() << std::endl;
+    }
+    for (int o = 1; o <= max_order; ++o) {
+      ostrm << "\\" << o << "-grams:" << std::endl;
+      for (const auto& data : order_to_ngrams[o]) {
+        ostrm << data.log_prob << '\t' << data.text;
+        if (data.has_backoff) {
+          ostrm << '\t' << data.backoff_weight;
+        }
+        ostrm << std::endl;
       }
-      ostrm << std::endl;
     }
-    ostrm << std::endl;
+    ostrm << "\\end\\" << std::endl;
+  } else {
+    // Prints plain TSV format.
+    for (int o = 1; o <= max_order; ++o) {
+      for (const auto& data : order_to_ngrams[o]) {
+        ostrm << data.text << '\t' << data.log_prob;
+        if (data.has_backoff) {
+          ostrm << '\t' << data.backoff_weight;
+        }
+        ostrm << std::endl;
+      }
+    }
   }
-  ostrm << "\\end\\" << std::endl;
   return true;
+}
+
+}  // namespace internal
+
+template <class Arc>
+bool WriteArpa(const fst::Fst<Arc>& fst, std::ostream& ostrm,
+               typename Arc::Label phi_label) {
+  return internal::WriteNGrams(fst, ostrm, phi_label, /*arpa_format=*/true);
+}
+
+template <class Arc>
+bool WriteText(const fst::Fst<Arc>& fst, std::ostream& ostrm,
+               typename Arc::Label phi_label) {
+  return internal::WriteNGrams(fst, ostrm, phi_label, /*arpa_format=*/false);
 }
 
 template bool ReadArpa<fst::StdArc>(std::istream& istrm,
                                     fst::MutableFst<fst::StdArc>* fst);
 
 template bool WriteArpa<fst::StdArc>(const fst::Fst<fst::StdArc>& fst,
+                                     std::ostream& ostrm,
+                                     fst::StdArc::Label phi_label);
+
+template bool WriteText<fst::StdArc>(const fst::Fst<fst::StdArc>& fst,
                                      std::ostream& ostrm,
                                      fst::StdArc::Label phi_label);
 

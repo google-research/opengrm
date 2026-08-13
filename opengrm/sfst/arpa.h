@@ -35,6 +35,12 @@ template <class Arc>
 bool WriteArpa(const fst::Fst<Arc>& fst, std::ostream& ostrm,
                typename Arc::Label phi_label = fst::kNoLabel);
 
+// Writes a canonical SFST to ostrm in plain TSV text format.
+// Returns true on success.
+template <class Arc>
+bool WriteText(const fst::Fst<Arc>& fst, std::ostream& ostrm,
+               typename Arc::Label phi_label = fst::kNoLabel);
+
 }  // namespace sfst
 
 #endif  // OPENGRM_SFST_ARPA_H_
