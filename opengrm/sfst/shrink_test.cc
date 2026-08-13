@@ -113,6 +113,43 @@ TEST_F(ShrinkTest, CountPruneTest) {
   EXPECT_FALSE(found_label_2);
 }
 
+TEST_F(ShrinkTest, CountPrunePatternValidationTest) {
+  fst::VectorFst<Arc> fst(fst_);
+  // Valid patterns
+  EXPECT_TRUE(CountPrune(&fst, 0, "2:5"));
+  fst = fst_;
+  EXPECT_TRUE(CountPrune(&fst, 0, "2+:5"));
+  fst = fst_;
+  EXPECT_TRUE(CountPrune(&fst, 0, "1+:7"));
+  bool found_label_2_s0 = false;
+  bool found_label_2_s3 = false;
+  for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, 0); !aiter.Done();
+       aiter.Next()) {
+    if (aiter.Value().ilabel == 2) found_label_2_s0 = true;
+  }
+  for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, 3); !aiter.Done();
+       aiter.Next()) {
+    if (aiter.Value().ilabel == 2) found_label_2_s3 = true;
+  }
+  EXPECT_FALSE(found_label_2_s0);
+  EXPECT_FALSE(found_label_2_s3);
+  fst = fst_;
+  EXPECT_TRUE(CountPrune(&fst, 0, "1:1; 2:7"));
+  fst = fst_;
+  EXPECT_TRUE(CountPrune(&fst, 0, "1:1;2:7;"));
+
+  // Invalid patterns should safely return false without crashing
+  fst = fst_;
+  EXPECT_FALSE(CountPrune(&fst, 0, ""));
+  EXPECT_FALSE(CountPrune(&fst, 0, ":7"));
+  EXPECT_FALSE(CountPrune(&fst, 0, "2:"));
+  EXPECT_FALSE(CountPrune(&fst, 0, "abc:7"));
+  EXPECT_FALSE(CountPrune(&fst, 0, "2:abc"));
+  EXPECT_FALSE(CountPrune(&fst, 0, "-1:5"));
+  EXPECT_FALSE(CountPrune(&fst, 0, "0:5"));
+  EXPECT_FALSE(CountPrune(&fst, 0, "2:5;invalid"));
+}
+
 TEST_F(ShrinkTest, ListPruneTest) {
   fst::VectorFst<Arc> fst(fst_);
   std::set<std::vector<Label>> ngrams_to_prune;

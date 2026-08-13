@@ -29,6 +29,9 @@
 
 #include "absl/log/log.h"
 #include "absl/strings/numbers.h"
+#include "absl/strings/str_split.h"
+#include "absl/strings/string_view.h"
+#include "absl/strings/strip.h"
 #include "openfst/lib/arc.h"  // NOLINT(misc-include-cleaner)
 #include "openfst/lib/expanded-fst.h"
 #include "openfst/lib/fst.h"
@@ -327,8 +330,23 @@ bool SeymoreShrink(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
   return true;
 }
 
-// Count pruning style model shrinking.
-// Uses a threshold provided for each order to decide to prune.
+// Shrinks the model by pruning transitions below specified count thresholds.
+//
+// The `count_pattern` parameter specifies pruning thresholds in the format:
+//   order[+]:count[;order[+]:count...]
+//
+// Where:
+//   - `order`: Positive integer specifying the n-gram order (1 for unigrams,
+//     2 for bigrams, etc.).
+//   - `+`: Optional suffix indicating that the threshold applies to `order` and
+//     all higher orders up to `max_order`.
+//   - `count`: Positive numeric threshold below which transitions are pruned.
+//   - `;`: Semicolon delimiter separating multiple order rules.
+//
+// Examples:
+//   - "2:5": Prune bigrams with count < 5.
+//   - "3+:2": Prune trigrams and higher-order n-grams with count < 2.
+//   - "2:5;3:10;4+:20": Prune bigrams < 5, trigrams < 10, and 4-grams+ < 20.
 template <class Arc>
 bool CountPrune(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
                 const std::string& count_pattern) {
@@ -336,6 +354,8 @@ bool CountPrune(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
     LOG(ERROR) << "CountPrune: input is not a canonical SFST";
     return false;
   }
+  if (count_pattern.empty()) return false;
+
   using StateId = typename Arc::StateId;
   using Label = typename Arc::Label;
   using Weight = typename Arc::Weight;
@@ -344,64 +364,34 @@ bool CountPrune(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
   int max_order = 0;
   for (int o : orders) max_order = std::max(max_order, o);
   std::vector<double> count_minimums(max_order, -Weight::Zero().Value());
-  auto is_in_number = [](char c) { return (c >= '0' && c <= '9') || c == '.'; };
-  auto get_next_char = [&](std::string::const_iterator* strit) {
-    if (*strit == count_pattern.end()) return '\0';
-    char c = **strit;
-    ++(*strit);
-    return c;
-  };
-  auto get_next_char_val_int = [&](std::string::const_iterator* strit,
-                                   int* toget) {
-    char c = get_next_char(strit);
-    std::string tok;
-    while (is_in_number(c)) {
-      tok += c;
-      c = get_next_char(strit);
+
+  for (absl::string_view spec :
+       absl::StrSplit(count_pattern, ';', absl::SkipWhitespace())) {
+    const size_t colon_pos = spec.find(':');
+    if (colon_pos == absl::string_view::npos) {
+      LOG(ERROR) << "CountPrune: invalid spec (missing ':'): " << spec;
+      return false;
     }
-    if (!tok.empty()) {
-      std::stringstream ss(tok);
-      ss >> (*toget);
+    absl::string_view order_str = spec.substr(0, colon_pos);
+    const absl::string_view count_str = spec.substr(colon_pos + 1);
+    const bool plus = absl::ConsumeSuffix(&order_str, "+");
+    int order = 0;
+    if (!absl::SimpleAtoi(order_str, &order) || order <= 0) {
+      LOG(ERROR) << "CountPrune: invalid order: " << spec.substr(0, colon_pos);
+      return false;
     }
-    return c;
-  };
-  auto get_next_char_val_double = [&](std::string::const_iterator* strit,
-                                      double* toget) {
-    char c = get_next_char(strit);
-    std::string tok;
-    while (is_in_number(c)) {
-      tok += c;
-      c = get_next_char(strit);
+    double count = 0.0;
+    if (!absl::SimpleAtod(count_str, &count) || std::isnan(count)) {
+      LOG(ERROR) << "CountPrune: invalid count: " << count_str;
+      return false;
     }
-    if (!tok.empty()) {
-      std::stringstream ss(tok);
-      ss >> (*toget);
-    }
-    return c;
-  };
-  auto strit = count_pattern.begin();
-  while (strit < count_pattern.end()) {
-    int order;
-    double count;
-    char c = get_next_char_val_int(&strit, &order);
-    bool plus = false;
-    if (c == '+') {
-      plus = true;
-      c = get_next_char(&strit);
-    }
-    if (c != ':') return false;
-    c = get_next_char_val_double(&strit, &count);
-    if (c != ';' && strit < count_pattern.end()) return false;
-    if (count <= 0) {
-      count = Weight::Zero().Value();
-    } else {
-      count = std::log(count);
-    }
+    const double theta =
+        (count <= 0.0) ? Weight::Zero().Value() : std::log(count);
     if (order > 0 && order <= max_order) {
-      if (count_minimums[order - 1] < count) count_minimums[order - 1] = count;
+      if (count_minimums[order - 1] < theta) count_minimums[order - 1] = theta;
       if (plus) {
         for (int i = order; i < max_order; ++i) {
-          if (count_minimums[i] < count) count_minimums[i] = count;
+          if (count_minimums[i] < theta) count_minimums[i] = theta;
         }
       }
     }
