@@ -164,6 +164,7 @@ cc_library(
     hdrs = ["arpa.h"],
     deps = [
         "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/log",
         "@com_google_absl//absl/strings",
         "@com_google_openfst//openfst/lib",
         "@com_google_openfst//openfst/lib:symbol-table",

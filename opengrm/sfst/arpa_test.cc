@@ -46,7 +46,7 @@ TEST(ArpaTest, ReadBasic) {
       "\\end\\\n";
   std::stringstream istrm(arpa_data);
   fst::VectorFst<fst::StdArc> fst;
-  ReadArpa(istrm, &fst);
+  EXPECT_TRUE(ReadArpa(istrm, &fst));
   // Start state + 3 unigram histories = 4 states in canonical 2-gram topology.
   EXPECT_EQ(fst.NumStates(), 4);
   EXPECT_TRUE(IsCanonical(fst, fst::kNoLabel));  // NOLINT(misc-include-cleaner)
@@ -89,7 +89,7 @@ TEST(ArpaTest, ReadWriteSingleTrigramRoundTrip) {
       "\\end\\\n";
   std::stringstream istrm(arpa_data);
   fst::VectorFst<fst::StdArc> fst;
-  ReadArpa(istrm, &fst);
+  EXPECT_TRUE(ReadArpa(istrm, &fst));
   EXPECT_EQ(fst.NumStates(), 6);
   EXPECT_TRUE(IsCanonical(fst, fst::kNoLabel));  // NOLINT(misc-include-cleaner)
   EXPECT_NE(fst.Start(), fst::kNoStateId);       // NOLINT(misc-include-cleaner)
@@ -162,6 +162,142 @@ TEST(ArpaTest, WriteSentenceBoundariesFallback) {
   EXPECT_TRUE(absl::StrContains(output, "<S>"));
   EXPECT_TRUE(absl::StrContains(output, "</S>"));
   EXPECT_TRUE(absl::StrContains(output, "word </S>"));
+}
+
+TEST(ArpaTest, ReadWithBackoffWeights) {
+  std::string arpa_data =
+      "\\data\\\n"
+      "ngram 1=2\n"
+      "ngram 2=1\n"
+      "\n"
+      "\\1-grams:\n"
+      "-0.5 a -0.2\n"
+      "-0.6 b\n"
+      "\n"
+      "\\2-grams:\n"
+      "-0.1 a b\n"
+      "\n"
+      "\\end\\\n";
+  std::stringstream istrm(arpa_data);
+  fst::VectorFst<fst::StdArc> fst;
+  EXPECT_TRUE(ReadArpa(istrm, &fst));
+  EXPECT_GT(fst.NumStates(), 1);
+  EXPECT_TRUE(IsCanonical(fst, fst::kNoLabel));
+
+  // Verify that backoff weight -0.2 on 1-gram 'a' is preserved.
+  bool found_bo = false;
+  for (fst::StateIterator<fst::VectorFst<fst::StdArc>> siter(fst);
+       !siter.Done(); siter.Next()) {
+    auto s = siter.Value();
+    for (fst::ArcIterator<fst::VectorFst<fst::StdArc>> aiter(fst, s);
+         !aiter.Done(); aiter.Next()) {
+      const auto& arc = aiter.Value();
+      if (arc.ilabel == fst::kNoLabel &&
+          std::abs(arc.weight.Value() - (0.2 * std::log(10.0))) < 1e-4) {
+        found_bo = true;
+      }
+    }
+  }
+  EXPECT_TRUE(found_bo);
+}
+
+TEST(ArpaTest, ReadInvalidOrderHeader) {
+  // Tests that malformed order headers are skipped without crashing,
+  // that current_order is reset so subsequent lines are ignored,
+  // and that negative/zero/non-numeric orders cause ReadArpa to return false.
+  std::string arpa_data =
+      "\\data\\\n"
+      "ngram 1=1\n"
+      "\n"
+      "\\1-grams:\n"
+      "-0.5 a\n"
+      "\n"
+      "\\invalid-grams:\n"
+      "-0.5 foo\n"
+      "\n"
+      "\\-1-grams:\n"
+      "-0.5 bar\n"
+      "\n"
+      "\\0-grams:\n"
+      "-0.5 baz\n"
+      "\n"
+      "\\end\\\n";
+  std::stringstream istrm(arpa_data);
+  fst::VectorFst<fst::StdArc> fst;
+  EXPECT_FALSE(ReadArpa(istrm, &fst));
+  // Only the valid 1-gram 'a' is loaded; 'foo', 'bar', 'baz' are not loaded.
+  EXPECT_EQ(fst.NumStates(), 1);
+  EXPECT_EQ(fst.NumArcs(fst.Start()), 1);
+  EXPECT_EQ(fst.InputSymbols()->Find("foo"), fst::kNoSymbol);
+  EXPECT_EQ(fst.InputSymbols()->Find("bar"), fst::kNoSymbol);
+  EXPECT_EQ(fst.InputSymbols()->Find("baz"), fst::kNoSymbol);
+  EXPECT_TRUE(IsCanonical(fst, fst::kNoLabel));
+}
+
+TEST(ArpaTest, ReadInvalidNgramLines) {
+  // Tests that lines with non-numeric log probabilities or corrupted tokens
+  // cause ReadArpa to return false and are skipped.
+  std::string arpa_data =
+      "\\data\\\n"
+      "ngram 1=2\n"
+      "ngram 2=1\n"
+      "\n"
+      "\\1-grams:\n"
+      "not_a_float a\n"
+      "-0.5 valid_word\n"
+      "-0.3 bad_bo not_a_number\n"
+      "\n"
+      "\\2-grams:\n"
+      "-0.1 valid_word valid_word\n"
+      "\n"
+      "\\end\\\n";
+  std::stringstream istrm(arpa_data);
+  fst::VectorFst<fst::StdArc> fst;
+  EXPECT_FALSE(ReadArpa(istrm, &fst));
+  // 'valid_word' and 'bad_bo' are parsed, while 'not_a_float' is skipped.
+  EXPECT_GT(fst.NumStates(), 1);
+  EXPECT_EQ(fst.InputSymbols()->Find("not_a_float"), fst::kNoSymbol);
+  EXPECT_TRUE(IsCanonical(fst, fst::kNoLabel));
+}
+
+TEST(ArpaTest, ReadZeroOrNegativeOrderHeader) {
+  // Tests that zero or negative order headers specifically return false.
+  std::string arpa_data =
+      "\\data\\\n"
+      "ngram 1=1\n"
+      "\n"
+      "\\0-grams:\n"
+      "-0.5 foo\n"
+      "\n"
+      "\\1-grams:\n"
+      "-0.5 a\n"
+      "\n"
+      "\\end\\\n";
+  std::stringstream istrm(arpa_data);
+  fst::VectorFst<fst::StdArc> fst;
+  EXPECT_FALSE(ReadArpa(istrm, &fst));
+  EXPECT_EQ(fst.InputSymbols()->Find("foo"), fst::kNoSymbol);
+  EXPECT_TRUE(IsCanonical(fst, fst::kNoLabel));
+}
+
+TEST(ArpaTest, ReadInsufficientTokensInNgramLine) {
+  // Tests that n-gram lines with fewer tokens than current_order return false.
+  std::string arpa_data =
+      "\\data\\\n"
+      "ngram 1=1\n"
+      "ngram 2=1\n"
+      "\n"
+      "\\1-grams:\n"
+      "-0.5 a\n"
+      "\n"
+      "\\2-grams:\n"
+      "-0.1 a\n"
+      "\n"
+      "\\end\\\n";
+  std::stringstream istrm(arpa_data);
+  fst::VectorFst<fst::StdArc> fst;
+  EXPECT_FALSE(ReadArpa(istrm, &fst));
+  EXPECT_TRUE(IsCanonical(fst, fst::kNoLabel));
 }
 
 }  // namespace

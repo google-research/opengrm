@@ -22,11 +22,12 @@
 #include <map>  // NOLINT(misc-include-cleaner)
 #include <ostream>
 #include <queue>    // NOLINT(misc-include-cleaner)
-#include <sstream>  // NOLINT(misc-include-cleaner)
 #include <string>
 #include <vector>  // NOLINT(misc-include-cleaner)
 
 #include "absl/container/flat_hash_map.h"  // NOLINT(misc-include-cleaner)
+#include "absl/log/log.h"
+#include "absl/strings/numbers.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"   // NOLINT(misc-include-cleaner)
 #include "absl/strings/str_split.h"  // NOLINT(misc-include-cleaner)
@@ -86,7 +87,7 @@ inline bool GetBackoffWeight(const fst::Fst<Arc>& fst, typename Arc::StateId s,
 }  // namespace internal
 
 template <class Arc>
-void ReadArpa(std::istream& istrm, fst::MutableFst<Arc>* fst) {
+bool ReadArpa(std::istream& istrm, fst::MutableFst<Arc>* fst) {
   using StateId = typename Arc::StateId;
   using Label = typename Arc::Label;
   using Weight = typename Arc::Weight;
@@ -114,6 +115,7 @@ void ReadArpa(std::istream& istrm, fst::MutableFst<Arc>* fst) {
   absl::flat_hash_map<std::vector<Label>, NgramData> all_ngrams;
   int current_order = 0;
   bool in_ngrams = false;
+  bool error = false;
   // Collects all n-grams and explicitly populates implied lower-order gaps.
   for (const std::string& line : lines) {
     if (line.empty()) continue;
@@ -122,19 +124,31 @@ void ReadArpa(std::istream& istrm, fst::MutableFst<Arc>* fst) {
       if (grams_pos != std::string::npos && grams_pos > 1) {
         in_ngrams = true;
         std::string order_str = line.substr(1, grams_pos - 1);
-        std::stringstream ss(order_str);
-        ss >> current_order;
+        if (!absl::SimpleAtoi(order_str, &current_order) ||
+            current_order <= 0) {
+          LOG(ERROR) << "ReadArpa: Invalid order in header: " << line;
+          error = true;
+          current_order = 0;
+        }
       }
       continue;
     }
-    if (!in_ngrams) continue;
+    if (!in_ngrams || current_order <= 0) continue;
     if (line == "\\end\\") break;
     const std::vector<std::string> parts =
         absl::StrSplit(line, absl::ByAnyChar(" \t"), absl::SkipEmpty());
-    if (parts.size() < 2) continue;
-    double log_prob;
-    std::stringstream ss(parts[0]);
-    ss >> log_prob;
+    if (parts.size() < current_order + 1) {
+      LOG(ERROR) << "ReadArpa: Insufficient tokens for order " << current_order
+                 << ": " << line;
+      error = true;
+      continue;
+    }
+    double log_prob = 0.0;
+    if (!absl::SimpleAtod(parts[0], &log_prob)) {
+      LOG(ERROR) << "ReadArpa: Invalid log probability: " << parts[0];
+      error = true;
+      continue;
+    }
     std::vector<Label> ngram;
     ngram.reserve(current_order);
     for (int i = 1; i <= current_order && i < parts.size(); ++i) {
@@ -143,9 +157,13 @@ void ReadArpa(std::istream& istrm, fst::MutableFst<Arc>* fst) {
     double boweight = 0.0;
     bool has_bo = false;
     if (parts.size() > current_order + 1) {
-      std::stringstream ss_bo(parts[current_order + 1]);
-      ss_bo >> boweight;
-      has_bo = true;
+      if (absl::SimpleAtod(parts[current_order + 1], &boweight)) {
+        has_bo = true;
+      } else {
+        LOG(ERROR) << "ReadArpa: Invalid backoff weight: "
+                   << parts[current_order + 1];
+        error = true;
+      }
     }
     all_ngrams[ngram].log_prob = log_prob * std::log(10.0);
     all_ngrams[ngram].has_log_prob = true;
@@ -214,6 +232,7 @@ void ReadArpa(std::istream& istrm, fst::MutableFst<Arc>* fst) {
   }
   fst::ArcSort(fst, fst::ILabelCompare<Arc>());
   fst->SetOutputSymbols(fst->InputSymbols());
+  return !error;
 }
 
 template <class Arc>
@@ -345,7 +364,7 @@ bool WriteArpa(const fst::Fst<Arc>& fst, std::ostream& ostrm,
   return true;
 }
 
-template void ReadArpa<fst::StdArc>(std::istream& istrm,
+template bool ReadArpa<fst::StdArc>(std::istream& istrm,
                                     fst::MutableFst<fst::StdArc>* fst);
 
 template bool WriteArpa<fst::StdArc>(const fst::Fst<fst::StdArc>& fst,

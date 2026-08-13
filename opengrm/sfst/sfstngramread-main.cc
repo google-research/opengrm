@@ -81,7 +81,10 @@ int sfstngramread_main(int argc, char** argv) {
     fst.SetOutputSymbols(syms.get());
   }
 
-  sfst::ReadArpa(istrm, &fst);
+  if (!sfst::ReadArpa(istrm, &fst)) {
+    LOG(ERROR) << argv[0] << ": Error reading ARPA model";
+    return 1;
+  }
 
   if (!fst.Write(ostrm, fst::FstWriteOptions())) {
     LOG(ERROR) << argv[0] << ": Write failed";
