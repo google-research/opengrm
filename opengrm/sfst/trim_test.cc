@@ -128,6 +128,19 @@ TEST_F(TrimTest, WeightTest) {
   ASSERT_TRUE(fst::Equal(fst, sum_fst));
 }
 
+// Verifies chaining PhiTrim followed by WeightTrim on the same Trimmer
+// instance.
+TEST_F(TrimTest, SequentialPhiTrimAndWeightTrim) {
+  fst::VectorFst<Arc> fst(*tfst1_);
+  Trimmer<Arc> trimmer(&fst, 1);
+  trimmer.PhiTrim();
+  trimmer.WeightTrim(false, typename Arc::Weight(0.9));
+  trimmer.Finalize();
+
+  EXPECT_TRUE(fst::Verify(fst));
+  EXPECT_TRUE(IsTrim(fst, 1));
+}
+
 }  // namespace sfst
 
 int main(int argc, char** argv) {

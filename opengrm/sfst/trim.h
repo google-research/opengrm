@@ -592,7 +592,7 @@ void Trimmer<Arc>::PhiTrim() {
     fst_->DeleteStates(del_states_);
     fst::ArcSort(fst_, fst::ILabelCompare<Arc>());
     del_states_.clear();
-    dead_state_ = fst::kNoLabel;
+    dead_state_ = fst::kNoStateId;
   }
 }
 
