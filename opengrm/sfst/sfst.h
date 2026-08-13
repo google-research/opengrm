@@ -23,6 +23,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
+#include <limits>
 #include <vector>
 
 #include "openfst/lib/arc.h"  // NOLINT(misc-include-cleaner)
@@ -39,6 +40,11 @@ constexpr double kNormEps = 0.001;
 constexpr double kFloatEps = 0.000001;
 
 constexpr int64_t kDefaultNGramOrder = 3;
+
+// Threshold where exp(-delta) drops below double machine epsilon
+// (std::numeric_limits<double>::digits * M_LN2 ~ 36.04).
+constexpr double kMaxNegLogDiffDelta =
+    std::numeric_limits<double>::digits * M_LN2;
 
 // Calculates -log(exp(a - b) + 1) for use in high precision NegLogSum.
 inline double NegLogDeltaValue(double a, double b, double* c) {
@@ -73,7 +79,13 @@ inline double NegLogDiff(double a, double b, bool* error = nullptr) {
     }
     return fst::StdArc::Weight::Zero().Value();
   }
-  return b - std::log(std::exp(b - a) - 1);
+  const double delta = b - a;
+  // For delta > -ln(eps), exp(-delta) is below machine epsilon, so
+  // -log(exp(-a) - exp(-b)) = a to full precision, and avoids exp() overflow.
+  if (delta > kMaxNegLogDiffDelta) {
+    return a;
+  }
+  return b - std::log(std::expm1(delta));
 }
 
 // Order w.r.t. probability: exp(-weight)

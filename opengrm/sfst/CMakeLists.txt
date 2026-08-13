@@ -187,6 +187,7 @@ if(OPENGRM_BUILD_TESTS)
       trim
       sfstinfo
       arpa
+      sfst
       smooth
       shrink
       merge

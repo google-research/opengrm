@@ -262,6 +262,17 @@ cc_test(
     ],
 )
 
+cc_test(
+    name = "sfst_test",
+    srcs = ["sfst_test.cc"],
+    deps = [
+        ":sfst",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:weight",
+    ],
+)
+
 # buildifier: disable=no-hdrs-no-alwayslink
 cc_library(
     name = "sfstintersect-main",
