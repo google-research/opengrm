@@ -25,6 +25,7 @@
 #include "openfst/lib/arcsort.h"
 #include "openfst/lib/fst.h"
 #include "openfst/lib/vector-fst.h"  // NOLINT(misc-include-cleaner)
+#include "opengrm/sfst/normalize.h"
 
 namespace sfst {
 
@@ -66,81 +67,57 @@ class SmoothTest : public testing::Test {
     fst::ArcSort(&fst_, fst::StdILabelCompare());
   }
 
+  // Verifies that all transitions in the FST have non-zero and finite (non-NaN)
+  // weights.
+  static void CheckValidWeights(const fst::Fst<Arc>& fst) {
+    for (fst::StateIterator<fst::Fst<Arc>> siter(fst); !siter.Done();
+         siter.Next()) {
+      StateId s = siter.Value();
+      for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, s); !aiter.Done();
+           aiter.Next()) {
+        EXPECT_NE(aiter.Value().weight, Weight::Zero());
+        EXPECT_FALSE(std::isnan(aiter.Value().weight.Value()));
+      }
+    }
+  }
+
   fst::VectorFst<Arc> fst_;
 };
 
 TEST_F(SmoothTest, WittenBellTest) {
   fst::VectorFst<Arc> fst(fst_);
   ASSERT_TRUE(WittenBell(&fst, 0));
-  // We cannot easily use IsNormalized here because it expects a
-  // backoff-complete FST or specific topology. Let's just check that it runs
-  // and produces non-Zero weights.
-  for (fst::StateIterator<fst::Fst<Arc>> siter(fst); !siter.Done();
-       siter.Next()) {
-    StateId s = siter.Value();
-    for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, s); !aiter.Done();
-         aiter.Next()) {
-      ASSERT_NE(aiter.Value().weight, Weight::Zero());
-    }
-  }
+  CheckValidWeights(fst);
 }
 
 TEST_F(SmoothTest, AbsoluteDiscountingTest) {
   fst::VectorFst<Arc> fst(fst_);
   ASSERT_TRUE(AbsoluteDiscounting(&fst, 0));
-  for (fst::StateIterator<fst::Fst<Arc>> siter(fst); !siter.Done();
-       siter.Next()) {
-    StateId s = siter.Value();
-    for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, s); !aiter.Done();
-         aiter.Next()) {
-      ASSERT_NE(aiter.Value().weight, Weight::Zero());
-    }
-  }
+  CheckValidWeights(fst);
 }
 
 TEST_F(SmoothTest, UnsmoothedTest) {
   fst::VectorFst<Arc> fst(fst_);
   ASSERT_TRUE(Unsmoothed(&fst, 0));
+  CheckValidWeights(fst);
 }
 
 TEST_F(SmoothTest, PreSmoothedTest) {
   fst::VectorFst<Arc> fst(fst_);
   ASSERT_TRUE(PreSmoothed(&fst, 0));
-  for (fst::StateIterator<fst::Fst<Arc>> siter(fst); !siter.Done();
-       siter.Next()) {
-    StateId s = siter.Value();
-    for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, s); !aiter.Done();
-         aiter.Next()) {
-      ASSERT_NE(aiter.Value().weight, Weight::Zero());
-    }
-  }
+  CheckValidWeights(fst);
 }
 
 TEST_F(SmoothTest, KneserNeyTest) {
   fst::VectorFst<Arc> fst(fst_);
   ASSERT_TRUE(KneserNey(&fst, 0));
-  for (fst::StateIterator<fst::Fst<Arc>> siter(fst); !siter.Done();
-       siter.Next()) {
-    StateId s = siter.Value();
-    for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, s); !aiter.Done();
-         aiter.Next()) {
-      ASSERT_NE(aiter.Value().weight, Weight::Zero());
-    }
-  }
+  CheckValidWeights(fst);
 }
 
 TEST_F(SmoothTest, KatzTest) {
   fst::VectorFst<Arc> fst(fst_);
   ASSERT_TRUE(Katz(&fst, 0));
-  for (fst::StateIterator<fst::Fst<Arc>> siter(fst); !siter.Done();
-       siter.Next()) {
-    StateId s = siter.Value();
-    for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, s); !aiter.Done();
-         aiter.Next()) {
-      ASSERT_NE(aiter.Value().weight, Weight::Zero());
-      EXPECT_FALSE(std::isnan(aiter.Value().weight.Value()));
-    }
-  }
+  CheckValidWeights(fst);
 }
 
 TEST_F(SmoothTest, KatzDegenerateCountsTest) {
@@ -170,15 +147,7 @@ TEST_F(SmoothTest, KatzDegenerateCountsTest) {
 
   // Smoothing must not crash or leak NaN when rnorm == 1.0 (1.0 - rnorm == 0).
   EXPECT_TRUE(Katz(&fst, 0, /*bins=*/5));
-  for (fst::StateIterator<fst::Fst<Arc>> siter(fst); !siter.Done();
-       siter.Next()) {
-    StateId s = siter.Value();
-    for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, s); !aiter.Done();
-         aiter.Next()) {
-      EXPECT_FALSE(std::isnan(aiter.Value().weight.Value()));
-      EXPECT_NE(aiter.Value().weight, Weight::Zero());
-    }
-  }
+  CheckValidWeights(fst);
 }
 
 TEST_F(SmoothTest, KatzZeroSingletonsTest) {
@@ -201,14 +170,209 @@ TEST_F(SmoothTest, KatzZeroSingletonsTest) {
   fst::ArcSort(&fst, fst::StdILabelCompare());
 
   EXPECT_TRUE(Katz(&fst, 0, /*bins=*/5));
-  for (fst::StateIterator<fst::Fst<Arc>> siter(fst); !siter.Done();
-       siter.Next()) {
-    StateId s = siter.Value();
-    for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, s); !aiter.Done();
-         aiter.Next()) {
-      EXPECT_FALSE(std::isnan(aiter.Value().weight.Value()));
+  CheckValidWeights(fst);
+}
+
+TEST_F(SmoothTest, WittenBellNormalizationAndCustomKTest) {
+  fst::VectorFst<Arc> fst(fst_);
+  EXPECT_TRUE(WittenBell(&fst, 0, /*k=*/1.0));
+  EXPECT_TRUE(PhiNormalize(&fst, 0));
+  EXPECT_TRUE(IsNormalized(fst, 0, 1e-4));
+  CheckValidWeights(fst);
+
+  // Custom k = 0.5
+  fst = fst_;
+  EXPECT_TRUE(WittenBell(&fst, 0, /*k=*/0.5));
+  EXPECT_TRUE(PhiNormalize(&fst, 0));
+  EXPECT_TRUE(IsNormalized(fst, 0, 1e-4));
+  CheckValidWeights(fst);
+
+  // Custom k = 2.0
+  fst = fst_;
+  EXPECT_TRUE(WittenBell(&fst, 0, /*k=*/2.0));
+  EXPECT_TRUE(PhiNormalize(&fst, 0));
+  EXPECT_TRUE(IsNormalized(fst, 0, 1e-4));
+  CheckValidWeights(fst);
+}
+
+TEST_F(SmoothTest, AbsoluteDiscountingNormalizationAndCustomDTest) {
+  fst::VectorFst<Arc> fst(fst_);
+  EXPECT_TRUE(AbsoluteDiscounting(&fst, 0, /*D=*/0.75));
+  EXPECT_TRUE(PhiNormalize(&fst, 0));
+  EXPECT_TRUE(IsNormalized(fst, 0, 1e-4));
+  CheckValidWeights(fst);
+
+  // Custom D = 0.5
+  fst = fst_;
+  EXPECT_TRUE(AbsoluteDiscounting(&fst, 0, /*D=*/0.5));
+  EXPECT_TRUE(PhiNormalize(&fst, 0));
+  EXPECT_TRUE(IsNormalized(fst, 0, 1e-4));
+  CheckValidWeights(fst);
+
+  // Custom D = 0.9
+  fst = fst_;
+  EXPECT_TRUE(AbsoluteDiscounting(&fst, 0, /*D=*/0.9));
+  EXPECT_TRUE(PhiNormalize(&fst, 0));
+  EXPECT_TRUE(IsNormalized(fst, 0, 1e-4));
+  CheckValidWeights(fst);
+}
+
+TEST_F(SmoothTest, KneserNeyNormalizationAndCustomDTest) {
+  fst::VectorFst<Arc> fst(fst_);
+  EXPECT_TRUE(KneserNey(&fst, 0, /*D=*/0.75));
+  EXPECT_TRUE(PhiNormalize(&fst, 0));
+  EXPECT_TRUE(IsNormalized(fst, 0, 1e-4));
+
+  // Custom D = 0.5
+  fst = fst_;
+  EXPECT_TRUE(KneserNey(&fst, 0, /*D=*/0.5));
+  EXPECT_TRUE(PhiNormalize(&fst, 0));
+  EXPECT_TRUE(IsNormalized(fst, 0, 1e-4));
+
+  // Custom D = 0.9
+  fst = fst_;
+  EXPECT_TRUE(KneserNey(&fst, 0, /*D=*/0.9));
+  EXPECT_TRUE(PhiNormalize(&fst, 0));
+  EXPECT_TRUE(IsNormalized(fst, 0, 1e-4));
+}
+
+TEST_F(SmoothTest, PreSmoothedNormalizationTest) {
+  fst::VectorFst<Arc> fst(fst_);
+  EXPECT_TRUE(PreSmoothed(&fst, 0));
+  EXPECT_TRUE(PhiNormalize(&fst, 0));
+  EXPECT_TRUE(IsNormalized(fst, 0, 1e-4));
+}
+
+TEST_F(SmoothTest, UnsmoothedNormalizationTest) {
+  fst::VectorFst<Arc> fst(fst_);
+  EXPECT_TRUE(Unsmoothed(&fst, 0));
+  EXPECT_TRUE(IsNormalized(fst, 0, 1e-4));
+}
+
+TEST_F(SmoothTest, KatzNormalizationTest) {
+  fst::VectorFst<Arc> fst(fst_);
+  EXPECT_TRUE(Katz(&fst, 0, /*bins=*/3));
+  EXPECT_TRUE(PhiNormalize(&fst, 0));
+  EXPECT_TRUE(IsNormalized(fst, 0, 1e-4));
+}
+
+TEST_F(SmoothTest, AbsoluteDiscountingCountLessThanDiscountTest) {
+  // Arcs with count 0.5 where discount D = 0.75.
+  fst::VectorFst<Arc> fst;
+  fst.AddState();  // State 0 (unigram).
+  fst.SetStart(0);
+  fst.AddState();  // State 1.
+  fst.AddState();  // State 2 (higher-order state).
+  fst.AddState();  // State 3.
+
+  // State 0 (unigram): word 1 with count 10.0.
+  fst.AddArc(0, Arc(1, 1, Weight(-std::log(10.0)), 1));
+  fst.SetFinal(0, Weight::One());
+  fst.SetFinal(1, Weight::One());
+
+  // State 2: count 0.5 (< D = 0.75), phi backoff to state 0 with count 1.0.
+  fst.AddArc(2, Arc(1, 1, Weight(-std::log(0.5)), 3));
+  fst.AddArc(2, Arc(0, 0, Weight(-std::log(1.0)), 0));  // phi arc
+  fst.SetFinal(3, Weight::One());
+  fst::ArcSort(&fst, fst::StdILabelCompare());
+
+  EXPECT_TRUE(AbsoluteDiscounting(&fst, 0, /*D=*/0.75));
+  for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, 2); !aiter.Done();
+       aiter.Next()) {
+    EXPECT_FALSE(std::isnan(aiter.Value().weight.Value()));
+  }
+}
+
+TEST_F(SmoothTest, PreSmoothedZeroBackoffMassTest) {
+  // State where outgoing arc counts sum exactly to state count c_h
+  // (backoff_mass = 0).
+  fst::VectorFst<Arc> fst;
+  fst.AddState();  // State 0 (unigram).
+  fst.SetStart(0);
+  fst.AddState();  // State 1.
+  fst.AddState();  // State 2 (higher order).
+  fst.AddState();  // State 3.
+
+  fst.AddArc(0, Arc(1, 1, Weight(-std::log(10.0)), 1));
+  fst.SetFinal(0, Weight::One());
+  fst.SetFinal(1, Weight::One());
+
+  // State 2: outgoing arc count 5.0, phi total count 5.0 => remainder = 0.
+  fst.AddArc(2, Arc(1, 1, Weight(-std::log(5.0)), 3));
+  fst.AddArc(2, Arc(0, 0, Weight(-std::log(5.0)), 0));  // phi arc
+  fst.SetFinal(3, Weight::One());
+  fst::ArcSort(&fst, fst::StdILabelCompare());
+
+  EXPECT_TRUE(PreSmoothed(&fst, 0));
+  for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, 2); !aiter.Done();
+       aiter.Next()) {
+    const auto& arc = aiter.Value();
+    EXPECT_FALSE(std::isnan(arc.weight.Value()));
+    if (arc.ilabel == 0) {
+      // Backoff arc receives Weight::Zero() because backoff mass was 0.
+      EXPECT_EQ(arc.weight, Weight::Zero());
     }
   }
+}
+
+TEST_F(SmoothTest, KneserNeyUnigramModelTest) {
+  // Model with order 1 only (no phi backoff arcs).
+  fst::VectorFst<Arc> fst;
+  fst.AddState();  // State 0.
+  fst.SetStart(0);
+  fst.AddState();  // State 1.
+  fst.AddState();  // State 2.
+  fst.AddArc(0, Arc(1, 1, Weight(-std::log(3.0)), 1));
+  fst.AddArc(0, Arc(2, 2, Weight(-std::log(7.0)), 2));
+  fst.SetFinal(1, Weight::One());
+  fst.SetFinal(2, Weight::One());
+  fst::ArcSort(&fst, fst::StdILabelCompare());
+
+  EXPECT_TRUE(KneserNey(&fst, 0));
+  CheckValidWeights(fst);
+}
+
+TEST_F(SmoothTest, WittenBellUnigramModelTest) {
+  // Model with order 1 only (no phi backoff arcs).
+  fst::VectorFst<Arc> fst;
+  fst.AddState();  // State 0.
+  fst.SetStart(0);
+  fst.AddState();  // State 1.
+  fst.AddState();  // State 2.
+  fst.AddArc(0, Arc(1, 1, Weight(-std::log(4.0)), 1));
+  fst.AddArc(0, Arc(2, 2, Weight(-std::log(6.0)), 2));
+  fst.SetFinal(1, Weight::One());
+  fst.SetFinal(2, Weight::One());
+  fst::ArcSort(&fst, fst::StdILabelCompare());
+
+  EXPECT_TRUE(WittenBell(&fst, 0));
+  CheckValidWeights(fst);
+}
+
+TEST_F(SmoothTest, NonCanonicalInputRejected) {
+  // FST with a cycle on phi transitions (label 0) is non-canonical.
+  fst::VectorFst<Arc> phi_cyclic_fst;
+  phi_cyclic_fst.AddState();
+  phi_cyclic_fst.AddState();
+  phi_cyclic_fst.SetStart(0);
+  phi_cyclic_fst.AddArc(0, Arc(0, 0, Weight(0.5), 1));
+  phi_cyclic_fst.AddArc(1, Arc(0, 0, Weight(0.5), 0));
+  phi_cyclic_fst.SetFinal(0, Weight::One());
+  phi_cyclic_fst.SetFinal(1, Weight::One());
+
+  fst::VectorFst<Arc> fst;
+  fst = phi_cyclic_fst;
+  EXPECT_FALSE(Unsmoothed(&fst, 0));
+  fst = phi_cyclic_fst;
+  EXPECT_FALSE(WittenBell(&fst, 0));
+  fst = phi_cyclic_fst;
+  EXPECT_FALSE(AbsoluteDiscounting(&fst, 0));
+  fst = phi_cyclic_fst;
+  EXPECT_FALSE(PreSmoothed(&fst, 0));
+  fst = phi_cyclic_fst;
+  EXPECT_FALSE(KneserNey(&fst, 0));
+  fst = phi_cyclic_fst;
+  EXPECT_FALSE(Katz(&fst, 0));
 }
 
 }  // namespace sfst

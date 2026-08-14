@@ -462,6 +462,7 @@ cc_test(
     name = "smooth_test",
     srcs = ["smooth_test.cc"],
     deps = [
+        ":sfst",
         ":smooth",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/log:flags",
