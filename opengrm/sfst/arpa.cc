@@ -253,8 +253,21 @@ bool WriteNGrams(const fst::Fst<Arc>& fst, std::ostream& ostrm,
   const fst::SymbolTable* syms = fst.InputSymbols();
   Label bos_label = syms->Find("<s>");
   if (bos_label == fst::kNoLabel) bos_label = syms->Find("<S>");
+  if (bos_label == fst::kNoLabel) bos_label = syms->Find("<bos>");
+  if (bos_label == fst::kNoLabel) bos_label = syms->Find("<BOS>");
+  if (bos_label == fst::kNoLabel) bos_label = syms->Find("[BOS]");
+
   Label eos_label = syms->Find("</s>");
   if (eos_label == fst::kNoLabel) eos_label = syms->Find("</S>");
+  if (eos_label == fst::kNoLabel) eos_label = syms->Find("<eos>");
+  if (eos_label == fst::kNoLabel) eos_label = syms->Find("<EOS>");
+  if (eos_label == fst::kNoLabel) eos_label = syms->Find("[EOS]");
+
+  if (eos_label == fst::kNoLabel) {
+    LOG(WARNING)
+        << "WriteArpa: No standard EOS symbol (</s>, </S>, <eos>, <EOS>, "
+        << "[EOS]) found in input symbol table; defaulting to </s>.";
+  }
 
   const std::string bos_str =
       (bos_label != fst::kNoLabel) ? syms->Find(bos_label) : "<s>";

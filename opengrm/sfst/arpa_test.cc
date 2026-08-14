@@ -164,6 +164,32 @@ TEST(ArpaTest, WriteSentenceBoundariesFallback) {
   EXPECT_TRUE(absl::StrContains(output, "word </S>"));
 }
 
+TEST(ArpaTest, WriteSentenceBoundariesModernAliases) {
+  fst::VectorFst<fst::StdArc> fst;
+  {
+    fst::SymbolTable syms("ARPASymbolsModern");
+    fst.SetInputSymbols(&syms);
+  }
+  auto* isyms = fst.MutableInputSymbols();
+  isyms->AddSymbol("<epsilon>");
+  isyms->AddSymbol("<bos>");
+  isyms->AddSymbol("<eos>");
+  isyms->AddSymbol("word");
+  fst.SetOutputSymbols(isyms);
+  auto s0 = fst.AddState();
+  fst.SetStart(s0);
+  auto s1 = fst.AddState();
+  fst.AddArc(s0, fst::StdArc(3, 3, 2.0, s1));
+  fst.SetFinal(s1, fst::StdArc::Weight(0.5));
+
+  std::stringstream ostrm;
+  EXPECT_TRUE(WriteArpa(fst, ostrm));
+  std::string output = ostrm.str();
+  EXPECT_TRUE(absl::StrContains(output, "<bos>"));
+  EXPECT_TRUE(absl::StrContains(output, "<eos>"));
+  EXPECT_TRUE(absl::StrContains(output, "word <eos>"));
+}
+
 TEST(ArpaTest, ReadWithBackoffWeights) {
   std::string arpa_data =
       "\\data\\\n"
