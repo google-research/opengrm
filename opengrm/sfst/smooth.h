@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "absl/log/log.h"
+#include "openfst/lib/expanded-fst.h"
 #include "openfst/lib/float-weight.h"
 #include "openfst/lib/fst.h"
 #include "openfst/lib/matcher.h"
@@ -56,6 +57,78 @@ inline void GetStateCountData(const fst::Fst<Arc>& fst, typename Arc::StateId s,
   }
   if (fst.Final(s) != Weight::Zero()) {
     ++(*T_h);
+  }
+}
+
+// Computes histogram count_of_counts[order][r] for integer counts r up to
+// bins + 1 across states in each order.
+template <class Arc>
+void ComputeCountHistogram(const fst::ExpandedFst<Arc>& fst,
+                           typename Arc::Label phi_label, int bins,
+                           const std::vector<int>& orders, int max_order,
+                           std::vector<std::vector<double>>* count_of_counts) {
+  using Weight = typename Arc::Weight;
+  const fst::WeightConvert<Weight, fst::Log64Weight> to_log64;
+  count_of_counts->assign(max_order + 1, std::vector<double>(bins + 2, 0));
+  for (typename Arc::StateId s = 0; s < fst.NumStates(); ++s) {
+    const int order = orders[s];
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, s); !aiter.Done();
+         aiter.Next()) {
+      const auto& arc = aiter.Value();
+      if (arc.ilabel == phi_label) continue;
+      const double count = std::exp(-to_log64(arc.weight).Value());
+      const int r = std::round(count);
+      if (r >= 1 && r <= bins + 1) (*count_of_counts)[order][r] += 1;
+    }
+    if (fst.Final(s) != Weight::Zero()) {
+      const double count = std::exp(-to_log64(fst.Final(s)).Value());
+      const int r = std::round(count);
+      if (r >= 1 && r <= bins + 1) (*count_of_counts)[order][r] += 1;
+    }
+  }
+}
+
+// Computes absolute discounts per order and integer count bin r in [1, bins].
+// When bins == 1 and D >= 0: uses constant D.
+// When bins == 1 and D < 0: estimates D = n_1 / (n_1 + 2 n_2) Good-Turing
+// estimate.
+// When bins > 1: applies Chen & Goodman (1998) Modified Kneser-Ney 3-bin
+// formula.
+inline void ComputeAbsoluteDiscounts(
+    int bins, double D, int max_order,
+    const std::vector<std::vector<double>>& count_of_counts,
+    std::vector<std::vector<double>>* discounts) {
+  discounts->assign(max_order + 1,
+                    std::vector<double>(bins + 1, D >= 0 ? D : 0.75));
+  for (int order = 1; order <= max_order; ++order) {
+    const double n1 = count_of_counts[order][1];
+    const double n2 = count_of_counts[order][2];
+    const double Y = (n1 + 2 * n2 > 0) ? (n1 / (n1 + 2 * n2)) : 0.75;
+    if (bins == 1) {
+      if (D < 0) {
+        const double d1 = (n1 > 0) ? (1.0 - 2 * Y * n2 / n1) : Y;
+        (*discounts)[order][1] =
+            (std::isnan(d1) || d1 <= 0 || d1 >= 1) ? 0.75 : d1;
+      } else {
+        (*discounts)[order][1] = D;
+      }
+    } else {
+      // Modified Kneser-Ney count-dependent discounting (Chen & Goodman 1998
+      // eq. 26). Fallback discounts when data is sparse for specific bins.
+      constexpr double kDefaultDiscounts[3] = {0.5, 0.75, 0.85};
+      for (int r = 1; r <= bins; ++r) {
+        const double nr = count_of_counts[order][r];
+        const double nr_plus1 = count_of_counts[order][r + 1];
+        double dr = -1;
+        if (nr > 0) {
+          dr = r - (r + 1) * Y * (nr_plus1 / nr);
+        }
+        if (std::isnan(dr) || dr <= 0 || dr >= r) {
+          dr = (r <= 3) ? kDefaultDiscounts[r - 1] : kDefaultDiscounts[2];
+        }
+        (*discounts)[order][r] = dr;
+      }
+    }
   }
 }
 
@@ -144,7 +217,8 @@ bool WittenBell(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
 // phi arc (as done by NGramCounter::StateCounts).
 template <class Arc>
 bool AbsoluteDiscounting(fst::MutableFst<Arc>* fst,
-                         typename Arc::Label phi_label, double D = 0.75) {
+                         typename Arc::Label phi_label, double D = 0.75,
+                         int bins = 1) {
   if (!IsCanonical(*fst, phi_label)) {
     LOG(ERROR) << "AbsoluteDiscounting: input is not a canonical SFST";
     return false;
@@ -153,7 +227,18 @@ bool AbsoluteDiscounting(fst::MutableFst<Arc>* fst,
   using Weight = typename Arc::Weight;
   const fst::WeightConvert<Weight, fst::Log64Weight> to_log64;
   const fst::WeightConvert<fst::Log64Weight, Weight> from_log64;
+  std::vector<int> orders;
+  PhiStateOrder(*fst, phi_label, &orders);
+  int max_order = 0;
+  for (int o : orders) max_order = std::max(max_order, o);
+  std::vector<std::vector<double>> count_of_counts;
+  internal::ComputeCountHistogram(*fst, phi_label, bins, orders, max_order,
+                                  &count_of_counts);
+  std::vector<std::vector<double>> discounts;
+  internal::ComputeAbsoluteDiscounts(bins, D, max_order, count_of_counts,
+                                     &discounts);
   for (StateId s = 0; s < fst->NumStates(); ++s) {
+    const int order = orders[s];
     Weight c_h_weight;
     ssize_t phi_pos;
     size_t T_h;
@@ -173,8 +258,11 @@ bool AbsoluteDiscounting(fst::MutableFst<Arc>* fst,
          !aiter.Done(); aiter.Next()) {
       auto arc = aiter.Value();
       if (arc.ilabel != phi_label) {
-        double c_hw = std::exp(-to_log64(arc.weight).Value());
-        double discounted_c = std::max(c_hw - D, 0.0);
+        const double c_hw = std::exp(-to_log64(arc.weight).Value());
+        const int r =
+            std::min(std::max(static_cast<int>(std::round(c_hw)), 1), bins);
+        const double D_r = discounts[order][r];
+        const double discounted_c = std::max(c_hw - D_r, 0.0);
         discounted_sum += discounted_c;
         arc.weight = from_log64(fst::Log64Weight(-std::log(discounted_c)));
         aiter.SetValue(arc);
@@ -182,8 +270,11 @@ bool AbsoluteDiscounting(fst::MutableFst<Arc>* fst,
     }
     double final_discounted_c = 0;
     if (fst->Final(s) != Weight::Zero()) {
-      double c_h_final = std::exp(-to_log64(fst->Final(s)).Value());
-      final_discounted_c = std::max(c_h_final - D, 0.0);
+      const double c_h_final = std::exp(-to_log64(fst->Final(s)).Value());
+      const int r =
+          std::min(std::max(static_cast<int>(std::round(c_h_final)), 1), bins);
+      const double D_r = discounts[order][r];
+      final_discounted_c = std::max(c_h_final - D_r, 0.0);
       discounted_sum += final_discounted_c;
     }
     double backoff_mass = c_h_val - discounted_sum;
@@ -292,7 +383,7 @@ bool PreSmoothed(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label) {
 // phi arc.
 template <class Arc>
 bool KneserNey(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
-               double D = 0.75) {
+               double D = 0.75, int bins = 1) {
   if (!IsCanonical(*fst, phi_label)) {
     LOG(ERROR) << "KneserNey: input is not a canonical SFST";
     return false;
@@ -412,7 +503,23 @@ bool KneserNey(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
       aiter.SetValue(arc);
     }
   }
-  return AbsoluteDiscounting(fst, phi_label, D);
+  return AbsoluteDiscounting(fst, phi_label, D, bins);
+}
+
+// Modified Kneser-Ney smoothing (Chen & Goodman 1998).
+//
+// Reference:
+//   Chen, S. F., and Goodman, J. 1998. An empirical study of smoothing
+//   techniques for language modeling. Computer Speech & Language, 13(4):
+//   359-393.
+//
+// Applies Kneser-Ney order reduction and context accumulation, followed by
+// count-dependent absolute discounting with separate discount parameters
+// (D1, D2, D3+) estimated from the count-of-counts histogram.
+template <class Arc>
+bool ModifiedKneserNey(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
+                       int bins = 3) {
+  return KneserNey(fst, phi_label, -1.0, bins);
 }
 
 // Katz smoothing.
@@ -453,7 +560,7 @@ bool Katz(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
   for (int o : orders) max_order = std::max(max_order, o);
   // Accumulates count-of-counts.
   std::vector<std::vector<double>> count_of_counts(
-      max_order + 1, std::vector<double>(bins + 2, 0.0));
+      max_order + 1, std::vector<double>(bins + 2, 0));
   for (StateId s = 0; s < fst->NumStates(); ++s) {
     int order = orders[s];
     for (fst::ArcIterator<fst::Fst<Arc>> aiter(*fst, s); !aiter.Done();
@@ -462,12 +569,12 @@ bool Katz(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
       if (arc.ilabel == phi_label) continue;
       double count = std::exp(-to_log64(arc.weight).Value());
       int r = std::round(count);
-      if (r >= 1 && r <= bins + 1) count_of_counts[order][r] += 1.0;
+      if (r >= 1 && r <= bins + 1) count_of_counts[order][r] += 1;
     }
     if (fst->Final(s) != Weight::Zero()) {
       double count = std::exp(-to_log64(fst->Final(s)).Value());
       int r = std::round(count);
-      if (r >= 1 && r <= bins + 1) count_of_counts[order][r] += 1.0;
+      if (r >= 1 && r <= bins + 1) count_of_counts[order][r] += 1;
     }
   }
   // Calculates discounts.

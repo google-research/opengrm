@@ -17,6 +17,7 @@
 #include "opengrm/sfst/smooth.h"
 
 #include <cmath>  // NOLINT(misc-include-cleaner)
+#include <vector>
 
 #include "openfst/compat/init.h"
 #include "gtest/gtest.h"
@@ -25,6 +26,7 @@
 #include "openfst/lib/arcsort.h"
 #include "openfst/lib/fst.h"
 #include "openfst/lib/vector-fst.h"  // NOLINT(misc-include-cleaner)
+#include "opengrm/sfst/canonical.h"
 #include "opengrm/sfst/normalize.h"
 
 namespace sfst {
@@ -236,6 +238,21 @@ TEST_F(SmoothTest, KneserNeyNormalizationAndCustomDTest) {
   EXPECT_TRUE(IsNormalized(fst, 0, 1e-4));
 }
 
+TEST_F(SmoothTest, ModifiedKneserNeyTest) {
+  fst::VectorFst<Arc> fst(fst_);
+  EXPECT_TRUE(ModifiedKneserNey(&fst, 0, /*bins=*/3));
+  EXPECT_TRUE(PhiNormalize(&fst, 0));
+  EXPECT_TRUE(IsNormalized(fst, 0, 1e-4));
+  CheckValidWeights(fst);
+
+  // Custom bins = 2
+  fst = fst_;
+  EXPECT_TRUE(ModifiedKneserNey(&fst, 0, /*bins=*/2));
+  EXPECT_TRUE(PhiNormalize(&fst, 0));
+  EXPECT_TRUE(IsNormalized(fst, 0, 1e-4));
+  CheckValidWeights(fst);
+}
+
 TEST_F(SmoothTest, PreSmoothedNormalizationTest) {
   fst::VectorFst<Arc> fst(fst_);
   EXPECT_TRUE(PreSmoothed(&fst, 0));
@@ -373,6 +390,146 @@ TEST_F(SmoothTest, NonCanonicalInputRejected) {
   EXPECT_FALSE(KneserNey(&fst, 0));
   fst = phi_cyclic_fst;
   EXPECT_FALSE(Katz(&fst, 0));
+}
+
+TEST(ComputeCountHistogramTest, AccumulatesHistogramBinsCorrectly) {
+  using Arc = fst::StdArc;
+  using Weight = Arc::Weight;
+  fst::VectorFst<Arc> fst;
+
+  fst.AddState();  // State 0: Order 2 state.
+  fst.SetStart(0);
+  fst.AddState();  // State 1: Order 1 (backoff) state.
+  fst.AddState();  // State 2: Destination state.
+  fst.AddState();  // State 3: Destination state.
+
+  // State 0 (Order 2):
+  // - Phi arc to State 1 (label 0, weight -log(10.0)) -> ignored by histogram
+  // - Arc 1 (label 1, count 1.0) -> bin 1 (Order 2)
+  // - Arc 2 (label 2, count 2.0) -> bin 2 (Order 2)
+  // - Arc 3 (label 3, count 2.1) -> rounds to bin 2 (Order 2)
+  // - Arc 4 (label 4, count 5.0) -> for bins=3, count 5 > bins+1=4, so ignored
+  // - Final weight = -log(1.0) (count 1.0) -> bin 1 (Order 2)
+  fst.AddArc(0, Arc(0, 0, Weight(-std::log(10.0)), 1));
+  fst.AddArc(0, Arc(1, 1, Weight(-std::log(1.0)), 2));
+  fst.AddArc(0, Arc(2, 2, Weight(-std::log(2.0)), 2));
+  fst.AddArc(0, Arc(3, 3, Weight(-std::log(2.1)), 2));
+  fst.AddArc(0, Arc(4, 4, Weight(-std::log(5.0)), 2));
+  fst.SetFinal(0, Weight(-std::log(1.0)));
+
+  // State 1 (Order 1):
+  // - Arc 1 (label 1, count 1.0) -> bin 1 (Order 1)
+  // - Arc 2 (label 2, count 3.0) -> bin 3 (Order 1)
+  // - Arc 3 (label 3, count 4.0) -> bin 4 (Order 1)
+  // - Final weight = -log(3.0) (count 3.0) -> bin 3 (Order 1)
+  fst.AddArc(1, Arc(1, 1, Weight(-std::log(1.0)), 2));
+  fst.AddArc(1, Arc(2, 2, Weight(-std::log(3.0)), 3));
+  fst.AddArc(1, Arc(3, 3, Weight(-std::log(4.0)), 3));
+  fst.SetFinal(1, Weight(-std::log(3.0)));
+
+  // State 2 & 3: Final weights Zero (no counts)
+  fst.SetFinal(2, Weight::Zero());
+  fst.SetFinal(3, Weight::Zero());
+
+  fst::ArcSort(&fst, fst::StdILabelCompare());
+
+  std::vector<int> orders;
+  int max_order = PhiStateOrder(fst, 0, &orders);
+  EXPECT_EQ(max_order, 2);
+  ASSERT_GE(orders.size(), 2);
+  EXPECT_EQ(orders[0], 2);
+  EXPECT_EQ(orders[1], 1);
+
+  int bins = 3;
+  std::vector<std::vector<double>> count_of_counts;
+  internal::ComputeCountHistogram(fst, /*phi_label=*/0, bins, orders, max_order,
+                                  &count_of_counts);
+
+  // Dimensions: (max_order + 1) x (bins + 2) -> 3 x 5
+  ASSERT_EQ(count_of_counts.size(), 3);
+  ASSERT_EQ(count_of_counts[0].size(), 5);
+  ASSERT_EQ(count_of_counts[1].size(), 5);
+  ASSERT_EQ(count_of_counts[2].size(), 5);
+
+  // Order 0: unused, all zeros.
+  for (int r = 0; r <= bins + 1; ++r) {
+    EXPECT_DOUBLE_EQ(count_of_counts[0][r], 0.0);
+  }
+
+  // Order 1:
+  // r=1: 1 (arc count 1.0)
+  // r=2: 0
+  // r=3: 2 (arc count 3.0, final weight count 3.0)
+  // r=4: 1 (arc count 4.0)
+  EXPECT_DOUBLE_EQ(count_of_counts[1][0], 0.0);
+  EXPECT_DOUBLE_EQ(count_of_counts[1][1], 1.0);
+  EXPECT_DOUBLE_EQ(count_of_counts[1][2], 0.0);
+  EXPECT_DOUBLE_EQ(count_of_counts[1][3], 2.0);
+  EXPECT_DOUBLE_EQ(count_of_counts[1][4], 1.0);
+
+  // Order 2:
+  // r=1: 2 (arc count 1.0, final weight count 1.0)
+  // r=2: 2 (arc count 2.0, arc count 2.1)
+  // r=3: 0
+  // r=4: 0 (arc count 5.0 is > bins+1=4, so not counted)
+  EXPECT_DOUBLE_EQ(count_of_counts[2][0], 0.0);
+  EXPECT_DOUBLE_EQ(count_of_counts[2][1], 2.0);
+  EXPECT_DOUBLE_EQ(count_of_counts[2][2], 2.0);
+  EXPECT_DOUBLE_EQ(count_of_counts[2][3], 0.0);
+  EXPECT_DOUBLE_EQ(count_of_counts[2][4], 0.0);
+}
+
+TEST(ComputeAbsoluteDiscountsTest, AllDiscountingModes) {
+  int max_order = 2;
+  // count_of_counts[order][r]
+  // Order 1: n1 = 100, n2 = 50, n3 = 20, n4 = 5
+  // Order 2: sparse / zeros to test fallback
+  std::vector<std::vector<double>> count_of_counts = {
+      {},                             // Order 0 (unused)
+      {0.0, 100.0, 50.0, 20.0, 5.0},  // Order 1
+      {0.0, 0.0, 0.0, 0.0, 0.0},      // Order 2 (all zeros)
+  };
+
+  std::vector<std::vector<double>> discounts;
+
+  // Mode 1: Constant discount (bins = 1, D = 0.75).
+  internal::ComputeAbsoluteDiscounts(/*bins=*/1, /*D=*/0.75, max_order,
+                                     count_of_counts, &discounts);
+  ASSERT_EQ(discounts.size(), max_order + 1);
+  EXPECT_NEAR(discounts[1][1], 0.75, 1e-6);
+  EXPECT_NEAR(discounts[2][1], 0.75, 1e-6);
+
+  // Mode 2: Data-driven Good-Turing estimate (bins = 1, D = -1.0).
+  // For order 1: Y = 100 / (100 + 2*50) = 0.5.
+  // d1 = 1.0 - 2.0 * 0.5 * 50 / 100 = 0.5.
+  internal::ComputeAbsoluteDiscounts(/*bins=*/1, /*D=*/-1.0, max_order,
+                                     count_of_counts, &discounts);
+  EXPECT_NEAR(discounts[1][1], 0.5, 1e-6);
+  // For order 2 (empty histogram), fallback is used (0.75 or finite in (0, 1)).
+  EXPECT_GT(discounts[2][1], 0.0);
+  EXPECT_LT(discounts[2][1], 1.0);
+
+  // Mode 3: Modified Kneser-Ney 3-bin count-dependent discounting (bins = 3).
+  // For order 1:
+  // Y = 0.5
+  // D1 = 1 - 2 * 0.5 * (50 / 100) = 0.5
+  // D2 = 2 - 3 * 0.5 * (20 / 50) = 1.4
+  // D3 = 3 - 4 * 0.5 * (5 / 20) = 2.5
+  internal::ComputeAbsoluteDiscounts(/*bins=*/3, /*D=*/-1.0, max_order,
+                                     count_of_counts, &discounts);
+  ASSERT_GE(discounts[1].size(), 4);
+  EXPECT_NEAR(discounts[1][1], 0.5, 1e-6);
+  EXPECT_NEAR(discounts[1][2], 1.4, 1e-6);
+  EXPECT_NEAR(discounts[1][3], 2.5, 1e-6);
+
+  // For order 2 (zero histogram), fallbacks D1 in (0, 1), D2 in (0, 2), D3 in
+  // (0, 3).
+  EXPECT_GT(discounts[2][1], 0.0);
+  EXPECT_LT(discounts[2][1], 1.0);
+  EXPECT_GT(discounts[2][2], 0.0);
+  EXPECT_LT(discounts[2][2], 2.0);
+  EXPECT_GT(discounts[2][3], 0.0);
+  EXPECT_LT(discounts[2][3], 3.0);
 }
 
 }  // namespace sfst

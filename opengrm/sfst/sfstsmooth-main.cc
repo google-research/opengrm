@@ -71,6 +71,10 @@ int sfstsmooth_main(int argc, char** argv) {
   } else if (method == "kneser_ney") {
     success =
         sfst::KneserNey(fst.get(), phi_label, absl::GetFlag(FLAGS_discount_D));
+  } else if (method == "modified_kneser_ney") {
+    int bins = absl::GetFlag(FLAGS_bins);
+    if (bins <= 0) bins = 3;
+    success = sfst::ModifiedKneserNey(fst.get(), phi_label, bins);
   } else if (method == "katz") {
     success = sfst::Katz(fst.get(), phi_label, absl::GetFlag(FLAGS_bins));
   } else if (method == "presmoothed") {

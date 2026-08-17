@@ -1162,12 +1162,13 @@ sh_test(
         "@com_google_openfst//openfst/extensions/far:farcompilestrings",
     ],
 ) for method in [
-    "witten_bell",
     "absolute",
-    "unsmoothed",
-    "kneser_ney",
     "katz",
+    "kneser_ney",
+    "modified_kneser_ney",
     "presmoothed",
+    "unsmoothed",
+    "witten_bell",
 ]]
 
 [sh_test(
