@@ -20,10 +20,12 @@
 
 #include <sys/types.h>
 
+#include "absl/log/log.h"
 #include "openfst/lib/compose.h"
 #include "openfst/lib/fst.h"
 #include "openfst/lib/matcher.h"
 #include "openfst/lib/mutable-fst.h"
+#include "openfst/lib/symbol-table.h"
 #include "opengrm/sfst/phi2matcher.h"
 #include "opengrm/sfst/trim.h"
 
@@ -36,6 +38,11 @@ bool Intersect(const fst::Fst<Arc>& ifst1, const fst::Fst<Arc>& ifst2,
                fst::MutableFst<Arc>* ofst,
                typename Arc::Label phi_label = fst::kNoLabel, bool trim = true,
                TrimType trim_type = TRIM_NEEDED_FINAL) {
+  if (!fst::CompatSymbols(ifst1.InputSymbols(), ifst2.InputSymbols(),
+                          /*warning=*/false)) {
+    LOG(ERROR) << "Intersect: Symbol tables of input models do not match";
+    return false;
+  }
   using PM = Phi2Matcher<fst::Matcher<fst::Fst<Arc>>>;
   using PF = Phi2Filter<PM>;
   fst::ComposeFstOptions<Arc, PM, PF> copts;

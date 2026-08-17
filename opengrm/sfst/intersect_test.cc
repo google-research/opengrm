@@ -31,6 +31,7 @@
 #include "openfst/lib/equal.h"
 #include "openfst/lib/fst.h"
 #include "openfst/lib/relabel.h"
+#include "openfst/lib/symbol-table.h"
 #include "openfst/lib/test-properties.h"
 #include "openfst/lib/vector-fst.h"
 #include "opengrm/sfst/trim.h"
@@ -142,6 +143,107 @@ TEST_F(IntersectTest, IntersectNoLabel) {
   EXPECT_TRUE(Intersect(fst1, fst2, &ofst, fst::kNoLabel, true));
   EXPECT_NE(ofst.Start(), fst::kNoStateId);
   EXPECT_EQ(ofst.NumStates(), 2);
+}
+
+TEST_F(IntersectTest, IncompatibleSymbolTablesRejected) {
+  VectorFst<StdArc> fst1;
+  fst1.AddState();
+  fst1.AddState();
+  fst1.SetStart(0);
+  fst1.AddArc(0, StdArc(1, 1, Weight(0.5), 1));
+  fst1.SetFinal(1, Weight::One());
+  fst::SymbolTable syms1;
+  syms1.AddSymbol("<epsilon>", 0);
+  syms1.AddSymbol("a", 1);
+  fst1.SetInputSymbols(&syms1);
+  fst1.SetOutputSymbols(&syms1);
+
+  VectorFst<StdArc> fst2;
+  fst2.AddState();
+  fst2.AddState();
+  fst2.SetStart(0);
+  fst2.AddArc(0, StdArc(1, 1, Weight(0.5), 1));
+  fst2.SetFinal(1, Weight::One());
+  fst::SymbolTable syms2;
+  syms2.AddSymbol("<epsilon>", 0);
+  syms2.AddSymbol("b", 1);
+  fst2.SetInputSymbols(&syms2);
+  fst2.SetOutputSymbols(&syms2);
+
+  VectorFst<StdArc> ofst;
+  EXPECT_FALSE(Intersect(fst1, fst2, &ofst, fst::kNoLabel, true));
+}
+
+TEST_F(IntersectTest, MatchingSymbolTablesAllowed) {
+  VectorFst<StdArc> fst1;
+  fst1.AddState();
+  fst1.AddState();
+  fst1.SetStart(0);
+  fst1.AddArc(0, StdArc(1, 1, Weight(0.5), 1));
+  fst1.SetFinal(1, Weight::One());
+  fst::SymbolTable syms;
+  syms.AddSymbol("<epsilon>", 0);
+  syms.AddSymbol("a", 1);
+  fst1.SetInputSymbols(&syms);
+  fst1.SetOutputSymbols(&syms);
+
+  VectorFst<StdArc> fst2;
+  fst2.AddState();
+  fst2.AddState();
+  fst2.SetStart(0);
+  fst2.AddArc(0, StdArc(1, 1, Weight(0.5), 1));
+  fst2.SetFinal(1, Weight::One());
+  fst2.SetInputSymbols(&syms);
+  fst2.SetOutputSymbols(&syms);
+
+  VectorFst<StdArc> ofst;
+  EXPECT_TRUE(Intersect(fst1, fst2, &ofst, fst::kNoLabel, true));
+  EXPECT_NE(ofst.Start(), fst::kNoStateId);
+}
+
+TEST_F(IntersectTest, NullSymbolTablesAllowed) {
+  VectorFst<StdArc> fst1;
+  fst1.AddState();
+  fst1.AddState();
+  fst1.SetStart(0);
+  fst1.AddArc(0, StdArc(1, 1, Weight(0.5), 1));
+  fst1.SetFinal(1, Weight::One());
+
+  VectorFst<StdArc> fst2;
+  fst2.AddState();
+  fst2.AddState();
+  fst2.SetStart(0);
+  fst2.AddArc(0, StdArc(1, 1, Weight(0.5), 1));
+  fst2.SetFinal(1, Weight::One());
+
+  VectorFst<StdArc> ofst;
+  EXPECT_TRUE(Intersect(fst1, fst2, &ofst, fst::kNoLabel, true));
+  EXPECT_NE(ofst.Start(), fst::kNoStateId);
+}
+
+TEST_F(IntersectTest, OneNullSymbolTableAllowed) {
+  VectorFst<StdArc> fst1;
+  fst1.AddState();
+  fst1.AddState();
+  fst1.SetStart(0);
+  fst1.AddArc(0, StdArc(1, 1, Weight(0.5), 1));
+  fst1.SetFinal(1, Weight::One());
+  fst::SymbolTable syms;
+  syms.AddSymbol("<epsilon>", 0);
+  syms.AddSymbol("a", 1);
+  fst1.SetInputSymbols(&syms);
+  fst1.SetOutputSymbols(&syms);
+
+  VectorFst<StdArc> fst2;
+  fst2.AddState();
+  fst2.AddState();
+  fst2.SetStart(0);
+  fst2.AddArc(0, StdArc(1, 1, Weight(0.5), 1));
+  fst2.SetFinal(1, Weight::One());
+
+  VectorFst<StdArc> ofst;
+  EXPECT_TRUE(Intersect(fst1, fst2, &ofst, fst::kNoLabel, true));
+  EXPECT_NE(ofst.Start(), fst::kNoStateId);
 }
 
 }  // namespace
