@@ -17,8 +17,6 @@
 #ifndef OPENGRM_SFST_SMOOTH_H_
 #define OPENGRM_SFST_SMOOTH_H_
 
-#include <stdio.h>
-
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -76,6 +74,12 @@ bool Unsmoothed(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label) {
 }
 
 // Witten-Bell smoothing.
+//
+// Reference:
+//   Witten, I. H., and Bell, T. C. 1991. The zero-frequency problem:
+//   Estimating the probabilities of novel events in adaptive text
+//   compression. IEEE Transactions on Information Theory, 37(4): 1085-1094.
+//
 // Assumes input FST has counts on arcs, and the sum of counts is stored on the
 // phi arc (as done by NGramCounter::StateCounts).
 template <class Arc>
@@ -130,6 +134,12 @@ bool WittenBell(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
 }
 
 // Absolute Discounting smoothing.
+//
+// Reference:
+//   Ney, H., Essen, U., and Kneser, R. 1994. On structuring probabilistic
+//   dependences in stochastic language modelling. Computer Speech & Language,
+//   8(1): 1-38.
+//
 // Assumes input FST has counts on arcs, and the sum of counts is stored on the
 // phi arc (as done by NGramCounter::StateCounts).
 template <class Arc>
@@ -272,6 +282,12 @@ bool PreSmoothed(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label) {
 }
 
 // Kneser-Ney smoothing.
+//
+// Reference:
+//   Kneser, R., and Ney, H. 1995. Improved backing-off for M-gram language
+//   modeling. In Proceedings of the International Conference on Acoustics,
+//   Speech, and Signal Processing (ICASSP), Vol. 1, pp. 181-184.
+//
 // Assumes input FST has counts on arcs, and the sum of counts is stored on the
 // phi arc.
 template <class Arc>
@@ -400,6 +416,14 @@ bool KneserNey(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
 }
 
 // Katz smoothing.
+//
+// References:
+//   Good, I. J. 1953. The population frequencies of species and the estimation
+//   of population parameters. Biometrika, 40(3/4): 237-264.
+//   Katz, S. M. 1987. Estimation of probabilities from sparse data for the
+//   language model component of a speech recognizer. IEEE Transactions on
+//   Acoustics, Speech, and Signal Processing, 35(3): 400-401.
+//
 // Assumes input FST has counts on arcs, and the sum of counts is stored on the
 // phi arc.
 //
