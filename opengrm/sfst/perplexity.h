@@ -50,22 +50,16 @@ inline Real64Weight Times(SignedLog64Weight w1, Real64Weight w2) {
   using Limits = fst::FloatLimits<double>;
   if (w1 == SignedLog64Weight::Zero() && w2.Value() == Limits::PosInfinity())
     return Real64Weight::Zero();
-  double s1 = w1.Value1().Value();
-  double l1 = w1.Value2().Value();
-  double p1 = s1 * exp(-l1);
-  double e = w2.Value();
-  return Real64Weight(p1 * e);
+  static constexpr WeightConvert<SignedLog64Weight, Real64Weight> to_real;
+  return Times(to_real(w1), w2);
 }
 
 inline Real64Weight Times(Real64Weight w1, SignedLog64Weight w2) {
   using Limits = fst::FloatLimits<double>;
   if (w2 == SignedLog64Weight::Zero() && w1.Value() == Limits::PosInfinity())
     return Real64Weight::Zero();
-  double e = w1.Value();
-  double s2 = w2.Value1().Value();
-  double l2 = w2.Value2().Value();
-  double p2 = s2 * exp(-l2);
-  return Real64Weight(e * p2);
+  static constexpr WeightConvert<SignedLog64Weight, Real64Weight> to_real;
+  return Times(w1, to_real(w2));
 }
 
 // We use this to transform the weights on an SFST into the entropy semiring.
