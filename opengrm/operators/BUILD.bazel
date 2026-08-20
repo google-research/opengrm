@@ -13,6 +13,7 @@
 # limitations under the License.
 
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -308,6 +309,21 @@ cc_test(
     ],
 )
 
+sh_test(
+    name = "cdrewrite-main_test",
+    size = "medium",
+    srcs = ["cdrewrite-main_test.sh"],
+    data = [
+        ":fstcdrewrite",
+        ":testdata/a_bos.fst",
+        ":testdata/bXa.fst",
+        ":testdata/b_eos.fst",
+        ":testdata/sigma.fst",
+        "@com_google_openfst//openfst/bin:fstequal",
+        "@com_google_openfst//openfst/bin:setup",
+    ],
+)
+
 filegroup(
     name = "cross_testdata",
     data = [
@@ -332,6 +348,18 @@ cc_test(
         "@com_google_openfst//openfst/lib:lib_lite",
         "@com_google_openfst//openfst/script",
         "@com_google_openfst//openfst/script:weight-class",
+    ],
+)
+
+sh_test(
+    name = "cross-main_test",
+    size = "medium",
+    srcs = ["cross-main_test.sh"],
+    data = [
+        ":cross_testdata",
+        ":fstcross",
+        "@com_google_openfst//openfst/bin:fstequal",
+        "@com_google_openfst//openfst/bin:setup",
     ],
 )
 
@@ -363,6 +391,20 @@ cc_test(
     ],
 )
 
+sh_test(
+    name = "lenientlycompose-main_test",
+    size = "medium",
+    srcs = ["lenientlycompose-main_test.sh"],
+    data = [
+        ":fstlenientlycompose",
+        ":fstoptimize",
+        ":lenientlycompose_testdata",
+        "@com_google_openfst//openfst/bin:fstequal",
+        "@com_google_openfst//openfst/bin:fstproject",
+        "@com_google_openfst//openfst/bin:setup",
+    ],
+)
+
 filegroup(
     name = "optimize_testdata",
     data = glob(["testdata/ofst*.fst"]),
@@ -380,6 +422,18 @@ cc_test(
         "@com_google_openfst//openfst/compat:file_path",
         "@com_google_openfst//openfst/lib:lib_lite",
         "@com_google_openfst//openfst/script",
+    ],
+)
+
+sh_test(
+    name = "optimize-main_test",
+    size = "medium",
+    srcs = ["optimize-main_test.sh"],
+    data = [
+        ":fstoptimize",
+        ":optimize_testdata",
+        "@com_google_openfst//openfst/bin:fstequal",
+        "@com_google_openfst//openfst/bin:setup",
     ],
 )
 
@@ -406,5 +460,17 @@ filegroup(
         ":testdata/m.fst",
         ":testdata/m_0-2.fst",
         ":testdata/m_2-5.fst",
+    ],
+)
+
+sh_test(
+    name = "concatrange-main_test",
+    size = "medium",
+    srcs = ["concatrange-main_test.sh"],
+    data = [
+        ":concatrange_testdata",
+        ":fstconcatrange",
+        "@com_google_openfst//openfst/bin:fstequal",
+        "@com_google_openfst//openfst/bin:setup",
     ],
 )
