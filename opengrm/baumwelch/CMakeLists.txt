@@ -33,7 +33,11 @@ target_include_directories(
 )
 
 target_link_libraries(
-  grm_baumwelch INTERFACE openfst::fst openfst::far grm_string absl::hash
+  grm_baumwelch
+  INTERFACE openfst::fst
+            openfst::far
+            grm_string
+            absl::hash
 )
 
 set(BAUMWELCHSCRIPT_SRCS
@@ -138,15 +142,24 @@ endif()
 if(OPENGRM_BUILD_TESTS)
   # a-star_test is prefixed with grm_ to avoid target collision with OpenFst's
   # a-star_test when OPENFST_BUILD_TESTS is enabled.
-  foreach(_test a-star cascade expectation-table log-adder randomize score)
+  foreach(
+    _test
+    a-star
+    cascade
+    expectation-table
+    log-adder
+    randomize
+    score
+    train
+  )
     if(_test STREQUAL "a-star")
       set(_target grm_a-star_test)
     else()
       set(_target ${_test}_test)
     endif()
     add_executable(${_target} ${_test}_test.cc)
-    target_link_libraries(
-      ${_target} PRIVATE grm_baumwelch GTest::gtest_main
+    target_link_libraries(${_target} PRIVATE grm_baumwelch GTest::gmock
+                                             GTest::gtest_main
     )
     grm_configure_test_target(${_target})
     gtest_discover_tests(

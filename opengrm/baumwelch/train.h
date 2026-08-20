@@ -50,14 +50,9 @@ struct TrainOptions {
                         const CascadeOptions& copts = CascadeOptions())
       : max_iters(max_iters),
         alpha(alpha),
-        batch_size(batch_size),
+        batch_size(alpha == 0.0 ? 0 : batch_size),
         delta(delta),
-        copts(copts) {
-    if (alpha == 0.0) {
-      // When alpha is 0, we mandatorily use full-batch training.
-      batch_size = 0;
-    }
-  }
+        copts(copts) {}
 
   // Maximum number of iterations to perform.
   int max_iters;
