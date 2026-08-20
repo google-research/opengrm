@@ -28,6 +28,9 @@ ABSL_FLAG(double, total_unigram_count, -1.0,
           "Total unigram count (for Seymore)");
 ABSL_FLAG(std::string, count_pattern, "", "Count pattern (for count prune)");
 ABSL_FLAG(std::string, list_file, "", "File containing n-grams to prune");
+ABSL_FLAG(std::string, count_fst, "", "Count FST for significance pruning");
+ABSL_FLAG(std::string, word_set, "",
+          "Words for word_shrink (file or comma-separated)");
 
 int sfstshrink_main(int argc, char** argv);
 
