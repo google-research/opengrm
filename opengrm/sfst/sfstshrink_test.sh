@@ -49,6 +49,11 @@ echo "Testing shrinking method: ${method}"
 case "${method}" in
   stolcke) param="--theta=0.00015" ;;
   seymore) param="--theta=4" ;;
+  absolute_seymore) param="--theta=4" ;;
+  restricted_stolcke) param="--theta=0.00015" ;;
+  symmetrized_relative_entropy) param="--theta=0.00015" ;;
+  significance) param="" ;;
+  word_shrink) param="--word_set=the" ;;
   count_prune) param="--count_pattern=3+:2" ;;
   list_prune) param="" ;;
 esac

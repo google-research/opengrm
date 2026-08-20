@@ -424,6 +424,7 @@ cc_library(
     hdrs = ["shrink.h"],
     deps = [
         ":sfst",
+        "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/strings",
         "@com_google_openfst//openfst/lib",
@@ -481,6 +482,7 @@ cc_library(
     ],
     deps = [
         ":shrink",
+        "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/log",
         "@com_google_openfst//openfst/compat:init",
@@ -1190,6 +1192,11 @@ sh_test(
 ) for method in [
     "stolcke",
     "seymore",
+    "absolute_seymore",
+    "restricted_stolcke",
+    "symmetrized_relative_entropy",
+    "significance",
+    "word_shrink",
     "count_prune",
     "list_prune",
 ]]

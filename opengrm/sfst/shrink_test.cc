@@ -101,6 +101,95 @@ TEST_F(ShrinkTest, SeymoreShrinkTest) {
   EXPECT_TRUE(IsNormalized(fst, 0));
 }
 
+TEST_F(ShrinkTest, AbsoluteSeymoreShrinkTest) {
+  fst::VectorFst<Arc> fst(fst_);
+  ASSERT_TRUE(WittenBell(&fst, 0));
+  size_t initial_arcs = 0;
+  for (fst::StateIterator<fst::Fst<Arc>> siter(fst); !siter.Done();
+       siter.Next()) {
+    initial_arcs += fst.NumArcs(siter.Value());
+  }
+  ASSERT_TRUE(AbsoluteSeymoreShrink(&fst, 0, 0.1, 100.0));
+  size_t final_arcs = 0;
+  for (fst::StateIterator<fst::Fst<Arc>> siter(fst); !siter.Done();
+       siter.Next()) {
+    final_arcs += fst.NumArcs(siter.Value());
+  }
+  EXPECT_LE(final_arcs, initial_arcs);
+  EXPECT_TRUE(IsNormalized(fst, 0));
+}
+
+TEST_F(ShrinkTest, RestrictedRelEntropyShrinkTest) {
+  fst::VectorFst<Arc> fst(fst_);
+  ASSERT_TRUE(WittenBell(&fst, 0));
+  size_t initial_arcs = 0;
+  for (fst::StateIterator<fst::Fst<Arc>> siter(fst); !siter.Done();
+       siter.Next()) {
+    initial_arcs += fst.NumArcs(siter.Value());
+  }
+  ASSERT_TRUE(RestrictedRelEntropyShrink(&fst, 0, 0.1));
+  size_t final_arcs = 0;
+  for (fst::StateIterator<fst::Fst<Arc>> siter(fst); !siter.Done();
+       siter.Next()) {
+    final_arcs += fst.NumArcs(siter.Value());
+  }
+  EXPECT_LE(final_arcs, initial_arcs);
+  EXPECT_TRUE(IsNormalized(fst, 0));
+}
+
+TEST_F(ShrinkTest, SymmetrizedRelEntropyShrinkTest) {
+  fst::VectorFst<Arc> fst(fst_);
+  ASSERT_TRUE(WittenBell(&fst, 0));
+  size_t initial_arcs = 0;
+  for (fst::StateIterator<fst::Fst<Arc>> siter(fst); !siter.Done();
+       siter.Next()) {
+    initial_arcs += fst.NumArcs(siter.Value());
+  }
+  ASSERT_TRUE(SymmetrizedRelEntropyShrink(&fst, 0, 0.1));
+  size_t final_arcs = 0;
+  for (fst::StateIterator<fst::Fst<Arc>> siter(fst); !siter.Done();
+       siter.Next()) {
+    final_arcs += fst.NumArcs(siter.Value());
+  }
+  EXPECT_LE(final_arcs, initial_arcs);
+  EXPECT_TRUE(IsNormalized(fst, 0));
+}
+
+TEST_F(ShrinkTest, SignificanceShrinkTest) {
+  fst::VectorFst<Arc> fst(fst_);
+  ASSERT_TRUE(WittenBell(&fst, 0));
+  size_t initial_arcs = 0;
+  for (fst::StateIterator<fst::Fst<Arc>> siter(fst); !siter.Done();
+       siter.Next()) {
+    initial_arcs += fst.NumArcs(siter.Value());
+  }
+  ASSERT_TRUE(SignificanceShrink(&fst, 0));
+  size_t final_arcs = 0;
+  for (fst::StateIterator<fst::Fst<Arc>> siter(fst); !siter.Done();
+       siter.Next()) {
+    final_arcs += fst.NumArcs(siter.Value());
+  }
+  EXPECT_LE(final_arcs, initial_arcs);
+  EXPECT_TRUE(IsNormalized(fst, 0));
+}
+
+TEST_F(ShrinkTest, WordShrinkTest) {
+  fst::VectorFst<Arc> fst(fst_);
+  ASSERT_TRUE(WittenBell(&fst, 0));
+  absl::flat_hash_set<Label> word_set = {1};
+  ASSERT_TRUE(WordShrink(&fst, 0, word_set));
+  bool found_label_1 = false;
+  bool found_label_2 = false;
+  for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, 0); !aiter.Done();
+       aiter.Next()) {
+    const auto& arc = aiter.Value();
+    if (arc.ilabel == 1) found_label_1 = true;
+    if (arc.ilabel == 2) found_label_2 = true;
+  }
+  EXPECT_TRUE(found_label_1);
+  EXPECT_FALSE(found_label_2);
+}
+
 TEST_F(ShrinkTest, CountPruneTest) {
   fst::VectorFst<Arc> fst(fst_);
   ASSERT_TRUE(CountPrune(&fst, 0, "2:7"));
