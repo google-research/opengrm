@@ -146,6 +146,7 @@ if(OPENGRM_BUILD_TESTS)
     _test
     a-star
     cascade
+    decode
     expectation-table
     log-adder
     randomize
