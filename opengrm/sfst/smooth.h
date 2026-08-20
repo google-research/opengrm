@@ -525,8 +525,8 @@ bool ModifiedKneserNey(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
 // Katz smoothing.
 //
 // References:
-//   Good, I. J. 1953. The population frequencies of species and the estimation
-//   of population parameters. Biometrika, 40(3/4): 237-264.
+//   Gale, W. A. and Sampson, G. 1995. Good-Turing frequency estimation without
+//   tears. Journal of Quantitative Linguistics, 2(3): 217–237.
 //   Katz, S. M. 1987. Estimation of probabilities from sparse data for the
 //   language model component of a speech recognizer. IEEE Transactions on
 //   Acoustics, Speech, and Signal Processing, 35(3): 400-401.
