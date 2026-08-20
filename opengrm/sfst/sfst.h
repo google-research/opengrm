@@ -109,8 +109,8 @@ inline bool Less(fst::RealWeightTpl<T> weight1, fst::RealWeightTpl<T> weight2) {
 template <class T>
 inline bool Less(fst::SignedLogWeightTpl<T> weight1,
                  fst::SignedLogWeightTpl<T> weight2) {
-  bool s1 = weight1.Value1().Value() > 0.0;
-  bool s2 = weight2.Value1().Value() > 0.0;
+  bool s1 = weight1.IsPositive();
+  bool s2 = weight2.IsPositive();
   if (!s1 && s2) {
     return true;
   } else if (s1 && !s2) {
@@ -141,7 +141,7 @@ inline bool ApproxZero(
     fst::SignedLog64Weight weight,
     fst::Log64Weight pos_approx_zero = kApproxZeroWeight,
     fst::Log64Weight neg_approx_zero = fst::Log64Weight(10.0)) {
-  if (weight.Value1().Value() > 0.0) {
+  if (weight.IsPositive()) {
     return LessOrEqual(weight.Value2(), pos_approx_zero);
   } else {
     return LessOrEqual(weight.Value2(), neg_approx_zero);
