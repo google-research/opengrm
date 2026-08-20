@@ -291,11 +291,11 @@ bool PhiNormalizeState(typename Arc::StateId s, fst::MutableFst<Arc>* fst,
       high_sum = fst::Log64Weight::One();
     }
     if (phi_position != -1) {
-      if (high_sum == fst::Log64Weight::One()) {
+      fst::Log64Weight numer = SafeMinus(fst::Log64Weight::One(), high_sum);
+      fst::Log64Weight denom = SafeMinus(fst::Log64Weight::One(), low_sum);
+      if (numer == kApproxZeroWeight || denom == kApproxZeroWeight) {
         phi_weight = kApproxZeroWeight;
       } else {
-        fst::Log64Weight numer = Minus(fst::Log64Weight::One(), high_sum);
-        fst::Log64Weight denom = Minus(fst::Log64Weight::One(), low_sum);
         phi_weight = fst::Divide(numer, denom);
       }
       aiter.Seek(phi_position);
@@ -327,6 +327,59 @@ bool PhiNormalize(fst::MutableFst<Arc>* fst,
     if (!PhiNormalizeState(s, fst, phi_label)) {
       return false;
     }
+  }
+  return true;
+}
+
+// Recalculates failure transition weights without rescaling non-failure
+// transition weights. Returns true if the operation is successful.
+template <class Arc>
+bool RecalcBackoffState(typename Arc::StateId s, fst::MutableFst<Arc>* fst,
+                        typename Arc::Label phi_label = fst::kNoLabel) {
+  using Weight = typename Arc::Weight;
+  fst::WeightConvert<fst::Log64Weight, Weight> from_log64;
+  if (s < 0 || s >= fst->NumStates()) {
+    return false;
+  } else {
+    fst::Log64Weight high_sum, low_sum, phi_weight;
+    ssize_t phi_position;
+    StateSums(*fst, s, phi_label, &high_sum, &low_sum, &phi_weight,
+              &phi_position);
+    if (phi_position != -1) {
+      fst::Log64Weight numer = SafeMinus(fst::Log64Weight::One(), high_sum);
+      fst::Log64Weight denom = SafeMinus(fst::Log64Weight::One(), low_sum);
+      if (numer == kApproxZeroWeight || denom == kApproxZeroWeight) {
+        phi_weight = kApproxZeroWeight;
+      } else {
+        phi_weight = fst::Divide(numer, denom);
+      }
+      fst::MutableArcIterator<fst::MutableFst<Arc>> aiter(fst, s);
+      aiter.Seek(phi_position);
+      Arc arc = aiter.Value();
+      arc.weight = from_log64(phi_weight);
+      aiter.SetValue(arc);
+    }
+  }
+  return true;
+}
+
+// Recalculates failure transition weights for all states in an FST without
+// rescaling non-failure transition weights. Returns true if successful.
+template <class Arc>
+bool RecalcBackoff(fst::MutableFst<Arc>* fst,
+                   typename Arc::Label phi_label = fst::kNoLabel) {
+  using StateId = typename Arc::StateId;
+  std::vector<StateId> top_order;
+  if (phi_label == fst::kNoLabel) return true;
+  if (!IsCanonical(*fst, phi_label, &top_order)) {
+    LOG(ERROR) << "RecalcBackoff: input is not a canonical stochastic FST";
+    return false;
+  }
+  while (!top_order.empty()) {
+    if (!RecalcBackoffState(top_order.back(), fst, phi_label)) {
+      return false;
+    }
+    top_order.pop_back();
   }
   return true;
 }

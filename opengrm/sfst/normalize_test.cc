@@ -25,10 +25,12 @@
 #include "absl/flags/flag.h"
 #include "absl/log/flags.h"
 #include "openfst/lib/arc.h"
+#include "openfst/lib/float-weight.h"
 #include "openfst/lib/fst.h"
 #include "openfst/lib/test-properties.h"
 #include "openfst/lib/vector-fst.h"
 #include "opengrm/sfst/canonical.h"
+#include "opengrm/sfst/sfst.h"
 
 namespace sfst {
 
@@ -169,6 +171,31 @@ TEST_F(NormalizeTest, Condition) {
     ASSERT_FALSE(GlobalNormalize(&sfst, 0, kAlgoDelta));
     ASSERT_FALSE(IsNormalized(sfst, 0, kTestDelta));
   }
+}
+
+// Recalculates failure transitions without rescaling non-failure weights
+TEST_F(NormalizeTest, RecalcBackoff) {
+  {
+    fst::VectorFst<Arc> sfst(*sfst1_);
+    ASSERT_TRUE(RecalcBackoff(&sfst, 0));
+    ASSERT_TRUE(IsNormalized(sfst, 0, kTestDelta));
+  }
+}
+
+TEST_F(NormalizeTest, SafeMinus) {
+  fst::Log64Weight one = fst::Log64Weight::One();  // 0.0
+  fst::Log64Weight half(0.69314718);               // -ln(0.5)
+
+  // 1.0 - 0.5 = 0.5 (-ln(0.5) = 0.69314718)
+  EXPECT_NEAR(SafeMinus(one, half).Value(), 0.69314718, 1e-5);
+
+  // Subtrahend >= minuend in prob domain => kApproxZeroWeight
+  EXPECT_EQ(SafeMinus(one, one), kApproxZeroWeight);
+  EXPECT_EQ(SafeMinus(one, fst::Log64Weight(-0.5)), kApproxZeroWeight);
+
+  // Numerical approximate equality within delta => kApproxZeroWeight
+  fst::Log64Weight w_close(1.0e-16);
+  EXPECT_EQ(SafeMinus(one, w_close, /*delta=*/1.0e-15), kApproxZeroWeight);
 }
 
 }  // namespace sfst

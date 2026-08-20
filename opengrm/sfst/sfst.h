@@ -38,7 +38,6 @@ const fst::Log64Weight kApproxZeroWeight(99.0);
 
 constexpr double kNormEps = 0.001;
 constexpr double kFloatEps = 0.000001;
-
 constexpr int64_t kDefaultNGramOrder = 3;
 
 // Threshold where exp(-delta) drops below double machine epsilon
@@ -147,6 +146,18 @@ inline bool ApproxZero(
   } else {
     return LessOrEqual(weight.Value2(), neg_approx_zero);
   }
+}
+
+// Safely subtracts two Log64Weights in the real/probability domain
+// (i.e., computes -ln(exp(-w1) - exp(-w2))), returning kApproxZeroWeight
+// if p1 <= p2 (i.e., w1 <= w2 with respect to probability ordering) or if
+// w1 and w2 are approximately equal within delta.
+inline fst::Log64Weight SafeMinus(fst::Log64Weight w1, fst::Log64Weight w2,
+                                  float delta = 1.0e-15) {
+  if (LessOrEqual(w1, w2) || ApproxEqual(w1, w2, delta)) {
+    return kApproxZeroWeight;
+  }
+  return fst::Minus(w1, w2);
 }
 
 // Compares w.r.t. exponentiated values ('probabilities' vs
