@@ -28,6 +28,7 @@
 #include "openfst/lib/isomorphic.h"
 #include "openfst/lib/project.h"
 #include "openfst/lib/rmepsilon.h"
+#include "openfst/lib/string.h"
 #include "openfst/lib/vector-fst.h"
 #include "opengrm/thrax/walker/util/datatype.h"
 
@@ -51,13 +52,15 @@ class CDRewriteTest : public ::testing::Test {
       tau->SetFinal(q);
     }
 
+    const ::fst::StringCompiler<Arc> compiler(::fst::TokenType::BYTE);
+
     // lambda: unweighted left context acceptor ("c").
     auto lambda = std::make_unique<MutableTransducer>();
-    MakeStringFst("c", lambda.get());
+    ASSERT_TRUE(compiler("c", lambda.get()));
 
     // rho: unweighted right context acceptor ("d").
     auto rho = std::make_unique<MutableTransducer>();
-    MakeStringFst("d", rho.get());
+    ASSERT_TRUE(compiler("d", rho.get()));
 
     // sigma: unweighted alphabet closure acceptor (sigma* = (a|b|c|d)*).
     auto sigma = std::make_unique<MutableTransducer>();
@@ -82,23 +85,12 @@ class CDRewriteTest : public ::testing::Test {
     rule_ = *rule_data_->template get<Transducer*>();
   }
 
-  static void MakeStringFst(absl::string_view s, MutableTransducer* fst) {
-    fst->DeleteStates();
-    auto current = fst->AddState();
-    fst->SetStart(current);
-    for (char c : s) {
-      auto next = fst->AddState();
-      fst->EmplaceArc(current, c, c, next);
-      current = next;
-    }
-    fst->SetFinal(current);
-  }
-
   void VerifyRewrite(absl::string_view input_str,
                      absl::string_view expected_str) {
     ASSERT_NE(rule_, nullptr);
+    const ::fst::StringCompiler<Arc> compiler(::fst::TokenType::BYTE);
     MutableTransducer input;
-    MakeStringFst(input_str, &input);
+    ASSERT_TRUE(compiler(input_str, &input));
 
     MutableTransducer output;
     ::fst::Compose(input, *rule_, &output);
@@ -109,7 +101,7 @@ class CDRewriteTest : public ::testing::Test {
     ::fst::ArcMap(&clean_output, ::fst::RmWeightMapper<Arc>());
 
     MutableTransducer expected;
-    MakeStringFst(expected_str, &expected);
+    ASSERT_TRUE(compiler(expected_str, &expected));
 
     EXPECT_TRUE(::fst::Isomorphic(clean_output, expected))
         << "Expected input \"" << input_str << "\" to rewrite to \""

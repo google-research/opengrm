@@ -22,7 +22,6 @@
 #include <vector>
 
 #include "openfst/compat/file_path.h"
-#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "openfst/extensions/far/far-reader.h"
 #include "openfst/extensions/far/far-writer.h"
@@ -30,6 +29,7 @@
 #include "openfst/lib/compose.h"
 #include "openfst/lib/float-weight.h"
 #include "openfst/lib/fst.h"
+#include "openfst/lib/string.h"
 #include "openfst/lib/vector-fst.h"
 #include "openfst/lib/weight.h"
 #include "opengrm/baumwelch/cascade.h"
@@ -38,26 +38,6 @@
 
 namespace fst {
 namespace {
-
-using ::testing::DoubleNear;
-using ::testing::FloatEq;
-using ::testing::Gt;
-using ::testing::Lt;
-
-// Helper to construct a simple linear string acceptor.
-template <class Arc>
-VectorFst<Arc> MakeStringFst(const std::vector<int>& labels) {
-  VectorFst<Arc> fst;
-  auto curr = fst.AddState();
-  fst.SetStart(curr);
-  for (int label : labels) {
-    auto next = fst.AddState();
-    fst.AddArc(curr, Arc(label, label, Arc::Weight::One(), next));
-    curr = next;
-  }
-  fst.SetFinal(curr, Arc::Weight::One());
-  return fst;
-}
 
 // -----------------------------------------------------------------------------
 // TrainOptions Tests
@@ -237,8 +217,8 @@ class TrainExecutionTest : public ::testing::Test {
   }
 
   template <class Arc>
-  void WriteTrainingData(const std::vector<std::vector<int>>& inputs,
-                         const std::vector<std::vector<int>>& outputs) {
+  void WriteTrainingData(const std::vector<std::string>& inputs,
+                         const std::vector<std::string>& outputs) {
     ASSERT_EQ(inputs.size(), outputs.size());
     std::unique_ptr<FarWriter<Arc>> in_writer(
         FarWriter<Arc>::Create(input_far_path_));
@@ -247,10 +227,14 @@ class TrainExecutionTest : public ::testing::Test {
     ASSERT_NE(in_writer, nullptr);
     ASSERT_NE(out_writer, nullptr);
 
+    const StringCompiler<Arc> compiler(TokenType::SYMBOL);
     for (size_t i = 0; i < inputs.size(); ++i) {
       const std::string key = std::to_string(i);
-      in_writer->Add(key, MakeStringFst<Arc>(inputs[i]));
-      out_writer->Add(key, MakeStringFst<Arc>(outputs[i]));
+      VectorFst<Arc> in_fst, out_fst;
+      ASSERT_TRUE(compiler(inputs[i], &in_fst));
+      ASSERT_TRUE(compiler(outputs[i], &out_fst));
+      in_writer->Add(key, in_fst);
+      out_writer->Add(key, out_fst);
     }
   }
 
@@ -260,8 +244,7 @@ class TrainExecutionTest : public ::testing::Test {
 
 TEST_F(TrainExecutionTest, BaumWelchEMLogArcLearnsIdentityTransduction) {
   // Training data: input "1 2", output "1 2" (repeated 5 times)
-  const std::vector<std::vector<int>> data = {
-      {1, 2}, {1, 2}, {1, 2}, {2, 1}, {2, 1}};
+  const std::vector<std::string> data = {"1 2", "1 2", "1 2", "2 1", "2 1"};
   WriteTrainingData<LogArc>(data, data);
 
   std::unique_ptr<FarReader<LogArc>> in_reader(
@@ -312,7 +295,7 @@ TEST_F(TrainExecutionTest, BaumWelchEMLogArcLearnsIdentityTransduction) {
 }
 
 TEST_F(TrainExecutionTest, ViterbiEMStdArcLearnsIdentityTransduction) {
-  const std::vector<std::vector<int>> data = {{1, 2}, {1, 2}, {2, 1}, {2, 1}};
+  const std::vector<std::string> data = {"1 2", "1 2", "2 1", "2 1"};
   WriteTrainingData<StdArc>(data, data);
 
   std::unique_ptr<FarReader<StdArc>> in_reader(
@@ -345,7 +328,7 @@ TEST_F(TrainExecutionTest, ViterbiEMStdArcLearnsIdentityTransduction) {
 
 TEST_F(TrainExecutionTest, HandlesEmptyLattice) {
   // Input "1", output "9" with model having only labels 1 and 2
-  WriteTrainingData<LogArc>({{1}}, {{9}});
+  WriteTrainingData<LogArc>({"1"}, {"9"});
 
   std::unique_ptr<FarReader<LogArc>> in_reader(
       FarReader<LogArc>::Open(input_far_path_));
@@ -372,7 +355,7 @@ TEST_F(TrainExecutionTest, HandlesEmptyLattice) {
 }
 
 TEST_F(TrainExecutionTest, MinibatchStepwiseTraining) {
-  const std::vector<std::vector<int>> data = {{1}, {2}, {1}, {2}, {1}, {2}};
+  const std::vector<std::string> data = {"1", "2", "1", "2", "1", "2"};
   WriteTrainingData<LogArc>(data, data);
 
   std::unique_ptr<FarReader<LogArc>> in_reader(

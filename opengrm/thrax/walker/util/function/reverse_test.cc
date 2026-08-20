@@ -22,6 +22,7 @@
 #include "openfst/lib/arc.h"
 #include "openfst/lib/fst.h"
 #include "openfst/lib/isomorphic.h"
+#include "openfst/lib/string.h"
 #include "openfst/lib/vector-fst.h"
 #include "opengrm/thrax/walker/util/datatype.h"
 
@@ -42,14 +43,9 @@ TYPED_TEST_SUITE(ReverseTest, ArcTypes, );
 
 // Tests that Reverse correctly reverses the paths in the FST.
 TYPED_TEST(ReverseTest, TestReverse) {
+  const ::fst::StringCompiler<TypeParam> compiler(::fst::TokenType::BYTE);
   auto input = std::make_unique<typename TestFixture::MutableTransducer>();
-  auto p = input->AddState();
-  auto q = input->AddState();
-  auto r = input->AddState();
-  input->SetStart(p);
-  input->EmplaceArc(p, 'a', 'a', q);
-  input->EmplaceArc(q, 'b', 'b', r);
-  input->SetFinal(r);
+  ASSERT_TRUE(compiler("ab", input.get()));
 
   auto args = std::make_unique<std::vector<std::unique_ptr<DataType>>>(1);
   (*args)[0] = std::make_unique<DataType>(std::move(input));

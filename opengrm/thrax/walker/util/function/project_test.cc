@@ -22,6 +22,7 @@
 #include "openfst/lib/arc.h"
 #include "openfst/lib/equal.h"
 #include "openfst/lib/fst.h"
+#include "openfst/lib/string.h"
 #include "openfst/lib/vector-fst.h"
 #include "opengrm/thrax/walker/util/datatype.h"
 
@@ -41,18 +42,13 @@ using ArcTypes = ::testing::Types<::fst::StdArc, ::fst::LogArc>;
 TYPED_TEST_SUITE(ProjectTest, ArcTypes);
 
 TYPED_TEST(ProjectTest, TestProjectInput) {
+  const ::fst::StringCompiler<TypeParam> compiler(::fst::TokenType::BYTE);
   auto golden = std::make_unique<typename TestFixture::MutableTransducer>();
-  auto p = golden->AddState();
-  auto q = golden->AddState();
-  auto r = golden->AddState();
-  golden->SetStart(p);
-  golden->EmplaceArc(p, 'a', 'a', q);
-  golden->EmplaceArc(q, 'b', 'b', r);
-  golden->SetFinal(r);
+  ASSERT_TRUE(compiler("ab", golden.get()));
   auto input = std::make_unique<typename TestFixture::MutableTransducer>();
-  p = input->AddState();
-  q = input->AddState();
-  r = input->AddState();
+  auto p = input->AddState();
+  auto q = input->AddState();
+  auto r = input->AddState();
   input->SetStart(p);
   input->EmplaceArc(p, 'a', 'c', q);
   input->EmplaceArc(q, 'b', 'd', r);
@@ -69,18 +65,13 @@ TYPED_TEST(ProjectTest, TestProjectInput) {
 }
 
 TYPED_TEST(ProjectTest, TestProjectOutput) {
+  const ::fst::StringCompiler<TypeParam> compiler(::fst::TokenType::BYTE);
   auto golden = std::make_unique<typename TestFixture::MutableTransducer>();
-  int p = golden->AddState();
-  int q = golden->AddState();
-  int r = golden->AddState();
-  golden->SetStart(p);
-  golden->EmplaceArc(p, 'c', 'c', q);
-  golden->EmplaceArc(q, 'd', 'd', r);
-  golden->SetFinal(r);
+  ASSERT_TRUE(compiler("cd", golden.get()));
   auto input = std::make_unique<typename TestFixture::MutableTransducer>();
-  p = input->AddState();
-  q = input->AddState();
-  r = input->AddState();
+  auto p = input->AddState();
+  auto q = input->AddState();
+  auto r = input->AddState();
   input->SetStart(p);
   input->EmplaceArc(p, 'a', 'c', q);
   input->EmplaceArc(q, 'b', 'd', r);

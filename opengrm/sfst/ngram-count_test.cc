@@ -24,6 +24,7 @@
 #include "openfst/lib/arc-range.h"
 #include "openfst/lib/arc.h"
 #include "openfst/lib/fst.h"
+#include "openfst/lib/string.h"
 #include "openfst/lib/vector-fst.h"
 
 namespace sfst {
@@ -32,22 +33,9 @@ namespace {
 using ::fst::Log64Arc;
 using ::fst::LogArc;
 using ::fst::StdArc;
+using ::fst::StringCompiler;
+using ::fst::TokenType;
 using ::fst::VectorFst;
-
-// Helper to construct a string FST from label IDs.
-VectorFst<StdArc> MakeStringFst(const std::vector<int>& labels,
-                                double weight = 0.0) {
-  VectorFst<StdArc> fst;
-  auto current = fst.AddState();
-  fst.SetStart(current);
-  for (int label : labels) {
-    auto next = fst.AddState();
-    fst.AddArc(current, StdArc(label, label, StdArc::Weight(0.0), next));
-    current = next;
-  }
-  fst.SetFinal(current, StdArc::Weight(weight));
-  return fst;
-}
 
 TEST(NGramCounterTest, InvalidOrderSetError) {
   NGramCounter<LogArc::Weight> counter(/*order=*/0);
@@ -58,7 +46,9 @@ TEST(NGramCounterTest, InvalidOrderSetError) {
 }
 
 TEST(NGramCounterTest, CountUnigramStringFst) {
-  VectorFst<StdArc> string_fst = MakeStringFst({1, 2});
+  const StringCompiler<StdArc> compiler(TokenType::SYMBOL);
+  VectorFst<StdArc> string_fst;
+  ASSERT_TRUE(compiler("1 2", &string_fst));
 
   NGramCounter<LogArc::Weight> counter(/*order=*/1);
   EXPECT_FALSE(counter.Error());
@@ -72,7 +62,9 @@ TEST(NGramCounterTest, CountUnigramStringFst) {
 }
 
 TEST(NGramCounterTest, CountBigramStringFst) {
-  VectorFst<StdArc> string_fst = MakeStringFst({1, 2});
+  const StringCompiler<StdArc> compiler(TokenType::SYMBOL);
+  VectorFst<StdArc> string_fst;
+  ASSERT_TRUE(compiler("1 2", &string_fst));
 
   NGramCounter<LogArc::Weight> counter(/*order=*/2);
   EXPECT_TRUE(counter.Count(string_fst));
@@ -109,7 +101,9 @@ TEST(NGramCounterTest, CountTopSortedFst) {
 }
 
 TEST(NGramCounterTest, GetFstWithPhiLabel) {
-  VectorFst<StdArc> string_fst = MakeStringFst({1, 2});
+  const StringCompiler<StdArc> compiler(TokenType::SYMBOL);
+  VectorFst<StdArc> string_fst;
+  ASSERT_TRUE(compiler("1 2", &string_fst));
 
   NGramCounter<LogArc::Weight> counter(/*order=*/2);
   EXPECT_TRUE(counter.Count(string_fst));
