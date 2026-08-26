@@ -148,8 +148,8 @@ bool Unsmoothed(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label) {
 
 // Witten-Bell smoothing.
 //
-// Reference:
-//   Witten, I. H., and Bell, T. C. 1991. The zero-frequency problem:
+// After:
+//   Witten, I. H. and Bell, T. C. 1991. The zero-frequency problem:
 //   Estimating the probabilities of novel events in adaptive text
 //   compression. IEEE Transactions on Information Theory, 37(4): 1085-1094.
 //
@@ -208,7 +208,7 @@ bool WittenBell(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
 
 // Absolute Discounting smoothing.
 //
-// Reference:
+// After:
 //   Ney, H., Essen, U., and Kneser, R. 1994. On structuring probabilistic
 //   dependences in stochastic language modelling. Computer Speech & Language,
 //   8(1): 1-38.
@@ -374,10 +374,10 @@ bool PreSmoothed(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label) {
 
 // Kneser-Ney smoothing.
 //
-// Reference:
-//   Kneser, R., and Ney, H. 1995. Improved backing-off for M-gram language
+// After:
+//   Kneser, R. and Ney, H. 1995. Improved backing-off for M-gram language
 //   modeling. In Proceedings of the International Conference on Acoustics,
-//   Speech, and Signal Processing (ICASSP), Vol. 1, pp. 181-184.
+//   Speech, and Signal Processing (ICASSP), Vol. 1, pages 181-184.
 //
 // Assumes input FST has counts on arcs, and the sum of counts is stored on the
 // phi arc.
@@ -508,8 +508,8 @@ bool KneserNey(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
 
 // Modified Kneser-Ney smoothing (Chen & Goodman 1998).
 //
-// Reference:
-//   Chen, S. F., and Goodman, J. 1998. An empirical study of smoothing
+// After:
+//   Chen, S. F. and Goodman, J. 1998. An empirical study of smoothing
 //   techniques for language modeling. Computer Speech & Language, 13(4):
 //   359-393.
 //
@@ -524,7 +524,7 @@ bool ModifiedKneserNey(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
 
 // Katz smoothing.
 //
-// References:
+// After:
 //   Gale, W. A. and Sampson, G. 1995. Good-Turing frequency estimation without
 //   tears. Journal of Quantitative Linguistics, 2(3): 217–237.
 //   Katz, S. M. 1987. Estimation of probabilities from sparse data for the

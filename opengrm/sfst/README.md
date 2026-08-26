@@ -4,13 +4,12 @@ SFst is a library for normalizing, sampling, combining, and approximating
 stochastic (or probabilistic) finite-state transducers. It makes use of
 functionality in the
 [OpenFst library](https://github.com/google-research/openfst) to create and
-manipulate language models encoded as weighted FSTs under two strict
-properties:
+manipulate language models encoded as weighted FSTs under two strict properties:
 
-1. **A canonical topology**: Supports explicit epsilon and failure backoff
-   transitions (typically using `fst::kNoLabel`).
-2. **A normalized distribution**: Assigns a mathematically exact negative log
-   probability to paths leaving a state.
+1.  **A canonical topology**: Supports explicit epsilon and failure backoff
+    transitions (typically using `fst::kNoLabel`).
+2.  **A normalized distribution**: Assigns a mathematically exact negative log
+    probability to paths leaving a state.
 
 ## Definitions
 
@@ -28,8 +27,8 @@ A **Canonical stochastic FST (SFST)** is a weighted finite-state transducer
     *   Epsilon transitions are treated as regular symbols by failure
         transitions (each instance behaves as if uniquely labeled).
 *   **Normalized distribution**:
-    *   Assigns a mathematically exact negative log probability to each
-        path leaving a state (weights sum to 1.0 in log semiring).
+    *   Assigns a mathematically exact negative log probability to each path
+        leaving a state (weights sum to 1.0 in log semiring).
 
 ### Additional terminology
 
@@ -56,8 +55,8 @@ versions may omit checks for efficiency.
 *   **`sfstinfo`**: Prints structural and topological summaries for canonical
     SFST models.
 *   **`sfstintersect`**: Intersects two canonical stochastic FSAs.
-*   **`sfstmerge`**: Performs in-memory linear interpolation or Bayesian
-    merging of two language models, automatically calculating and normalizing
+*   **`sfstmerge`**: Performs in-memory linear interpolation or Bayesian merging
+    of two language models, automatically calculating and normalizing
     state-posteriors and backoff weights.
 *   **`sfstngramapprox`**: Approximates an arbitrary weighted FST into a
     canonical and normalized n-gram topology of a specified maximum order.
@@ -68,8 +67,8 @@ versions may omit checks for efficiency.
     histories.
 *   **`sfstngramread`**: Compiles an ARPA-format language model file into a
     canonical, gap-filled stochastic FST.
-*   **`sfstngramsymbols`**: Generates an OpenFst-style symbol table from a
-    text corpus.
+*   **`sfstngramsymbols`**: Generates an OpenFst-style symbol table from a text
+    corpus.
 *   **`sfstnormalize`**: Gives an FST the weight distribution of a stochastic
     FST. Supports global normalization, local normalization, Kullback-Leibler
     (KL) minimization constraints (`--method=kl_min`), and standard
@@ -82,17 +81,17 @@ versions may omit checks for efficiency.
 *   **`sfstshrink`**: Prunes n-gram models using list-based, count-based,
     Seymore-based, or exact Stolcke-based KL divergence thresholding.
 *   **`sfstsmooth`**: Estimates and populates smoothed backoff language models.
-    Supports absolute discounting, Katz, Kneser-Ney, Witten-Bell, and
-    unsmoothed models.
+    Supports absolute discounting, Katz, Kneser-Ney, Witten-Bell, and unsmoothed
+    models.
 *   **`sfsttopology`**: Constructs specific structured FST target topologies.
-*   **`sfsttrim`**: Prunes useless (unreachable/dead-end) states and
-    transitions in stochastic automata.
+*   **`sfsttrim`**: Prunes useless (unreachable/dead-end) states and transitions
+    in stochastic automata.
 
 ## Backoff label conventions
 
 By default, this library utilizes **`fst::kNoLabel`** for its failure and
-backoff arcs, ensuring clean separation between structural epsilons and
-failure paths.
+backoff arcs, ensuring clean separation between structural epsilons and failure
+paths.
 
 ## Detailed quick tour
 
@@ -111,8 +110,8 @@ First, generate a symbol table for the text tokens in the input corpus:
 sfstngramsymbols earnest.txt earnest.syms
 ```
 
-By default, `sfstngramsymbols` creates symbol table entries for `<epsilon>`
-and `<UNK>`.
+By default, `sfstngramsymbols` creates symbol table entries for `<epsilon>` and
+`<UNK>`.
 
 Next, convert the text corpus to a binary FAR archive:
 
@@ -207,10 +206,11 @@ sfstperplexity earnest.mod eval.far
 
 ## Model approximation
 
-Model approximation allows you to take a model and project/approximate it
-onto a target topology (e.g., a different model's topology).
+Model approximation allows you to take a model and project/approximate it onto a
+target topology (e.g., a different model's topology).
 
 ### Idempotency check
+
 Approximating a model onto its own topology should yield the same model:
 
 ```bash
@@ -227,16 +227,17 @@ sfstperplexity earnest.approx2 eval.far
 ```
 
 ### Test set-based target topology
-Approximate the training model onto the topology of a test set model.
-First, build a model for the test set (using `eval.far` as test set here):
+
+Approximate the training model onto the topology of a test set model. First,
+build a model for the test set (using `eval.far` as test set here):
 
 ```bash
 sfstngramcount --order=5 eval.far eval.cnts
 sfstsmooth --method=katz eval.cnts eval.mod
 ```
 
-Now approximate the training model `earnest.mod` onto the test model
-`eval.mod` topology:
+Now approximate the training model `earnest.mod` onto the test model `eval.mod`
+topology:
 
 ```bash
 sfstapprox earnest.mod eval.mod > earnest.eval_topology.approx
@@ -244,6 +245,7 @@ sfstperplexity earnest.eval_topology.approx eval.far
 ```
 
 ### Pruned target topology
+
 Approximate a model onto a pruned model's topology:
 
 ```bash
@@ -303,14 +305,21 @@ All classes and functions are in the `sfst` namespace.
     ```
 
 *   **Smoothing functions** (in `smooth.h`):
+
     *   `sfst::Katz(MutableFst<Arc> *fst, Label phi_label, int64_t bins)`
-    *   `sfst::KneserNey(MutableFst<Arc> *fst, Label phi_label, double discount_D)`
-    *   `sfst::AbsoluteDiscounting(MutableFst<Arc> *fst, Label phi_label, double discount_D)`
-    *   `sfst::WittenBell(MutableFst<Arc> *fst, Label phi_label, double witten_bell_k)`
+    *   `sfst::KneserNey(MutableFst<Arc> *fst, Label phi_label, double
+        discount_D)`
+    *   `sfst::AbsoluteDiscounting(MutableFst<Arc> *fst, Label phi_label, double
+        discount_D)`
+    *   `sfst::WittenBell(MutableFst<Arc> *fst, Label phi_label, double
+        witten_bell_k)`
 
 *   **Shrinking functions** (in `shrink.h`):
-    *   `sfst::StolckeShrink(MutableFst<Arc> *fst, Label phi_label, double theta)`
-    *   `sfst::SeymoreShrink(MutableFst<Arc> *fst, Label phi_label, double theta, double total_unigram_count)`
+
+    *   `sfst::StolckeShrink(MutableFst<Arc> *fst, Label phi_label, double
+        theta)`
+    *   `sfst::SeymoreShrink(MutableFst<Arc> *fst, Label phi_label, double
+        theta, double total_unigram_count)`
 
 ## Background reading and references
 
@@ -319,23 +328,22 @@ For general material on finite-state transducers and OpenFst, see the
 For API-level documentation, consult the
 [documented source code](https://www.opengrm.org/doxygen/sfst/html/).
 
-Allauzen, C., and Riley, M. 2018. [Algorithms for weighted automata with
-failure transitions](https://www.opengrm.org/twiki/pub/GRM/SFstBackground/ciaa18.pdf).
+Allauzen, C. and Riley, M. 2018.
+[Algorithms for weighted automata with failure transitions](https://www.opengrm.org/twiki/pub/GRM/SFstBackground/ciaa18.pdf).
 In *Proceedings of the 23rd International Conference on Implementation and
 Application of Automata*.
 
-> **Note:** This paper makes two simplifying assumptions: (1) a successful
-> path cannot end in a failure transition, and (2) there are no epsilon
-> transitions when failure transitions are present. Neither limitation is
-> required in this library (failure transitions treat epsilons as defined
-> for a canonical FST).
+> **Note:** This paper makes two simplifying assumptions: (1) a successful path
+> cannot end in a failure transition, and (2) there are no epsilon transitions
+> when failure transitions are present. Neither limitation is required in this
+> library (failure transitions treat epsilons as defined for a canonical FST).
 
 Roark, B., Sproat, R., Allauzen, C., Riley, M., Sorensen, J., and Tai, T. 2012.
 [The OpenGrm open-source finite-state grammar software libraries](https://aclanthology.org/P12-3011/).
 In *Proceedings of the ACL 2012 System Demonstrations*, pages 61–66.
 
-Suresh, A. T., Roark, B., Riley, M., and Schogol, V. 2019. [Distilling weighted
-automata from arbitrary probabilistic models](https://www.opengrm.org/twiki/pub/GRM/SFstBackground/fsmnlp_approx.pdf).
+Suresh, A. T., Roark, B., Riley, M., and Schogol, V. 2019.
+[Distilling weighted automata from arbitrary probabilistic models](https://www.opengrm.org/twiki/pub/GRM/SFstBackground/fsmnlp_approx.pdf).
 In *Proceedings of the 14th International Conference on Finite-State Methods and
 Natural Language Processing*.
 
@@ -351,12 +359,14 @@ Natural Language Processing*.
         `3da1473a45cb0cd4eda06a528808dc5fb1f5cfca659189a349aeb1f98018031c`
 
 *   **Distribution Documentation:**
+
     *   [README](https://www.opengrm.org/twiki/pub/GRM/SFstDownload/README)
     *   [INSTALL](https://www.opengrm.org/twiki/bin/view/GRM/SfstDistInstall)
     *   [NEWS](https://www.opengrm.org/twiki/pub/GRM/SFstDownload/NEWS)
     *   [COPYING](https://www.opengrm.org/twiki/bin/view/GRM/SFstDistCopying)
 
 *   **Older Releases:**
+
     *   [sfst-1.2.0.tar.gz](https://www.opengrm.org/twiki/pub/GRM/SFstDownload/sfst-1.2.0.tar.gz)
     *   [sfst-1.1.0.tar.gz](https://www.opengrm.org/twiki/pub/GRM/SFstDownload/sfst-1.1.0.tar.gz)
     *   [sfst-1.0.0.tar.gz](https://www.opengrm.org/twiki/pub/GRM/SFstDownload/sfst-1.0.0.tar.gz)
