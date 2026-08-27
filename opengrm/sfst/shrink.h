@@ -20,13 +20,16 @@
 #include <algorithm>  // NOLINT(misc-include-cleaner)
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <fstream>
+#include <memory>
 #include <set>  // NOLINT(misc-include-cleaner)
 #include <sstream>
 #include <string>
 #include <utility>  // NOLINT(misc-include-cleaner)
 #include <vector>   // NOLINT(misc-include-cleaner)
 
+#include "absl/container/flat_hash_set.h"
 #include "absl/log/log.h"
 #include "absl/strings/numbers.h"
 #include "absl/strings/str_split.h"
@@ -122,6 +125,11 @@ void ComputeStateProbs(const fst::ExpandedFst<Arc>& fst,
 }
 
 // Stolcke relative entropy style model shrinking.
+//
+// After:
+//   Stolcke, A. 1998. Entropy-based pruning of backoff language models. In
+//   Proceedings of the DARPA Broadcast News Transcription and Understanding
+//   Workshop, pages 270-274.
 //
 // Computes shrink score for transition based on Stolcke (KL) formula:
 // D(p||p') = -p(h) { p(w|h) [ log p(w|h') + log \alpha'(h) - log p(w|h) ] +
@@ -247,7 +255,410 @@ bool StolckeShrink(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
   return true;
 }
 
+// Returns the theta value that will yield at most target_number_of_ngrams
+// when using Stolcke relative entropy pruning.
+//
+// After:
+//   Stolcke, A. 1998. Entropy-based pruning of backoff language models. In
+//   Proceedings of the DARPA Broadcast News Transcription and Understanding
+//   Workshop, pages 270-274.
+template <class Arc>
+double StolckeThetaForMaxNGrams(const fst::ExpandedFst<Arc>& fst,
+                                typename Arc::Label phi_label,
+                                int64_t target_number_of_ngrams) {
+  using StateId = typename Arc::StateId;
+  using Label = typename Arc::Label;
+  std::vector<int> orders;
+  PhiStateOrder(fst, phi_label, &orders);
+  std::vector<double> probs;
+  ComputeStateProbs(fst, phi_label, orders, &probs);
+  std::vector<double> scores;
+  fst::Matcher<fst::Fst<Arc>> matcher(fst, fst::MATCH_INPUT);
+  int64_t unigram_count = 0;
+  for (StateId s = 0; s < fst.NumStates(); ++s) {
+    if (orders[s] == 1) {
+      unigram_count +=
+          fst.NumArcs(s) + (fst.Final(s) != Arc::Weight::Zero() ? 1 : 0);
+    }
+  }
+  for (StateId s = 0; s < fst.NumStates(); ++s) {
+    if (orders[s] <= 1 || probs[s] == 0.0) continue;
+    double log_prob_s = std::log(probs[s]);
+    StateId bo = -1;
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, s); !aiter.Done();
+         aiter.Next()) {
+      const auto& arc = aiter.Value();
+      if (arc.ilabel == phi_label) {
+        bo = arc.nextstate;
+        break;
+      }
+    }
+    if (bo == -1) continue;
+    double hi_neglog_sum = fst.Final(s).Value();
+    double low_neglog_sum = fst.Final(bo).Value();
+    matcher.SetState(bo);
+    double KahanVal1 = 0;
+    double KahanVal2 = 0;
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, s); !aiter.Done();
+         aiter.Next()) {
+      const auto& arc = aiter.Value();
+      if (arc.ilabel == phi_label) continue;
+      hi_neglog_sum = NegLogSum(hi_neglog_sum, arc.weight.Value(), &KahanVal1);
+      if (matcher.Find(arc.ilabel)) {
+        const auto& barc = matcher.Value();
+        low_neglog_sum =
+            NegLogSum(low_neglog_sum, barc.weight.Value(), &KahanVal2);
+      }
+    }
+    double nlog_backoff_num = 0.0;
+    double nlog_backoff_denom = 0.0;
+    double effective_zero = kNormEps * kFloatEps;
+    double effective_nlog_zero = 99.0;
+    double tmp_hi = hi_neglog_sum;
+    double tmp_low = low_neglog_sum;
+    if (tmp_hi < effective_zero) tmp_hi = effective_zero;
+    if (tmp_low < effective_zero) tmp_low = effective_zero;
+    if (tmp_low > 0 && tmp_hi > 0) {
+      if (tmp_hi > effective_nlog_zero) {
+        nlog_backoff_num = 0.0;
+      } else {
+        nlog_backoff_num = NegLogDiff(0.0, tmp_hi);
+      }
+      if (tmp_low > effective_nlog_zero) {
+        nlog_backoff_denom = 0.0;
+      } else {
+        nlog_backoff_denom = NegLogDiff(0.0, tmp_low);
+      }
+    }
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, s); !aiter.Done();
+         aiter.Next()) {
+      const auto& arc = aiter.Value();
+      if (arc.ilabel == phi_label) continue;
+      if (matcher.Find(arc.ilabel)) {
+        const auto& barc = matcher.Value();
+        double log_prob = -arc.weight.Value();
+        double log_backoff_prob = -barc.weight.Value();
+        double new_log_backoff =
+            NegLogSum(nlog_backoff_denom, barc.weight.Value()) -
+            NegLogSum(nlog_backoff_num, arc.weight.Value());
+        double score = log_backoff_prob + new_log_backoff - log_prob;
+        double secondterm =
+            new_log_backoff + (nlog_backoff_num - nlog_backoff_denom);
+        secondterm *= std::exp(-nlog_backoff_num);
+        score *= std::exp(log_prob);
+        score += secondterm;
+        score *= -std::exp(log_prob_s);
+        scores.push_back(score);
+      }
+    }
+  }
+  if (scores.empty()) return 0.0;
+  std::sort(scores.begin(), scores.end());
+  int64_t target = target_number_of_ngrams - unigram_count;
+  if (target < 0) target = 0;
+  int64_t threshold_index = static_cast<int64_t>(scores.size()) - target - 1;
+  if (threshold_index < 0) {
+    return std::exp(scores[0]) - 2.0;
+  }
+  double log_theta = scores[threshold_index];
+  while (threshold_index < scores.size() &&
+         scores[threshold_index] == log_theta) {
+    ++threshold_index;
+  }
+  if (threshold_index >= scores.size()) {
+    log_theta += 1.0;
+  } else {
+    log_theta = (log_theta + scores[threshold_index]) / 2.0;
+  }
+  return std::exp(log_theta) - 1.0;
+}
+
+// Restricted Stolcke relative entropy style model shrinking.
+//
+// After:
+//   Stolcke, A. 1998. Entropy-based pruning of backoff language models. In
+//   Proceedings of the DARPA Broadcast News Transcription and Understanding
+//   Workshop, pages 270-274.
+//
+// Prunes an n-gram transition only if the backoff probability does not exceed
+// the higher-order probability (log p(w|h') + log \alpha(h) <= log p(w|h)),
+// restricting pruning to cases where the backoff model does not overestimate.
+template <class Arc, class Filter = std::nullptr_t>
+bool RestrictedRelEntropyShrink(fst::MutableFst<Arc>* fst,
+                                typename Arc::Label phi_label, double theta,
+                                Filter filter = nullptr) {
+  if (!IsCanonical(*fst, phi_label)) {
+    LOG(ERROR) << "RestrictedRelEntropyShrink: input is not a canonical SFST";
+    return false;
+  }
+  using StateId = typename Arc::StateId;
+  using Label = typename Arc::Label;
+  std::vector<int> orders;
+  PhiStateOrder(*fst, phi_label, &orders);
+  std::vector<double> probs;
+  ComputeStateProbs(*fst, phi_label, orders, &probs);
+  double log_theta = std::log(theta + 1);
+  std::vector<std::pair<StateId, Label>> to_prune;
+  fst::Matcher<fst::Fst<Arc>> matcher(*fst, fst::MATCH_INPUT);
+  for (StateId s = 0; s < fst->NumStates(); ++s) {
+    if (probs[s] == 0.0) continue;
+    double log_prob_s = std::log(probs[s]);
+    StateId bo = -1;
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(*fst, s); !aiter.Done();
+         aiter.Next()) {
+      const auto& arc = aiter.Value();
+      if (arc.ilabel == phi_label) {
+        bo = arc.nextstate;
+        break;
+      }
+    }
+    if (bo == -1) continue;
+    double hi_neglog_sum = fst->Final(s).Value();
+    double low_neglog_sum = fst->Final(bo).Value();
+    matcher.SetState(bo);
+    double KahanVal1 = 0;
+    double KahanVal2 = 0;
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(*fst, s); !aiter.Done();
+         aiter.Next()) {
+      const auto& arc = aiter.Value();
+      if (arc.ilabel == phi_label) continue;
+      hi_neglog_sum = NegLogSum(hi_neglog_sum, arc.weight.Value(), &KahanVal1);
+      if (matcher.Find(arc.ilabel)) {
+        const auto& barc = matcher.Value();
+        low_neglog_sum =
+            NegLogSum(low_neglog_sum, barc.weight.Value(), &KahanVal2);
+      }
+    }
+    double nlog_backoff_num = 0.0;
+    double nlog_backoff_denom = 0.0;
+    double effective_zero = kNormEps * kFloatEps;
+    double effective_nlog_zero = 99.0;
+    double tmp_hi = hi_neglog_sum;
+    double tmp_low = low_neglog_sum;
+    if (tmp_hi < effective_zero) tmp_hi = effective_zero;
+    if (tmp_low < effective_zero) tmp_low = effective_zero;
+    if (tmp_low > 0 && tmp_hi > 0) {
+      if (tmp_hi > effective_nlog_zero) {
+        nlog_backoff_num = 0.0;
+      } else {
+        nlog_backoff_num = NegLogDiff(0.0, tmp_hi);
+      }
+      if (tmp_low > effective_nlog_zero) {
+        nlog_backoff_denom = 0.0;
+      } else {
+        nlog_backoff_denom = NegLogDiff(0.0, tmp_low);
+      }
+    }
+    double old_log_backoff = -(nlog_backoff_num - nlog_backoff_denom);
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(*fst, s); !aiter.Done();
+         aiter.Next()) {
+      const auto& arc = aiter.Value();
+      if (arc.ilabel == phi_label) continue;
+      if (matcher.Find(arc.ilabel)) {
+        const auto& barc = matcher.Value();
+        double log_prob = -arc.weight.Value();
+        double log_backoff_prob = -barc.weight.Value();
+        if (log_backoff_prob + old_log_backoff > log_prob) {
+          continue;
+        }
+        double new_log_backoff =
+            NegLogSum(nlog_backoff_denom, barc.weight.Value()) -
+            NegLogSum(nlog_backoff_num, arc.weight.Value());
+        double score = log_backoff_prob + new_log_backoff - log_prob;
+        double secondterm =
+            new_log_backoff + (nlog_backoff_num - nlog_backoff_denom);
+        secondterm *= std::exp(-nlog_backoff_num);
+        score *= std::exp(log_prob);
+        score += secondterm;
+        score *= -std::exp(log_prob_s);
+        if (score <= log_theta) {
+          if constexpr (!std::is_same_v<Filter, std::nullptr_t>) {
+            if (filter(s, arc.ilabel)) continue;
+          }
+          to_prune.push_back({s, arc.ilabel});
+        }
+      }
+    }
+  }
+  for (const auto& p : to_prune) {
+    StateId s = p.first;
+    Label l = p.second;
+    std::vector<Arc> arcs;
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(*fst, s); !aiter.Done();
+         aiter.Next()) {
+      const auto& arc = aiter.Value();
+      if (arc.ilabel != l) {
+        arcs.push_back(arc);
+      }
+    }
+    fst->DeleteArcs(s);
+    for (const auto& arc : arcs) {
+      fst->AddArc(s, arc);
+    }
+  }
+  PhiNormalize(fst, phi_label);
+  return true;
+}
+
+// Symmetrized relative entropy model shrinking.
+//
+// After:
+//   Stolcke, A. 1998. Entropy-based pruning of backoff language models. In
+//   Proceedings of the DARPA Broadcast News Transcription and Understanding
+//   Workshop, pages 270-274.
+//
+// Computes shrink score based on the symmetrized Kullback-Leibler divergence
+// D(p||p') + D(p'||p) between the original and pruned language models.
+template <class Arc, class Filter = std::nullptr_t>
+bool SymmetrizedRelEntropyShrink(fst::MutableFst<Arc>* fst,
+                                 typename Arc::Label phi_label, double theta,
+                                 Filter filter = nullptr) {
+  if (!IsCanonical(*fst, phi_label)) {
+    LOG(ERROR) << "SymmetrizedRelEntropyShrink: input is not a canonical SFST";
+    return false;
+  }
+  using StateId = typename Arc::StateId;
+  using Label = typename Arc::Label;
+  std::vector<int> orders;
+  PhiStateOrder(*fst, phi_label, &orders);
+  std::vector<double> probs;
+  ComputeStateProbs(*fst, phi_label, orders, &probs);
+  double log_theta = std::log(theta + 1);
+  std::vector<std::pair<StateId, Label>> to_prune;
+  fst::Matcher<fst::Fst<Arc>> matcher(*fst, fst::MATCH_INPUT);
+  for (StateId s = 0; s < fst->NumStates(); ++s) {
+    if (probs[s] == 0.0) continue;
+    double log_prob_s = std::log(probs[s]);
+    StateId bo = -1;
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(*fst, s); !aiter.Done();
+         aiter.Next()) {
+      const auto& arc = aiter.Value();
+      if (arc.ilabel == phi_label) {
+        bo = arc.nextstate;
+        break;
+      }
+    }
+    if (bo == -1) continue;
+    double hi_neglog_sum = fst->Final(s).Value();
+    double low_neglog_sum = fst->Final(bo).Value();
+    matcher.SetState(bo);
+    double KahanVal1 = 0;
+    double KahanVal2 = 0;
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(*fst, s); !aiter.Done();
+         aiter.Next()) {
+      const auto& arc = aiter.Value();
+      if (arc.ilabel == phi_label) continue;
+      hi_neglog_sum = NegLogSum(hi_neglog_sum, arc.weight.Value(), &KahanVal1);
+      if (matcher.Find(arc.ilabel)) {
+        const auto& barc = matcher.Value();
+        low_neglog_sum =
+            NegLogSum(low_neglog_sum, barc.weight.Value(), &KahanVal2);
+      }
+    }
+    double nlog_backoff_num = 0.0;
+    double nlog_backoff_denom = 0.0;
+    double effective_zero = kNormEps * kFloatEps;
+    double effective_nlog_zero = 99.0;
+    double tmp_hi = hi_neglog_sum;
+    double tmp_low = low_neglog_sum;
+    if (tmp_hi < effective_zero) tmp_hi = effective_zero;
+    if (tmp_low < effective_zero) tmp_low = effective_zero;
+    if (tmp_low > 0 && tmp_hi > 0) {
+      if (tmp_hi > effective_nlog_zero) {
+        nlog_backoff_num = 0.0;
+      } else {
+        nlog_backoff_num = NegLogDiff(0.0, tmp_hi);
+      }
+      if (tmp_low > effective_nlog_zero) {
+        nlog_backoff_denom = 0.0;
+      } else {
+        nlog_backoff_denom = NegLogDiff(0.0, tmp_low);
+      }
+    }
+    double old_log_backoff = -(nlog_backoff_num - nlog_backoff_denom);
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(*fst, s); !aiter.Done();
+         aiter.Next()) {
+      const auto& arc = aiter.Value();
+      if (arc.ilabel == phi_label) continue;
+      if (matcher.Find(arc.ilabel)) {
+        const auto& barc = matcher.Value();
+        double log_prob = -arc.weight.Value();
+        double log_backoff_prob = -barc.weight.Value();
+        double new_log_backoff =
+            NegLogSum(nlog_backoff_denom, barc.weight.Value()) -
+            NegLogSum(nlog_backoff_num, arc.weight.Value());
+        double score = log_backoff_prob + old_log_backoff - log_prob;
+        score *=
+            std::exp(log_prob) - std::exp(log_backoff_prob + new_log_backoff);
+        score *= -std::exp(log_prob_s);
+        score /= 2.0;
+        if (score <= log_theta) {
+          if constexpr (!std::is_same_v<Filter, std::nullptr_t>) {
+            if (filter(s, arc.ilabel)) continue;
+          }
+          to_prune.push_back({s, arc.ilabel});
+        }
+      }
+    }
+  }
+  for (const auto& p : to_prune) {
+    StateId s = p.first;
+    Label l = p.second;
+    std::vector<Arc> arcs;
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(*fst, s); !aiter.Done();
+         aiter.Next()) {
+      const auto& arc = aiter.Value();
+      if (arc.ilabel != l) {
+        arcs.push_back(arc);
+      }
+    }
+    fst->DeleteArcs(s);
+    for (const auto& arc : arcs) {
+      fst->AddArc(s, arc);
+    }
+  }
+  PhiNormalize(fst, phi_label);
+  return true;
+}
+
+// Estimates total unigram count from unigram state weights.
+template <class Arc>
+double EstimateTotalUnigramCount(const fst::Fst<Arc>& fst,
+                                 typename Arc::Label phi_label) {
+  using StateId = typename Arc::StateId;
+  StateId unigram_state = fst.Start();
+  for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, fst.Start()); !aiter.Done();
+       aiter.Next()) {
+    if (aiter.Value().ilabel == phi_label) {
+      unigram_state = aiter.Value().nextstate;
+      break;
+    }
+  }
+  double max_val = -1.0;
+  double nextmax_val = -1.0;
+  for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, unigram_state); !aiter.Done();
+       aiter.Next()) {
+    const auto& arc = aiter.Value();
+    if (arc.ilabel == phi_label) continue;
+    double w = arc.weight.Value();
+    if (max_val < 0.0 || w > max_val) {
+      nextmax_val = max_val;
+      max_val = w;
+    } else if (w < max_val && (nextmax_val < 0.0 || w > nextmax_val)) {
+      nextmax_val = w;
+    }
+  }
+  if (max_val < 0.0) return 0.0;
+  if (nextmax_val < 0.0) return std::exp(max_val);
+  return std::exp(NegLogDiff(nextmax_val, max_val));
+}
+
 // Seymore and Rosenfeld model shrinking.
+//
+// After:
+//   Seymore, K. and Rosenfeld, R. 1996. Scalable backoff language models. In
+//   Proceedings of the 4th International Conference on Spoken Language
+//   Processing (ICSLP), Vol. 1, pages 232-235.
 //
 // Computes shrink score for transition based on Seymore/Rosenfeld formula:
 // N(w,h) [ log p(w|h) - log p'(w|h) ] where N(w,h) is discounted frequency.
@@ -259,7 +670,10 @@ bool StolckeShrink(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
 // mass.
 template <class Arc>
 bool SeymoreShrink(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
-                   double theta, double total_unigram_count) {
+                   double theta, double total_unigram_count = -1.0) {
+  if (total_unigram_count <= 0.0) {
+    total_unigram_count = EstimateTotalUnigramCount(*fst, phi_label);
+  }
   if (!IsCanonical(*fst, phi_label)) {
     LOG(ERROR) << "SeymoreShrink: input is not a canonical SFST";
     return false;
@@ -312,6 +726,93 @@ bool SeymoreShrink(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
         score *= total_unigram_count;
         score *= std::exp(log_prob_s + log_prob);
         if (score < theta) to_prune.push_back({s, arc.ilabel});
+      }
+    }
+  }
+  for (const auto& p : to_prune) {
+    StateId s = p.first;
+    Label l = p.second;
+    std::vector<Arc> arcs;
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(*fst, s); !aiter.Done();
+         aiter.Next()) {
+      const auto& arc = aiter.Value();
+      if (arc.ilabel != l) arcs.push_back(arc);
+    }
+    fst->DeleteArcs(s);
+    for (const auto& arc : arcs) fst->AddArc(s, arc);
+  }
+  return PhiNormalize(fst, phi_label);
+}
+
+// Absolute Seymore and Rosenfeld model shrinking (|score| < theta).
+//
+// After:
+//   Seymore, K. and Rosenfeld, R. 1996. Scalable backoff language models. In
+//   Proceedings of the 4th International Conference on Spoken Language
+//   Processing (ICSLP), Vol. 1, pages 232-235.
+//
+// Computes shrink score based on the absolute difference between model
+// distributions (|score| < theta), pruning arcs whose change in probability in
+// either direction falls within the threshold.
+template <class Arc>
+bool AbsoluteSeymoreShrink(fst::MutableFst<Arc>* fst,
+                           typename Arc::Label phi_label, double theta,
+                           double total_unigram_count = -1.0) {
+  if (total_unigram_count <= 0.0) {
+    total_unigram_count = EstimateTotalUnigramCount(*fst, phi_label);
+  }
+  if (!IsCanonical(*fst, phi_label)) {
+    LOG(ERROR) << "AbsoluteSeymoreShrink: input is not a canonical SFST";
+    return false;
+  }
+  using StateId = typename Arc::StateId;
+  using Label = typename Arc::Label;
+  std::vector<int> orders;
+  PhiStateOrder(*fst, phi_label, &orders);
+  std::vector<double> probs;
+  ComputeStateProbs(*fst, phi_label, orders, &probs);
+  std::vector<std::pair<StateId, Label>> to_prune;
+  fst::Matcher<fst::Fst<Arc>> matcher(*fst, fst::MATCH_INPUT);
+  for (StateId s = 0; s < fst->NumStates(); ++s) {
+    if (probs[s] == 0.0) continue;
+    double log_prob_s = std::log(probs[s]);
+    StateId bo;
+    double hi_neglog_sum;
+    double low_neglog_sum;
+    if (!internal::ComputeStateAndBackoffSums(*fst, s, phi_label, matcher, &bo,
+                                              &hi_neglog_sum,
+                                              &low_neglog_sum)) {
+      continue;
+    }
+    double nlog_backoff_num = 0.0;
+    double nlog_backoff_denom = 0.0;
+    double effective_zero = kNormEps * kFloatEps;
+    double effective_nlog_zero = 99.0;
+    double tmp_hi = hi_neglog_sum;
+    double tmp_low = low_neglog_sum;
+    if (tmp_hi < effective_zero) tmp_hi = effective_zero;
+    if (tmp_low < effective_zero) tmp_low = effective_zero;
+    if (tmp_low > 0 && tmp_hi > 0) {
+      nlog_backoff_num =
+          (tmp_hi > effective_nlog_zero) ? 0.0 : NegLogDiff(0.0, tmp_hi);
+      nlog_backoff_denom =
+          (tmp_low > effective_nlog_zero) ? 0.0 : NegLogDiff(0.0, tmp_low);
+    }
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(*fst, s); !aiter.Done();
+         aiter.Next()) {
+      const auto& arc = aiter.Value();
+      if (arc.ilabel == phi_label) continue;
+      if (matcher.Find(arc.ilabel)) {
+        const auto& barc = matcher.Value();
+        double log_prob = -arc.weight.Value();
+        double log_backoff_prob = -barc.weight.Value();
+        double new_log_backoff =
+            NegLogSum(nlog_backoff_denom, barc.weight.Value()) -
+            NegLogSum(nlog_backoff_num, arc.weight.Value());
+        double score = log_prob - new_log_backoff - log_backoff_prob;
+        score *= total_unigram_count;
+        score *= std::exp(log_prob_s + log_prob);
+        if (std::abs(score) < theta) to_prune.push_back({s, arc.ilabel});
       }
     }
   }
@@ -461,6 +962,38 @@ inline void ReadNGramList(
       ngram.push_back(label);
     }
     if (!ngram.empty()) ngram_list->insert(ngram);
+  }
+}
+
+// Reads a word set from a file or comma-separated list of symbols.
+template <class Label>
+inline void ReadWordSet(absl::string_view word_set_spec,
+                        const fst::SymbolTable* syms,
+                        absl::flat_hash_set<Label>* word_set) {
+  if (word_set_spec.empty()) return;
+  std::string file_path(word_set_spec);
+  std::ifstream strm(file_path);
+  if (strm) {
+    std::string line;
+    while (std::getline(strm, line)) {
+      if (syms) {
+        auto l = syms->Find(line);
+        if (l != fst::kNoSymbol) word_set->insert(l);
+      } else {
+        int64_t l;
+        if (absl::SimpleAtoi(line, &l)) word_set->insert(l);
+      }
+    }
+  } else {
+    for (absl::string_view w : absl::StrSplit(word_set_spec, ',')) {
+      if (syms) {
+        auto l = syms->Find(std::string(w));
+        if (l != fst::kNoSymbol) word_set->insert(l);
+      } else {
+        int64_t l;
+        if (absl::SimpleAtoi(w, &l)) word_set->insert(l);
+      }
+    }
   }
 }
 
@@ -618,6 +1151,250 @@ bool ListPrune(
     for (const auto& arc : arcs) fst->AddArc(s, arc);
   }
   return PhiNormalize(fst, phi_label);
+}
+
+// Significance-based model shrinking.
+//
+// After:
+//   Moore, R. C. and Quirk, C. 2009. Less is more: Significance-based
+//   n-gram selection for smaller, better language models. In Proceedings of the
+//   2009 Conference on Empirical Methods in Natural Language Processing
+//   (EMNLP), pages 746-755.
+//
+// Prunes n-grams whose estimated probability is not statistically significantly
+// different from the backoff model's estimate according to empirical binomial
+// confidence intervals.
+template <class Arc>
+bool SignificanceShrink(fst::MutableFst<Arc>* fst,
+                        typename Arc::Label phi_label,
+                        const fst::ExpandedFst<Arc>* count_fst = nullptr,
+                        double total_unigram_count = -1.0) {
+  if (!count_fst && total_unigram_count <= 0.0) {
+    total_unigram_count = EstimateTotalUnigramCount(*fst, phi_label);
+  }
+  if (!IsCanonical(*fst, phi_label)) {
+    LOG(ERROR) << "SignificanceShrink: input is not a canonical SFST";
+    return false;
+  }
+  using StateId = typename Arc::StateId;
+  using Label = typename Arc::Label;
+  std::vector<int> orders;
+  PhiStateOrder(*fst, phi_label, &orders);
+  std::vector<double> probs;
+  ComputeStateProbs(*fst, phi_label, orders, &probs);
+
+  std::vector<double> state_counts;
+  std::unique_ptr<fst::Matcher<fst::ExpandedFst<Arc>>> count_matcher;
+  if (count_fst) {
+    state_counts.resize(fst->NumStates(), -1.0);
+    for (StateId s = 0; s < fst->NumStates(); ++s) {
+      for (fst::ArcIterator<fst::ExpandedFst<Arc>> aiter(*count_fst, s);
+           !aiter.Done(); aiter.Next()) {
+        const auto& arc = aiter.Value();
+        if (arc.ilabel == phi_label) {
+          state_counts[s] = std::exp(-arc.weight.Value());
+          break;
+        }
+      }
+    }
+    count_matcher = std::make_unique<fst::Matcher<fst::ExpandedFst<Arc>>>(
+        *count_fst, fst::MATCH_INPUT);
+  }
+
+  auto distance = [](double x, double lower, double upper) {
+    if (x < lower) return lower - x;
+    if (x > upper) return x - upper;
+    return 0.0;
+  };
+
+  std::vector<absl::flat_hash_set<size_t>> to_prune_pos(fst->NumStates());
+  fst::Matcher<fst::Fst<Arc>> matcher(*fst, fst::MATCH_INPUT);
+  for (StateId s = 0; s < fst->NumStates(); ++s) {
+    if (orders[s] < 1 || probs[s] == 0.0) continue;
+    double log_prob_s = std::log(probs[s]);
+    StateId bo = -1;
+    size_t bo_pos = static_cast<size_t>(-1);
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(*fst, s); !aiter.Done();
+         aiter.Next()) {
+      const auto& arc = aiter.Value();
+      if (arc.ilabel == phi_label) {
+        bo = arc.nextstate;
+        bo_pos = aiter.Position();
+        break;
+      }
+    }
+    if (bo == -1) continue;
+    double hi_neglog_sum = fst->Final(s).Value();
+    double low_neglog_sum = fst->Final(bo).Value();
+    matcher.SetState(bo);
+    double KahanVal1 = 0;
+    double KahanVal2 = 0;
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(*fst, s); !aiter.Done();
+         aiter.Next()) {
+      if (aiter.Position() == bo_pos) continue;
+      const auto& arc = aiter.Value();
+      hi_neglog_sum = NegLogSum(hi_neglog_sum, arc.weight.Value(), &KahanVal1);
+      if (matcher.Find(arc.ilabel)) {
+        const auto& barc = matcher.Value();
+        low_neglog_sum =
+            NegLogSum(low_neglog_sum, barc.weight.Value(), &KahanVal2);
+      }
+    }
+    double nlog_backoff_num = 0.0;
+    double nlog_backoff_denom = 0.0;
+    double effective_zero = kNormEps * kFloatEps;
+    double effective_nlog_zero = 99.0;
+    double tmp_hi = hi_neglog_sum;
+    double tmp_low = low_neglog_sum;
+    if (tmp_hi < effective_zero) tmp_hi = effective_zero;
+    if (tmp_low < effective_zero) tmp_low = effective_zero;
+    if (tmp_low > 0 && tmp_hi > 0) {
+      nlog_backoff_num =
+          (tmp_hi > effective_nlog_zero) ? 0.0 : NegLogDiff(0.0, tmp_hi);
+      nlog_backoff_denom =
+          (tmp_low > effective_nlog_zero) ? 0.0 : NegLogDiff(0.0, tmp_low);
+    }
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(*fst, s); !aiter.Done();
+         aiter.Next()) {
+      if (aiter.Position() == bo_pos) continue;
+      const auto& arc = aiter.Value();
+      if (matcher.Find(arc.ilabel)) {
+        const auto& barc = matcher.Value();
+        double log_prob = -arc.weight.Value();
+        double log_backoff_prob = -barc.weight.Value();
+        double new_log_backoff =
+            NegLogSum(nlog_backoff_denom, barc.weight.Value()) -
+            NegLogSum(nlog_backoff_num, arc.weight.Value());
+
+        double state_count = 0.0;
+        double arc_count = 0.0;
+        if (count_fst) {
+          state_count = (s < state_counts.size()) ? state_counts[s] : 0.0;
+          count_matcher->SetState(s);
+          if (count_matcher->Find(arc.ilabel)) {
+            arc_count = std::exp(-count_matcher->Value().weight.Value());
+          } else {
+            arc_count = 0.0;
+          }
+        } else {
+          state_count = total_unigram_count * std::exp(log_prob_s);
+          arc_count = state_count * std::exp(log_prob);
+        }
+
+        double lower = arc_count / (state_count + 1.0);
+        double upper = (arc_count + 1.0) / (state_count + 1.0);
+        double backoff_prob = std::exp(log_backoff_prob + new_log_backoff);
+        double prob = std::exp(log_prob);
+        double dist_bo = distance(backoff_prob, lower, upper);
+        double dist_curr = distance(prob, lower, upper);
+        bool needed = false;
+        if (arc.nextstate != fst::kNoStateId &&
+            static_cast<size_t>(arc.nextstate) < orders.size() &&
+            orders[arc.nextstate] > orders[s]) {
+          for (fst::ArcIterator<fst::Fst<Arc>> naiter(*fst, arc.nextstate);
+               !naiter.Done(); naiter.Next()) {
+            if (naiter.Value().ilabel != phi_label) {
+              needed = true;
+              break;
+            }
+          }
+        }
+        if (!needed &&
+            ((dist_bo < kFloatEps) || (dist_bo < dist_curr + kFloatEps))) {
+          to_prune_pos[s].insert(aiter.Position());
+        }
+      }
+    }
+  }
+  for (StateId s = 0; s < fst->NumStates(); ++s) {
+    if (to_prune_pos[s].empty()) continue;
+    std::vector<Arc> arcs;
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(*fst, s); !aiter.Done();
+         aiter.Next()) {
+      if (!to_prune_pos[s].contains(aiter.Position())) {
+        arcs.push_back(aiter.Value());
+      }
+    }
+    fst->DeleteArcs(s);
+    for (const auto& arc : arcs) fst->AddArc(s, arc);
+  }
+  return PhiNormalize(fst, phi_label);
+}
+
+// Pruning method subject to keeping all n-grams containing any word in
+// word_set.
+template <class Arc>
+bool WordShrink(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
+                const absl::flat_hash_set<typename Arc::Label>& word_set) {
+  if (!IsCanonical(*fst, phi_label)) {
+    LOG(ERROR) << "WordShrink: input is not a canonical SFST";
+    return false;
+  }
+  using StateId = typename Arc::StateId;
+  using Label = typename Arc::Label;
+  std::vector<int> orders;
+  PhiStateOrder(*fst, phi_label, &orders);
+
+  std::vector<StateId> prefix_state(fst->NumStates(), fst::kNoStateId);
+  std::vector<Label> incoming_label(fst->NumStates(), fst::kNoLabel);
+  for (StateId s = 0; s < fst->NumStates(); ++s) {
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(*fst, s); !aiter.Done();
+         aiter.Next()) {
+      const auto& arc = aiter.Value();
+      if (arc.ilabel == phi_label) continue;
+      if (arc.nextstate < fst->NumStates() &&
+          orders[s] < orders[arc.nextstate]) {
+        prefix_state[arc.nextstate] = s;
+        incoming_label[arc.nextstate] = arc.ilabel;
+      }
+    }
+  }
+
+  auto get_state_ngram = [&](StateId st, auto& self) -> std::vector<Label> {
+    std::vector<Label> ngram;
+    if (st >= 0 && st < fst->NumStates() &&
+        prefix_state[st] != fst::kNoStateId) {
+      ngram = self(prefix_state[st], self);
+      ngram.push_back(incoming_label[st]);
+    }
+    return ngram;
+  };
+
+  std::vector<std::pair<StateId, Label>> to_prune;
+  for (StateId s = 0; s < fst->NumStates(); ++s) {
+    if (orders[s] <= 1) continue;
+    std::vector<Label> state_ngram = get_state_ngram(s, get_state_ngram);
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(*fst, s); !aiter.Done();
+         aiter.Next()) {
+      const auto& arc = aiter.Value();
+      if (arc.ilabel == phi_label) continue;
+      std::vector<Label> ngram = state_ngram;
+      ngram.push_back(arc.ilabel);
+      bool keep = false;
+      for (Label l : ngram) {
+        if (word_set.contains(l)) {
+          keep = true;
+          break;
+        }
+      }
+      if (!keep) {
+        to_prune.push_back({s, arc.ilabel});
+      }
+    }
+  }
+  for (const auto& p : to_prune) {
+    StateId s = p.first;
+    Label l = p.second;
+    std::vector<Arc> arcs;
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(*fst, s); !aiter.Done();
+         aiter.Next()) {
+      const auto& arc = aiter.Value();
+      if (arc.ilabel != l) arcs.push_back(arc);
+    }
+    fst->DeleteArcs(s);
+    for (const auto& arc : arcs) fst->AddArc(s, arc);
+  }
+  return true;
 }
 
 }  // namespace sfst
