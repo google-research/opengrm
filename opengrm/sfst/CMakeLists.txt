@@ -206,6 +206,7 @@ if(OPENGRM_BUILD_TESTS)
               ${OPENGRM_ALWAYS_LINK_END}
               GTest::gmock
               GTest::gtest_main
+              absl::flags
     ) # Perplexity/merge need far
     grm_configure_test_target(sfst_${_test}_test)
     gtest_discover_tests(

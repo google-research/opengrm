@@ -25,7 +25,7 @@
 #include "openfst/lib/fst.h"
 #include "openfst/lib/matcher.h"
 #include "openfst/lib/mutable-fst.h"
-#include "openfst/lib/symbol-table.h"
+#include "openfst/lib/properties.h"
 #include "opengrm/sfst/phi2matcher.h"
 #include "opengrm/sfst/trim.h"
 
@@ -38,9 +38,9 @@ bool Intersect(const fst::Fst<Arc>& ifst1, const fst::Fst<Arc>& ifst2,
                fst::MutableFst<Arc>* ofst,
                typename Arc::Label phi_label = fst::kNoLabel, bool trim = true,
                TrimType trim_type = TRIM_NEEDED_FINAL) {
-  if (!fst::CompatSymbols(ifst1.InputSymbols(), ifst2.InputSymbols(),
-                          /*warning=*/false)) {
-    LOG(ERROR) << "Intersect: Symbol tables of input models do not match";
+  if (!ifst1.Properties(fst::kAcceptor, true) ||
+      !ifst2.Properties(fst::kAcceptor, true)) {
+    LOG(ERROR) << "Intersect: Input FSTs must be acceptors";
     return false;
   }
   using PM = Phi2Matcher<fst::Matcher<fst::Fst<Arc>>>;
@@ -50,6 +50,7 @@ bool Intersect(const fst::Fst<Arc>& ifst1, const fst::Fst<Arc>& ifst2,
   copts.matcher1 = new PM(ifst1, fst::MATCH_OUTPUT, phi_label);
   copts.matcher2 = new PM(ifst2, fst::MATCH_INPUT, phi_label);
   *ofst = fst::ComposeFst<Arc>(ifst1, ifst2, copts);
+  if (ofst->Properties(fst::kError, true)) return false;
 
   if (trim && !Trim(ofst, phi_label, trim_type)) return false;
   return true;

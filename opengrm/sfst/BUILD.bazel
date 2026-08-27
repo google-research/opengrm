@@ -969,6 +969,7 @@ cc_test(
         ":sfst",
         "@com_google_absl//absl/base:log_severity",
         "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:reflection",
         "@com_google_absl//absl/log:flags",
         "@com_google_absl//absl/log:globals",
         "@com_google_absl//absl/memory",
@@ -976,6 +977,7 @@ cc_test(
         "@com_google_openfst//openfst/compat:file_path",
         "@com_google_openfst//openfst/lib",
         "@com_google_openfst//openfst/lib:symbol-table",
+        "@com_google_openfst//openfst/lib:util",
     ],
 )
 

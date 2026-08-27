@@ -25,6 +25,7 @@
 #include "gtest/gtest.h"
 #include "absl/base/log_severity.h"
 #include "absl/flags/flag.h"
+#include "absl/flags/reflection.h"
 #include "absl/log/globals.h"
 #include "absl/memory/memory.h"
 #include "openfst/lib/arc.h"
@@ -33,6 +34,7 @@
 #include "openfst/lib/relabel.h"
 #include "openfst/lib/symbol-table.h"
 #include "openfst/lib/test-properties.h"
+#include "openfst/lib/util.h"
 #include "openfst/lib/vector-fst.h"
 #include "opengrm/sfst/trim.h"
 
@@ -146,6 +148,9 @@ TEST_F(IntersectTest, IntersectNoLabel) {
 }
 
 TEST_F(IntersectTest, IncompatibleSymbolTablesRejected) {
+  const absl::FlagSaver fs;
+  absl::SetFlag(&FLAGS_fst_error_fatal, false);
+
   VectorFst<StdArc> fst1;
   fst1.AddState();
   fst1.AddState();
@@ -240,10 +245,34 @@ TEST_F(IntersectTest, OneNullSymbolTableAllowed) {
   fst2.SetStart(0);
   fst2.AddArc(0, StdArc(1, 1, Weight(0.5), 1));
   fst2.SetFinal(1, Weight::One());
-
   VectorFst<StdArc> ofst;
   EXPECT_TRUE(Intersect(fst1, fst2, &ofst, fst::kNoLabel, true));
   EXPECT_NE(ofst.Start(), fst::kNoStateId);
+}
+
+TEST_F(IntersectTest, NonAcceptorRejected) {
+  const absl::FlagSaver fs;
+  absl::SetFlag(&FLAGS_fst_error_fatal, false);
+
+  VectorFst<StdArc> fst1;
+  fst1.AddState();
+  fst1.AddState();
+  fst1.SetStart(0);
+  fst1.AddArc(0,
+              StdArc(/*ilabel=*/1, /*olabel=*/2, Weight(0.5), /*nextstate=*/1));
+  fst1.SetFinal(1, Weight::One());
+
+  VectorFst<StdArc> fst2;
+  fst2.AddState();
+  fst2.AddState();
+  fst2.SetStart(0);
+  fst2.AddArc(0,
+              StdArc(/*ilabel=*/1, /*olabel=*/1, Weight(0.5), /*nextstate=*/1));
+  fst2.SetFinal(1, Weight::One());
+
+  VectorFst<StdArc> ofst;
+  EXPECT_FALSE(Intersect(fst1, fst2, &ofst, fst::kNoLabel, true));
+  EXPECT_FALSE(Intersect(fst2, fst1, &ofst, fst::kNoLabel, true));
 }
 
 }  // namespace
