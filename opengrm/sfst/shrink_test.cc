@@ -108,12 +108,13 @@ TEST_F(ShrinkTest, SeymoreShrinkTest) {
 
 TEST_F(ShrinkTest, AbsoluteSeymoreShrinkTest) {
   fst::VectorFst<Arc> fst(fst_);
-  ASSERT_TRUE(WittenBell(&fst, 0));
+  ASSERT_TRUE(WittenBell(&fst, /*phi_label=*/0));
   const size_t initial_arcs = sfst::CountArcs(fst);
-  ASSERT_TRUE(AbsoluteSeymoreShrink(&fst, 0, 0.1, 100.0));
+  ASSERT_TRUE(AbsoluteSeymoreShrink(&fst, /*phi_label=*/0, /*theta=*/10.0,
+                                    /*total_unigram_count=*/100.0));
   const size_t final_arcs = sfst::CountArcs(fst);
-  EXPECT_LE(final_arcs, initial_arcs);
-  EXPECT_TRUE(IsNormalized(fst, 0));
+  EXPECT_LT(final_arcs, initial_arcs);
+  EXPECT_TRUE(IsNormalized(fst, /*phi_label=*/0));
 }
 
 TEST_F(ShrinkTest, RestrictedRelEntropyShrinkTest) {

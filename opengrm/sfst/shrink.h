@@ -771,6 +771,7 @@ bool AbsoluteSeymoreShrink(fst::MutableFst<Arc>* fst,
   PhiStateOrder(*fst, phi_label, &orders);
   std::vector<double> probs;
   ComputeStateProbs(*fst, phi_label, orders, &probs);
+  double log_theta = std::log(theta + 1);
   std::vector<std::pair<StateId, Label>> to_prune;
   fst::Matcher<fst::Fst<Arc>> matcher(*fst, fst::MATCH_INPUT);
   for (StateId s = 0; s < fst->NumStates(); ++s) {
@@ -809,10 +810,16 @@ bool AbsoluteSeymoreShrink(fst::MutableFst<Arc>* fst,
         double new_log_backoff =
             NegLogSum(nlog_backoff_denom, barc.weight.Value()) -
             NegLogSum(nlog_backoff_num, arc.weight.Value());
-        double score = log_prob - new_log_backoff - log_backoff_prob;
-        score *= total_unigram_count;
-        score *= std::exp(log_prob_s + log_prob);
-        if (std::abs(score) < theta) to_prune.push_back({s, arc.ilabel});
+        double score = log_backoff_prob + new_log_backoff - log_prob;
+        double secondterm =
+            new_log_backoff + (nlog_backoff_num - nlog_backoff_denom);
+        secondterm *= std::exp(-nlog_backoff_num);
+        score *= std::exp(log_prob);
+        score += secondterm;
+        score *= -std::exp(log_prob_s);
+        if (std::abs(score) <= log_theta) {
+          to_prune.push_back({s, arc.ilabel});
+        }
       }
     }
   }
