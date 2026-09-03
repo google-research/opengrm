@@ -38,7 +38,8 @@ namespace internal {
 template <class Arc>
 typename Arc::Weight ScoreNGram(
     const fst::Fst<Arc>& fst,  // NOLINT(misc-include-cleaner)
-    const std::vector<typename Arc::Label>& ngram) {
+    const std::vector<typename Arc::Label>& ngram,
+    typename Arc::Label phi_label = fst::kNoLabel) {
   using Label = typename Arc::Label;
   using Matcher = fst::ExplicitMatcher<fst::Matcher<fst::Fst<Arc>>>;
   using StateId = typename Arc::StateId;
@@ -47,12 +48,17 @@ typename Arc::Weight ScoreNGram(
   Matcher matcher(fst, fst::MATCH_INPUT);
   StateId curr = fst.Start();
   Weight total_weight = Weight::One();
+  auto find_backoff = [&](StateId s) {
+    matcher.SetState(s);
+    if (matcher.Find(phi_label)) return true;
+    if (phi_label != fst::kNoLabel && matcher.Find(fst::kNoLabel)) return true;
+    return false;
+  };
   for (size_t i = 0; i < ngram.size() - 1; ++i) {
     Label w = ngram[i];
     matcher.SetState(curr);
     while (!matcher.Find(w)) {
-      matcher.SetState(curr);
-      if (matcher.Find(fst::kNoLabel)) {
+      if (find_backoff(curr)) {
         const auto& bo_arc = matcher.Value();
         total_weight = fst::Times(total_weight, bo_arc.weight);
         curr = bo_arc.nextstate;
@@ -67,8 +73,7 @@ typename Arc::Weight ScoreNGram(
   Label w_k = ngram.back();
   matcher.SetState(curr);
   while (!matcher.Find(w_k)) {
-    matcher.SetState(curr);
-    if (matcher.Find(fst::kNoLabel)) {
+    if (find_backoff(curr)) {
       const auto& bo_arc = matcher.Value();
       total_weight = fst::Times(total_weight, bo_arc.weight);
       curr = bo_arc.nextstate;
@@ -83,7 +88,8 @@ typename Arc::Weight ScoreNGram(
 
 template <class Arc>
 void ExtractExplicitNGrams(const fst::Fst<Arc>& fst,
-                           std::set<std::vector<typename Arc::Label>>& ngrams) {
+                           std::set<std::vector<typename Arc::Label>>& ngrams,
+                           typename Arc::Label phi_label = fst::kNoLabel) {
   using Label = typename Arc::Label;
   using StateId = typename Arc::StateId;
   StateId start_state = fst.Start();
@@ -102,7 +108,7 @@ void ExtractExplicitNGrams(const fst::Fst<Arc>& fst,
     for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, u); !aiter.Done();
          aiter.Next()) {
       const auto& arc = aiter.Value();
-      if (arc.ilabel == fst::kNoLabel) continue;
+      if (arc.ilabel == phi_label || arc.ilabel == fst::kNoLabel) continue;
       std::vector<Label> next_ngram = H;
       next_ngram.push_back(arc.ilabel);
       ngrams.insert(next_ngram);
@@ -121,8 +127,9 @@ void ExtractExplicitNGrams(const fst::Fst<Arc>& fst,
 template <class Arc>
 void BuildCanonicalFst(
     const std::map<std::vector<typename Arc::Label>, double>& mixed_ngrams,
-    int max_hist_len, const fst::SymbolTable* syms,
-    fst::MutableFst<Arc>* fst) {  // NOLINT(misc-include-cleaner)
+    int max_hist_len, const fst::SymbolTable* syms, fst::MutableFst<Arc>* fst,
+    typename Arc::Label phi_label =
+        fst::kNoLabel) {  // NOLINT(misc-include-cleaner)
   using Label = typename Arc::Label;
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
@@ -174,16 +181,16 @@ void BuildCanonicalFst(
     if (H.empty()) continue;
     std::vector<Label> bo_H(H.begin() + 1, H.end());
     StateId dst = history_to_state[bo_H];
-    fst->AddArc(src, Arc(fst::kNoLabel, fst::kNoLabel, Weight::One(), dst));
+    fst->AddArc(src, Arc(phi_label, phi_label, Weight::One(), dst));
   }
   fst::ArcSort(fst, fst::ILabelCompare<Arc>());
-  PhiNormalize(fst, fst::kNoLabel);
+  PhiNormalize(fst, phi_label);
 }
 
 template <class Arc, typename WeightMixer>
 bool MergeModels(const fst::Fst<Arc>& fst1, const fst::Fst<Arc>& fst2,
-                 double alpha, double beta, fst::MutableFst<Arc>* out_fst,
-                 WeightMixer weight_mixer) {
+                 fst::MutableFst<Arc>* out_fst, WeightMixer weight_mixer,
+                 typename Arc::Label phi_label = fst::kNoLabel) {
   using Label = typename Arc::Label;
   using Weight = typename Arc::Weight;
   if (!fst::CompatSymbols(fst1.InputSymbols(), fst2.InputSymbols(),
@@ -192,8 +199,8 @@ bool MergeModels(const fst::Fst<Arc>& fst1, const fst::Fst<Arc>& fst2,
     return false;
   }
   std::set<std::vector<Label>> all_ngrams;
-  internal::ExtractExplicitNGrams(fst1, all_ngrams);
-  internal::ExtractExplicitNGrams(fst2, all_ngrams);
+  internal::ExtractExplicitNGrams(fst1, all_ngrams, phi_label);
+  internal::ExtractExplicitNGrams(fst2, all_ngrams, phi_label);
   if (all_ngrams.empty()) return true;
   int max_order = 1;
   for (const auto& ngram : all_ngrams) {
@@ -201,21 +208,18 @@ bool MergeModels(const fst::Fst<Arc>& fst1, const fst::Fst<Arc>& fst2,
   }
   const fst::SymbolTable* syms =
       fst1.InputSymbols() ? fst1.InputSymbols() : fst2.InputSymbols();
-  const double neglog_alpha_global = -std::log(alpha);
-  const double neglog_beta_global = -std::log(beta);
   std::map<std::vector<Label>, double> mixed_ngrams;
   for (const auto& ngram : all_ngrams) {
-    Weight w1 = internal::ScoreNGram(fst1, ngram);
-    Weight w2 = internal::ScoreNGram(fst2, ngram);
+    Weight w1 = internal::ScoreNGram(fst1, ngram, phi_label);
+    Weight w2 = internal::ScoreNGram(fst2, ngram, phi_label);
     double val1 =
         (w1 != Weight::Zero()) ? w1.Value() : fst::Log64Weight::Zero().Value();
     double val2 =
         (w2 != Weight::Zero()) ? w2.Value() : fst::Log64Weight::Zero().Value();
-    double mixed_val = weight_mixer(ngram, val1, val2, neglog_alpha_global,
-                                    neglog_beta_global, fst1, fst2);
+    double mixed_val = weight_mixer(ngram, val1, val2);
     mixed_ngrams[ngram] = mixed_val;
   }
-  BuildCanonicalFst(mixed_ngrams, max_order - 1, syms, out_fst);
+  BuildCanonicalFst(mixed_ngrams, max_order - 1, syms, out_fst, phi_label);
   return true;
 }
 
@@ -223,36 +227,46 @@ bool MergeModels(const fst::Fst<Arc>& fst1, const fst::Fst<Arc>& fst2,
 
 template <class Arc>
 struct LinearMixer {
-  double operator()(const std::vector<typename Arc::Label>& ngram, double val1,
-                    double val2, double neglog_a, double neglog_b,
-                    const fst::Fst<Arc>& fst1,
-                    const fst::Fst<Arc>& fst2) const {
-    return NegLogSum(val1 + neglog_a, val2 + neglog_b);
+  LinearMixer(double alpha, double beta)
+      : neglog_a_(-std::log(alpha)), neglog_b_(-std::log(beta)) {}
+
+  double operator()(const std::vector<typename Arc::Label>& /*ngram*/,
+                    double val1, double val2) const {
+    return NegLogSum(val1 + neglog_a_, val2 + neglog_b_);
   }
+
+  const double neglog_a_;
+  const double neglog_b_;
 };
 
 template <class Arc>
 struct BayesMixer {
+  BayesMixer(const fst::Fst<Arc>& fst1, const fst::Fst<Arc>& fst2, double alpha,
+             double beta, typename Arc::Label phi_label = fst::kNoLabel)
+      : fst1_(fst1),
+        fst2_(fst2),
+        neglog_a_(-std::log(alpha)),
+        neglog_b_(-std::log(beta)),
+        phi_label_(phi_label) {}
+
   double operator()(const std::vector<typename Arc::Label>& ngram, double val1,
-                    double val2, double neglog_a_global, double neglog_b_global,
-                    const fst::Fst<Arc>& fst1,
-                    const fst::Fst<Arc>& fst2) const {
+                    double val2) const {
     using Label = typename Arc::Label;
     using Weight = typename Arc::Weight;
     std::vector<Label> hist(ngram.begin(), ngram.end() - 1);
-    double alpha_h = neglog_a_global;
-    double beta_h = neglog_b_global;
+    double alpha_h = neglog_a_;
+    double beta_h = neglog_b_;
     if (!hist.empty()) {
-      Weight h_w1 = internal::ScoreNGram(fst1, hist);
-      Weight h_w2 = internal::ScoreNGram(fst2, hist);
+      Weight h_w1 = internal::ScoreNGram(fst1_, hist, phi_label_);
+      Weight h_w2 = internal::ScoreNGram(fst2_, hist, phi_label_);
       double h_val1 = (h_w1 != Weight::Zero())
                           ? h_w1.Value()
                           : fst::Log64Weight::Zero().Value();
       double h_val2 = (h_w2 != Weight::Zero())
                           ? h_w2.Value()
                           : fst::Log64Weight::Zero().Value();
-      double numer1 = h_val1 + neglog_a_global;
-      double numer2 = h_val2 + neglog_b_global;
+      double numer1 = h_val1 + neglog_a_;
+      double numer2 = h_val2 + neglog_b_;
       double denom = NegLogSum(numer1, numer2);
       if (denom < fst::Log64Weight::Zero().Value()) {
         alpha_h = numer1 - denom;
@@ -261,20 +275,29 @@ struct BayesMixer {
     }
     return NegLogSum(val1 + alpha_h, val2 + beta_h);
   }
+
+  const fst::Fst<Arc>& fst1_;
+  const fst::Fst<Arc>& fst2_;
+  const double neglog_a_;
+  const double neglog_b_;
+  const typename Arc::Label phi_label_;
 };
 
 template <class Arc>
 bool LinearMerge(const fst::Fst<Arc>& fst1, const fst::Fst<Arc>& fst2,
-                 double alpha, double beta, fst::MutableFst<Arc>* out_fst) {
-  return internal::MergeModels(fst1, fst2, alpha, beta, out_fst,
-                               LinearMixer<Arc>());
+                 double alpha, double beta, fst::MutableFst<Arc>* out_fst,
+                 typename Arc::Label phi_label = fst::kNoLabel) {
+  return internal::MergeModels(fst1, fst2, out_fst,
+                               LinearMixer<Arc>(alpha, beta), phi_label);
 }
 
 template <class Arc>
 bool BayesMerge(const fst::Fst<Arc>& fst1, const fst::Fst<Arc>& fst2,
-                double alpha, double beta, fst::MutableFst<Arc>* out_fst) {
-  return internal::MergeModels(fst1, fst2, alpha, beta, out_fst,
-                               BayesMixer<Arc>());
+                double alpha, double beta, fst::MutableFst<Arc>* out_fst,
+                typename Arc::Label phi_label = fst::kNoLabel) {
+  return internal::MergeModels(
+      fst1, fst2, out_fst, BayesMixer<Arc>(fst1, fst2, alpha, beta, phi_label),
+      phi_label);
 }
 
 }  // namespace sfst

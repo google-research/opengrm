@@ -310,6 +310,128 @@ TEST(MergeTest, OneNullSymbolTableAllowed) {
   EXPECT_NE(out_fst.InputSymbols(), nullptr);
 }
 
+TEST(MergeTest, LinearMergeWithCustomPhiLabel) {
+  fst::SymbolTable syms("SharedSymbols");
+  syms.AddSymbol("<epsilon>");  // 0
+  syms.AddSymbol("a");
+  syms.AddSymbol("b");
+  syms.AddSymbol("c");
+  syms.AddSymbol("d");
+
+  std::string arpa1 =
+      "\\data\\\n"
+      "ngram 2=1\n"
+      "\n"
+      "\\1-grams:\n"
+      "-0.5 a -0.3\n"
+      "\n"
+      "\\2-grams:\n"
+      "-0.2 a b\n"
+      "\n"
+      "\\end\\\n";
+  std::stringstream istrm1(arpa1);
+  fst::VectorFst<fst::StdArc> fst1;
+  fst1.SetInputSymbols(&syms);
+  fst1.SetOutputSymbols(&syms);
+  ReadArpa(istrm1, &fst1);
+
+  std::string arpa2 =
+      "\\data\\\n"
+      "ngram 2=1\n"
+      "\n"
+      "\\1-grams:\n"
+      "-0.5 c -0.3\n"
+      "\n"
+      "\\2-grams:\n"
+      "-0.2 c d\n"
+      "\n"
+      "\\end\\\n";
+  std::stringstream istrm2(arpa2);
+  fst::VectorFst<fst::StdArc> fst2;
+  fst2.SetInputSymbols(&syms);
+  fst2.SetOutputSymbols(&syms);
+  ReadArpa(istrm2, &fst2);
+
+  fst::VectorFst<fst::StdArc> out_fst;
+  EXPECT_TRUE(LinearMerge(fst1, fst2, 0.5, 0.5, &out_fst, /*phi_label=*/0));
+  EXPECT_TRUE(IsCanonical(out_fst, /*phi_label=*/0));
+
+  int epsilon_count = 0;
+  int knolabel_count = 0;
+  for (fst::StateIterator<fst::VectorFst<fst::StdArc>> siter(out_fst);
+       !siter.Done(); siter.Next()) {
+    for (fst::ArcIterator<fst::VectorFst<fst::StdArc>> aiter(out_fst,
+                                                             siter.Value());
+         !aiter.Done(); aiter.Next()) {
+      if (aiter.Value().ilabel == 0) ++epsilon_count;
+      if (aiter.Value().ilabel == fst::kNoLabel) ++knolabel_count;
+    }
+  }
+  EXPECT_GT(epsilon_count, 0);
+  EXPECT_EQ(knolabel_count, 0);
+}
+
+TEST(MergeTest, BayesMergeWithCustomPhiLabel) {
+  fst::SymbolTable syms("SharedSymbols");
+  syms.AddSymbol("<epsilon>");  // 0
+  syms.AddSymbol("a");
+  syms.AddSymbol("b");
+  syms.AddSymbol("c");
+  syms.AddSymbol("d");
+
+  std::string arpa1 =
+      "\\data\\\n"
+      "ngram 2=1\n"
+      "\n"
+      "\\1-grams:\n"
+      "-0.5 a -0.3\n"
+      "\n"
+      "\\2-grams:\n"
+      "-0.2 a b\n"
+      "\n"
+      "\\end\\\n";
+  std::stringstream istrm1(arpa1);
+  fst::VectorFst<fst::StdArc> fst1;
+  fst1.SetInputSymbols(&syms);
+  fst1.SetOutputSymbols(&syms);
+  ReadArpa(istrm1, &fst1);
+
+  std::string arpa2 =
+      "\\data\\\n"
+      "ngram 2=1\n"
+      "\n"
+      "\\1-grams:\n"
+      "-0.5 c -0.3\n"
+      "\n"
+      "\\2-grams:\n"
+      "-0.2 c d\n"
+      "\n"
+      "\\end\\\n";
+  std::stringstream istrm2(arpa2);
+  fst::VectorFst<fst::StdArc> fst2;
+  fst2.SetInputSymbols(&syms);
+  fst2.SetOutputSymbols(&syms);
+  ReadArpa(istrm2, &fst2);
+
+  fst::VectorFst<fst::StdArc> out_fst;
+  EXPECT_TRUE(BayesMerge(fst1, fst2, 0.5, 0.5, &out_fst, /*phi_label=*/0));
+  EXPECT_TRUE(IsCanonical(out_fst, /*phi_label=*/0));
+
+  int epsilon_count = 0;
+  int knolabel_count = 0;
+  for (fst::StateIterator<fst::VectorFst<fst::StdArc>> siter(out_fst);
+       !siter.Done(); siter.Next()) {
+    for (fst::ArcIterator<fst::VectorFst<fst::StdArc>> aiter(out_fst,
+                                                             siter.Value());
+         !aiter.Done(); aiter.Next()) {
+      if (aiter.Value().ilabel == 0) ++epsilon_count;
+      if (aiter.Value().ilabel == fst::kNoLabel) ++knolabel_count;
+    }
+  }
+  EXPECT_GT(epsilon_count, 0);
+  EXPECT_EQ(knolabel_count, 0);
+}
+
 }  // namespace
 }  // namespace sfst
 
