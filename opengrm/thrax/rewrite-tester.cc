@@ -194,7 +194,9 @@ std::string RewriteTester::ProcessInput(absl::string_view input,
                 << "] is: " << pair.first << std::endl;
         }
       }
-      input_fst = output_fst;
+      if (i + 1 < rules_.size()) {
+        input_fst = std::move(output_fst);
+      }
     } else {
       succeeded = false;
       break;
