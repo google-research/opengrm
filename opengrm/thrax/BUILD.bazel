@@ -47,6 +47,7 @@ cc_library(
     deps = [
         ":flags",
         "//opengrm/rewrite:parentheses",
+        "//opengrm/string:string-view-fst",
         "@com_google_absl//absl/container:btree",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/memory",

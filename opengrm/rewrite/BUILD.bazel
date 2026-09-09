@@ -21,6 +21,7 @@ cc_library(
     hdrs = ["base_rule_cascade.h"],
     deps = [
         ":rewrite",
+        "//opengrm/string:string-view-fst",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:span",
         "@com_google_openfst//openfst/lib:lib_lite",
@@ -108,6 +109,7 @@ cc_library(
     deps = [
         ":parentheses",
         ":rewrite",
+        "//opengrm/string:string-view-fst",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/memory",

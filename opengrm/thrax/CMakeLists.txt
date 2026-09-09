@@ -36,6 +36,7 @@ target_link_libraries(
          openfst::pdt
          openfst::mpdt
          grm_rewrite # For parentheses.h
+         grm_string # For string-view-fst.h
          grm_compat
          absl::flags
          absl::strings

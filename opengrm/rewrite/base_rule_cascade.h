@@ -38,6 +38,7 @@
 #include "openfst/lib/symbol-table.h"
 #include "openfst/lib/vector-fst.h"
 #include "opengrm/rewrite/rewrite.h"
+#include "opengrm/string/string-view-fst.h"
 
 namespace rewrite {
 
@@ -434,12 +435,20 @@ bool BaseRuleCascade<Arc>::Matches(absl::string_view input,
                                    absl::string_view output) const {
   MutableTransducer lattice;
   if (!RewriteLattice(input, &lattice)) return false;
-  MutableTransducer output_fst;
-  compiler_(output, &output_fst);
   static const ::fst::OLabelCompare<Arc> ocomp;
   ArcSort(&lattice, ocomp);
   static const ::fst::ComposeOptions opts(true, ::fst::SEQUENCE_FILTER);
-  ::fst::Compose(lattice, output_fst, &lattice, opts);
+  if (token_type_ == ::fst::TokenType::BYTE) {
+    const ::fst::ByteStringViewFst<Arc> output_fst(output);
+    ::fst::Compose(lattice, output_fst, &lattice, opts);
+  } else if (token_type_ == ::fst::TokenType::UTF8) {
+    const ::fst::Utf8StringViewFst<Arc> output_fst(output);
+    ::fst::Compose(lattice, output_fst, &lattice, opts);
+  } else {
+    MutableTransducer output_fst;
+    compiler_(output, &output_fst);
+    ::fst::Compose(lattice, output_fst, &lattice, opts);
+  }
   return lattice.Start() != ::fst::kNoStateId;
 }
 
@@ -484,8 +493,16 @@ void BaseRuleCascade<Arc>::PrintDebugSymbol(Label label,
 template <class Arc>
 bool BaseRuleCascade<Arc>::RewriteLattice(absl::string_view input,
                                           MutableTransducer* lattice) const {
-  compiler_(input, lattice);
-  if (!Rewrite(*lattice, lattice)) return false;
+  if (token_type_ == ::fst::TokenType::BYTE) {
+    const ::fst::ByteStringViewFst<Arc> input_fst(input);
+    if (!Rewrite(input_fst, lattice)) return false;
+  } else if (token_type_ == ::fst::TokenType::UTF8) {
+    const ::fst::Utf8StringViewFst<Arc> input_fst(input);
+    if (!Rewrite(input_fst, lattice)) return false;
+  } else {
+    compiler_(input, lattice);
+    if (!Rewrite(*lattice, lattice)) return false;
+  }
   return internal::CheckNonEmptyAndCleanup(lattice);
 }
 

@@ -38,6 +38,7 @@
 #include "openfst/lib/string.h"
 #include "opengrm/rewrite/parentheses.h"
 #include "opengrm/rewrite/rewrite.h"
+#include "opengrm/string/string-view-fst.h"
 
 namespace rewrite {
 
@@ -287,10 +288,18 @@ bool RewriteManager<Arc>::Matches(
   }
   static const ::fst::OLabelCompare<Arc> ocomp;
   ::fst::ArcSort(&lattice, ocomp);
-  MutableTransducer output_fst;
-  compiler_(output, &output_fst);
   static const ::fst::IntersectOptions opts(true, ::fst::SEQUENCE_FILTER);
-  ::fst::Intersect(lattice, output_fst, &lattice, opts);
+  if (token_type_ == ::fst::TokenType::BYTE) {
+    const ::fst::ByteStringViewFst<Arc> output_fst(output);
+    ::fst::Intersect(lattice, output_fst, &lattice, opts);
+  } else if (token_type_ == ::fst::TokenType::UTF8) {
+    const ::fst::Utf8StringViewFst<Arc> output_fst(output);
+    ::fst::Intersect(lattice, output_fst, &lattice, opts);
+  } else {
+    MutableTransducer output_fst;
+    compiler_(output, &output_fst);
+    ::fst::Intersect(lattice, output_fst, &lattice, opts);
+  }
   return lattice.Start() != ::fst::kNoStateId;
 }
 
@@ -299,7 +308,16 @@ bool RewriteManager<Arc>::RewriteLattice(
     absl::string_view rule, absl::string_view input, MutableTransducer* lattice,
     absl::string_view pdt_parens_rule,
     absl::string_view mpdt_assignments_rule) const {
-  // Input string compilation.
+  if (token_type_ == ::fst::TokenType::BYTE) {
+    const ::fst::ByteStringViewFst<Arc> input_fst(input);
+    return RewriteLattice(rule, input_fst, lattice, pdt_parens_rule,
+                          mpdt_assignments_rule);
+  } else if (token_type_ == ::fst::TokenType::UTF8) {
+    const ::fst::Utf8StringViewFst<Arc> input_fst(input);
+    return RewriteLattice(rule, input_fst, lattice, pdt_parens_rule,
+                          mpdt_assignments_rule);
+  }
+  // Input string compilation for SYMBOL.
   MutableTransducer input_fst;
   compiler_(input, &input_fst);
   return RewriteLattice(rule, input_fst, lattice, pdt_parens_rule,

@@ -42,6 +42,7 @@
 #include "openfst/lib/string.h"
 #include "openfst/lib/vector-fst.h"
 #include "opengrm/rewrite/parentheses.h"
+#include "opengrm/string/string-view-fst.h"
 
 namespace thrax {
 
@@ -250,9 +251,7 @@ bool AbstractGrmManager<Arc>::RewriteBytes(
     absl::string_view rule, absl::string_view input, std::string* output,
     absl::string_view pdt_parens_rule,
     absl::string_view mpdt_assignments_rule) const {
-  static const ::fst::StringCompiler<Arc> compiler(::fst::TokenType::BYTE);
-  MutableTransducer str_fst;
-  if (!compiler(input, &str_fst)) return false;
+  const ::fst::ByteStringViewFst<Arc> str_fst(input);
   return RewriteBytes(rule, str_fst, output, pdt_parens_rule,
                       mpdt_assignments_rule);
 }
@@ -278,9 +277,7 @@ bool AbstractGrmManager<Arc>::Rewrite(
     absl::string_view rule, absl::string_view input, MutableTransducer* output,
     absl::string_view pdt_parens_rule,
     absl::string_view mpdt_assignments_rule) const {
-  static const ::fst::StringCompiler<Arc> compiler(::fst::TokenType::BYTE);
-  MutableTransducer str_fst;
-  if (!compiler(input, &str_fst)) return false;
+  const ::fst::ByteStringViewFst<Arc> str_fst(input);
   return Rewrite(rule, str_fst, output, pdt_parens_rule, mpdt_assignments_rule);
 }
 
@@ -473,9 +470,7 @@ bool RuleCascade<Arc>::InitFromDefs(const AbstractGrmManager<Arc>* grm,
 template <typename Arc>
 bool RuleCascade<Arc>::RewriteBytes(absl::string_view input,
                                     std::string* output) const {
-  static const ::fst::StringCompiler<Arc> compiler(::fst::TokenType::BYTE);
-  MutableTransducer input_fst;
-  if (!compiler(input, &input_fst)) return false;
+  const ::fst::ByteStringViewFst<Arc> input_fst(input);
   MutableTransducer output_fst;
   if (!Rewrite(input_fst, &output_fst)) return false;
   AbstractGrmManager<Arc>::StringifyFst(&output_fst);
@@ -487,9 +482,7 @@ bool RuleCascade<Arc>::RewriteBytes(absl::string_view input,
 template <typename Arc>
 bool RuleCascade<Arc>::Rewrite(absl::string_view input,
                                MutableTransducer* output) const {
-  static const ::fst::StringCompiler<Arc> compiler(::fst::TokenType::BYTE);
-  MutableTransducer str_fst;
-  if (!compiler(input, &str_fst)) return false;
+  const ::fst::ByteStringViewFst<Arc> str_fst(input);
   return Rewrite(str_fst, output);
 }
 
