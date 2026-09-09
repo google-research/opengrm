@@ -66,6 +66,17 @@ TEST_F(FileTest, ReadFileToStringStatus) {
   std::string fail_content;
   EXPECT_FALSE(
       ReadFileToString(GetTempFilePath("nonexistent.txt"), &fail_content).ok());
+
+  const std::string empty_filepath = GetTempFilePath("empty.txt");
+  std::unique_ptr<File> empty_fp(Open(empty_filepath, "w"));
+  ASSERT_NE(empty_fp, nullptr);
+  empty_fp->Close();
+
+  std::string empty_content;
+  EXPECT_TRUE(ReadFileToString(empty_filepath, &empty_content).ok());
+  EXPECT_TRUE(empty_content.empty());
+
+  EXPECT_FALSE(ReadFileToString(filepath, nullptr).ok());
 }
 
 TEST_F(FileTest, ReadFileToStringStatusOr) {
@@ -78,6 +89,15 @@ TEST_F(FileTest, ReadFileToStringStatusOr) {
   absl::StatusOr<std::string> content = ReadFileToString(filepath);
   ASSERT_TRUE(content.ok());
   EXPECT_EQ(*content, "StatusOr content");
+
+  const std::string empty_filepath = GetTempFilePath("empty_statusor.txt");
+  std::unique_ptr<File> empty_fp(Open(empty_filepath, "w"));
+  ASSERT_NE(empty_fp, nullptr);
+  empty_fp->Close();
+
+  absl::StatusOr<std::string> empty_content = ReadFileToString(empty_filepath);
+  ASSERT_TRUE(empty_content.ok());
+  EXPECT_TRUE(empty_content->empty());
 
   EXPECT_FALSE(ReadFileToString(GetTempFilePath("nonexistent.txt")).ok());
 }

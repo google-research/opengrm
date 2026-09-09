@@ -30,7 +30,6 @@ target_include_directories(
 target_link_libraries(
   grm_compat
   PUBLIC absl::log
-         absl::memory
          absl::status
          absl::statusor
          absl::strings

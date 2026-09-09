@@ -29,7 +29,6 @@
 #include <vector>
 
 #include "absl/log/log.h"
-#include "absl/memory/memory.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/match.h"
@@ -53,6 +52,9 @@ bool Readable(absl::string_view filename) {
 }
 
 absl::Status ReadFileToString(absl::string_view file, std::string* store) {
+  if (store == nullptr) {
+    return absl::InvalidArgumentError("No store specified for reading");
+  }
   std::ifstream istrm{std::string(file)};
   if (!istrm) {
     if (file.empty()) {
@@ -63,12 +65,22 @@ absl::Status ReadFileToString(absl::string_view file, std::string* store) {
     }
   }
   istrm.seekg(0, std::ios::end);
-  const size_t length = istrm.tellg();
+  const auto length = istrm.tellg();
+  if (length < 0) {
+    return absl::InternalError(
+        absl::StrCat("Failed to determine size of file \"", file, "\""));
+  }
   istrm.seekg(0, std::ios::beg);
-  auto buf = absl::make_unique_for_overwrite<char[]>(length);
-  istrm.read(buf.get(), length);
-  store->append(buf.get(), length);
-  if (istrm.fail()) return absl::InternalError("Error reading from file");
+  const size_t old_size = store->size();
+  store->resize(old_size + length);
+  if (length > 0) {
+    istrm.read(store->data() + old_size, length);
+    if (istrm.fail()) {
+      store->resize(old_size);
+      return absl::InternalError(
+          absl::StrCat("Error reading from file \"", file, "\""));
+    }
+  }
   return absl::OkStatus();
 }
 
