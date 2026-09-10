@@ -18,7 +18,6 @@
 #ifndef OPENGRM_STRING_STRINGMAP_H_
 #define OPENGRM_STRING_STRINGMAP_H_
 
-#include <sstream>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -36,6 +35,7 @@
 #include "openfst/lib/rmepsilon.h"
 #include "openfst/lib/string.h"
 #include "openfst/lib/symbol-table.h"
+#include "openfst/lib/util.h"
 #include "opengrm/string/prefix_tree.h"
 #include "opengrm/string/stringcompile.h"
 #include "opengrm/string/stringfile.h"
@@ -80,7 +80,7 @@ class StringMapCompiler {
   // Three-string version, which also requires us to parse the weight.
   bool Add(absl::string_view istring, absl::string_view ostring,
            absl::string_view wstring) {
-    std::istringstream strm{std::string(wstring)};
+    SpanInStream strm(wstring);
     Weight weight;
     strm >> weight;
     if (!strm) {

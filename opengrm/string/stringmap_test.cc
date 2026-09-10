@@ -197,6 +197,37 @@ TEST_F(StringMapTest, Utf8ToUtf8FileTest) {
   EXPECT_TRUE(Equal(u2u, u2u_res));
 }
 
+TEST_F(StringMapTest, WeightParsingTest) {
+  namespace s = fst::script;
+  const std::vector<std::vector<std::string>> lines = {
+      {"a", "b", "0.5"},
+      {"c", "d", "0"},
+      {"e", "f", "Infinity"},
+      {"g", "h", "-1.5"},
+  };
+  s::VectorFstClass fst("standard");
+  EXPECT_TRUE(StringMapCompile(lines, &fst));
+  EXPECT_TRUE(Verify(fst));
+
+  const std::vector<std::tuple<std::string, std::string, s::WeightClass>>
+      typed_lines = {
+          {"a", "b", s::WeightClass(Weight(0.5))},
+          {"c", "d", s::WeightClass(Weight(0.0))},
+          {"e", "f", s::WeightClass(Weight::Zero())},
+          {"g", "h", s::WeightClass(Weight(-1.5))},
+      };
+  s::VectorFstClass typed_fst("standard");
+  EXPECT_TRUE(StringMapCompile(typed_lines, &typed_fst));
+  EXPECT_TRUE(Verify(typed_fst));
+  EXPECT_TRUE(Equal(fst, typed_fst));
+
+  const std::vector<std::vector<std::string>> bad_lines = {
+      {"bad", "bad", "not_a_weight"},
+  };
+  s::VectorFstClass bad_fst("standard");
+  EXPECT_FALSE(StringMapCompile(bad_lines, &bad_fst));
+}
+
 class StringMapAcceptorTest : public ::testing::Test {
  protected:
   void SetUp() final {
