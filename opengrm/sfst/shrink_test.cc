@@ -18,10 +18,12 @@
 
 #include <cmath>
 #include <cstddef>
+#include <fstream>
 #include <set>     // NOLINT(misc-include-cleaner)
 #include <string>  // NOLINT(misc-include-cleaner)
 #include <vector>  // NOLINT(misc-include-cleaner)
 
+#include "openfst/compat/file_path.h"
 #include "gtest/gtest.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/flags/flag.h"
@@ -29,6 +31,7 @@
 #include "openfst/lib/arc.h"  // NOLINT(misc-include-cleaner)
 #include "openfst/lib/arcsort.h"
 #include "openfst/lib/fst.h"
+#include "openfst/lib/symbol-table.h"
 #include "openfst/lib/vector-fst.h"  // NOLINT(misc-include-cleaner)
 #include "opengrm/sfst/normalize.h"
 #include "opengrm/sfst/smooth.h"
@@ -235,6 +238,39 @@ TEST_F(ShrinkTest, ListPruneTest) {
   }
   EXPECT_FALSE(found_label_2_from_3);
   EXPECT_TRUE(IsNormalized(fst, 0));
+}
+
+TEST_F(ShrinkTest, ReadNGramListTest) {
+  const std::string filepath =
+      fst::JoinPath(testing::TempDir(), "ngram_list_test.txt");
+  {
+    std::ofstream ofstrm(filepath);
+    ASSERT_TRUE(ofstrm.is_open());
+    ofstrm << "a b c\n";
+    ofstrm << "\n";  // Empty line.
+    ofstrm << "  d \t e  \r\n";
+    ofstrm << "10 20 30\n";
+  }
+
+  fst::SymbolTable syms;
+  syms.AddSymbol("a", 1);
+  syms.AddSymbol("b", 2);
+  syms.AddSymbol("c", 3);
+  syms.AddSymbol("d", 4);
+  syms.AddSymbol("e", 5);
+
+  std::set<std::vector<Label>> ngram_list;
+  ReadNGramList(filepath, &syms, &ngram_list);
+  EXPECT_EQ(ngram_list.size(), 2);
+  EXPECT_TRUE(ngram_list.count({1, 2, 3}));
+  EXPECT_TRUE(ngram_list.count({4, 5}));
+  EXPECT_FALSE(ngram_list.count({10, 20, 30}));
+
+  // Direct numeric label parsing when SymbolTable is null.
+  std::set<std::vector<Label>> numeric_ngrams;
+  ReadNGramList(filepath, nullptr, &numeric_ngrams);
+  EXPECT_EQ(numeric_ngrams.size(), 1);
+  EXPECT_TRUE(numeric_ngrams.count({10, 20, 30}));
 }
 
 TEST(NonCanonicalShrinkTest, OrphanBehaviorTest) {
