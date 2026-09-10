@@ -326,6 +326,67 @@ TEST(ArpaTest, ReadInsufficientTokensInNgramLine) {
   EXPECT_TRUE(IsCanonical(fst, fst::kNoLabel));
 }
 
+TEST(ArpaTest, WriteMultipleArcsSharedHistory) {
+  fst::VectorFst<fst::StdArc> fst;
+  {
+    fst::SymbolTable syms("ARPASymbolsSharedHistory");
+    fst.SetInputSymbols(&syms);
+  }
+  auto* isyms = fst.MutableInputSymbols();
+  isyms->AddSymbol("<epsilon>");
+  isyms->AddSymbol("<s>");
+  isyms->AddSymbol("</s>");
+  isyms->AddSymbol("w1");
+  isyms->AddSymbol("w2");
+  isyms->AddSymbol("w3");
+  fst.SetOutputSymbols(isyms);
+
+  auto s0 = fst.AddState();
+  fst.SetStart(s0);
+  auto s1 = fst.AddState();
+  auto s2 = fst.AddState();
+  auto s3 = fst.AddState();
+
+  // Transitions: s0 -> s1 on "w1"
+  fst.AddArc(s0, fst::StdArc(3, 3, 0.5, s1));
+  // Outgoing transitions from s1 sharing history "w1":
+  fst.AddArc(s1, fst::StdArc(4, 4, 1.0, s2));  // "w1 w2"
+  fst.AddArc(s1, fst::StdArc(5, 5, 1.5, s3));  // "w1 w3"
+  fst.SetFinal(s1, fst::StdArc::Weight(2.0));  // "w1 </s>"
+
+  std::stringstream ostrm;
+  EXPECT_TRUE(WriteArpa(fst, ostrm));
+  std::string output = ostrm.str();
+
+  EXPECT_TRUE(absl::StrContains(output, "w1 w2"));
+  EXPECT_TRUE(absl::StrContains(output, "w1 w3"));
+  EXPECT_TRUE(absl::StrContains(output, "w1 </s>"));
+}
+
+TEST(ArpaTest, WriteTextBasic) {
+  fst::VectorFst<fst::StdArc> fst;
+  {
+    fst::SymbolTable syms("TextSymbols");
+    fst.SetInputSymbols(&syms);
+  }
+  auto* isyms = fst.MutableInputSymbols();
+  isyms->AddSymbol("<epsilon>");
+  isyms->AddSymbol("a");
+  isyms->AddSymbol("b");
+  fst.SetOutputSymbols(isyms);
+  auto s = fst.AddState();
+  fst.SetStart(s);
+  fst.AddArc(s, fst::StdArc(1, 1, 0.5, fst.AddState()));
+  fst.AddArc(s, fst::StdArc(2, 2, 1.0, fst.AddState()));
+
+  std::stringstream ostrm;
+  EXPECT_TRUE(WriteText(fst, ostrm));
+  std::string output = ostrm.str();
+  EXPECT_FALSE(absl::StrContains(output, "\\data\\"));
+  EXPECT_TRUE(absl::StrContains(output, "a\t"));
+  EXPECT_TRUE(absl::StrContains(output, "b\t"));
+}
+
 }  // namespace
 }  // namespace sfst
 

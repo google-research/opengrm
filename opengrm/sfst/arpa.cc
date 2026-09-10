@@ -23,6 +23,7 @@
 #include <ostream>
 #include <queue>    // NOLINT(misc-include-cleaner)
 #include <string>
+#include <utility>
 #include <vector>  // NOLINT(misc-include-cleaner)
 
 #include "absl/container/flat_hash_map.h"  // NOLINT(misc-include-cleaner)
@@ -244,7 +245,7 @@ bool WriteNGrams(const fst::Fst<Arc>& fst, std::ostream& ostrm,
   using Label = typename Arc::Label;
   using Weight = typename Arc::Weight;
   if (!fst.InputSymbols()) {
-    std::cerr << "WriteArpa: FST has no input symbols" << std::endl;
+    LOG(ERROR) << "WriteArpa: FST has no input symbols";
     return false;
   }
   ostrm.precision(7);
@@ -377,39 +378,33 @@ bool WriteNGrams(const fst::Fst<Arc>& fst, std::ostream& ostrm,
   for (const auto& pair : history) {
     const StateId s = pair.first;
     const auto& H = pair.second;
-    int order = H.size() + 1;
+    const int order = H.size() + 1;
+
+    std::string history_prefix =
+        absl::StrJoin(H, " ", [&label_to_str](std::string* out, Label l) {
+          out->append(label_to_str(l));
+        });
+    if (!history_prefix.empty()) history_prefix.push_back(' ');
 
     if (fst.Final(s) != Weight::Zero()) {
-      std::string text =
-          absl::StrJoin(H, " ", [&label_to_str](std::string* out, Label l) {
-            out->append(label_to_str(l));
-          });
-      if (!text.empty()) absl::StrAppend(&text, " ");
-      absl::StrAppend(&text, eos_str);
       ArpaNgramPrintData data;
-      data.text = text;
+      data.text = absl::StrCat(history_prefix, eos_str);
       data.log_prob = -fst.Final(s).Value() / std::log(10.0);
-      order_to_ngrams[order].push_back(data);
+      order_to_ngrams[order].push_back(std::move(data));
     }
     for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, s); !aiter.Done();
          aiter.Next()) {
       const auto& arc = aiter.Value();
       if (arc.ilabel == phi_label) continue;
-      std::string text =
-          absl::StrJoin(H, " ", [&label_to_str](std::string* out, Label l) {
-            out->append(label_to_str(l));
-          });
-      if (!text.empty()) absl::StrAppend(&text, " ");
-      absl::StrAppend(&text, label_to_str(arc.ilabel));
       ArpaNgramPrintData data;
-      data.text = text;
+      data.text = absl::StrCat(history_prefix, label_to_str(arc.ilabel));
       data.log_prob = -arc.weight.Value() / std::log(10.0);
       auto bo_it = state_backoff_weights.find(arc.nextstate);
       if (bo_it != state_backoff_weights.end()) {
         data.backoff_weight = bo_it->second / std::log(10.0);
         data.has_backoff = true;
       }
-      order_to_ngrams[order].push_back(data);
+      order_to_ngrams[order].push_back(std::move(data));
     }
   }
 
@@ -426,21 +421,21 @@ bool WriteNGrams(const fst::Fst<Arc>& fst, std::ostream& ostrm,
 
   if (arpa_format) {
     // Prints and formats the final ARPA LM to the output stream.
-    ostrm << "\\data\\" << std::endl;
+    ostrm << "\\data\\\n";
     for (int o = 1; o <= max_order; ++o) {
-      ostrm << "ngram " << o << "=" << order_to_ngrams[o].size() << std::endl;
+      ostrm << "ngram " << o << "=" << order_to_ngrams[o].size() << '\n';
     }
     for (int o = 1; o <= max_order; ++o) {
-      ostrm << "\\" << o << "-grams:" << std::endl;
+      ostrm << "\\" << o << "-grams:\n";
       for (const auto& data : order_to_ngrams[o]) {
         ostrm << data.log_prob << '\t' << data.text;
         if (data.has_backoff) {
           ostrm << '\t' << data.backoff_weight;
         }
-        ostrm << std::endl;
+        ostrm << '\n';
       }
     }
-    ostrm << "\\end\\" << std::endl;
+    ostrm << "\\end\\\n";
   } else {
     // Prints plain TSV format.
     for (int o = 1; o <= max_order; ++o) {
@@ -449,7 +444,7 @@ bool WriteNGrams(const fst::Fst<Arc>& fst, std::ostream& ostrm,
         if (data.has_backoff) {
           ostrm << '\t' << data.backoff_weight;
         }
-        ostrm << std::endl;
+        ostrm << '\n';
       }
     }
   }
