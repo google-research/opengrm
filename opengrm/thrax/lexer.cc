@@ -14,7 +14,6 @@
 
 #include "opengrm/thrax/lexer.h"
 
-#include <cctype>
 #include <cstdlib>
 #include <iostream>
 #include <set>
@@ -23,6 +22,7 @@
 #include "absl/container/btree_set.h"
 #include "absl/log/check.h"
 #include "absl/log/log.h"
+#include "absl/strings/ascii.h"
 
 namespace thrax {
 
@@ -48,8 +48,8 @@ Lexer::TokenClass Lexer::YYLex() {
   curr_token_.Reset();
 
   while (!grammar_.empty() && !found_token && c != 0) {
-    if (isspace(c)) {  // skip space
-      while (isspace(c) && c != 0) {
+    if (absl::ascii_isspace(c)) {  // skip space
+      while (absl::ascii_isspace(c) && c != 0) {
         begin_pos = GetPos();
         c = GetChar();
       }
@@ -89,11 +89,11 @@ Lexer::TokenClass Lexer::YYLex() {
       curr_token_.token_string += c;
       curr_token_.token_class = CONNECTOR;
       found_token = true;
-    } else if (isdigit(c) || c == '.' || c == '-') {  // integer
+    } else if (absl::ascii_isdigit(c) || c == '.' || c == '-') {  // integer
       if (c == '-') {
         curr_token_.token_string += '-';
         c = GetChar();
-        if (!isdigit(c) && c != '.') {
+        if (!absl::ascii_isdigit(c) && c != '.') {
           curr_token_.token_class = CONNECTOR;
           found_token = true;
           UnGetChar();
@@ -103,7 +103,7 @@ Lexer::TokenClass Lexer::YYLex() {
 
       found_token = true;
       curr_token_.token_class = INTEGER;
-      while (isdigit(c)) {
+      while (absl::ascii_isdigit(c)) {
         curr_token_.token_string += c;
         c = GetChar();
       }
@@ -112,7 +112,7 @@ Lexer::TokenClass Lexer::YYLex() {
         curr_token_.token_class = FLOAT;
         c = GetChar();
         int num_frac_digits = 0;
-        while (isdigit(c)) {
+        while (absl::ascii_isdigit(c)) {
           curr_token_.token_string += c;
           c = GetChar();
           ++num_frac_digits;
@@ -120,10 +120,10 @@ Lexer::TokenClass Lexer::YYLex() {
         CHECK_GT(num_frac_digits, 0);
       }
       if (c != 0) UnGetChar();
-    } else if (isalpha(c) || c == '_') {
+    } else if (absl::ascii_isalpha(c) || c == '_') {
       found_token = true;
       curr_token_.token_class = CONNECTOR;
-      while (isalpha(c) || isdigit(c) || c == '_' || c == '.') {
+      while (absl::ascii_isalnum(c) || c == '_' || c == '.') {
         if (c != '_' && c != '.') curr_token_.token_class = DESCRIPTOR;
         curr_token_.token_string += c;
         c = GetChar();

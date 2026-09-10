@@ -14,10 +14,10 @@
 
 #include "opengrm/thrax/ast/identifier-node.h"
 
-#include <cctype>
 #include <string>
 #include <vector>
 
+#include "absl/strings/ascii.h"
 #include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
 #include "opengrm/thrax/ast/node.h"
@@ -31,17 +31,18 @@ static bool ComponentIsValid(absl::string_view s) {
   bool found_number = false;
   bool found_alpha = false;
   for (char c : s) {
-    if (isalpha(c)) {
+    if (absl::ascii_isalpha(c)) {
       found_alpha = true;
     } else if (c == '_') {
       found_underscore = true;
-    } else if (isdigit(c)) {
+    } else if (absl::ascii_isdigit(c)) {
       found_number = true;
     } else {
       return false;
     }
   }
-  return !isdigit(s[0]) && (found_alpha || (found_underscore && found_number));
+  return !absl::ascii_isdigit(s[0]) &&
+         (found_alpha || (found_underscore && found_number));
 }
 
 IdentifierNode::IdentifierNode(absl::string_view name)
