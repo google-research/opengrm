@@ -18,7 +18,6 @@
 #define OPENGRM_THRAX_LEXER_H_
 
 #include <algorithm>
-#include <cstring>
 #include <set>
 #include <stack>
 #include <string>
@@ -117,7 +116,31 @@ class Lexer {
 
   // The following symbols are considered connectors (unless escaped). '-' and
   // '_' are also connectors but are handled separately.
-  bool is_connector(char c) const { return strchr("()=:;[]{}|*+@,.?$/", c); }
+  static constexpr bool is_connector(char c) {
+    switch (c) {
+      case '(':
+      case ')':
+      case '=':
+      case ':':
+      case ';':
+      case '[':
+      case ']':
+      case '{':
+      case '}':
+      case '|':
+      case '*':
+      case '+':
+      case '@':
+      case ',':
+      case '.':
+      case '?':
+      case '$':
+      case '/':
+        return true;
+      default:
+        return false;
+    }
+  }
 
   char GetChar() {
     char c = 0;

@@ -92,5 +92,16 @@ TEST_F(LexerTest, PosImport) { Run("import"); }
 
 TEST_F(LexerTest, PosStringBoundaries) { Run("stringboundaries"); }
 
+TEST_F(LexerTest, ConnectorTokens) {
+  Lexer lexer;
+  lexer.ScanString("()=:;[]{}|*+@,.?$/");
+  for (char expected : "()=:;[]{}|*+@,.?$/") {
+    if (expected == '\0') break;
+    EXPECT_EQ(lexer.YYLex(), Lexer::CONNECTOR);
+    EXPECT_EQ(lexer.YYString(), std::string(1, expected));
+  }
+  EXPECT_EQ(lexer.YYLex(), Lexer::EOS);
+}
+
 }  // namespace
 }  // namespace thrax
