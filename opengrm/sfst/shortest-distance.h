@@ -192,13 +192,6 @@ class SignedShortestDistance {
   bool ComputeDistance(std::vector<Weight>* distance, bool reverse = false);
 
  private:
-  struct AMapHash {
-    size_t operator()(const std::pair<StateId, StateId>& p) const {
-      static constexpr auto prime = 7853;
-      return p.first + p.second * prime;
-    }
-  };
-
   // This transforms a ring-weighted FST, generated
   // by RmPhi, so that when used with the appropriate
   // queue, the shortest distance will be correctly
@@ -229,7 +222,7 @@ void SignedShortestDistance<Arc, WeightEqual>::BalancePaths(
   if (phi_label_ == fst::kNoLabel || fst->Properties(fst::kAcyclic, true))
     return;
 
-  absl::node_hash_map<std::pair<StateId, StateId>, StateId, AMapHash> amap;
+  absl::node_hash_map<std::pair<StateId, StateId>, StateId> amap;
 
   for (StateId s = 0; s < astart_; ++s) {
     StateId as = fst::kNoStateId;
