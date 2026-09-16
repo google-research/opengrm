@@ -24,7 +24,6 @@
 #include <fstream>
 #include <memory>
 #include <set>  // NOLINT(misc-include-cleaner)
-#include <sstream>
 #include <string>
 #include <utility>  // NOLINT(misc-include-cleaner)
 #include <vector>   // NOLINT(misc-include-cleaner)
@@ -940,23 +939,23 @@ bool CountPrune(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
 
 // Reads a list of n-grams from a file to be used for list pruning.
 inline void ReadNGramList(
-    const std::string& file_name, const fst::SymbolTable* syms,
+    absl::string_view file_name, const fst::SymbolTable* syms,
     std::set<std::vector<fst::StdArc::Label>>* ngram_list) {
-  std::ifstream ifstrm(file_name);
+  if (ngram_list == nullptr) return;
+  std::ifstream ifstrm{std::string(file_name)};
   if (!ifstrm) {
     LOG(ERROR) << "Can't open " << file_name;
     return;
   }
   std::string line;
   while (std::getline(ifstrm, line)) {
-    std::stringstream ss(line);
-    std::string token;
     std::vector<fst::StdArc::Label> ngram;
-    while (ss >> token) {
+    for (absl::string_view token :
+         absl::StrSplit(line, absl::ByAnyChar(" \t\r"), absl::SkipEmpty())) {
       fst::StdArc::Label label;
       if (syms) {
         label = syms->Find(token);
-        if (label == -1) {
+        if (label == fst::kNoSymbol) {
           LOG(ERROR) << "Symbol " << token << " not found in symbol table";
           continue;
         }
@@ -968,7 +967,7 @@ inline void ReadNGramList(
       }
       ngram.push_back(label);
     }
-    if (!ngram.empty()) ngram_list->insert(ngram);
+    if (!ngram.empty()) ngram_list->insert(std::move(ngram));
   }
 }
 
