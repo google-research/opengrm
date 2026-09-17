@@ -15,12 +15,13 @@
 #ifndef OPENGRM_STRING_PREFIX_TREE_H_
 #define OPENGRM_STRING_PREFIX_TREE_H_
 
+#include <algorithm>
 #include <array>
 #include <memory>
 #include <stack>
 #include <utility>
 
-#include "absl/container/btree_map.h"
+#include "absl/container/inlined_vector.h"
 #include "absl/log/check.h"
 #include "openfst/compat/compat.h"
 #include "openfst/lib/fst.h"
@@ -31,11 +32,45 @@ namespace internal {
 
 template <class Label, class StateId, class Node>
 Node* LookupOrInsertChild(
-    absl::btree_map<Label, std::unique_ptr<Node>>* children, Label label,
-    StateId* num_states) {
-  std::unique_ptr<Node>& value = (*children)[label];
-  if (!value) value = std::make_unique<Node>((*num_states)++);
-  return value.get();
+    absl::InlinedVector<std::pair<Label, std::unique_ptr<Node>>, 1>* children,
+    Label label, StateId* num_states) {
+  // Fast path for empty nodes: inserts the first child directly into the inline
+  // storage without any comparisons or heap allocation for the container.
+  if (children->empty()) {
+    auto new_node = std::make_unique<Node>((*num_states)++);
+    auto* result = new_node.get();
+    children->push_back(std::make_pair(label, std::move(new_node)));
+    return result;
+  }
+  // Fast path for single-child nodes: returns immediately on a label match, or
+  // inserts the second child in sorted order (transitioning to heap storage).
+  if (children->size() == 1) {
+    auto& [first_label, first_node] = children->front();
+    if (first_label == label) return first_node.get();
+    auto new_node = std::make_unique<Node>((*num_states)++);
+    auto* result = new_node.get();
+    if (label < first_label) {
+      children->insert(children->begin(),
+                       std::make_pair(label, std::move(new_node)));
+    } else {
+      children->push_back(std::make_pair(label, std::move(new_node)));
+    }
+    return result;
+  }
+  // General case for branching nodes (>= 2 children): binary searches the
+  // sorted child vector to locate an existing child or the sorted insertion
+  // point.
+  auto it =
+      std::lower_bound(children->begin(), children->end(), label,
+                       [](const std::pair<Label, std::unique_ptr<Node>>& elem,
+                          Label val) { return elem.first < val; });
+  if (it != children->end() && it->first == label) {
+    return it->second.get();
+  }
+  auto new_node = std::make_unique<Node>((*num_states)++);
+  auto* result = new_node.get();
+  children->insert(it, std::make_pair(label, std::move(new_node)));
+  return result;
 }
 
 template <class Arc>
@@ -84,7 +119,8 @@ struct PrefixTreeTransducerPolicy {
 
   class ONode : public BaseONode<Arc> {
    public:
-    using ChildMap = absl::btree_map<Label, std::unique_ptr<ONode>>;
+    using ChildMap =
+        absl::InlinedVector<std::pair<Label, std::unique_ptr<ONode>>, 1>;
 
     explicit ONode(StateId state) : BaseONode<Arc>(state) {}
 
@@ -100,7 +136,8 @@ struct PrefixTreeTransducerPolicy {
 
   class INode : public BaseINode<StateId, ONode> {
    public:
-    using ChildMap = absl::btree_map<Label, std::unique_ptr<INode>>;
+    using ChildMap =
+        absl::InlinedVector<std::pair<Label, std::unique_ptr<INode>>, 1>;
 
     explicit INode(StateId state) : BaseINode<StateId, ONode>(state) {}
 
@@ -160,7 +197,8 @@ struct PrefixTreeAcceptorPolicy {
 
   class INode : public BaseINode<StateId, ONode> {
    public:
-    using ChildMap = absl::btree_map<Label, std::unique_ptr<INode>>;
+    using ChildMap =
+        absl::InlinedVector<std::pair<Label, std::unique_ptr<INode>>, 1>;
 
     explicit INode(StateId state) : BaseINode<StateId, ONode>(state) {}
 

@@ -15,6 +15,7 @@
 #include "opengrm/string/prefix_tree.h"
 
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "gtest/gtest.h"
@@ -186,6 +187,38 @@ TEST_F(PrefixTreeTest, AcceptorPrefixTree) {
   pt.ToFst(&fst);
   EXPECT_TRUE(fst.Properties(kAcceptor, true));
   ExpectLookupFailure(fst, "");
+}
+
+TEST_F(PrefixTreeTest, HighBranchingOutOfOrderInsertion) {
+  TransducerPrefixTree<Arc> pt;
+  StdVectorFst fst;
+
+  // Insert keys out of lexicographical order to exercise 0-child, 1-child,
+  // and multi-child (>1) binary search insertion paths at both root and
+  // shared internal prefix nodes.
+  const std::vector<std::pair<absl::string_view, absl::string_view>> entries = {
+      {"zebra", "z"},    {"apple", "a"},  {"mango", "m"}, {"banana", "b"},
+      {"cat", "c1"},     {"card", "c2"},  {"care", "c3"}, {"car", "c0"},
+      {"cart", "c4"},    {"cater", "c5"}, {"cats", "c6"}, {"dog", "d"},
+      {"elephant", "e"}, {"fox", "f"},    {"yak", "y"},
+  };
+  for (const auto& [in, out] : entries) {
+    AddStrings(&pt, &fst, in, out);
+  }
+
+  for (const auto& [in, out] : entries) {
+    ExpectLookupSuccess(fst, in, out);
+  }
+  ExpectLookupFailure(fst, "ca");
+  ExpectLookupFailure(fst, "cate");
+  ExpectLookupFailure(fst, "unknown");
+
+  EXPECT_EQ(pt.NumStates(), fst.NumStates());
+  EXPECT_TRUE(fst.Properties(kILabelSorted, true));
+  EXPECT_TRUE(fst.Properties(kOLabelSorted, true));
+  EXPECT_TRUE(fst.Properties(kAcyclic, true));
+  EXPECT_TRUE(fst.Properties(kAccessible, true));
+  EXPECT_TRUE(fst.Properties(kCoAccessible, true));
 }
 
 }  // namespace

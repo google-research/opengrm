@@ -42,7 +42,7 @@ target_link_libraries(
   PUBLIC openfst::fst
          absl::strings
          absl::log
-         absl::container # For btree in prefix_tree
+         absl::inlined_vector # For inlined_vector in prefix_tree
 )
 
 set(STRINGSCRIPT_SRCS

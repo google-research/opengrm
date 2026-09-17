@@ -25,7 +25,7 @@ cc_library(
     name = "prefix_tree",
     hdrs = ["prefix_tree.h"],
     deps = [
-        "@com_google_absl//absl/container:btree",
+        "@com_google_absl//absl/container:inlined_vector",
         "@com_google_absl//absl/log:check",
         "@com_google_openfst//openfst/compat",
         "@com_google_openfst//openfst/lib:lib_lite",
