@@ -183,6 +183,57 @@ TEST_F(ShrinkTest, CountPruneTest) {
   EXPECT_TRUE(IsNormalized(fst, 0));
 }
 
+TEST_F(ShrinkTest, CountPruneMultipleArcsOnSameStateTest) {
+  // Tests that CountPrune correctly prunes multiple arcs from the same state in
+  // a single in-place pass, while preserving unpruned arcs and the phi arc.
+  fst::VectorFst<Arc> fst;
+  fst.AddState();
+  fst.SetStart(0);
+  fst.AddState();  // state 1
+  fst.AddState();  // state 2
+  fst.AddState();  // state 3
+  fst.AddState();  // state 4 (backoff state)
+
+  // Arcs on state 0 (order 2):
+  // Arc with ilabel 1: log prob = log(10.0) -> survives threshold log(7.0)
+  // Arc with ilabel 2: log prob = log(4.0)  -> pruned
+  // Arc with ilabel 3: log prob = log(3.0)  -> pruned
+  // Phi arc (ilabel 0): must be preserved regardless of threshold
+  fst.AddArc(0, Arc(1, 1, Weight(-std::log(10.0)), 1));
+  fst.AddArc(0, Arc(2, 2, Weight(-std::log(4.0)), 2));
+  fst.AddArc(0, Arc(3, 3, Weight(-std::log(3.0)), 3));
+  fst.AddArc(0, Arc(0, 0, Weight(-std::log(20.0)), 4));  // Phi arc
+
+  // Backoff state 4:
+  fst.AddArc(4, Arc(1, 1, Weight(-std::log(5.0)), 1));
+  fst.AddArc(4, Arc(2, 2, Weight(-std::log(3.0)), 2));
+  fst.AddArc(4, Arc(3, 3, Weight(-std::log(2.0)), 3));
+  fst.SetFinal(1, Weight::One());
+  fst.SetFinal(2, Weight::One());
+  fst.SetFinal(3, Weight::One());
+  fst.SetFinal(4, Weight::One());
+  fst::ArcSort(&fst, fst::StdILabelCompare());
+
+  ASSERT_TRUE(CountPrune(&fst, 0, "2:7"));
+  bool found_1 = false;
+  bool found_2 = false;
+  bool found_3 = false;
+  bool found_phi = false;
+  for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, 0); !aiter.Done();
+       aiter.Next()) {
+    const auto& arc = aiter.Value();
+    if (arc.ilabel == 1) found_1 = true;
+    if (arc.ilabel == 2) found_2 = true;
+    if (arc.ilabel == 3) found_3 = true;
+    if (arc.ilabel == 0) found_phi = true;
+  }
+  EXPECT_TRUE(found_1);
+  EXPECT_FALSE(found_2);
+  EXPECT_FALSE(found_3);
+  EXPECT_TRUE(found_phi);
+  EXPECT_TRUE(IsNormalized(fst, 0));
+}
+
 TEST_F(ShrinkTest, CountPrunePatternValidationTest) {
   fst::VectorFst<Arc> fst(fst_);
   // Valid patterns

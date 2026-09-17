@@ -903,34 +903,37 @@ bool CountPrune(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
       }
     }
   }
-  std::vector<std::pair<StateId, Label>> to_prune;
+  std::vector<Arc> surviving_arcs;
   for (StateId s = 0; s < fst->NumStates(); ++s) {
-    int order = orders[s];
+    const int order = orders[s];
     if (order == 0) continue;
-    double theta = count_minimums[order - 1];
+    const double theta = count_minimums[order - 1];
+
+    // Fast path: checks if any arc qualifies for pruning before mutating the
+    // state. Unpruned states are skipped without arc deletions or copies.
+    bool has_pruned = false;
     for (fst::ArcIterator<fst::Fst<Arc>> aiter(*fst, s); !aiter.Done();
          aiter.Next()) {
       const auto& arc = aiter.Value();
-      if (arc.ilabel == phi_label) continue;
-      double log_prob = -arc.weight.Value();
-      if (log_prob < theta) {
-        to_prune.push_back({s, arc.ilabel});
+      if (arc.ilabel != phi_label && -arc.weight.Value() < theta) {
+        has_pruned = true;
+        break;
       }
     }
-  }
-  for (const auto& p : to_prune) {
-    StateId s = p.first;
-    Label l = p.second;
-    std::vector<Arc> arcs;
+    if (!has_pruned) continue;
+    // Prunes arcs in-place in a single pass: collects all surviving arcs
+    // (including the failure/phi arc), deletes all arcs from state `s` once,
+    // and re-adds the survivors in their original order.
+    surviving_arcs.clear();
     for (fst::ArcIterator<fst::Fst<Arc>> aiter(*fst, s); !aiter.Done();
          aiter.Next()) {
       const auto& arc = aiter.Value();
-      if (arc.ilabel != l) {
-        arcs.push_back(arc);
+      if (arc.ilabel == phi_label || -arc.weight.Value() >= theta) {
+        surviving_arcs.push_back(arc);
       }
     }
     fst->DeleteArcs(s);
-    for (const auto& arc : arcs) {
+    for (const auto& arc : surviving_arcs) {
       fst->AddArc(s, arc);
     }
   }
