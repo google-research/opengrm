@@ -27,11 +27,13 @@
 #include <vector>  // NOLINT(misc-include-cleaner)
 
 #include "absl/container/flat_hash_map.h"  // NOLINT(misc-include-cleaner)
+#include "absl/container/flat_hash_set.h"
 #include "absl/log/log.h"
 #include "absl/strings/numbers.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"   // NOLINT(misc-include-cleaner)
 #include "absl/strings/str_split.h"  // NOLINT(misc-include-cleaner)
+#include "absl/strings/string_view.h"
 #include "openfst/lib/arc.h"         // NOLINT(misc-include-cleaner)
 #include "openfst/lib/arcsort.h"
 #include "openfst/lib/fst.h"
@@ -59,15 +61,12 @@ inline std::vector<Label> GetDestinationHistory(const std::vector<Label>& ngram,
       ngram.end());
 }
 
-template <typename Label, typename StateId, class Arc>
+template <typename Label>
 inline void EnsureSuffixHistoriesExist(
-    std::map<std::vector<Label>, StateId>& history_to_state,
-    const std::vector<Label>& hist, fst::MutableFst<Arc>* fst) {
+    absl::flat_hash_set<std::vector<Label>>& unique_histories,
+    const std::vector<Label>& hist) {
   for (size_t len = 1; len < hist.size(); ++len) {
-    std::vector<Label> sub(hist.end() - len, hist.end());
-    if (history_to_state.find(sub) == history_to_state.end()) {
-      history_to_state[sub] = fst->AddState();
-    }
+    unique_histories.emplace(hist.end() - len, hist.end());
   }
 }
 
@@ -102,12 +101,6 @@ bool ReadArpa(std::istream& istrm, fst::MutableFst<Arc>* fst) {
     fst->SetInputSymbols(&syms);
   }
   fst::SymbolTable* syms = fst->MutableInputSymbols();
-  // Loads and buffers all input lines from the stream.
-  std::vector<std::string> lines;
-  std::string raw_line;
-  while (std::getline(istrm, raw_line)) {
-    lines.push_back(raw_line);
-  }
   struct NgramData {
     double log_prob = 0.0;
     double backoff_weight = 0.0;
@@ -118,14 +111,18 @@ bool ReadArpa(std::istream& istrm, fst::MutableFst<Arc>* fst) {
   int current_order = 0;
   bool in_ngrams = false;
   bool error = false;
+  std::string line;
+  std::vector<absl::string_view> parts;
   // Collects all n-grams and explicitly populates implied lower-order gaps.
-  for (const std::string& line : lines) {
+  while (std::getline(istrm, line)) {
     if (line.empty()) continue;
+    if (line == "\\end\\") break;
     if (line[0] == '\\') {
       size_t grams_pos = line.find("-grams:");
       if (grams_pos != std::string::npos && grams_pos > 1) {
         in_ngrams = true;
-        std::string order_str = line.substr(1, grams_pos - 1);
+        absl::string_view order_str =
+            absl::string_view(line).substr(1, grams_pos - 1);
         if (!absl::SimpleAtoi(order_str, &current_order) ||
             current_order <= 0) {
           LOG(ERROR) << "ReadArpa: Invalid order in header: " << line;
@@ -136,9 +133,7 @@ bool ReadArpa(std::istream& istrm, fst::MutableFst<Arc>* fst) {
       continue;
     }
     if (!in_ngrams || current_order <= 0) continue;
-    if (line == "\\end\\") break;
-    const std::vector<std::string> parts =
-        absl::StrSplit(line, absl::ByAnyChar(" \t"), absl::SkipEmpty());
+    parts = absl::StrSplit(line, absl::ByAnyChar(" \t"), absl::SkipEmpty());
     if (parts.size() < current_order + 1) {
       LOG(ERROR) << "ReadArpa: Insufficient tokens for order " << current_order
                  << ": " << line;
@@ -167,17 +162,19 @@ bool ReadArpa(std::istream& istrm, fst::MutableFst<Arc>* fst) {
         error = true;
       }
     }
-    all_ngrams[ngram].log_prob = log_prob * std::log(10.0);
-    all_ngrams[ngram].has_log_prob = true;
+    auto& ngram_data = all_ngrams[ngram];
+    ngram_data.log_prob = log_prob * std::log(10.0);
+    ngram_data.has_log_prob = true;
     if (has_bo) {
-      all_ngrams[ngram].backoff_weight = boweight * std::log(10.0);
-      all_ngrams[ngram].has_backoff = true;
+      ngram_data.backoff_weight = boweight * std::log(10.0);
+      ngram_data.has_backoff = true;
     }
     for (int len = 1; len < current_order; ++len) {
       for (int start = 0; start <= current_order - len; ++start) {
         std::vector<Label> sub(ngram.begin() + start,
                                ngram.begin() + start + len);
-        all_ngrams.try_emplace(sub, NgramData{0.0, 0.0, false, false});
+        all_ngrams.try_emplace(std::move(sub),
+                               NgramData{0.0, 0.0, false, false});
       }
     }
   }
@@ -190,22 +187,41 @@ bool ReadArpa(std::istream& istrm, fst::MutableFst<Arc>* fst) {
     }
   }
   const int max_hist_len = actual_max_order - 1;
-  // Allocates FST states for all collected and implied histories.
-  std::map<std::vector<Label>, StateId> history_to_state;
-  history_to_state[std::vector<Label>()] = start_state;
+  // Collects all unique histories that require states in the canonical FST.
+  absl::flat_hash_set<std::vector<Label>> unique_histories;
+  unique_histories.insert(std::vector<Label>());
   for (const auto& pair : all_ngrams) {
     const auto& ngram = pair.first;
     const auto src_hist = internal::GetSourceHistory(ngram, max_hist_len);
-    if (history_to_state.find(src_hist) == history_to_state.end()) {
-      history_to_state[src_hist] = fst->AddState();
-    }
+    unique_histories.insert(src_hist);
     const auto dst_hist = internal::GetDestinationHistory(ngram, max_hist_len);
-    if (history_to_state.find(dst_hist) == history_to_state.end()) {
-      history_to_state[dst_hist] = fst->AddState();
-    }
-    internal::EnsureSuffixHistoriesExist(history_to_state, src_hist, fst);
-    internal::EnsureSuffixHistoriesExist(history_to_state, dst_hist, fst);
+    unique_histories.insert(dst_hist);
+    internal::EnsureSuffixHistoriesExist(unique_histories, src_hist);
+    internal::EnsureSuffixHistoriesExist(unique_histories, dst_hist);
   }
+
+  // Sorts histories deterministically: first by length (order), then
+  // lexicographically by label sequence. This guarantees identical state
+  // numbering and serialization across runs.
+  std::vector<std::vector<Label>> sorted_histories(unique_histories.begin(),
+                                                   unique_histories.end());
+  std::sort(sorted_histories.begin(), sorted_histories.end(),
+            [](const std::vector<Label>& a, const std::vector<Label>& b) {
+              if (a.size() != b.size()) return a.size() < b.size();
+              return a < b;
+            });
+
+  // Allocates FST states deterministically.
+  absl::flat_hash_map<std::vector<Label>, StateId> history_to_state;
+  history_to_state.reserve(sorted_histories.size());
+  for (const auto& hist : sorted_histories) {
+    if (hist.empty()) {
+      history_to_state[hist] = start_state;
+    } else {
+      history_to_state[hist] = fst->AddState();
+    }
+  }
+
   // Instantiates all word transitions in the FST.
   for (const auto& pair : all_ngrams) {
     const auto& ngram = pair.first;
@@ -217,11 +233,12 @@ bool ReadArpa(std::istream& istrm, fst::MutableFst<Arc>* fst) {
     StateId dst = history_to_state[dst_hist];
     fst->AddArc(src, Arc(word, word, Weight(-data.log_prob), dst));
   }
-  // Instantiates all backoff transitions using kNoLabel.
-  for (const auto& pair : history_to_state) {
-    const auto& hist = pair.first;
-    const StateId src = pair.second;
+
+  // Instantiates all backoff transitions in deterministic state order using
+  // kNoLabel.
+  for (const auto& hist : sorted_histories) {
     if (hist.empty()) continue;
+    const StateId src = history_to_state[hist];
     std::vector<Label> bo_hist(hist.begin() + 1, hist.end());
     StateId dst = history_to_state[bo_hist];
     double bo_weight = 0.0;

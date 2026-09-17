@@ -387,6 +387,83 @@ TEST(ArpaTest, WriteTextBasic) {
   EXPECT_TRUE(absl::StrContains(output, "b\t"));
 }
 
+TEST(ArpaTest, ReadStreamingEarlyTerminationAndMixedWhitespace) {
+  // Tests that ReadArpa terminates cleanly upon reaching \end\, ignoring any
+  // trailing comments or invalid lines, and correctly handles mixed tabs and
+  // spaces in n-gram tokens.
+  std::string arpa_data =
+      "\\data\\\n"
+      "ngram 1=2\n"
+      "ngram 2=1\n"
+      "\n"
+      "\\1-grams:\n"
+      "-0.5\ta\t-0.2\n"
+      "-0.6   b\n"
+      "\n"
+      "\\2-grams:\n"
+      "-0.1\t  a \t b\n"
+      "\n"
+      "\\end\\\n"
+      "Trailing garbage that would normally trigger errors:\n"
+      "\\99-grams:\n"
+      "not_a_float x y z\n";
+  std::stringstream istrm(arpa_data);
+  fst::VectorFst<fst::StdArc> fst;
+  EXPECT_TRUE(ReadArpa(istrm, &fst));
+  EXPECT_TRUE(IsCanonical(fst, fst::kNoLabel));
+  EXPECT_NE(fst.InputSymbols()->Find("a"), fst::kNoSymbol);
+  EXPECT_NE(fst.InputSymbols()->Find("b"), fst::kNoSymbol);
+  EXPECT_EQ(fst.InputSymbols()->Find("x"), fst::kNoSymbol);
+}
+
+TEST(ArpaTest, ReadArpaIsDeterministic) {
+  // Tests that ReadArpa produces identical state numbering, arc orders, and
+  // destination states across independent reads.
+  std::string arpa_data =
+      "\\data\\\n"
+      "ngram 1=3\n"
+      "ngram 2=2\n"
+      "\n"
+      "\\1-grams:\n"
+      "-0.5 a -0.1\n"
+      "-0.6 b -0.2\n"
+      "-0.7 c\n"
+      "\n"
+      "\\2-grams:\n"
+      "-0.1 a b\n"
+      "-0.2 b c\n"
+      "\n"
+      "\\end\\\n";
+  std::stringstream istrm1(arpa_data);
+  fst::VectorFst<fst::StdArc> fst1;
+  ASSERT_TRUE(ReadArpa(istrm1, &fst1));
+
+  std::stringstream istrm2(arpa_data);
+  fst::VectorFst<fst::StdArc> fst2;
+  ASSERT_TRUE(ReadArpa(istrm2, &fst2));
+
+  ASSERT_EQ(fst1.NumStates(), fst2.NumStates());
+  for (fst::StateIterator<fst::VectorFst<fst::StdArc>> siter1(fst1),
+       siter2(fst2);
+       !siter1.Done(); siter1.Next(), siter2.Next()) {
+    auto s1 = siter1.Value();
+    auto s2 = siter2.Value();
+    EXPECT_EQ(s1, s2);
+    EXPECT_EQ(fst1.Final(s1), fst2.Final(s2));
+    EXPECT_EQ(fst1.NumArcs(s1), fst2.NumArcs(s2));
+    for (fst::ArcIterator<fst::VectorFst<fst::StdArc>> aiter1(fst1, s1),
+         aiter2(fst2, s2);
+         !aiter1.Done(); aiter1.Next(), aiter2.Next()) {
+      const auto& a1 = aiter1.Value();
+      const auto& a2 = aiter2.Value();
+      EXPECT_EQ(a1.ilabel, a2.ilabel);
+      EXPECT_EQ(a1.olabel, a2.olabel);
+      EXPECT_EQ(a1.weight, a2.weight);
+      EXPECT_EQ(a1.nextstate, a2.nextstate);
+    }
+  }
+}
+
 }  // namespace
 }  // namespace sfst
 
