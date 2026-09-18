@@ -85,29 +85,73 @@ inline bool GetBackoffWeight(const fst::Fst<Arc>& fst, typename Arc::StateId s,
   return false;
 }
 
+inline bool IsBosSymbol(absl::string_view token) {
+  return token == "<s>" || token == "<S>" || token == "<bos>" ||
+         token == "<BOS>" || token == "[BOS]";
+}
+
+inline bool IsEosSymbol(absl::string_view token) {
+  return token == "</s>" || token == "</S>" || token == "<eos>" ||
+         token == "<EOS>" || token == "[EOS]";
+}
+
+struct NgramData {
+  double log_prob = 0.0;
+  double backoff_weight = 0.0;
+  bool has_log_prob = false;
+  bool has_backoff = false;
+};
+
+template <typename Label>
+double ResolveLogProb(
+    const std::vector<Label>& ngram, const NgramData& data,
+    bool collapse_leaf_histories,
+    const absl::flat_hash_map<std::vector<Label>, NgramData>& all_ngrams) {
+  if (data.has_log_prob || !collapse_leaf_histories) return data.log_prob;
+  double accum = 0.0;
+  std::vector<Label> cur_hist(ngram.begin(), ngram.end() - 1);
+  const Label word = ngram.back();
+  while (true) {
+    std::vector<Label> candidate = cur_hist;
+    candidate.push_back(word);
+    auto it = all_ngrams.find(candidate);
+    if (it != all_ngrams.end() && it->second.has_log_prob) {
+      accum += it->second.log_prob;
+      break;
+    }
+    if (cur_hist.empty()) break;
+    auto bo_it = all_ngrams.find(cur_hist);
+    if (bo_it != all_ngrams.end() && bo_it->second.has_backoff) {
+      accum += bo_it->second.backoff_weight;
+    }
+    cur_hist.erase(cur_hist.begin());
+  }
+  return accum;
+}
+
 }  // namespace internal
 
 template <class Arc>
-bool ReadArpa(std::istream& istrm, fst::MutableFst<Arc>* fst) {
+bool ReadArpa(std::istream& istrm, fst::MutableFst<Arc>* fst,
+              typename Arc::Label phi_label) {
   using StateId = typename Arc::StateId;
   using Label = typename Arc::Label;
   using Weight = typename Arc::Weight;
+  using internal::NgramData;
+  constexpr Label kBosLabel = -2;
+  constexpr Label kEosLabel = -3;
+
   fst->DeleteStates();
-  StateId start_state = fst->AddState();
-  fst->SetStart(start_state);
   if (!fst->InputSymbols()) {
     fst::SymbolTable syms("ARPASymbols");
     syms.AddSymbol("<epsilon>");
     fst->SetInputSymbols(&syms);
   }
   fst::SymbolTable* syms = fst->MutableInputSymbols();
-  struct NgramData {
-    double log_prob = 0.0;
-    double backoff_weight = 0.0;
-    bool has_log_prob = false;
-    bool has_backoff = false;
-  };
   absl::flat_hash_map<std::vector<Label>, NgramData> all_ngrams;
+  absl::flat_hash_map<std::vector<Label>, double> final_weights;
+  bool has_bos = false;
+  bool has_eos = false;
   int current_order = 0;
   bool in_ngrams = false;
   bool error = false;
@@ -149,7 +193,15 @@ bool ReadArpa(std::istream& istrm, fst::MutableFst<Arc>* fst) {
     std::vector<Label> ngram;
     ngram.reserve(current_order);
     for (int i = 1; i <= current_order && i < parts.size(); ++i) {
-      ngram.push_back(syms->AddSymbol(parts[i]));
+      if (internal::IsBosSymbol(parts[i])) {
+        ngram.push_back(kBosLabel);
+        has_bos = true;
+      } else if (internal::IsEosSymbol(parts[i])) {
+        ngram.push_back(kEosLabel);
+        has_eos = true;
+      } else {
+        ngram.push_back(syms->AddSymbol(parts[i]));
+      }
     }
     double boweight = 0.0;
     bool has_bo = false;
@@ -162,6 +214,25 @@ bool ReadArpa(std::istream& istrm, fst::MutableFst<Arc>* fst) {
         error = true;
       }
     }
+    if (ngram.back() == kEosLabel) {
+      std::vector<Label> hist(ngram.begin(), ngram.end() - 1);
+      final_weights[hist] = log_prob * std::log(10.0);
+      for (size_t start = 0; start < hist.size(); ++start) {
+        std::vector<Label> sub(hist.begin() + start, hist.end());
+        if (sub.size() == 1 && sub[0] == kBosLabel) continue;
+        all_ngrams.try_emplace(std::move(sub),
+                               NgramData{0.0, 0.0, false, false});
+      }
+      continue;
+    }
+    if (ngram.size() == 1 && ngram[0] == kBosLabel) {
+      auto& ngram_data = all_ngrams[ngram];
+      if (has_bo) {
+        ngram_data.backoff_weight = boweight * std::log(10.0);
+        ngram_data.has_backoff = true;
+      }
+      continue;
+    }
     auto& ngram_data = all_ngrams[ngram];
     ngram_data.log_prob = log_prob * std::log(10.0);
     ngram_data.has_log_prob = true;
@@ -173,6 +244,7 @@ bool ReadArpa(std::istream& istrm, fst::MutableFst<Arc>* fst) {
       for (int start = 0; start <= current_order - len; ++start) {
         std::vector<Label> sub(ngram.begin() + start,
                                ngram.begin() + start + len);
+        if (sub.size() == 1 && sub[0] == kBosLabel) continue;
         all_ngrams.try_emplace(std::move(sub),
                                NgramData{0.0, 0.0, false, false});
       }
@@ -186,18 +258,37 @@ bool ReadArpa(std::istream& istrm, fst::MutableFst<Arc>* fst) {
       actual_max_order = pair.first.size();
     }
   }
+  for (const auto& pair : final_weights) {
+    if (pair.first.size() + 1 > actual_max_order) {
+      actual_max_order = pair.first.size() + 1;
+    }
+  }
   const int max_hist_len = actual_max_order - 1;
+  const bool collapse_leaf_histories = has_bos || has_eos;
   // Collects all unique histories that require states in the canonical FST.
   absl::flat_hash_set<std::vector<Label>> unique_histories;
   unique_histories.insert(std::vector<Label>());
+  if (has_bos && max_hist_len >= 1) {
+    unique_histories.insert(std::vector<Label>{kBosLabel});
+  }
   for (const auto& pair : all_ngrams) {
     const auto& ngram = pair.first;
+    if (ngram.size() == 1 && ngram[0] == kBosLabel) continue;
     const auto src_hist = internal::GetSourceHistory(ngram, max_hist_len);
     unique_histories.insert(src_hist);
-    const auto dst_hist = internal::GetDestinationHistory(ngram, max_hist_len);
-    unique_histories.insert(dst_hist);
     internal::EnsureSuffixHistoriesExist(unique_histories, src_hist);
-    internal::EnsureSuffixHistoriesExist(unique_histories, dst_hist);
+    if (!collapse_leaf_histories) {
+      const auto dst_hist =
+          internal::GetDestinationHistory(ngram, max_hist_len);
+      unique_histories.insert(dst_hist);
+      internal::EnsureSuffixHistoriesExist(unique_histories, dst_hist);
+    }
+  }
+  for (const auto& pair : final_weights) {
+    const auto src_hist =
+        internal::GetDestinationHistory(pair.first, max_hist_len);
+    unique_histories.insert(src_hist);
+    internal::EnsureSuffixHistoriesExist(unique_histories, src_hist);
   }
 
   // Sorts histories deterministically: first by length (order), then
@@ -212,30 +303,45 @@ bool ReadArpa(std::istream& istrm, fst::MutableFst<Arc>* fst) {
             });
 
   // Allocates FST states deterministically.
+  fst->DeleteStates();
+  fst->AddStates(sorted_histories.size());
   absl::flat_hash_map<std::vector<Label>, StateId> history_to_state;
   history_to_state.reserve(sorted_histories.size());
-  for (const auto& hist : sorted_histories) {
-    if (hist.empty()) {
-      history_to_state[hist] = start_state;
-    } else {
-      history_to_state[hist] = fst->AddState();
-    }
+  for (size_t i = 0; i < sorted_histories.size(); ++i) {
+    history_to_state[sorted_histories[i]] = static_cast<StateId>(i);
+  }
+  if (has_bos && max_hist_len >= 1) {
+    fst->SetStart(history_to_state[std::vector<Label>{kBosLabel}]);
+  } else {
+    fst->SetStart(history_to_state[std::vector<Label>()]);
+  }
+
+  // Sets final weights from EOS n-grams.
+  for (const auto& [hist, fw] : final_weights) {
+    const auto src_hist = internal::GetDestinationHistory(hist, max_hist_len);
+    fst->SetFinal(history_to_state[src_hist], Weight(-fw));
   }
 
   // Instantiates all word transitions in the FST.
   for (const auto& pair : all_ngrams) {
     const auto& ngram = pair.first;
+    if (ngram.size() == 1 && ngram[0] == kBosLabel) continue;
     const auto& data = pair.second;
     const auto src_hist = internal::GetSourceHistory(ngram, max_hist_len);
-    const auto dst_hist = internal::GetDestinationHistory(ngram, max_hist_len);
+    auto dst_hist = internal::GetDestinationHistory(ngram, max_hist_len);
+    while (!history_to_state.contains(dst_hist)) {
+      dst_hist.erase(dst_hist.begin());
+    }
     const Label word = ngram.back();
     StateId src = history_to_state[src_hist];
     StateId dst = history_to_state[dst_hist];
-    fst->AddArc(src, Arc(word, word, Weight(-data.log_prob), dst));
+    const double resolved_log_prob = internal::ResolveLogProb(
+        ngram, data, collapse_leaf_histories, all_ngrams);
+    fst->AddArc(src, Arc(word, word, Weight(-resolved_log_prob), dst));
   }
 
   // Instantiates all backoff transitions in deterministic state order using
-  // kNoLabel.
+  // phi_label.
   for (const auto& hist : sorted_histories) {
     if (hist.empty()) continue;
     const StateId src = history_to_state[hist];
@@ -246,8 +352,7 @@ bool ReadArpa(std::istream& istrm, fst::MutableFst<Arc>* fst) {
     if (it != all_ngrams.end() && it->second.has_backoff) {
       bo_weight = it->second.backoff_weight;
     }
-    fst->AddArc(src,
-                Arc(fst::kNoLabel, fst::kNoLabel, Weight(-bo_weight), dst));
+    fst->AddArc(src, Arc(phi_label, phi_label, Weight(-bo_weight), dst));
   }
   fst::ArcSort(fst, fst::ILabelCompare<Arc>());
   fst->SetOutputSymbols(fst->InputSymbols());
@@ -483,7 +588,8 @@ bool WriteText(const fst::Fst<Arc>& fst, std::ostream& ostrm,
 }
 
 template bool ReadArpa<fst::StdArc>(std::istream& istrm,
-                                    fst::MutableFst<fst::StdArc>* fst);
+                                    fst::MutableFst<fst::StdArc>* fst,
+                                    fst::StdArc::Label phi_label);
 
 template bool WriteArpa<fst::StdArc>(const fst::Fst<fst::StdArc>& fst,
                                      std::ostream& ostrm,
