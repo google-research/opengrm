@@ -138,6 +138,31 @@ TEST(ArpaTest, WriteSentenceBoundaries) {
   EXPECT_TRUE(absl::StrContains(output, "a </s>"));
 }
 
+TEST(ArpaTest, ReadSentenceBoundariesAndPhiLabel) {
+  std::string arpa_data =
+      "\\data\\\n"
+      "ngram 1=3\n"
+      "ngram 2=2\n"
+      "\n"
+      "\\1-grams:\n"
+      "-99\t<s>\t-0.30103\n"
+      "-0.30103\ta\t-0.30103\n"
+      "-0.30103\t</s>\n"
+      "\n"
+      "\\2-grams:\n"
+      "-0.30103\t<s> a\n"
+      "-0.30103\ta </s>\n"
+      "\n"
+      "\\end\\\n";
+  std::stringstream istrm(arpa_data);
+  fst::VectorFst<fst::StdArc> fst;
+  EXPECT_TRUE(ReadArpa(istrm, &fst, /*phi_label=*/0));
+  EXPECT_TRUE(IsCanonical(fst, /*phi_label=*/0));
+  EXPECT_EQ(fst.InputSymbols()->Find("<s>"), fst::kNoSymbol);
+  EXPECT_EQ(fst.InputSymbols()->Find("</s>"), fst::kNoSymbol);
+  EXPECT_NE(fst.InputSymbols()->Find("a"), fst::kNoSymbol);
+}
+
 TEST(ArpaTest, WriteSentenceBoundariesFallback) {
   fst::VectorFst<fst::StdArc> fst;
   {

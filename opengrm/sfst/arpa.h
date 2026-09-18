@@ -27,7 +27,8 @@ namespace sfst {
 // Reads an ARPA format language model from istrm and builds a canonical SFST.
 // Returns true on success.
 template <class Arc>
-bool ReadArpa(std::istream& istrm, fst::MutableFst<Arc>* fst);
+bool ReadArpa(std::istream& istrm, fst::MutableFst<Arc>* fst,
+              typename Arc::Label phi_label = fst::kNoLabel);
 
 // Writes a canonical SFST to ostrm in ARPA format.
 // Returns true on success.
