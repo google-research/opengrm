@@ -27,11 +27,11 @@ py_binary(
     name = "make_chatspeak_lm",
     srcs = ["make_chatspeak_lm.py"],
     data = [
-        "//opengrm/ngram:testdata",
         "//opengrm/sfst:sfstinfo",
         "//opengrm/sfst:sfstngramcount",
         "//opengrm/sfst:sfstngramsymbols",
         "//opengrm/sfst:sfstsmooth",
+        "//opengrm/sfst:testdata/earnest.txt",
         "@com_google_openfst//openfst/extensions/far:farcompilestrings",
     ],
     deps = [

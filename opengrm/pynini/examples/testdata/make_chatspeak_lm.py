@@ -44,7 +44,7 @@ _NGRAMCOUNT_PATH = "opengrm/sfst/sfstngramcount"
 _NGRAMINFO_PATH = "opengrm/sfst/sfstinfo"
 _NGRAMMAKE_PATH = "opengrm/sfst/sfstsmooth"
 _NGRAMSYMBOLS_PATH = "opengrm/sfst/sfstngramsymbols"
-_DEFAULT_INPUT_PATH = "opengrm/ngram/testdata/earnest.txt"
+_DEFAULT_INPUT_PATH = "opengrm/sfst/testdata/earnest.txt"
 
 
 def main(argv) -> None:

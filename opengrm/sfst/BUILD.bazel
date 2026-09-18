@@ -17,6 +17,8 @@ load("@rules_shell//shell:sh_test.bzl", "sh_test")
 
 package(default_visibility = ["//visibility:public"])
 
+exports_files(["testdata/earnest.txt"])
+
 cc_library(
     name = "sfst",
     srcs = [
