@@ -114,5 +114,31 @@ TEST(NGramExtendedContextTest, DisjointContexts) {
             nullptr);
 }
 
+TEST(NGramSplitTest, SplitsBigramByContext) {
+  fst::StdVectorFst fst;
+  fst.AddStates(4);
+  fst.SetStart(1);
+  fst.SetFinal(0, fst::StdArc::Weight(1.0f));
+  fst.SetFinal(2, fst::StdArc::Weight(1.0f));
+  fst.SetFinal(3, fst::StdArc::Weight(1.0f));
+  fst.AddArc(1, fst::StdArc(0, 0, fst::StdArc::Weight(0.5f), 0));
+  fst.AddArc(1, fst::StdArc(1, 1, fst::StdArc::Weight(1.0f), 2));
+  fst.AddArc(1, fst::StdArc(2, 2, fst::StdArc::Weight(1.0f), 3));
+  fst.AddArc(0, fst::StdArc(1, 1, fst::StdArc::Weight(1.0f), 2));
+  fst.AddArc(0, fst::StdArc(2, 2, fst::StdArc::Weight(1.0f), 3));
+  fst.AddArc(2, fst::StdArc(0, 0, fst::StdArc::Weight(0.5f), 0));
+  fst.AddArc(2, fst::StdArc(1, 1, fst::StdArc::Weight(1.0f), 2));
+  fst.AddArc(3, fst::StdArc(0, 0, fst::StdArc::Weight(0.5f), 0));
+  fst.AddArc(3, fst::StdArc(2, 2, fst::StdArc::Weight(1.0f), 3));
+
+  std::vector<std::string> patterns = {" : 2", "2 : "};
+  std::vector<fst::StdVectorFst> split_fsts;
+  EXPECT_TRUE(NGramSplit(fst, patterns, &split_fsts, /*phi_label=*/0,
+                         /*include_all_suffixes=*/true));
+  ASSERT_EQ(split_fsts.size(), 2);
+  EXPECT_GT(split_fsts[0].NumStates(), 0);
+  EXPECT_GT(split_fsts[1].NumStates(), 0);
+}
+
 }  // namespace
 }  // namespace sfst
