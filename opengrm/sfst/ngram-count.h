@@ -132,6 +132,56 @@ class NGramCounter {
     fst::ArcSort(fst, fst::ILabelCompare<Arc>());
   }
 
+  // Returns strings of ngram counts, in reverse context order; e.g., for the
+  // ngram "feed the angry duck", returns "<{angry,the,feed}, <duck,count>>".
+  template <class Arc = fst::StdArc>
+  void GetReverseContextNGrams(
+      std::vector<std::pair<std::vector<int>, std::pair<Label, double>>>*
+          ngram_counts) {
+    if (Error()) return;
+    std::vector<int> incoming_words(states_.size(), -1);
+    std::vector<int> previous_states(states_.size(), -1);
+    if (order_ > 1) incoming_words[NGramStartState()] = 0;
+    for (size_t a = 0; a < arcs_.size(); ++a) {
+      const CountArc& arc = arcs_[a];
+      if (states_[arc.origin].order < states_[arc.destination].order) {
+        previous_states[arc.destination] = arc.origin;
+        incoming_words[arc.destination] = arc.label;
+      }
+    }
+    std::vector<std::vector<int>> reverse_context(states_.size());
+    for (size_t s = 0; s < states_.size(); ++s) {
+      int ps = s;
+      while (ps >= 0) {
+        if (incoming_words[ps] >= 0) {
+          reverse_context[s].push_back(incoming_words[ps]);
+        }
+        ps = previous_states[ps];
+      }
+      if (states_[s].final_count.Value() != Weight::Zero().Value()) {
+        ngram_counts->emplace_back(
+            reverse_context[s],
+            std::make_pair(0, states_[s].final_count.Value()));
+      }
+    }
+    for (size_t a = 0; a < arcs_.size(); ++a) {
+      const CountArc& arc = arcs_[a];
+      ngram_counts->emplace_back(reverse_context[arc.origin],
+                                 std::make_pair(arc.label, arc.count.Value()));
+    }
+  }
+
+  // Gets the start state of the counts (<s>).
+  ssize_t NGramStartState() const { return initial_; }
+
+  // Gets the unigram state of the counts.
+  ssize_t NGramUnigramState() const { return backoff_; }
+
+  // Gets the backoff state for a given state.
+  ssize_t NGramBackoffState(ssize_t state_id) const {
+    return states_[state_id].backoff_state;
+  }
+
   bool Error() const { return error_; }
 
  protected:
