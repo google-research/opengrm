@@ -23,13 +23,13 @@
 
 #include <cstdint>
 #include <iostream>
-#include <map>
 #include <memory>
 #include <ostream>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "absl/container/flat_hash_map.h"
 #include "absl/flags/declare.h"
 #include "absl/flags/flag.h"
 #include "absl/log/check.h"
@@ -190,7 +190,7 @@ class StringFst : public Function<Arc> {
     ::fst::thrax_internal::ResetGeneratedSymbols();
   }
 
-  static std::map<int64_t, int64_t> remap_;
+  static absl::flat_hash_map<int64_t, int64_t> remap_;
 
   friend class CategoryTest;
   friend class FeatureTest;
@@ -202,7 +202,7 @@ class StringFst : public Function<Arc> {
 };
 
 template <typename Arc>
-typename std::map<int64_t, int64_t> StringFst<Arc>::remap_;
+typename absl::flat_hash_map<int64_t, int64_t> StringFst<Arc>::remap_;
 
 }  // namespace function
 }  // namespace thrax

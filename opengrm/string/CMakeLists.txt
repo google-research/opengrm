@@ -42,6 +42,7 @@ target_link_libraries(
   PUBLIC openfst::fst
          absl::strings
          absl::log
+         absl::flat_hash_map # For flat_hash_map in stringcompile
          absl::inlined_vector # For inlined_vector in prefix_tree
 )
 

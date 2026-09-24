@@ -462,6 +462,7 @@ cc_library(
         "//opengrm/thrax:flags",
         "//opengrm/thrax/ast:fst-node",
         "//opengrm/thrax/walker/util:datatype",
+        "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/log:check",

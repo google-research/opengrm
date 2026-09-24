@@ -40,13 +40,13 @@
 
 #include <cstdint>
 #include <iterator>
-#include <map>
 #include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/base/attributes.h"
+#include "absl/container/flat_hash_map.h"
 #include "absl/log/log.h"
 #include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
@@ -195,7 +195,7 @@ class StringCompiler {
   // for future symbol generation. A remapping for FSTs labeled using the given
   // generated SymbolTable will be populated during this run.
   bool MergeIntoGeneratedSymbols(const SymbolTable& symtab,
-                                 std::map<int64_t, int64_t>* remap);
+                                 absl::flat_hash_map<int64_t, int64_t>* remap);
   // Resets `StringCompiler` to its state at construction.
   void Reset();
 
@@ -278,7 +278,7 @@ const SymbolTable& GeneratedSymbols();
 namespace thrax_internal {
 
 bool MergeIntoGeneratedSymbols(const SymbolTable& symtab,
-                               std::map<int64_t, int64_t>* remap);
+                               absl::flat_hash_map<int64_t, int64_t>* remap);
 
 void ResetGeneratedSymbols();
 

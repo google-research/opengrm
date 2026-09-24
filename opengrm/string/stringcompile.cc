@@ -19,6 +19,7 @@
 #include <optional>
 #include <string>
 
+#include "absl/container/flat_hash_map.h"
 #include "absl/log/log.h"
 #include "absl/strings/string_view.h"
 #include "absl/strings/strip.h"
@@ -89,7 +90,7 @@ void StringCompiler::Reset() {
 }
 
 bool StringCompiler::MergeIntoGeneratedSymbols(
-    const SymbolTable& symtab, std::map<int64_t, int64_t>* remap) {
+    const SymbolTable& symtab, absl::flat_hash_map<int64_t, int64_t>* remap) {
   if (remap == nullptr) {
     LOG(WARNING) << "Must provide a non-null remap";
     return false;
@@ -168,7 +169,7 @@ const SymbolTable& GeneratedSymbols() {
 namespace thrax_internal {
 
 bool MergeIntoGeneratedSymbols(const SymbolTable& symtab,
-                               std::map<int64_t, int64_t>* remap) {
+                               absl::flat_hash_map<int64_t, int64_t>* remap) {
   static auto* compiler = internal::StringCompiler::Get();
   return compiler->MergeIntoGeneratedSymbols(symtab, remap);
 }
