@@ -33,6 +33,8 @@
 #include "opengrm/sfst/shrink.h"
 
 ABSL_DECLARE_FLAG(double, theta);
+ABSL_DECLARE_FLAG(int64_t, target_number_of_ngrams);
+ABSL_DECLARE_FLAG(int32_t, min_order_to_prune);
 ABSL_DECLARE_FLAG(int64_t, phi_label);
 ABSL_DECLARE_FLAG(std::string, method);
 ABSL_DECLARE_FLAG(double, total_unigram_count);
@@ -64,19 +66,37 @@ int sfstshrink_main(int argc, char** argv) {
     return 1;
   }
 
-  const double theta = absl::GetFlag(FLAGS_theta);
+  double theta = absl::GetFlag(FLAGS_theta);
+  const int64_t target_number_of_ngrams =
+      absl::GetFlag(FLAGS_target_number_of_ngrams);
+  const int32_t min_order_to_prune = absl::GetFlag(FLAGS_min_order_to_prune);
   const int64_t phi_label = absl::GetFlag(FLAGS_phi_label);
   const double total_unigram_count = absl::GetFlag(FLAGS_total_unigram_count);
   const std::string method = absl::GetFlag(FLAGS_method);
   bool success = false;
 
   if (method == "stolcke" || method == "relative_entropy") {
-    success = sfst::StolckeShrink(fst.get(), phi_label, theta);
+    if (target_number_of_ngrams >= 0) {
+      theta = sfst::StolckeThetaForMaxNGrams(
+          *fst, phi_label, target_number_of_ngrams, min_order_to_prune);
+    }
+    success =
+        sfst::StolckeShrink(fst.get(), phi_label, theta, min_order_to_prune);
   } else if (method == "restricted_stolcke" ||
              method == "restricted_relative_entropy") {
-    success = sfst::RestrictedRelEntropyShrink(fst.get(), phi_label, theta);
+    if (target_number_of_ngrams >= 0) {
+      theta = sfst::StolckeThetaForMaxNGrams(
+          *fst, phi_label, target_number_of_ngrams, min_order_to_prune);
+    }
+    success = sfst::RestrictedRelEntropyShrink(fst.get(), phi_label, theta,
+                                               min_order_to_prune);
   } else if (method == "symmetrized_relative_entropy") {
-    success = sfst::SymmetrizedRelEntropyShrink(fst.get(), phi_label, theta);
+    if (target_number_of_ngrams >= 0) {
+      theta = sfst::StolckeThetaForMaxNGrams(
+          *fst, phi_label, target_number_of_ngrams, min_order_to_prune);
+    }
+    success = sfst::SymmetrizedRelEntropyShrink(fst.get(), phi_label, theta,
+                                                min_order_to_prune);
   } else if (method == "seymore") {
     success =
         sfst::SeymoreShrink(fst.get(), phi_label, theta, total_unigram_count);

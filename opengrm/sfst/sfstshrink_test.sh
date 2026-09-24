@@ -86,6 +86,19 @@ else
   fi
 
   "${BIN}/sfstinfo" "${TEST_TMPDIR}/earnest-${method}.pru" > /dev/null
+
+  if [ "${method}" == "stolcke" ]; then
+    "${BIN}/sfstshrink" \
+      --method="${method}" \
+      --target_number_of_ngrams=500 \
+      "${TEST_TMPDIR}/earnest.mod" \
+      "${TEST_TMPDIR}/earnest-${method}-target.pru"
+    if [[ ! -s "${TEST_TMPDIR}/earnest-${method}-target.pru" ]]; then
+      echo "Error: Output file for --target_number_of_ngrams is empty"
+      exit 1
+    fi
+    "${BIN}/sfstinfo" "${TEST_TMPDIR}/earnest-${method}-target.pru" > /dev/null
+  fi
 fi
 
 echo "PASS"

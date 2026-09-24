@@ -27,7 +27,7 @@
 #include "gtest/gtest.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/flags/flag.h"
-#include "absl/log/flags.h"
+#include "absl/log/flags.h"  // NOLINT(misc-include-cleaner)
 #include "openfst/lib/arc.h"  // NOLINT(misc-include-cleaner)
 #include "openfst/lib/arcsort.h"
 #include "openfst/lib/fst.h"
@@ -376,6 +376,26 @@ TEST(NonCanonicalShrinkTest, CyclicTopologyRegressionTest) {
   // operate.
   EXPECT_FALSE(StolckeShrink(&fst, 0, 1.0));
   EXPECT_FALSE(SeymoreShrink(&fst, 0, 1.0, 100.0));
+}
+
+TEST(ShrinkEdgeCaseTest, ComputeStateProbsEmptyFst) {
+  fst::VectorFst<Arc> empty_fst;
+  std::vector<int> orders;
+  std::vector<double> probs;
+  ComputeStateProbs(empty_fst, /*phi_label=*/0, orders, &probs);
+  EXPECT_TRUE(probs.empty());
+  EXPECT_EQ(internal::GetBackoffState(empty_fst, fst::kNoStateId,
+                                      /*phi_label=*/0),
+            fst::kNoStateId);
+}
+
+TEST_F(ShrinkTest, StolckeThetaForMaxNGramsMinOrderTest) {
+  fst::VectorFst<Arc> fst(fst_);
+  ASSERT_TRUE(WittenBell(&fst, /*phi_label=*/0));
+  const double theta = StolckeThetaForMaxNGrams(fst, /*phi_label=*/0,
+                                                /*target_number_of_ngrams=*/2,
+                                                /*min_order=*/3);
+  EXPECT_GT(theta, 0.0);
 }
 
 }  // namespace sfst
