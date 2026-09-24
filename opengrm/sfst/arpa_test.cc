@@ -14,6 +14,8 @@
 
 #include "opengrm/sfst/arpa.h"
 
+#include <cmath>
+#include <cstdlib>
 #include <sstream>
 #include <string>
 
@@ -136,6 +138,136 @@ TEST(ArpaTest, WriteSentenceBoundaries) {
   EXPECT_TRUE(absl::StrContains(output, "<s>"));
   EXPECT_TRUE(absl::StrContains(output, "</s>"));
   EXPECT_TRUE(absl::StrContains(output, "a </s>"));
+}
+
+TEST(ArpaTest, ReadSentenceBoundariesAndPhiLabel) {
+  std::string arpa_data =
+      "\\data\\\n"
+      "ngram 1=3\n"
+      "ngram 2=2\n"
+      "\n"
+      "\\1-grams:\n"
+      "-99\t<s>\t-0.30103\n"
+      "-0.30103\ta\t-0.30103\n"
+      "-0.30103\t</s>\n"
+      "\n"
+      "\\2-grams:\n"
+      "-0.30103\t<s> a\n"
+      "-0.30103\ta </s>\n"
+      "\n"
+      "\\end\\\n";
+  std::stringstream istrm(arpa_data);
+  fst::VectorFst<fst::StdArc> fst;
+  EXPECT_TRUE(ReadArpa(istrm, &fst, /*phi_label=*/0));
+  EXPECT_TRUE(IsCanonical(fst, /*phi_label=*/0));
+  EXPECT_EQ(fst.InputSymbols()->Find("<s>"), fst::kNoSymbol);
+  EXPECT_EQ(fst.InputSymbols()->Find("</s>"), fst::kNoSymbol);
+  EXPECT_NE(fst.InputSymbols()->Find("a"), fst::kNoSymbol);
+}
+
+TEST(ArpaTest, ReadImpliedPrefixWeightsAndMaxOrderFromEos) {
+  // Tests that implied prefix n-gram weights ("ARPA holes") are resolved via
+  // suffix backoff when sentence boundaries are present, and that
+  // actual_max_order is updated when the highest-order n-gram ends in </s>.
+  std::string arpa_data =
+      "\\data\\\n"
+      "ngram 1=4\n"
+      "ngram 4=1\n"
+      "\n"
+      "\\1-grams:\n"
+      "-99\t<s>\t-0.1\n"
+      "-0.5\ta\t-0.2\n"
+      "-0.6\tb\t-0.3\n"
+      "-0.4\t</s>\n"
+      "\n"
+      "\\4-grams:\n"
+      "-0.25\t<s> a b </s>\n"
+      "\n"
+      "\\end\\\n";
+  std::stringstream istrm(arpa_data);
+  fst::VectorFst<fst::StdArc> fst;
+  ASSERT_TRUE(ReadArpa(istrm, &fst, /*phi_label=*/0));
+  EXPECT_TRUE(IsCanonical(fst, /*phi_label=*/0));
+
+  const auto a_label = fst.InputSymbols()->Find("a");
+  const auto b_label = fst.InputSymbols()->Find("b");
+  ASSERT_NE(a_label, fst::kNoSymbol);
+  ASSERT_NE(b_label, fst::kNoSymbol);
+
+  // The start state represents history (<s>). Its transition on 'a' is an
+  // implied 2-gram (<s> a), so its cost is -(bo(<s>) + log_prob(a)) * ln(10)
+  // = -(-0.1 + -0.5) * ln(10) = 0.6 * ln(10).
+  const auto start_state = fst.Start();
+  fst::StdArc::StateId state_bos_a = fst::kNoStateId;
+  for (fst::ArcIterator<fst::VectorFst<fst::StdArc>> aiter(fst, start_state);
+       !aiter.Done(); aiter.Next()) {
+    const auto& arc = aiter.Value();
+    if (arc.ilabel == a_label) {
+      EXPECT_NEAR(arc.weight.Value(), 0.6 * std::log(10.0), 1e-4);
+      state_bos_a = arc.nextstate;
+    }
+  }
+  ASSERT_NE(state_bos_a, fst::kNoStateId);
+
+  // From history (<s>, a), the transition on 'b' is an implied 3-gram
+  // (<s> a b) where (a b) is also missing, so ResolveLogProb backs off two
+  // steps: -(bo(<s> a) + bo(a) + log_prob(b)) * ln(10)
+  // = -(0.0 + -0.2 + -0.6) * ln(10) = 0.8 * ln(10).
+  fst::StdArc::StateId state_bos_a_b = fst::kNoStateId;
+  for (fst::ArcIterator<fst::VectorFst<fst::StdArc>> aiter(fst, state_bos_a);
+       !aiter.Done(); aiter.Next()) {
+    const auto& arc = aiter.Value();
+    if (arc.ilabel == b_label) {
+      EXPECT_NEAR(arc.weight.Value(), 0.8 * std::log(10.0), 1e-4);
+      state_bos_a_b = arc.nextstate;
+    }
+  }
+  ASSERT_NE(state_bos_a_b, fst::kNoStateId);
+  EXPECT_NEAR(fst.Final(state_bos_a_b).Value(), 0.25 * std::log(10.0), 1e-4);
+}
+
+TEST(ArpaTest, ReadImpliedPrefixWithoutSentenceBoundariesUsesZeroLogProb) {
+  // Tests that implied prefix n-grams in models without sentence boundaries
+  // retain zero log-probability even when lower-order n-grams have non-zero
+  // probabilities.
+  std::string arpa_data =
+      "\\data\\\n"
+      "ngram 1=3\n"
+      "ngram 3=1\n"
+      "\n"
+      "\\1-grams:\n"
+      "-0.5\ta\t-0.2\n"
+      "-0.6\tb\t-0.3\n"
+      "-0.7\tc\n"
+      "\n"
+      "\\3-grams:\n"
+      "-0.1\ta b c\n"
+      "\n"
+      "\\end\\\n";
+  std::stringstream istrm(arpa_data);
+  fst::VectorFst<fst::StdArc> fst;
+  ASSERT_TRUE(ReadArpa(istrm, &fst));
+  EXPECT_TRUE(IsCanonical(fst, fst::kNoLabel));
+
+  const auto a_label = fst.InputSymbols()->Find("a");
+  const auto b_label = fst.InputSymbols()->Find("b");
+  fst::StdArc::StateId state_a = fst::kNoStateId;
+  for (fst::ArcIterator<fst::VectorFst<fst::StdArc>> aiter(fst, fst.Start());
+       !aiter.Done(); aiter.Next()) {
+    if (aiter.Value().ilabel == a_label) {
+      state_a = aiter.Value().nextstate;
+    }
+  }
+  ASSERT_NE(state_a, fst::kNoStateId);
+  bool found_implied_ab = false;
+  for (fst::ArcIterator<fst::VectorFst<fst::StdArc>> aiter(fst, state_a);
+       !aiter.Done(); aiter.Next()) {
+    if (aiter.Value().ilabel == b_label) {
+      EXPECT_FLOAT_EQ(aiter.Value().weight.Value(), 0.0f);
+      found_implied_ab = true;
+    }
+  }
+  EXPECT_TRUE(found_implied_ab);
 }
 
 TEST(ArpaTest, WriteSentenceBoundariesFallback) {

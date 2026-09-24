@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstdint>
 #include <cstring>
 #include <fstream>
 #include <iostream>
@@ -23,13 +24,15 @@
 #include "openfst/compat/init.h"
 #include "absl/flags/flag.h"
 #include "absl/log/log.h"
-#include "openfst/lib/arc.h"  // NOLINT(misc-include-cleaner)
+#include "openfst/lib/arc.h"
 #include "openfst/lib/fst.h"
 #include "openfst/lib/symbol-table.h"
-#include "openfst/lib/vector-fst.h"  // NOLINT(misc-include-cleaner)
+#include "openfst/lib/vector-fst.h"
 #include "opengrm/sfst/arpa.h"
 
 ABSL_FLAG(std::string, symbols, "", "Symbol table file");
+ABSL_FLAG(int64_t, phi_label, fst::kNoLabel,
+          "Failure label (default: kNoLabel)");
 
 int sfstngramread_main(int argc, char** argv) {
   std::string usage = "Transform ARPA text format to FST.\n\n  Usage: ";
@@ -81,7 +84,7 @@ int sfstngramread_main(int argc, char** argv) {
     fst.SetOutputSymbols(syms.get());
   }
 
-  if (!sfst::ReadArpa(istrm, &fst)) {
+  if (!sfst::ReadArpa(istrm, &fst, absl::GetFlag(FLAGS_phi_label))) {
     LOG(ERROR) << argv[0] << ": Error reading ARPA model";
     return 1;
   }
