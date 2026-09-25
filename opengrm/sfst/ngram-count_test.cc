@@ -18,6 +18,8 @@
 
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
+#include <utility>
 #include <vector>
 
 #include "gtest/gtest.h"
@@ -162,6 +164,41 @@ TEST(NGramCounterTest, NonCoaccessibleInput) {
   VectorFst<StdArc> out_fst;
   counter.GetFst(&out_fst);
   EXPECT_GT(out_fst.NumStates(), 0u);
+}
+
+TEST(NGramCounterTest, GetReverseContextNGrams) {
+  const StringCompiler<StdArc> compiler(TokenType::SYMBOL);
+  VectorFst<StdArc> string_fst;
+  ASSERT_TRUE(compiler("1 2 3", &string_fst));
+
+  NGramCounter<LogArc::Weight> counter(/*order=*/2);
+  ASSERT_TRUE(counter.Count(string_fst));
+  EXPECT_GT(counter.GetSize(), 0);
+
+  std::vector<std::pair<std::vector<int>, std::pair<int32_t, double>>>
+      ngram_counts;
+  counter.GetReverseContextNGrams<StdArc>(&ngram_counts);
+  EXPECT_FALSE(ngram_counts.empty());
+
+  bool found_start_1 = false;
+  bool found_1_2 = false;
+  bool found_2_3 = false;
+  bool found_3_end = false;
+  for (const auto& [context, word_count] : ngram_counts) {
+    if (context == std::vector<int>{0} && word_count.first == 1) {
+      found_start_1 = true;
+    } else if (context == std::vector<int>{1} && word_count.first == 2) {
+      found_1_2 = true;
+    } else if (context == std::vector<int>{2} && word_count.first == 3) {
+      found_2_3 = true;
+    } else if (context == std::vector<int>{3} && word_count.first == 0) {
+      found_3_end = true;
+    }
+  }
+  EXPECT_TRUE(found_start_1);
+  EXPECT_TRUE(found_1_2);
+  EXPECT_TRUE(found_2_3);
+  EXPECT_TRUE(found_3_end);
 }
 
 }  // namespace

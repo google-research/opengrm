@@ -112,8 +112,8 @@ class NGramCounter {
   void GetFst(fst::MutableFst<Arc>* fst, Label phi_label = -1) {
     fst->DeleteStates();
     if (Error()) return;
+    fst->AddStates(states_.size());
     for (size_t s = 0; s < states_.size(); ++s) {
-      fst->AddState();
       fst->SetFinal(s, typename Arc::Weight(states_[s].final_count.Value()));
       if (states_[s].backoff_state != -1) {
         Label label = phi_label >= 0 ? phi_label : 0;
@@ -132,6 +132,59 @@ class NGramCounter {
     fst::ArcSort(fst, fst::ILabelCompare<Arc>());
   }
 
+  // Returns strings of ngram counts, in reverse context order; e.g., for the
+  // ngram "feed the angry duck", returns "<{angry,the,feed}, <duck,count>>".
+  template <class Arc>
+  void GetReverseContextNGrams(
+      std::vector<std::pair<std::vector<int>, std::pair<Label, double>>>*
+          ngram_counts) {
+    if (Error()) return;
+    std::vector<int> incoming_words(states_.size(), -1);
+    std::vector<int> previous_states(states_.size(), -1);
+    if (order_ > 1) incoming_words[NGramStartState()] = 0;
+    for (size_t a = 0; a < arcs_.size(); ++a) {
+      const CountArc& arc = arcs_[a];
+      if (states_[arc.origin].order < states_[arc.destination].order) {
+        previous_states[arc.destination] = arc.origin;
+        incoming_words[arc.destination] = arc.label;
+      }
+    }
+    std::vector<std::vector<int>> reverse_context(states_.size());
+    for (size_t s = 0; s < states_.size(); ++s) {
+      int ps = s;
+      while (ps >= 0) {
+        if (incoming_words[ps] >= 0) {
+          reverse_context[s].push_back(incoming_words[ps]);
+        }
+        ps = previous_states[ps];
+      }
+      if (states_[s].final_count.Value() != Weight::Zero().Value()) {
+        ngram_counts->emplace_back(
+            reverse_context[s],
+            std::make_pair(0, states_[s].final_count.Value()));
+      }
+    }
+    for (size_t a = 0; a < arcs_.size(); ++a) {
+      const CountArc& arc = arcs_[a];
+      ngram_counts->emplace_back(reverse_context[arc.origin],
+                                 std::make_pair(arc.label, arc.count.Value()));
+    }
+  }
+
+  // Gets the start state of the counts (<s>).
+  ssize_t NGramStartState() const { return initial_; }
+
+  // Gets the unigram state of the counts.
+  ssize_t NGramUnigramState() const { return backoff_; }
+
+  // Gets the backoff state for a given state.
+  ssize_t NGramBackoffState(ssize_t state_id) const {
+    return states_[state_id].backoff_state;
+  }
+
+  // Size of ngram model is the sum of the number of states and number of arcs.
+  ssize_t GetSize() const { return states_.size() + arcs_.size(); }
+
   bool Error() const { return error_; }
 
  protected:
@@ -149,7 +202,7 @@ class NGramCounter {
         : backoff_state(s), order(o), final_count(c), first_arc(a) {}
   };
 
-  // Data represention for an arc.
+  // Data representation for an arc.
   struct CountArc {
     ssize_t origin;       // ID of the origin state for this arc.
     ssize_t destination;  // ID of the destination state for this arc.
