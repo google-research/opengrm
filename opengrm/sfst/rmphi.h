@@ -69,7 +69,6 @@ class RmPhiMapper {
       : fst_(fst.Copy()),
         phi_(phi),
         match_input_(match_input),
-        s_(fst::kNoStateId),
         i_(0),
         final_(Weight::Zero()),
         matcher_(*fst_, match_input_ ? fst::MATCH_INPUT : fst::MATCH_OUTPUT),
@@ -90,7 +89,6 @@ class RmPhiMapper {
         phi_(mapper.phi_),
         match_input_(mapper.match_input_),
         rewrite_both_(mapper.rewrite_both_),
-        s_(fst::kNoStateId),
         i_(0),
         final_(Weight::Zero()),
         matcher_(*fst_, match_input_ ? fst::MATCH_INPUT : fst::MATCH_OUTPUT),
@@ -130,7 +128,6 @@ class RmPhiMapper {
   Label phi_;
   bool match_input_;
   bool rewrite_both_;
-  mutable StateId s_;  // Current state.
 
   // Arc and final weight data.
   std::vector<Arc> arcs_;  // Current arcs.
