@@ -136,7 +136,7 @@ class RmPhiMapper {
   std::vector<Arc> arcs_;  // Current arcs.
   ssize_t i_;              // Current arc position.
   Weight final_;           // Current final weight.
-  mutable fst::Matcher<fst::Fst<Arc>> matcher_;
+  fst::Matcher<fst::Fst<Arc>> matcher_;
 
   // Failure path for current state
   mutable FailurePath<Arc> failpath_;
