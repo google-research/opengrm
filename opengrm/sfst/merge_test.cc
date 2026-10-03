@@ -25,6 +25,7 @@
 #include "openfst/lib/vector-fst.h"  // NOLINT(misc-include-cleaner)
 #include "opengrm/sfst/arpa.h"
 #include "opengrm/sfst/canonical.h"
+#include "opengrm/sfst/normalize.h"
 
 namespace sfst {
 namespace {
@@ -308,6 +309,166 @@ TEST(MergeTest, OneNullSymbolTableAllowed) {
   EXPECT_TRUE(BayesMerge(fst1, fst2, 0.5, 0.5, &out_fst));
   EXPECT_TRUE(IsCanonical(out_fst, fst::kNoLabel));
   EXPECT_NE(out_fst.InputSymbols(), nullptr);
+}
+
+TEST(MergeTest, LinearMergeWithCustomPhiLabel) {
+  fst::SymbolTable syms("SharedSymbols");
+  syms.AddSymbol("<epsilon>");  // 0
+  syms.AddSymbol("a");
+  syms.AddSymbol("b");
+  syms.AddSymbol("c");
+  syms.AddSymbol("d");
+
+  std::string arpa1 =
+      "\\data\\\n"
+      "ngram 2=1\n"
+      "\n"
+      "\\1-grams:\n"
+      "-0.5 a -0.3\n"
+      "\n"
+      "\\2-grams:\n"
+      "-0.2 a b\n"
+      "\n"
+      "\\end\\\n";
+  std::stringstream istrm1(arpa1);
+  fst::VectorFst<fst::StdArc> fst1;
+  fst1.SetInputSymbols(&syms);
+  fst1.SetOutputSymbols(&syms);
+  ReadArpa(istrm1, &fst1);
+
+  std::string arpa2 =
+      "\\data\\\n"
+      "ngram 2=1\n"
+      "\n"
+      "\\1-grams:\n"
+      "-0.5 c -0.3\n"
+      "\n"
+      "\\2-grams:\n"
+      "-0.2 c d\n"
+      "\n"
+      "\\end\\\n";
+  std::stringstream istrm2(arpa2);
+  fst::VectorFst<fst::StdArc> fst2;
+  fst2.SetInputSymbols(&syms);
+  fst2.SetOutputSymbols(&syms);
+  ReadArpa(istrm2, &fst2);
+
+  fst::VectorFst<fst::StdArc> out_fst;
+  EXPECT_TRUE(LinearMerge(fst1, fst2, 0.5, 0.5, &out_fst, /*phi_label=*/0));
+  EXPECT_TRUE(IsCanonical(out_fst, /*phi_label=*/0));
+
+  int epsilon_count = 0;
+  int knolabel_count = 0;
+  for (fst::StateIterator<fst::VectorFst<fst::StdArc>> siter(out_fst);
+       !siter.Done(); siter.Next()) {
+    for (fst::ArcIterator<fst::VectorFst<fst::StdArc>> aiter(out_fst,
+                                                             siter.Value());
+         !aiter.Done(); aiter.Next()) {
+      if (aiter.Value().ilabel == 0) ++epsilon_count;
+      if (aiter.Value().ilabel == fst::kNoLabel) ++knolabel_count;
+    }
+  }
+  EXPECT_GT(epsilon_count, 0);
+  EXPECT_EQ(knolabel_count, 0);
+}
+
+TEST(MergeTest, BayesMergeWithCustomPhiLabel) {
+  fst::SymbolTable syms("SharedSymbols");
+  syms.AddSymbol("<epsilon>");  // 0
+  syms.AddSymbol("a");
+  syms.AddSymbol("b");
+  syms.AddSymbol("c");
+  syms.AddSymbol("d");
+
+  std::string arpa1 =
+      "\\data\\\n"
+      "ngram 2=1\n"
+      "\n"
+      "\\1-grams:\n"
+      "-0.5 a -0.3\n"
+      "\n"
+      "\\2-grams:\n"
+      "-0.2 a b\n"
+      "\n"
+      "\\end\\\n";
+  std::stringstream istrm1(arpa1);
+  fst::VectorFst<fst::StdArc> fst1;
+  fst1.SetInputSymbols(&syms);
+  fst1.SetOutputSymbols(&syms);
+  ReadArpa(istrm1, &fst1);
+
+  std::string arpa2 =
+      "\\data\\\n"
+      "ngram 2=1\n"
+      "\n"
+      "\\1-grams:\n"
+      "-0.5 c -0.3\n"
+      "\n"
+      "\\2-grams:\n"
+      "-0.2 c d\n"
+      "\n"
+      "\\end\\\n";
+  std::stringstream istrm2(arpa2);
+  fst::VectorFst<fst::StdArc> fst2;
+  fst2.SetInputSymbols(&syms);
+  fst2.SetOutputSymbols(&syms);
+  ReadArpa(istrm2, &fst2);
+
+  fst::VectorFst<fst::StdArc> out_fst;
+  EXPECT_TRUE(BayesMerge(fst1, fst2, 0.5, 0.5, &out_fst, /*phi_label=*/0));
+  EXPECT_TRUE(IsCanonical(out_fst, /*phi_label=*/0));
+
+  int epsilon_count = 0;
+  int knolabel_count = 0;
+  for (fst::StateIterator<fst::VectorFst<fst::StdArc>> siter(out_fst);
+       !siter.Done(); siter.Next()) {
+    for (fst::ArcIterator<fst::VectorFst<fst::StdArc>> aiter(out_fst,
+                                                             siter.Value());
+         !aiter.Done(); aiter.Next()) {
+      if (aiter.Value().ilabel == 0) ++epsilon_count;
+      if (aiter.Value().ilabel == fst::kNoLabel) ++knolabel_count;
+    }
+  }
+  EXPECT_GT(epsilon_count, 0);
+  EXPECT_EQ(knolabel_count, 0);
+}
+
+TEST(MergeTest, MergeOpenGrmTopologyWithBosAndFinalWeights) {
+  fst::SymbolTable syms("SharedSymbols");
+  syms.AddSymbol("<epsilon>", 0);
+  syms.AddSymbol("a", 1);
+  syms.AddSymbol("b", 2);
+
+  auto make_opengrm_fst = [&](int label, float weight) {
+    fst::VectorFst<fst::StdArc> fst;
+    fst.SetInputSymbols(&syms);
+    fst.SetOutputSymbols(&syms);
+    const auto start = fst.AddState();
+    const auto unigram_state = fst.AddState();
+    const auto word_state = fst.AddState();
+    fst.SetStart(start);
+    fst.AddArc(start, fst::StdArc(0, 0, 0.0, unigram_state));
+    fst.SetFinal(unigram_state, fst::StdArc::Weight::One());
+    fst.AddArc(
+        unigram_state,
+        fst::StdArc(label, label, fst::StdArc::Weight(weight), word_state));
+    fst.SetFinal(word_state, fst::StdArc::Weight::One());
+    fst.AddArc(word_state,
+               fst::StdArc(0, 0, fst::StdArc::Weight::One(), unigram_state));
+    EXPECT_TRUE(RecalcBackoff(&fst, /*phi_label=*/0));
+    return fst;
+  };
+
+  auto fst1 = make_opengrm_fst(1, 1.0f);
+  auto fst2 = make_opengrm_fst(2, 2.0f);
+
+  fst::VectorFst<fst::StdArc> out_fst;
+  EXPECT_TRUE(LinearMerge(fst1, fst2, 0.5, 0.5, &out_fst, /*phi_label=*/0));
+  EXPECT_TRUE(IsCanonical(out_fst, /*phi_label=*/0));
+  EXPECT_TRUE(IsNormalized(out_fst, /*phi_label=*/0));
+  EXPECT_EQ(out_fst.NumStates(), 4);  // start, unigram, state_a, state_b
+  EXPECT_NE(internal::FindUnigramState(out_fst, /*phi_label=*/0),
+            fst::kNoStateId);
 }
 
 }  // namespace
