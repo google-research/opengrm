@@ -105,7 +105,7 @@ class ArcmapTest(absltest.TestCase):
 
   def testGarbageMapTypeRaisesFstArgError(self):
     with self.assertRaises(pynini.FstArgError):
-      pynini.arcmap(self.m1, map_type="nonexistent")  # pytype: disable=wrong-arg-types
+      pynini.arcmap(self.m1, map_type="nonexistent")  # pyrefly: ignore[bad-argument-type]
 
 
 class ArcsortTest(absltest.TestCase):
@@ -393,29 +393,29 @@ class ClosureTest(absltest.TestCase):
     with self.assertRaisesRegex(
         TypeError, r"The lower bound must be an integer"
     ):
-      unused_f = wordfst ** (..., 5)  # pytype: disable=unsupported-operands
+      unused_f = wordfst ** (..., 5)  # pyrefly: ignore[unsupported-operation]
 
   def testRangeClosureOperatorWithTupleArgNoFiniteBounds(self):
     wordfst = pynini.accep("word")
     with self.assertRaisesRegex(
         TypeError, r"The lower bound must be an integer"
     ):
-      unused_f = wordfst ** (..., ...)  # pytype: disable=unsupported-operands
+      unused_f = wordfst ** (..., ...)  # pyrefly: ignore[unsupported-operation]
 
   def testRangeClosureOperatorWithTupleArgWrongSizeZero(self):
     wordfst = pynini.accep("word")
     with self.assertRaisesRegex(ValueError, r"Expected tuple of length two"):
-      unused_f = wordfst ** ()  # pytype: disable=unsupported-operands
+      unused_f = wordfst ** ()  # pyrefly: ignore[unsupported-operation]
 
   def testRangeClosureOperatorWithTupleArgWrongSizeOne(self):
     wordfst = pynini.accep("word")
     with self.assertRaisesRegex(ValueError, r"Expected tuple of length two"):
-      unused_f = wordfst ** (2,)  # pytype: disable=unsupported-operands
+      unused_f = wordfst ** (2,)  # pyrefly: ignore[unsupported-operation]
 
   def testRangeClosureOperatorWithTupleArgWrongSizeThree(self):
     wordfst = pynini.accep("word")
     with self.assertRaisesRegex(ValueError, r"Expected tuple of length two"):
-      unused_f = wordfst ** (0, 1, 2)  # pytype: disable=unsupported-operands
+      unused_f = wordfst ** (0, 1, 2)  # pyrefly: ignore[unsupported-operation]
 
   def testRangeClosureOperatorWithListArg(self):
     wordfst = pynini.accep("word")
@@ -424,7 +424,7 @@ class ClosureTest(absltest.TestCase):
         r"unsupported operand type\(s\) for \*\* or pow\(\): '.*Fst' and"
         r" 'list'",
     ):
-      unused_f = wordfst ** [2, 3]  # pytype: disable=unsupported-operands
+      unused_f = wordfst ** [2, 3]  # pyrefly: ignore[unsupported-operation]
 
 
 class ComposeTest(absltest.TestCase):
@@ -550,7 +550,7 @@ class DeterminizeTest(absltest.TestCase):
 
   def testGarbageDetTypeRaisesFstArgError(self):
     with self.assertRaises(pynini.FstArgError):
-      pynini.determinize(self.d1, det_type="nonexistent")  # pytype: disable=wrong-arg-types
+      pynini.determinize(self.d1, det_type="nonexistent")  # pyrefly: ignore[bad-argument-type]
 
 
 class DifferenceTest(absltest.TestCase):
@@ -802,43 +802,43 @@ class ExceptionsTest(absltest.TestCase):
 
   def testGarbageComposeFilterComposeRaisesFstArgError(self):
     with self.assertRaises(pynini.FstArgError):
-      pynini.compose(self.f, self.f, compose_filter="nonexistent")  # pytype: disable=wrong-arg-types
+      pynini.compose(self.f, self.f, compose_filter="nonexistent")  # pyrefly: ignore[bad-argument-type]
 
   def testGarbageComposeFilterDifferenceRaisesFstArgError(self):
     with self.assertRaises(pynini.FstArgError):
-      pynini.difference(self.f, self.f, compose_filter="nonexistent")  # pytype: disable=wrong-arg-types
+      pynini.difference(self.f, self.f, compose_filter="nonexistent")  # pyrefly: ignore[bad-argument-type]
 
   def testGarbageQueueTypeRmepsilonRaisesFstArgError(self):
     with self.assertRaises(pynini.FstArgError):
-      pynini.rmepsilon(self.f, queue_type="nonexistent")  # pytype: disable=wrong-arg-types
+      pynini.rmepsilon(self.f, queue_type="nonexistent")  # pyrefly: ignore[bad-argument-type]
 
   def testGarbageQueueTypeShortestDistanceRaisesFstArgError(self):
     with self.assertRaises(pynini.FstArgError):
-      pynini.shortestdistance(self.f, queue_type="nonexistent")  # pytype: disable=wrong-arg-types
+      pynini.shortestdistance(self.f, queue_type="nonexistent")  # pyrefly: ignore[bad-argument-type]
 
   def testGarbageQueueTypeShortestPathRaisesFstArgError(self):
     with self.assertRaises(pynini.FstArgError):
-      pynini.shortestpath(self.f, queue_type="nonexistent")  # pytype: disable=wrong-arg-types
+      pynini.shortestpath(self.f, queue_type="nonexistent")  # pyrefly: ignore[bad-argument-type]
 
   def testGarbageSelectTypeRandgenRaisesFstArgError(self):
     with self.assertRaises(pynini.FstArgError):
-      pynini.randgen(self.f, select="nonexistent")  # pytype: disable=wrong-arg-types
+      pynini.randgen(self.f, select="nonexistent")  # pyrefly: ignore[bad-argument-type]
 
   def testGarbageCallArcLabelingReplaceRaisesFstArgError(self):
     with self.assertRaises(pynini.FstArgError):
-      pynini.replace([(1, self.f)], call_arc_labeling="nonexistent")  # pytype: disable=wrong-arg-types
+      pynini.replace([(1, self.f)], call_arc_labeling="nonexistent")  # pyrefly: ignore[bad-argument-type]
 
   def testGarbageReturnArcLabelingReplaceRaisesFstArgError(self):
     with self.assertRaises(pynini.FstArgError):
-      pynini.replace([(1, self.f)], return_arc_labeling="nonexistent")  # pytype: disable=wrong-arg-types
+      pynini.replace([(1, self.f)], return_arc_labeling="nonexistent")  # pyrefly: ignore[bad-argument-type]
 
   def testGarbageInputTokenTypeStringFileRaisesFstArgError(self):
     with self.assertRaises(pynini.FstArgError):
-      pynini.string_file(self.map_file, input_token_type="nonexistent")  # pytype: disable=wrong-arg-types
+      pynini.string_file(self.map_file, input_token_type="nonexistent")  # pyrefly: ignore[bad-argument-type]
 
   def testGarbageOutputTokenTypeStringFileRaisesFstArgError(self):
     with self.assertRaises(pynini.FstArgError):
-      pynini.string_file(self.map_file, output_token_type="nonexistent")  # pytype: disable=wrong-arg-types
+      pynini.string_file(self.map_file, output_token_type="nonexistent")  # pyrefly: ignore[bad-argument-type]
 
   def testNonexistentStringFileRaisesFstIOError(self):
     with self.assertRaises(pynini.FstIOError):
@@ -846,19 +846,19 @@ class ExceptionsTest(absltest.TestCase):
 
   def testGarbageInputTokenTypeStringMapRaisesFstArgError(self):
     with self.assertRaises(pynini.FstArgError):
-      pynini.string_map([], input_token_type="nonexistent")  # pytype: disable=wrong-arg-types
+      pynini.string_map([], input_token_type="nonexistent")  # pyrefly: ignore[bad-argument-type]
 
   def testGarbageOutputTokenTypeStringMapRaisesFstArgError(self):
     with self.assertRaises(pynini.FstArgError):
-      pynini.string_map([], output_token_type="nonexistent")  # pytype: disable=wrong-arg-types
+      pynini.string_map([], output_token_type="nonexistent")  # pyrefly: ignore[bad-argument-type]
 
   def testGarbageInputTokenTypeStringPathIteratorRaisesFstArgError(self):
     with self.assertRaises(pynini.FstArgError):
-      self.f.paths(input_token_type="nonexistent")  # pytype: disable=wrong-arg-types
+      self.f.paths(input_token_type="nonexistent")  # pyrefly: ignore[bad-argument-type]
 
   def testGarbageOutputTokenTypeStringPathIteratorRaisesFstArgError(self):
     with self.assertRaises(pynini.FstArgError):
-      self.f.paths(output_token_type="nonexistent")  # pytype: disable=wrong-arg-types
+      self.f.paths(output_token_type="nonexistent")  # pyrefly: ignore[bad-argument-type]
 
   def testTransducerDifferenceRaisesFstArgError(self):
     with self.assertRaises(pynini.FstOpError):
@@ -1448,9 +1448,9 @@ class ProjectTest(absltest.TestCase):
     # Ensure that Thrax-style projections raise errors instead of silently doing
     # something unexpected.
     with self.assertRaises(TypeError):
-      pynini.project(self.p1, True)  # pytype: disable=wrong-arg-types
+      pynini.project(self.p1, True)  # pyrefly: ignore[bad-argument-type]
     with self.assertRaises(TypeError):
-      pynini.project(self.p1, False)  # pytype: disable=wrong-arg-types
+      pynini.project(self.p1, False)  # pyrefly: ignore[bad-argument-type]
 
 
 class PruneTest(absltest.TestCase):
@@ -2638,12 +2638,12 @@ class DefaultTokenTypeContextManagerTest(parameterized.TestCase):
 
   def testGarbageTokenTypeString(self):
     with self.assertRaises(pynini.FstArgError):
-      with pynini.default_token_type("nonexistent"):  # pytype: disable=wrong-arg-types
+      with pynini.default_token_type("nonexistent"):  # pyrefly: ignore[bad-argument-type]
         pass
 
   def testGarbageTokenTypeInt(self):
     with self.assertRaises(TypeError):
-      with pynini.default_token_type(52):  # pytype: disable=wrong-arg-types
+      with pynini.default_token_type(52):  # pyrefly: ignore[bad-argument-type]
         pass
 
 
