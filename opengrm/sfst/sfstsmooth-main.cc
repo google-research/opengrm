@@ -32,6 +32,7 @@ ABSL_DECLARE_FLAG(double, witten_bell_k);
 ABSL_DECLARE_FLAG(double, discount_D);
 ABSL_DECLARE_FLAG(int64_t, phi_label);
 ABSL_DECLARE_FLAG(int64_t, bins);
+ABSL_DECLARE_FLAG(bool, backoff);
 
 int sfstsmooth_main(int argc, char** argv) {
   std::string usage = "Smooth SFST models.\n\n";
@@ -57,24 +58,27 @@ int sfstsmooth_main(int argc, char** argv) {
   }
 
   std::string method = absl::GetFlag(FLAGS_method);
-  int64_t phi_label = absl::GetFlag(FLAGS_phi_label);
+  const int64_t phi_label = absl::GetFlag(FLAGS_phi_label);
+  const bool backoff = absl::GetFlag(FLAGS_backoff);
   bool success = false;
 
   if (method == "witten_bell") {
     success = sfst::WittenBell(fst.get(), phi_label,
-                               absl::GetFlag(FLAGS_witten_bell_k));
+                               absl::GetFlag(FLAGS_witten_bell_k), backoff);
   } else if (method == "absolute") {
     success = sfst::AbsoluteDiscounting(fst.get(), phi_label,
-                                        absl::GetFlag(FLAGS_discount_D));
+                                        absl::GetFlag(FLAGS_discount_D),
+                                        /*bins=*/1, backoff);
   } else if (method == "unsmoothed") {
     success = sfst::Unsmoothed(fst.get(), phi_label);
   } else if (method == "kneser_ney") {
     success =
-        sfst::KneserNey(fst.get(), phi_label, absl::GetFlag(FLAGS_discount_D));
+        sfst::KneserNey(fst.get(), phi_label, absl::GetFlag(FLAGS_discount_D),
+                        /*bins=*/1, backoff);
   } else if (method == "modified_kneser_ney") {
     int bins = absl::GetFlag(FLAGS_bins);
     if (bins <= 0) bins = 3;
-    success = sfst::ModifiedKneserNey(fst.get(), phi_label, bins);
+    success = sfst::ModifiedKneserNey(fst.get(), phi_label, bins, backoff);
   } else if (method == "katz") {
     success = sfst::Katz(fst.get(), phi_label, absl::GetFlag(FLAGS_bins));
   } else if (method == "presmoothed") {
