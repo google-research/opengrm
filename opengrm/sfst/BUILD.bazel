@@ -61,7 +61,6 @@ cc_library(
         "@com_google_absl//absl/types:span",
         "@com_google_openfst//openfst/compat:fastmath",
         "@com_google_openfst//openfst/lib",
-        "@com_google_openfst//openfst/lib:symbol-table",
         "@com_google_openfst//openfst/lib:util",
         "@com_google_openfst//openfst/lib:weight",
     ],
@@ -459,6 +458,7 @@ cc_binary(
     linkstatic = 0,
     deps = [
         ":sfstsmooth-main",  # buildcleaner: keep
+        ":smooth",
         "@com_google_absl//absl/flags:flag",
         "@com_google_openfst//openfst/lib:lib_lite",
     ],
