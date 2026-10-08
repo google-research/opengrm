@@ -237,6 +237,40 @@ void Backoff<Arc>::FindBackedOffArcs(StateId s) {
   }
 }
 
+// Returns the backoff destination state from `state` along `phi_label` (or
+// `fst::kNoLabel`), optionally recording the arc position in `bo_pos`, or
+// returns `fst::kNoStateId` if no backoff transition exists.
+template <class Arc>
+typename Arc::StateId GetBackoffState(
+    const fst::Fst<Arc>& fst, typename Arc::StateId state,
+    typename Arc::Label phi_label = fst::kNoLabel, size_t* bo_pos = nullptr) {
+  if (state == fst::kNoStateId) return fst::kNoStateId;
+  for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, state); !aiter.Done();
+       aiter.Next()) {
+    const auto& arc = aiter.Value();
+    if (arc.ilabel == phi_label || arc.ilabel == fst::kNoLabel) {
+      if (bo_pos != nullptr) *bo_pos = aiter.Position();
+      return arc.nextstate;
+    }
+  }
+  return fst::kNoStateId;
+}
+
+// Returns the unigram state (empty history state) of the FST if `fst.Start()`
+// has a backoff transition to a different state; otherwise returns
+// `fst::kNoStateId`.
+template <class Arc>
+typename Arc::StateId FindUnigramState(
+    const fst::Fst<Arc>& fst, typename Arc::Label phi_label = fst::kNoLabel) {
+  using StateId = typename Arc::StateId;
+  StateId start_state = fst.Start();
+  if (start_state == fst::kNoStateId) return fst::kNoStateId;
+  StateId bo_state = GetBackoffState(fst, start_state, phi_label);
+  return (bo_state != fst::kNoStateId && bo_state != start_state)
+             ? bo_state
+             : fst::kNoStateId;
+}
+
 // Tests that the input is a backoff SFST (see above).
 template <class Arc>
 bool IsBackoffComplete(const fst::Fst<Arc>& fst,

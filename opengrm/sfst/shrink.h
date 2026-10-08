@@ -41,6 +41,7 @@
 #include "openfst/lib/matcher.h"
 #include "openfst/lib/mutable-fst.h"
 #include "openfst/lib/symbol-table.h"
+#include "opengrm/sfst/backoff.h"
 #include "opengrm/sfst/canonical.h"
 #include "opengrm/sfst/normalize.h"
 #include "opengrm/sfst/sfst.h"
@@ -48,27 +49,12 @@
 namespace sfst {
 namespace internal {
 
-template <class Arc>
-inline typename Arc::StateId GetBackoffState(const fst::Fst<Arc>& fst,
-                                             typename Arc::StateId state,
-                                             typename Arc::Label phi_label,
-                                             size_t* bo_pos = nullptr) {
-  if (state == fst::kNoStateId) return fst::kNoStateId;
-  for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, state); !aiter.Done();
-       aiter.Next()) {
-    if (aiter.Value().ilabel == phi_label) {
-      if (bo_pos != nullptr) *bo_pos = aiter.Position();
-      return aiter.Value().nextstate;
-    }
-  }
-  return fst::kNoStateId;
-}
-
 template <class Arc, class Matcher>
-inline bool ComputeStateAndBackoffSums(
-    const fst::Fst<Arc>& fst, typename Arc::StateId state,
-    typename Arc::Label phi_label, Matcher& matcher, typename Arc::StateId* bo,
-    double* hi_neglog_sum, double* low_neglog_sum) {
+bool ComputeStateAndBackoffSums(const fst::Fst<Arc>& fst,
+                                typename Arc::StateId state,
+                                typename Arc::Label phi_label, Matcher& matcher,
+                                typename Arc::StateId* bo,
+                                double* hi_neglog_sum, double* low_neglog_sum) {
   *bo = GetBackoffState(fst, state, phi_label);
   if (*bo == fst::kNoStateId) return false;
   *hi_neglog_sum = fst.Final(state).Value();
@@ -131,7 +117,7 @@ inline double ComputeStolckeScore(double log_prob_s, double nlog_backoff_num,
 }
 
 template <class Arc>
-inline void DeletePrunedArcs(
+void DeletePrunedArcs(
     fst::MutableFst<Arc>* fst,
     const std::vector<std::pair<typename Arc::StateId, typename Arc::Label>>&
         to_prune) {
@@ -148,7 +134,7 @@ inline void DeletePrunedArcs(
 }
 
 template <class Arc>
-inline void PruneFinalAndDeadStates(
+void PruneFinalAndDeadStates(
     fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
     const std::vector<int>& orders,
     const std::vector<typename Arc::StateId>& finals_to_prune) {
@@ -219,7 +205,7 @@ void ComputeStateProbs(const fst::ExpandedFst<Arc>& fst,
   probs->resize(fst.NumStates(), 0.0);
   if (fst.Start() == fst::kNoStateId) return;
   auto unigram_state = fst.Start();
-  const auto bo = internal::GetBackoffState(fst, unigram_state, phi_label);
+  const auto bo = GetBackoffState(fst, unigram_state, phi_label);
   if (bo != fst::kNoStateId) unigram_state = bo;
   (*probs)[unigram_state] = 1.0;
   if (unigram_state != fst.Start()) {
@@ -899,9 +885,8 @@ inline void ReadNGramList(
 
 // Reads a word set from a file or comma-separated list of symbols.
 template <class Label>
-inline void ReadWordSet(absl::string_view word_set_spec,
-                        const fst::SymbolTable* syms,
-                        absl::flat_hash_set<Label>* word_set) {
+void ReadWordSet(absl::string_view word_set_spec, const fst::SymbolTable* syms,
+                 absl::flat_hash_set<Label>* word_set) {
   if (word_set_spec.empty()) return;
   std::string file_path(word_set_spec);
   std::ifstream strm(file_path);

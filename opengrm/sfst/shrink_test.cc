@@ -384,8 +384,7 @@ TEST(ShrinkEdgeCaseTest, ComputeStateProbsEmptyFst) {
   std::vector<double> probs;
   ComputeStateProbs(empty_fst, /*phi_label=*/0, orders, &probs);
   EXPECT_TRUE(probs.empty());
-  EXPECT_EQ(internal::GetBackoffState(empty_fst, fst::kNoStateId,
-                                      /*phi_label=*/0),
+  EXPECT_EQ(GetBackoffState(empty_fst, fst::kNoStateId, /*phi_label=*/0),
             fst::kNoStateId);
 }
 
