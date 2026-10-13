@@ -18,9 +18,9 @@
 
 #include <string>
 
-#include "openfst/compat/init.h"
 #include "absl/flags/flag.h"
 #include "absl/log/log.h"
+#include "openfst/compat/init.h"
 #include "opengrm/thrax/grm-compiler.h"
 
 ABSL_FLAG(std::string, input_grammar, "", "Path to the grammar file");

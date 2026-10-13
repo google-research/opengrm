@@ -25,10 +25,10 @@
 #include <utility>
 #include <vector>
 
-#include "openfst/compat/init.h"
 #include "absl/flags/flag.h"
 #include "absl/log/check.h"
 #include "absl/log/log.h"
+#include "openfst/compat/init.h"
 #include "openfst/lib/arc.h"
 #include "openfst/lib/fst.h"
 #include "openfst/lib/randgen.h"
