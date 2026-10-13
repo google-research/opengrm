@@ -20,12 +20,12 @@
 #include <random>
 #include <string>
 
-#include "absl/flags/usage.h"
-#include "openfst/compat/init.h"
 #include "absl/flags/declare.h"
 #include "absl/flags/flag.h"
 #include "absl/log/flags.h"
 #include "absl/log/log.h"
+#include "absl/flags/usage.h"
+#include "openfst/compat/init.h"
 #include "openfst/script/fst-class.h"
 #include "openfst/script/getters.h"
 #include "opengrm/baumwelch/randomizescript.h"
