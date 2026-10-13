@@ -28,6 +28,7 @@
 #include "openfst/lib/vector-fst.h"  // NOLINT(misc-include-cleaner)
 #include "opengrm/sfst/canonical.h"
 #include "opengrm/sfst/normalize.h"
+#include "opengrm/sfst/sfst.h"
 
 namespace sfst {
 
@@ -326,8 +327,9 @@ TEST_F(SmoothTest, PreSmoothedZeroBackoffMassTest) {
     const auto& arc = aiter.Value();
     EXPECT_FALSE(std::isnan(arc.weight.Value()));
     if (arc.ilabel == 0) {
-      // Backoff arc receives Weight::Zero() because backoff mass was 0.
-      EXPECT_EQ(arc.weight, Weight::Zero());
+      // Backoff arc receives kApproxZeroWeight after RecalcBackoff when
+      // backoff mass is 0.
+      EXPECT_EQ(arc.weight, Weight(kApproxZeroWeight.Value()));
     }
   }
 }
@@ -530,6 +532,66 @@ TEST(ComputeAbsoluteDiscountsTest, AllDiscountingModes) {
   EXPECT_LT(discounts[2][2], 2.0);
   EXPECT_GT(discounts[2][3], 0.0);
   EXPECT_LT(discounts[2][3], 3.0);
+}
+
+TEST_F(SmoothTest, AllSmoothersProduceNormalizedModelsTest) {
+  {
+    fst::VectorFst<Arc> fst(fst_);
+    EXPECT_TRUE(
+        WittenBell(&fst, /*phi_label=*/0, /*k=*/1.0, /*backoff=*/false));
+    EXPECT_TRUE(IsNormalized(fst, /*phi_label=*/0));
+  }
+  {
+    fst::VectorFst<Arc> fst(fst_);
+    EXPECT_TRUE(WittenBell(&fst, /*phi_label=*/0, /*k=*/1.0, /*backoff=*/true));
+    EXPECT_TRUE(IsNormalized(fst, /*phi_label=*/0));
+  }
+  {
+    fst::VectorFst<Arc> fst(fst_);
+    EXPECT_TRUE(AbsoluteDiscounting(&fst, /*phi_label=*/0, kDiscountD,
+                                    /*bins=*/1, /*backoff=*/false));
+    EXPECT_TRUE(IsNormalized(fst, /*phi_label=*/0));
+  }
+  {
+    fst::VectorFst<Arc> fst(fst_);
+    EXPECT_TRUE(AbsoluteDiscounting(&fst, /*phi_label=*/0, /*D=*/0.75,
+                                    /*bins=*/1, /*backoff=*/true));
+    EXPECT_TRUE(IsNormalized(fst, /*phi_label=*/0));
+  }
+  {
+    fst::VectorFst<Arc> fst(fst_);
+    EXPECT_TRUE(KneserNey(&fst, /*phi_label=*/0, kDiscountD, /*bins=*/1,
+                          /*backoff=*/false));
+    EXPECT_TRUE(IsNormalized(fst, /*phi_label=*/0));
+  }
+  {
+    fst::VectorFst<Arc> fst(fst_);
+    EXPECT_TRUE(KneserNey(&fst, /*phi_label=*/0, /*D=*/0.75, /*bins=*/1,
+                          /*backoff=*/true));
+    EXPECT_TRUE(IsNormalized(fst, /*phi_label=*/0));
+  }
+  {
+    fst::VectorFst<Arc> fst(fst_);
+    EXPECT_TRUE(ModifiedKneserNey(&fst, /*phi_label=*/0, /*bins=*/3,
+                                  /*backoff=*/false));
+    EXPECT_TRUE(IsNormalized(fst, /*phi_label=*/0));
+  }
+  {
+    fst::VectorFst<Arc> fst(fst_);
+    EXPECT_TRUE(ModifiedKneserNey(&fst, /*phi_label=*/0, /*bins=*/3,
+                                  /*backoff=*/true));
+    EXPECT_TRUE(IsNormalized(fst, /*phi_label=*/0));
+  }
+  {
+    fst::VectorFst<Arc> fst(fst_);
+    EXPECT_TRUE(Katz(&fst, /*phi_label=*/0));
+    EXPECT_TRUE(IsNormalized(fst, /*phi_label=*/0));
+  }
+  {
+    fst::VectorFst<Arc> fst(fst_);
+    EXPECT_TRUE(PreSmoothed(&fst, /*phi_label=*/0));
+    EXPECT_TRUE(IsNormalized(fst, /*phi_label=*/0));
+  }
 }
 
 }  // namespace sfst

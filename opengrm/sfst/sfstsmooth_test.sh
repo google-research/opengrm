@@ -50,6 +50,6 @@ if [[ ! -s "${TEST_TMPDIR}/earnest-${method}.mod" ]]; then
   exit 1
 fi
 
-"${BIN}/sfstinfo" "${TEST_TMPDIR}/earnest-${method}.mod" > /dev/null
+"${BIN}/sfstinfo" "${TEST_TMPDIR}/earnest-${method}.mod" | grep -q "normalized.*y"
 
 echo "PASS"

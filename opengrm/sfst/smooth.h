@@ -34,13 +34,18 @@
 #include "opengrm/sfst/sfst.h"
 
 namespace sfst {
+
+// Sentinel discount parameter value indicating automatic Good-Turing /
+// Ney-Essen-Kneser discount estimation (D = n_1 / (n_1 + 2 * n_2)).
+inline constexpr double kDiscountD = -1.0;
+
 namespace internal {
 
 template <class Arc>
-inline void GetStateCountData(const fst::Fst<Arc>& fst, typename Arc::StateId s,
-                              typename Arc::Label phi_label,
-                              typename Arc::Weight* c_h_weight,
-                              ssize_t* phi_pos, size_t* T_h) {
+void GetStateCountData(const fst::Fst<Arc>& fst, typename Arc::StateId s,
+                       typename Arc::Label phi_label,
+                       typename Arc::Weight* c_h_weight, ssize_t* phi_pos,
+                       size_t* T_h) {
   using Weight = typename Arc::Weight;
   *c_h_weight = Weight::Zero();
   *phi_pos = -1;
@@ -57,6 +62,45 @@ inline void GetStateCountData(const fst::Fst<Arc>& fst, typename Arc::StateId s,
   }
   if (fst.Final(s) != Weight::Zero()) {
     ++(*T_h);
+  }
+}
+
+// Interpolates discounted probabilities at state s with lower-order
+// probabilities at backoff state bo using the state's raw backoff_weight.
+template <class Arc>
+void InterpolateStateWithBackoff(fst::MutableFst<Arc>* fst,
+                                 typename Arc::StateId s,
+                                 typename Arc::StateId bo,
+                                 typename Arc::Label phi_label,
+                                 double backoff_weight) {
+  if (bo == fst::kNoStateId ||
+      backoff_weight >= fst::Log64Weight::Zero().Value()) {
+    return;
+  }
+  using Weight = typename Arc::Weight;
+  const fst::WeightConvert<Weight, fst::Log64Weight> to_log64;
+  const fst::WeightConvert<fst::Log64Weight, Weight> from_log64;
+  fst::ExplicitMatcher<fst::SortedMatcher<fst::MutableFst<Arc>>> matcher(
+      fst, fst::MATCH_INPUT);
+  matcher.SetState(bo);
+  for (fst::MutableArcIterator<fst::MutableFst<Arc>> aiter(fst, s);
+       !aiter.Done(); aiter.Next()) {
+    auto arc = aiter.Value();
+    if (arc.ilabel == phi_label) continue;
+    if (matcher.Find(arc.ilabel)) {
+      const double hi_w = to_log64(arc.weight).Value();
+      const double lo_w = to_log64(matcher.Value().weight).Value();
+      arc.weight =
+          from_log64(fst::Log64Weight(NegLogSum(hi_w, backoff_weight + lo_w)));
+      aiter.SetValue(arc);
+    }
+  }
+  if (fst->Final(s) != Weight::Zero() && fst->Final(bo) != Weight::Zero()) {
+    const double hi_w = to_log64(fst->Final(s)).Value();
+    const double lo_w = to_log64(fst->Final(bo)).Value();
+    fst->SetFinal(
+        s,
+        from_log64(fst::Log64Weight(NegLogSum(hi_w, backoff_weight + lo_w))));
   }
 }
 
@@ -157,7 +201,7 @@ bool Unsmoothed(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label) {
 // phi arc (as done by NGramCounter::StateCounts).
 template <class Arc>
 bool WittenBell(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
-                double k = 1.0) {
+                double k = 1.0, bool backoff = false) {
   if (!IsCanonical(*fst, phi_label)) {
     LOG(ERROR) << "WittenBell: input is not a canonical SFST";
     return false;
@@ -166,44 +210,57 @@ bool WittenBell(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
   using Weight = typename Arc::Weight;
   const fst::WeightConvert<Weight, fst::Log64Weight> to_log64;
   const fst::WeightConvert<fst::Log64Weight, Weight> from_log64;
-  for (StateId s = 0; s < fst->NumStates(); ++s) {
-    Weight c_h_weight;
-    ssize_t phi_pos;
-    size_t T_h;
-    internal::GetStateCountData(*fst, s, phi_label, &c_h_weight, &phi_pos,
-                                &T_h);
-    if (phi_pos == -1) {
-      if (fst->NumArcs(s) > 0 || fst->Final(s) != Weight::Zero()) {
-        if (!LocalNormalizeState(s, fst)) return false;
+  std::vector<int> orders;
+  PhiStateOrder(*fst, phi_label, &orders);
+  int max_order = 0;
+  for (int o : orders) max_order = std::max(max_order, o);
+  for (int order = 1; order <= max_order; ++order) {
+    for (StateId s = 0; s < fst->NumStates(); ++s) {
+      if (orders[s] != order) continue;
+      Weight c_h_weight;
+      ssize_t phi_pos;
+      size_t T_h;
+      internal::GetStateCountData(*fst, s, phi_label, &c_h_weight, &phi_pos,
+                                  &T_h);
+      if (phi_pos == -1) {
+        if (fst->NumArcs(s) > 0 || fst->Final(s) != Weight::Zero()) {
+          if (!LocalNormalizeState(s, fst)) return false;
+        }
+        continue;
       }
-      continue;
-    }
-    double c_h = to_log64(c_h_weight).Value();
-    // Counts are assumed to be stored as negative log counts.
-    double c_h_val = std::exp(-c_h);
-    double denominator = c_h_val + k * T_h;
-    double log_denominator = std::log(denominator);
-    double backoff_weight = (k * T_h > 0) ? -std::log((k * T_h) / denominator)
-                                          : fst::Log64Weight::Zero().Value();
-    // Updates arcs.
-    for (fst::MutableArcIterator<fst::MutableFst<Arc>> aiter(fst, s);
-         !aiter.Done(); aiter.Next()) {
-      auto arc = aiter.Value();
-      if (arc.ilabel == phi_label) {
-        arc.weight = from_log64(fst::Log64Weight(backoff_weight));
-      } else {
-        double w = to_log64(arc.weight).Value();
-        arc.weight = from_log64(fst::Log64Weight(w + log_denominator));
+      double c_h = to_log64(c_h_weight).Value();
+      // Counts are assumed to be stored as negative log counts.
+      double c_h_val = std::exp(-c_h);
+      double denominator = c_h_val + k * T_h;
+      double log_denominator = std::log(denominator);
+      double backoff_weight = (k * T_h > 0) ? -std::log((k * T_h) / denominator)
+                                            : fst::Log64Weight::Zero().Value();
+      StateId bo = fst::kNoStateId;
+      // Updates arcs.
+      for (fst::MutableArcIterator<fst::MutableFst<Arc>> aiter(fst, s);
+           !aiter.Done(); aiter.Next()) {
+        auto arc = aiter.Value();
+        if (arc.ilabel == phi_label) {
+          bo = arc.nextstate;
+          arc.weight = from_log64(fst::Log64Weight(backoff_weight));
+        } else {
+          double w = to_log64(arc.weight).Value();
+          arc.weight = from_log64(fst::Log64Weight(w + log_denominator));
+        }
+        aiter.SetValue(arc);
       }
-      aiter.SetValue(arc);
-    }
-    // Updates final weight.
-    if (fst->Final(s) != Weight::Zero()) {
-      double w = to_log64(fst->Final(s)).Value();
-      fst->SetFinal(s, from_log64(fst::Log64Weight(w + log_denominator)));
+      // Updates final weight.
+      if (fst->Final(s) != Weight::Zero()) {
+        double w = to_log64(fst->Final(s)).Value();
+        fst->SetFinal(s, from_log64(fst::Log64Weight(w + log_denominator)));
+      }
+      if (!backoff) {
+        internal::InterpolateStateWithBackoff(fst, s, bo, phi_label,
+                                              backoff_weight);
+      }
     }
   }
-  return true;
+  return RecalcBackoff(fst, phi_label);
 }
 
 // Absolute Discounting smoothing.
@@ -217,8 +274,8 @@ bool WittenBell(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
 // phi arc (as done by NGramCounter::StateCounts).
 template <class Arc>
 bool AbsoluteDiscounting(fst::MutableFst<Arc>* fst,
-                         typename Arc::Label phi_label, double D = 0.75,
-                         int bins = 1) {
+                         typename Arc::Label phi_label, double D = kDiscountD,
+                         int bins = 1, bool backoff = false) {
   if (!IsCanonical(*fst, phi_label)) {
     LOG(ERROR) << "AbsoluteDiscounting: input is not a canonical SFST";
     return false;
@@ -237,71 +294,80 @@ bool AbsoluteDiscounting(fst::MutableFst<Arc>* fst,
   std::vector<std::vector<double>> discounts;
   internal::ComputeAbsoluteDiscounts(bins, D, max_order, count_of_counts,
                                      &discounts);
-  for (StateId s = 0; s < fst->NumStates(); ++s) {
-    const int order = orders[s];
-    Weight c_h_weight;
-    ssize_t phi_pos;
-    size_t T_h;
-    internal::GetStateCountData(*fst, s, phi_label, &c_h_weight, &phi_pos,
-                                &T_h);
-    if (phi_pos == -1) {
-      if (fst->NumArcs(s) > 0 || fst->Final(s) != Weight::Zero()) {
-        if (!LocalNormalizeState(s, fst)) return false;
+  for (int order = 1; order <= max_order; ++order) {
+    for (StateId s = 0; s < fst->NumStates(); ++s) {
+      if (orders[s] != order) continue;
+      Weight c_h_weight;
+      ssize_t phi_pos;
+      size_t T_h;
+      internal::GetStateCountData(*fst, s, phi_label, &c_h_weight, &phi_pos,
+                                  &T_h);
+      if (phi_pos == -1) {
+        if (fst->NumArcs(s) > 0 || fst->Final(s) != Weight::Zero()) {
+          if (!LocalNormalizeState(s, fst)) return false;
+        }
+        continue;
       }
-      continue;
-    }
-    double c_h = to_log64(c_h_weight).Value();
-    double c_h_val = std::exp(-c_h);
-    double discounted_sum = 0;
-    // Removes discount D from each seen transition.
-    for (fst::MutableArcIterator<fst::MutableFst<Arc>> aiter(fst, s);
-         !aiter.Done(); aiter.Next()) {
-      auto arc = aiter.Value();
-      if (arc.ilabel != phi_label) {
-        const double c_hw = std::exp(-to_log64(arc.weight).Value());
-        const int r =
-            std::min(std::max(static_cast<int>(std::round(c_hw)), 1), bins);
+      double c_h = to_log64(c_h_weight).Value();
+      double c_h_val = std::exp(-c_h);
+      double discounted_sum = 0;
+      StateId bo = fst::kNoStateId;
+      // Removes discount D from each seen transition.
+      for (fst::MutableArcIterator<fst::MutableFst<Arc>> aiter(fst, s);
+           !aiter.Done(); aiter.Next()) {
+        auto arc = aiter.Value();
+        if (arc.ilabel == phi_label) {
+          bo = arc.nextstate;
+        } else {
+          const double c_hw = std::exp(-to_log64(arc.weight).Value());
+          const int r =
+              std::min(std::max(static_cast<int>(std::round(c_hw)), 1), bins);
+          const double D_r = discounts[order][r];
+          const double discounted_c = std::max(c_hw - D_r, 0.0);
+          discounted_sum += discounted_c;
+          arc.weight = from_log64(fst::Log64Weight(-std::log(discounted_c)));
+          aiter.SetValue(arc);
+        }
+      }
+      double final_discounted_c = 0;
+      if (fst->Final(s) != Weight::Zero()) {
+        const double c_h_final = std::exp(-to_log64(fst->Final(s)).Value());
+        const int r = std::min(
+            std::max(static_cast<int>(std::round(c_h_final)), 1), bins);
         const double D_r = discounts[order][r];
-        const double discounted_c = std::max(c_hw - D_r, 0.0);
-        discounted_sum += discounted_c;
-        arc.weight = from_log64(fst::Log64Weight(-std::log(discounted_c)));
+        final_discounted_c = std::max(c_h_final - D_r, 0.0);
+        discounted_sum += final_discounted_c;
+      }
+      double backoff_mass = c_h_val - discounted_sum;
+      if (backoff_mass < 0) backoff_mass = 0;  // Handles float imprecision.
+      double backoff_weight = (backoff_mass > 0)
+                                  ? -std::log(backoff_mass) - c_h
+                                  : fst::Log64Weight::Zero().Value();
+      // Normalizes probabilities.
+      for (fst::MutableArcIterator<fst::MutableFst<Arc>> aiter(fst, s);
+           !aiter.Done(); aiter.Next()) {
+        auto arc = aiter.Value();
+        if (arc.ilabel == phi_label) {
+          arc.weight = from_log64(fst::Log64Weight(backoff_weight));
+        } else {
+          double w = to_log64(arc.weight).Value();
+          arc.weight = from_log64(fst::Log64Weight(w - c_h));
+        }
         aiter.SetValue(arc);
       }
-    }
-    double final_discounted_c = 0;
-    if (fst->Final(s) != Weight::Zero()) {
-      const double c_h_final = std::exp(-to_log64(fst->Final(s)).Value());
-      const int r =
-          std::min(std::max(static_cast<int>(std::round(c_h_final)), 1), bins);
-      const double D_r = discounts[order][r];
-      final_discounted_c = std::max(c_h_final - D_r, 0.0);
-      discounted_sum += final_discounted_c;
-    }
-    double backoff_mass = c_h_val - discounted_sum;
-    if (backoff_mass < 0) backoff_mass = 0;  // Handles float imprecision.
-    double backoff_weight = (backoff_mass > 0)
-                                ? -std::log(backoff_mass) - c_h
-                                : fst::Log64Weight::Zero().Value();
-    // Normalizes probabilities.
-    for (fst::MutableArcIterator<fst::MutableFst<Arc>> aiter(fst, s);
-         !aiter.Done(); aiter.Next()) {
-      auto arc = aiter.Value();
-      if (arc.ilabel == phi_label) {
-        arc.weight = from_log64(fst::Log64Weight(backoff_weight));
-      } else {
-        double w = to_log64(arc.weight).Value();
-        arc.weight = from_log64(fst::Log64Weight(w - c_h));
+      if (fst->Final(s) != Weight::Zero()) {
+        double final_w = (final_discounted_c > 0)
+                             ? -std::log(final_discounted_c) - c_h
+                             : fst::Log64Weight::Zero().Value();
+        fst->SetFinal(s, from_log64(fst::Log64Weight(final_w)));
       }
-      aiter.SetValue(arc);
-    }
-    if (fst->Final(s) != Weight::Zero()) {
-      double final_w = (final_discounted_c > 0)
-                           ? -std::log(final_discounted_c) - c_h
-                           : fst::Log64Weight::Zero().Value();
-      fst->SetFinal(s, from_log64(fst::Log64Weight(final_w)));
+      if (!backoff) {
+        internal::InterpolateStateWithBackoff(fst, s, bo, phi_label,
+                                              backoff_weight);
+      }
     }
   }
-  return true;
+  return RecalcBackoff(fst, phi_label);
 }
 
 // Pre-smoothed: normalize by state count, leaving remainder in backoff.
@@ -369,7 +435,7 @@ bool PreSmoothed(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label) {
       fst->SetFinal(s, from_log64(fst::Log64Weight(w - c_h)));
     }
   }
-  return true;
+  return RecalcBackoff(fst, phi_label);
 }
 
 // Kneser-Ney smoothing.
@@ -383,7 +449,7 @@ bool PreSmoothed(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label) {
 // phi arc.
 template <class Arc>
 bool KneserNey(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
-               double D = 0.75, int bins = 1) {
+               double D = kDiscountD, int bins = 1, bool backoff = false) {
   if (!IsCanonical(*fst, phi_label)) {
     LOG(ERROR) << "KneserNey: input is not a canonical SFST";
     return false;
@@ -503,7 +569,7 @@ bool KneserNey(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
       aiter.SetValue(arc);
     }
   }
-  return AbsoluteDiscounting(fst, phi_label, D, bins);
+  return AbsoluteDiscounting(fst, phi_label, D, bins, backoff);
 }
 
 // Modified Kneser-Ney smoothing (Chen & Goodman 1998).
@@ -518,8 +584,8 @@ bool KneserNey(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
 // (D1, D2, D3+) estimated from the count-of-counts histogram.
 template <class Arc>
 bool ModifiedKneserNey(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
-                       int bins = 3) {
-  return KneserNey(fst, phi_label, -1.0, bins);
+                       int bins = 3, bool backoff = false) {
+  return KneserNey(fst, phi_label, kDiscountD, bins, backoff);
 }
 
 // Katz smoothing.
@@ -671,7 +737,7 @@ bool Katz(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
       fst->SetFinal(s, from_log64(fst::Log64Weight(final_w)));
     }
   }
-  return true;
+  return RecalcBackoff(fst, phi_label);
 }
 
 }  // namespace sfst
