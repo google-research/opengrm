@@ -27,7 +27,6 @@
 #include <string>
 #include <vector>
 
-#include "openfst/compat/init.h"
 #include "openfst/compat/file_path.h"
 #include "absl/flags/declare.h"
 #include "absl/flags/flag.h"
@@ -35,6 +34,7 @@
 #include "absl/random/bit_gen_ref.h"
 #include "absl/random/random.h"
 #include "absl/strings/str_cat.h"
+#include "openfst/compat/init.h"
 #include "openfst/extensions/far/far-type.h"
 #include "openfst/extensions/far/far-writer.h"
 #include "openfst/extensions/far/far.h"

@@ -23,8 +23,6 @@
 #include <string>
 #include <vector>
 
-#include "absl/flags/usage.h"
-#include "openfst/compat/init.h"
 #include "absl/flags/declare.h"
 #include "absl/flags/flag.h"
 #include "absl/log/check.h"
@@ -32,6 +30,8 @@
 #include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "absl/flags/usage.h"
+#include "openfst/compat/init.h"
 #include "openfst/extensions/far/far.h"
 #include "openfst/extensions/far/getters.h"
 #include "openfst/lib/arc.h"
