@@ -19,10 +19,10 @@
 #include <memory>
 #include <string>
 
-#include "absl/flags/usage.h"
-#include "openfst/compat/init.h"
 #include "absl/flags/declare.h"
 #include "absl/flags/flag.h"
+#include "absl/flags/usage.h"
+#include "openfst/compat/init.h"
 #include "openfst/lib/mutable-fst.h"
 #include "opengrm/ngram/ngram-marginalize.h"
 

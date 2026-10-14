@@ -21,10 +21,10 @@
 #include <memory>
 #include <string>
 
-#include "openfst/compat/init.h"
 #include "absl/flags/declare.h"
 #include "absl/flags/flag.h"
 #include "absl/log/log.h"
+#include "openfst/compat/init.h"
 #include "openfst/lib/symbol-table.h"
 #include "openfst/script/compile.h"
 #include "openfst/script/equal.h"
