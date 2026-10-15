@@ -22,25 +22,36 @@ readonly BIN="${TEST_SRCDIR}/${TEST_WORKSPACE}/opengrm/sfst"
 readonly TESTDATA="${TEST_SRCDIR}/${TEST_WORKSPACE}/opengrm/sfst/testdata"
 readonly TEST_TMPDIR="${TEST_TMPDIR:-$(mktemp -d)}"
 
-# Run sfstngramread to get an FST from ARPA.
+# Runs sfstngramread to get an FST from ARPA.
 "${BIN}/sfstngramread" \
   "${TESTDATA}/earnest.arpa" \
   "${TEST_TMPDIR}/earnest.fst"
 
-# Run sfstngramprint to generate ARPA again.
+# Runs sfstngramprint to generate ARPA again.
 "${BIN}/sfstngramprint" \
   "${TEST_TMPDIR}/earnest.fst" \
   "${TEST_TMPDIR}/earnest.arpa.out"
 
-# Verify output exists and is not empty.
+# Verifies output exists and is not empty.
 if [[ ! -s "${TEST_TMPDIR}/earnest.arpa.out" ]]; then
   echo "Error: Output file is empty or does not exist"
   exit 1
 fi
 
-# Verify it has typical ARPA headers.
+# Verifies it has typical ARPA headers.
 grep -q "\\\\data\\\\" "${TEST_TMPDIR}/earnest.arpa.out"
 grep -q "\\\\1-grams:" "${TEST_TMPDIR}/earnest.arpa.out"
 grep -q "\\\\end\\\\" "${TEST_TMPDIR}/earnest.arpa.out"
+
+# Verifies --symbols flag works when printing an FST with an external symbol table.
+"${BIN}/sfstngramprint" \
+  --symbols="${TESTDATA}/earnest.sym" \
+  "${TEST_TMPDIR}/earnest.fst" \
+  "${TEST_TMPDIR}/earnest.syms.arpa.out"
+
+if [[ ! -s "${TEST_TMPDIR}/earnest.syms.arpa.out" ]]; then
+  echo "Error: Output file with --symbols is empty or does not exist"
+  exit 1
+fi
 
 echo "PASS"

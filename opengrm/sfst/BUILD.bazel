@@ -229,6 +229,7 @@ cc_library(
         "@com_google_absl//absl/log",
         "@com_google_openfst//openfst/compat:init",
         "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:symbol-table",
     ],
 )
 
@@ -1227,6 +1228,7 @@ sh_test(
         ":sfstngramprint",
         ":sfstngramread",
         ":testdata/earnest.arpa",
+        ":testdata/earnest.sym",
         "@com_google_openfst//openfst/bin:setup",
     ],
 )

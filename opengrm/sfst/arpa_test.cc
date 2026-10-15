@@ -21,10 +21,10 @@
 
 #include "gtest/gtest.h"
 #include "absl/strings/match.h"
-#include "openfst/lib/arc.h"  // NOLINT(misc-include-cleaner)
+#include "openfst/lib/arc.h"
 #include "openfst/lib/fst.h"
 #include "openfst/lib/symbol-table.h"
-#include "openfst/lib/vector-fst.h"  // NOLINT(misc-include-cleaner)
+#include "openfst/lib/vector-fst.h"
 #include "opengrm/sfst/canonical.h"
 
 namespace sfst {
@@ -51,7 +51,7 @@ TEST(ArpaTest, ReadBasic) {
   EXPECT_TRUE(ReadArpa(istrm, &fst));
   // Start state + 3 unigram histories = 4 states in canonical 2-gram topology.
   EXPECT_EQ(fst.NumStates(), 4);
-  EXPECT_TRUE(IsCanonical(fst, fst::kNoLabel));  // NOLINT(misc-include-cleaner)
+  EXPECT_TRUE(IsCanonical(fst, fst::kNoLabel));
 }
 
 TEST(ArpaTest, WriteBasic) {
@@ -80,6 +80,30 @@ TEST(ArpaTest, WriteBasic) {
   EXPECT_TRUE(absl::StrContains(output, "b"));
 }
 
+TEST(ArpaTest, WriteWithExternalSymbolTable) {
+  fst::VectorFst<fst::StdArc> fst;
+  auto s = fst.AddState();
+  fst.SetStart(s);
+  fst.AddArc(s, fst::StdArc(1, 1, 0.5, fst.AddState()));
+  fst.AddArc(s, fst::StdArc(2, 2, 1.0, fst.AddState()));
+  EXPECT_EQ(fst.InputSymbols(), nullptr);
+  fst::SymbolTable syms("ExternalSymbols");
+  syms.AddSymbol("<epsilon>");
+  syms.AddSymbol("alpha");
+  syms.AddSymbol("beta");
+  std::stringstream arpa_ostrm;
+  EXPECT_TRUE(WriteArpa(fst, arpa_ostrm, fst::kNoLabel, &syms));
+  std::string arpa_output = arpa_ostrm.str();
+  EXPECT_TRUE(absl::StrContains(arpa_output, "\\data\\"));
+  EXPECT_TRUE(absl::StrContains(arpa_output, "alpha"));
+  EXPECT_TRUE(absl::StrContains(arpa_output, "beta"));
+  std::stringstream text_ostrm;
+  EXPECT_TRUE(WriteText(fst, text_ostrm, fst::kNoLabel, &syms));
+  std::string text_output = text_ostrm.str();
+  EXPECT_TRUE(absl::StrContains(text_output, "alpha\t"));
+  EXPECT_TRUE(absl::StrContains(text_output, "beta\t"));
+}
+
 TEST(ArpaTest, ReadWriteSingleTrigramRoundTrip) {
   std::string arpa_data =
       "\\data\\\n"
@@ -93,8 +117,8 @@ TEST(ArpaTest, ReadWriteSingleTrigramRoundTrip) {
   fst::VectorFst<fst::StdArc> fst;
   EXPECT_TRUE(ReadArpa(istrm, &fst));
   EXPECT_EQ(fst.NumStates(), 6);
-  EXPECT_TRUE(IsCanonical(fst, fst::kNoLabel));  // NOLINT(misc-include-cleaner)
-  EXPECT_NE(fst.Start(), fst::kNoStateId);       // NOLINT(misc-include-cleaner)
+  EXPECT_TRUE(IsCanonical(fst, fst::kNoLabel));
+  EXPECT_NE(fst.Start(), fst::kNoStateId);
 
   std::stringstream ostrm;
   EXPECT_TRUE(WriteArpa(fst, ostrm));
@@ -129,7 +153,7 @@ TEST(ArpaTest, WriteSentenceBoundaries) {
   auto s0 = fst.AddState();
   fst.SetStart(s0);
   auto s1 = fst.AddState();
-  fst.AddArc(s0, fst::StdArc(3, 3, 0.5, s1));  // arc labeled 'a'
+  fst.AddArc(s0, fst::StdArc(3, 3, 0.5, s1));  // Arc labeled 'a'.
   fst.SetFinal(s1, fst::StdArc::Weight(1.0));
 
   std::stringstream ostrm;
@@ -285,7 +309,7 @@ TEST(ArpaTest, WriteSentenceBoundariesFallback) {
   auto s0 = fst.AddState();
   fst.SetStart(s0);
   auto s1 = fst.AddState();
-  fst.AddArc(s0, fst::StdArc(3, 3, 2.0, s1));  // arc labeled 'word'
+  fst.AddArc(s0, fst::StdArc(3, 3, 2.0, s1));  // Arc labeled 'word'.
   fst.SetFinal(s1, fst::StdArc::Weight(0.5));
 
   std::stringstream ostrm;
@@ -342,7 +366,7 @@ TEST(ArpaTest, ReadWithBackoffWeights) {
   EXPECT_GT(fst.NumStates(), 1);
   EXPECT_TRUE(IsCanonical(fst, fst::kNoLabel));
 
-  // Verify that backoff weight -0.2 on 1-gram 'a' is preserved.
+  // Verifies that backoff weight -0.2 on 1-gram 'a' is preserved.
   bool found_bo = false;
   for (fst::StateIterator<fst::VectorFst<fst::StdArc>> siter(fst);
        !siter.Done(); siter.Next()) {
@@ -479,12 +503,12 @@ TEST(ArpaTest, WriteMultipleArcsSharedHistory) {
   auto s2 = fst.AddState();
   auto s3 = fst.AddState();
 
-  // Transitions: s0 -> s1 on "w1"
+  // Adds transition s0 -> s1 on "w1".
   fst.AddArc(s0, fst::StdArc(3, 3, 0.5, s1));
-  // Outgoing transitions from s1 sharing history "w1":
-  fst.AddArc(s1, fst::StdArc(4, 4, 1.0, s2));  // "w1 w2"
-  fst.AddArc(s1, fst::StdArc(5, 5, 1.5, s3));  // "w1 w3"
-  fst.SetFinal(s1, fst::StdArc::Weight(2.0));  // "w1 </s>"
+  // Adds outgoing transitions from s1 sharing history "w1".
+  fst.AddArc(s1, fst::StdArc(4, 4, 1.0, s2));  // "w1 w2".
+  fst.AddArc(s1, fst::StdArc(5, 5, 1.5, s3));  // "w1 w3".
+  fst.SetFinal(s1, fst::StdArc::Weight(2.0));  // "w1 </s>".
 
   std::stringstream ostrm;
   EXPECT_TRUE(WriteArpa(fst, ostrm));

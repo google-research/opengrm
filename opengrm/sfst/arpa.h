@@ -21,6 +21,7 @@
 
 #include "openfst/lib/fst.h"
 #include "openfst/lib/mutable-fst.h"
+#include "openfst/lib/symbol-table.h"
 
 namespace sfst {
 
@@ -30,17 +31,19 @@ template <class Arc>
 bool ReadArpa(std::istream& istrm, fst::MutableFst<Arc>* fst,
               typename Arc::Label phi_label = fst::kNoLabel);
 
-// Writes a canonical SFST to ostrm in ARPA format.
-// Returns true on success.
+// Writes a canonical SFST to ostrm in ARPA format. Uses syms if non-null, or
+// fst.InputSymbols() otherwise. Returns true on success.
 template <class Arc>
 bool WriteArpa(const fst::Fst<Arc>& fst, std::ostream& ostrm,
-               typename Arc::Label phi_label = fst::kNoLabel);
+               typename Arc::Label phi_label = fst::kNoLabel,
+               const fst::SymbolTable* syms = nullptr);
 
-// Writes a canonical SFST to ostrm in plain TSV text format.
-// Returns true on success.
+// Writes a canonical SFST to ostrm in plain TSV text format. Uses syms if
+// non-null, or fst.InputSymbols() otherwise. Returns true on success.
 template <class Arc>
 bool WriteText(const fst::Fst<Arc>& fst, std::ostream& ostrm,
-               typename Arc::Label phi_label = fst::kNoLabel);
+               typename Arc::Label phi_label = fst::kNoLabel,
+               const fst::SymbolTable* syms = nullptr);
 
 }  // namespace sfst
 

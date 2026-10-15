@@ -14,27 +14,27 @@
 
 #include "opengrm/sfst/arpa.h"
 
-#include <algorithm>  // NOLINT(misc-include-cleaner)
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <iostream>
 #include <istream>
-#include <map>  // NOLINT(misc-include-cleaner)
+#include <map>
 #include <ostream>
-#include <queue>    // NOLINT(misc-include-cleaner)
+#include <queue>
 #include <string>
 #include <utility>
-#include <vector>  // NOLINT(misc-include-cleaner)
+#include <vector>
 
-#include "absl/container/flat_hash_map.h"  // NOLINT(misc-include-cleaner)
+#include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/log/log.h"
 #include "absl/strings/numbers.h"
 #include "absl/strings/str_cat.h"
-#include "absl/strings/str_join.h"   // NOLINT(misc-include-cleaner)
-#include "absl/strings/str_split.h"  // NOLINT(misc-include-cleaner)
+#include "absl/strings/str_join.h"
+#include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
-#include "openfst/lib/arc.h"         // NOLINT(misc-include-cleaner)
+#include "openfst/lib/arc.h"
 #include "openfst/lib/arcsort.h"
 #include "openfst/lib/fst.h"
 #include "openfst/lib/mutable-fst.h"
@@ -133,10 +133,10 @@ double ResolveLogProb(
 template <class Arc>
 bool ReadArpa(std::istream& istrm, fst::MutableFst<Arc>* fst,
               typename Arc::Label phi_label) {
-  using StateId = typename Arc::StateId;
-  using Label = typename Arc::Label;
-  using Weight = typename Arc::Weight;
   using internal::NgramData;
+  using Label = typename Arc::Label;
+  using StateId = typename Arc::StateId;
+  using Weight = typename Arc::Weight;
   constexpr Label kBosLabel = -2;
   constexpr Label kEosLabel = -3;
 
@@ -370,18 +370,19 @@ struct ArpaNgramPrintData {
 
 template <class Arc>
 bool WriteNGrams(const fst::Fst<Arc>& fst, std::ostream& ostrm,
-                 typename Arc::Label phi_label, bool arpa_format) {
-  using StateId = typename Arc::StateId;
+                 typename Arc::Label phi_label, bool arpa_format,
+                 const fst::SymbolTable* syms) {
   using Label = typename Arc::Label;
+  using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
-  if (!fst.InputSymbols()) {
+  if (!syms) syms = fst.InputSymbols();
+  if (!syms) {
     LOG(ERROR) << "WriteArpa: FST has no input symbols";
     return false;
   }
   ostrm.precision(7);
   const StateId start_state = fst.Start();
   if (start_state == fst::kNoStateId) return true;
-  const fst::SymbolTable* syms = fst.InputSymbols();
   Label bos_label = syms->Find("<s>");
   if (bos_label == fst::kNoLabel) bos_label = syms->Find("<S>");
   if (bos_label == fst::kNoLabel) bos_label = syms->Find("<bos>");
@@ -561,14 +562,16 @@ bool WriteNGrams(const fst::Fst<Arc>& fst, std::ostream& ostrm,
 
 template <class Arc>
 bool WriteArpa(const fst::Fst<Arc>& fst, std::ostream& ostrm,
-               typename Arc::Label phi_label) {
-  return internal::WriteNGrams(fst, ostrm, phi_label, /*arpa_format=*/true);
+               typename Arc::Label phi_label, const fst::SymbolTable* syms) {
+  return internal::WriteNGrams(fst, ostrm, phi_label, /*arpa_format=*/true,
+                               syms);
 }
 
 template <class Arc>
 bool WriteText(const fst::Fst<Arc>& fst, std::ostream& ostrm,
-               typename Arc::Label phi_label) {
-  return internal::WriteNGrams(fst, ostrm, phi_label, /*arpa_format=*/false);
+               typename Arc::Label phi_label, const fst::SymbolTable* syms) {
+  return internal::WriteNGrams(fst, ostrm, phi_label, /*arpa_format=*/false,
+                               syms);
 }
 
 template bool ReadArpa<fst::StdArc>(std::istream& istrm,
@@ -577,10 +580,12 @@ template bool ReadArpa<fst::StdArc>(std::istream& istrm,
 
 template bool WriteArpa<fst::StdArc>(const fst::Fst<fst::StdArc>& fst,
                                      std::ostream& ostrm,
-                                     fst::StdArc::Label phi_label);
+                                     fst::StdArc::Label phi_label,
+                                     const fst::SymbolTable* syms);
 
 template bool WriteText<fst::StdArc>(const fst::Fst<fst::StdArc>& fst,
                                      std::ostream& ostrm,
-                                     fst::StdArc::Label phi_label);
+                                     fst::StdArc::Label phi_label,
+                                     const fst::SymbolTable* syms);
 
 }  // namespace sfst
