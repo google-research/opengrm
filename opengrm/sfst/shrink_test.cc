@@ -26,22 +26,21 @@
 #include "openfst/compat/file_path.h"
 #include "gtest/gtest.h"
 #include "absl/container/flat_hash_set.h"
-#include "absl/flags/flag.h"
-#include "absl/log/flags.h"  // NOLINT(misc-include-cleaner)
 #include "openfst/lib/arc.h"  // NOLINT(misc-include-cleaner)
 #include "openfst/lib/arcsort.h"
 #include "openfst/lib/fst.h"
 #include "openfst/lib/symbol-table.h"
 #include "openfst/lib/vector-fst.h"  // NOLINT(misc-include-cleaner)
+#include "opengrm/sfst/backoff.h"
 #include "opengrm/sfst/normalize.h"
 #include "opengrm/sfst/smooth.h"
 
 namespace sfst {
 
 using Arc = fst::StdArc;
+using Label = Arc::Label;
 using StateId = Arc::StateId;
 using Weight = Arc::Weight;
-using Label = Arc::Label;
 
 template <class Arc>
 size_t CountArcs(const fst::Fst<Arc>& fst) {
@@ -384,8 +383,7 @@ TEST(ShrinkEdgeCaseTest, ComputeStateProbsEmptyFst) {
   std::vector<double> probs;
   ComputeStateProbs(empty_fst, /*phi_label=*/0, orders, &probs);
   EXPECT_TRUE(probs.empty());
-  EXPECT_EQ(internal::GetBackoffState(empty_fst, fst::kNoStateId,
-                                      /*phi_label=*/0),
+  EXPECT_EQ(GetBackoffState(empty_fst, fst::kNoStateId, /*phi_label=*/0),
             fst::kNoStateId);
 }
 
