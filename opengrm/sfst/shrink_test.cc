@@ -398,6 +398,39 @@ TEST_F(ShrinkTest, StolckeThetaForMaxNGramsMinOrderTest) {
   EXPECT_GT(theta, 0.0);
 }
 
+TEST(NonFinalStateShrinkTest, ExcludesBackoffFinalWeightWhenStateIsNonFinal) {
+  // 3-gram SFST where unigram state 0 is final, but bigram state 1 (which backs
+  // off to state 0) is non-final. ComputeStateAndBackoffSums must only include
+  // Final(bo) in low_neglog_sum when Final(state) != Zero().
+  fst::VectorFst<Arc> fst;
+  fst.AddStates(3);
+  fst.SetStart(1);
+  fst.SetFinal(0, Weight(-std::log(0.2)));
+  fst.AddArc(0, Arc(1, 1, Weight(-std::log(0.1)), 0));
+  fst.AddArc(0, Arc(2, 2, Weight(-std::log(0.7)), 0));
+  fst.AddArc(1, Arc(0, 0, Weight(-std::log(0.5)), 0));
+  fst.AddArc(1, Arc(1, 1, Weight(-std::log(0.05)), 2));
+  fst.AddArc(1, Arc(2, 2, Weight(-std::log(0.45)), 0));
+  fst.AddArc(2, Arc(0, 0, Weight(-std::log(0.5)), 1));
+  fst.AddArc(2, Arc(1, 1, Weight(-std::log(0.49)), 2));
+  fst.AddArc(2, Arc(2, 2, Weight(-std::log(0.01)), 0));
+  fst::ArcSort(&fst, fst::StdILabelCompare());
+  ASSERT_TRUE(PhiNormalize(&fst, /*phi_label=*/0));
+
+  // Target 6 keeps 3 unigrams + 2 bigrams + the high-KL trigram (label 1).
+  const double theta = StolckeThetaForMaxNGrams(fst, /*phi_label=*/0,
+                                                /*target_number_of_ngrams=*/6,
+                                                /*min_order=*/3);
+  ASSERT_TRUE(StolckeShrink(&fst, /*phi_label=*/0, theta, /*filter=*/3));
+  EXPECT_TRUE(IsNormalized(fst, /*phi_label=*/0));
+  ASSERT_EQ(fst.NumStates(), 3);
+  ASSERT_EQ(fst.NumArcs(2), 2);
+  fst::ArcIterator<fst::VectorFst<Arc>> aiter(fst, 2);
+  EXPECT_EQ(aiter.Value().ilabel, 0);
+  aiter.Next();
+  EXPECT_EQ(aiter.Value().ilabel, 1);
+}
+
 }  // namespace sfst
 
 int main(int argc, char** argv) {
