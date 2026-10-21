@@ -72,7 +72,9 @@ inline bool ComputeStateAndBackoffSums(
   *bo = GetBackoffState(fst, state, phi_label);
   if (*bo == fst::kNoStateId) return false;
   *hi_neglog_sum = fst.Final(state).Value();
-  *low_neglog_sum = fst.Final(*bo).Value();
+  *low_neglog_sum = (fst.Final(state) != Arc::Weight::Zero())
+                        ? fst.Final(*bo).Value()
+                        : Arc::Weight::Zero().Value();
   matcher.SetState(*bo);
   double kahan_val1 = 0.0;
   double kahan_val2 = 0.0;
