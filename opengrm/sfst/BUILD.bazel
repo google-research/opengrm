@@ -61,7 +61,6 @@ cc_library(
         "@com_google_absl//absl/types:span",
         "@com_google_openfst//openfst/compat:fastmath",
         "@com_google_openfst//openfst/lib",
-        "@com_google_openfst//openfst/lib:symbol-table",
         "@com_google_openfst//openfst/lib:util",
         "@com_google_openfst//openfst/lib:weight",
     ],
@@ -190,6 +189,7 @@ cc_library(
     ],
     deps = [
         ":sfst",
+        "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/log",
         "@com_google_openfst//openfst/lib",
         "@com_google_openfst//openfst/lib:symbol-table",
@@ -516,7 +516,6 @@ cc_test(
         ":shrink",
         ":smooth",
         "@com_google_absl//absl/container:flat_hash_set",
-        "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/log:flags",
         "@com_google_googletest//:gtest",
         "@com_google_openfst//openfst/compat:file_path",
