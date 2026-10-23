@@ -42,6 +42,7 @@ method=$1
 echo "Testing smoothing method: ${method}"
 "${BIN}/sfstsmooth" \
   --method="${method}" \
+  --phi_label=0 \
   "${TEST_TMPDIR}/earnest.cnts" \
   "${TEST_TMPDIR}/earnest-${method}.mod"
 
@@ -50,6 +51,6 @@ if [[ ! -s "${TEST_TMPDIR}/earnest-${method}.mod" ]]; then
   exit 1
 fi
 
-"${BIN}/sfstinfo" "${TEST_TMPDIR}/earnest-${method}.mod" > /dev/null
+"${BIN}/sfstinfo" --phi_label=0 "${TEST_TMPDIR}/earnest-${method}.mod" | grep -q "normalized.*y"
 
 echo "PASS"
