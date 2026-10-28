@@ -31,7 +31,9 @@ permissions: read-all
 
 jobs:
     build-and-test-x64-linux-bazel:
-      runs-on: ubuntu-latest
+      # TODO: Switch back to `ubuntu-latest` once `sed` (or its gnulib
+      # `memchr` C23 macro issue on Ubuntu 26) is fixed in the BCR.
+      runs-on: ubuntu-24.04
       timeout-minutes: 120
       env:
         USE_BAZEL_VERSION: 9.1.1
