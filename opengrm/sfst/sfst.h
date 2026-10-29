@@ -26,7 +26,7 @@
 #include <limits>
 #include <vector>
 
-#include "openfst/lib/arc.h"  // NOLINT(misc-include-cleaner)
+#include "openfst/lib/arc.h"
 #include "openfst/lib/float-weight.h"
 #include "openfst/lib/fst.h"
 #include "openfst/lib/matcher.h"
@@ -57,7 +57,7 @@ inline double NegLogDeltaValue(double a, double b, double* c) {
   return delta;
 }
 
-// Precision method for summing reals and saving negative logs.
+// Sums reals with high precision and saves negative logs.
 inline double NegLogSum(double a, double b, double* c) {
   if (a == fst::StdArc::Weight::Zero().Value()) return b;
   if (b == fst::StdArc::Weight::Zero().Value()) return a;
@@ -69,7 +69,7 @@ inline double NegLogSum(double a, double b, double* c) {
 
 inline double NegLogSum(double a, double b) { return NegLogSum(a, b, nullptr); }
 
-// Negative log of difference: -log(exp^{-a} - exp^{-b}).
+// Computes negative log of difference: -log(exp^{-a} - exp^{-b}).
 inline double NegLogDiff(double a, double b, bool* error = nullptr) {
   if (b == fst::StdArc::Weight::Zero().Value()) return a;
   if (a >= b) {
@@ -87,20 +87,20 @@ inline double NegLogDiff(double a, double b, bool* error = nullptr) {
   return b - std::log(std::expm1(delta));
 }
 
-// Order w.r.t. probability: exp(-weight)
+// Orders LogWeights with respect to probability: exp(-weight).
 template <class T>
 inline bool Less(fst::LogWeightTpl<T> weight1, fst::LogWeightTpl<T> weight2) {
   return weight1.Value() > weight2.Value();
 }
 
-// Order w.r.t. probability: exp(-weight) for the Tropical weight.
+// Orders TropicalWeights with respect to probability: exp(-weight).
 template <class T>
 inline bool Less(fst::TropicalWeightTpl<T> weight1,
                  fst::TropicalWeightTpl<T> weight2) {
   return weight1.Value() > weight2.Value();
 }
 
-// Order w.r.t. probability: weight
+// Orders RealWeights with respect to probability: weight.
 template <class T>
 inline bool Less(fst::RealWeightTpl<T> weight1, fst::RealWeightTpl<T> weight2) {
   return weight1.Value() < weight2.Value();
@@ -109,8 +109,8 @@ inline bool Less(fst::RealWeightTpl<T> weight1, fst::RealWeightTpl<T> weight2) {
 template <class T>
 inline bool Less(fst::SignedLogWeightTpl<T> weight1,
                  fst::SignedLogWeightTpl<T> weight2) {
-  bool s1 = weight1.IsPositive();
-  bool s2 = weight2.IsPositive();
+  const bool s1 = weight1.IsPositive();
+  const bool s2 = weight2.IsPositive();
   if (!s1 && s2) {
     return true;
   } else if (s1 && !s2) {
@@ -168,12 +168,12 @@ class SignedLogWeightApproxEqual {
   explicit SignedLogWeightApproxEqual(float delta) : delta_(delta) {}
 
   bool operator()(const Weight& w1, const Weight& w2) const {
-    double sgn1 = w1.Value1().Value();
-    double sgn2 = w2.Value1().Value();
-    double val1 = w1.Value2().Value();
-    double val2 = w2.Value2().Value();
-    double exp1 = sgn1 * std::exp(-val1);
-    double exp2 = sgn2 * std::exp(-val2);
+    const double sgn1 = w1.Value1().Value();
+    const double sgn2 = w2.Value1().Value();
+    const double val1 = w1.Value2().Value();
+    const double val2 = w2.Value2().Value();
+    const double exp1 = sgn1 * std::exp(-val1);
+    const double exp2 = sgn2 * std::exp(-val2);
     return std::abs(exp1 - exp2) < delta_;
   }
 
@@ -196,23 +196,24 @@ class FailurePath {
   FailurePath(const fst::Fst<Arc>& fst, Label phi_label, bool match_input)
       : fst_(fst),
         phi_label_(phi_label),
-        matcher_(fst, match_input ? fst::MATCH_INPUT : fst::MATCH_OUTPUT),
+        matcher_(&fst, match_input ? fst::MATCH_INPUT : fst::MATCH_OUTPUT),
         s_(fst::kNoStateId) {}
 
   // Sets the current state.
   void SetState(StateId s);
 
-  // Length of the failure path from current state.
-  // Same as the state order - 1.
+  // Returns the length of the failure path from the current state (same as
+  // the state order - 1).
   size_t Length() const { return faildest_.size(); }
 
-  // Destination state of the ith transition on the current failure path.
+  // Returns the destination state of the ith transition on the current failure
+  // path.
   StateId GetNextState(size_t i) const { return faildest_[i]; }
 
-  // Weight of the ith transition on the current failure path.
+  // Returns the weight of the ith transition on the current failure path.
   Weight GetWeight(size_t i) const { return failweight_[i]; }
 
-  // Arc position of the ith transition on the current failure path.
+  // Returns the arc position of the ith transition on the current failure path.
   size_t GetPosition(size_t i) const { return failpos_[i]; }
 
  private:
@@ -222,14 +223,14 @@ class FailurePath {
   ssize_t GetFailureArc(StateId s, Arc* arc);
 
   const fst::Fst<Arc>& fst_;
-  Label phi_label_;
+  const Label phi_label_;
   Matcher matcher_;
 
   StateId s_;
 
-  std::vector<StateId> faildest_;   // phi destination states
-  std::vector<Weight> failweight_;  // phi weights
-  std::vector<size_t> failpos_;     // phi positions
+  std::vector<StateId> faildest_;   // Phi destination states.
+  std::vector<Weight> failweight_;  // Phi weights.
+  std::vector<size_t> failpos_;     // Phi positions.
 
   FailurePath(const FailurePath&) = delete;
   FailurePath& operator=(const FailurePath&) = delete;
@@ -244,7 +245,7 @@ void FailurePath<Arc>::SetState(StateId s) {
   failpos_.clear();
   Arc failarc;
   for (StateId r = s;; r = failarc.nextstate) {
-    ssize_t pos = GetFailureArc(r, &failarc);
+    const ssize_t pos = GetFailureArc(r, &failarc);
     if (failarc.nextstate == fst::kNoStateId) break;
     faildest_.push_back(failarc.nextstate);
     failweight_.push_back(failarc.weight);

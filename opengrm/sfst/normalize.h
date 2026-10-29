@@ -48,59 +48,54 @@
 
 namespace sfst {
 
-// Computes high-order and (if present) low-order sums at a state.
-// Note that (non-failure) epsilons are treated as regular symbols
-// where each instance behaves as if it is uniquely labeled (i.e.,
-// they are not constrained by failure transitions). Assumes (but does
-// not check) that the input has the canonical topology (see canonical.h).
-template <class Arc>
+namespace internal {
+
+template <class Arc, class Matcher>
 void StateSums(const fst::Fst<Arc>& fst, typename Arc::StateId s,
-               typename Arc::Label phi_label, fst::Log64Weight* high_sum,
+               typename Arc::Label phi_label, FailurePath<Arc>* failpath,
+               Matcher* matcher, fst::Log64Weight* high_sum,
                fst::Log64Weight* low_sum, fst::Log64Weight* phi_weight,
                ssize_t* phi_position) {
   using Label = typename Arc::Label;
-  using Matcher = fst::ExplicitMatcher<fst::Matcher<fst::Fst<Arc>>>;
   using Weight = typename Arc::Weight;
   fst::WeightConvert<Weight, fst::Log64Weight> to_log64;
   fst::Adder<fst::Log64Weight> high_adder(to_log64(fst.Final(s)));
   fst::Adder<fst::Log64Weight> low_adder;
   *phi_weight = fst::Log64Weight::Zero();
   *phi_position = -1;
-  FailurePath<Arc> failpath(fst, phi_label, true);
-  failpath.SetState(s);
+  failpath->SetState(s);
   Weight fail_weight = Weight::One();
-  for (size_t i = 0; i < failpath.Length(); ++i) {
+  for (size_t i = 0; i < failpath->Length(); ++i) {
     if (i == 0) {
-      *phi_weight = to_log64(failpath.GetWeight(i));
-      *phi_position = failpath.GetPosition(i);
+      *phi_weight = to_log64(failpath->GetWeight(i));
+      *phi_position = failpath->GetPosition(i);
       if (high_adder.Sum() == fst::Log64Weight::Zero()) break;
     } else {
-      fail_weight = fst::Times(fail_weight, failpath.GetWeight(i));
+      fail_weight = fst::Times(fail_weight, failpath->GetWeight(i));
     }
-    Weight final = fst.Final(failpath.GetNextState(i));
+    const Weight final = fst.Final(failpath->GetNextState(i));
     if (final != Weight::Zero()) {
       low_adder.Reset(to_log64(fst::Times(fail_weight, final)));
       break;
     }
   }
-  Matcher matcher(fst, fst::MATCH_INPUT);
   Label prev_label = fst::kNoLabel;
   for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, s); !aiter.Done();
        aiter.Next()) {
     const Arc& high_arc = aiter.Value();
-    Label label = high_arc.ilabel;
+    const Label label = high_arc.ilabel;
     if (label != phi_label) {
-      fst::Log64Weight high_weight = to_log64(high_arc.weight);
+      const fst::Log64Weight high_weight = to_log64(high_arc.weight);
       high_adder.Add(high_weight);
       if (label != 0) {
         fail_weight = Weight::One();
         bool matched = label == prev_label;
-        for (size_t i = 0; i < failpath.Length() && !matched; ++i) {
-          matcher.SetState(failpath.GetNextState(i));
-          if (i > 0) fail_weight = Times(fail_weight, failpath.GetWeight(i));
-          for (matcher.Find(label); !matcher.Done(); matcher.Next()) {
-            const Arc& low_arc = matcher.Value();
-            fst::Log64Weight low_weight =
+        for (size_t i = 0; i < failpath->Length() && !matched; ++i) {
+          matcher->SetState(failpath->GetNextState(i));
+          if (i > 0) fail_weight = Times(fail_weight, failpath->GetWeight(i));
+          for (matcher->Find(label); !matcher->Done(); matcher->Next()) {
+            const Arc& low_arc = matcher->Value();
+            const fst::Log64Weight low_weight =
                 to_log64(Times(fail_weight, low_arc.weight));
             low_adder.Add(low_weight);
             matched = true;
@@ -114,29 +109,158 @@ void StateSums(const fst::Fst<Arc>& fst, typename Arc::StateId s,
   *low_sum = low_adder.Sum();
 }
 
-// Tests if a canonical input FST is normalized at state s.
-template <class Arc>
+template <class Arc, class Matcher>
 bool IsNormalizedState(const fst::Fst<Arc>& fst, typename Arc::StateId s,
-                       typename Arc::Label phi_label, float delta) {
+                       typename Arc::Label phi_label, float delta,
+                       FailurePath<Arc>* failpath, Matcher* matcher) {
   fst::Log64Weight high_sum, low_sum, phi_weight;
   ssize_t phi_position;
-  StateSums(fst, s, phi_label, &high_sum, &low_sum, &phi_weight, &phi_position);
+  StateSums(fst, s, phi_label, failpath, matcher, &high_sum, &low_sum,
+            &phi_weight, &phi_position);
   // Checks if high_sum is a proper probability (<= 1).
-  bool high_sum_le_one = Less(high_sum, fst::Log64Weight::One()) ||
-                         ApproxEqual(high_sum, fst::Log64Weight::One(), delta);
+  const bool high_sum_le_one =
+      Less(high_sum, fst::Log64Weight::One()) ||
+      ApproxEqual(high_sum, fst::Log64Weight::One(), delta);
   // Checks if high_sum, low_sum, and phi_weight are consistent:
   //  phi_weight = (1 - high_sum)/(1 - low_sum)
-  bool phi_norm = fst::ApproxEqual(
+  const bool phi_norm = fst::ApproxEqual(
       fst::Plus(high_sum, phi_weight),
       fst::Plus(fst::Times(phi_weight, low_sum), fst::Log64Weight::One()),
       delta);
-  bool ret = high_sum_le_one && phi_norm;
+  const bool ret = high_sum_le_one && phi_norm;
   if (!ret) {
     VLOG(1) << "IsNormalized: State not normalized: " << s
             << " high_sum: " << high_sum << " low_sum: " << low_sum
             << " phi_weight: " << phi_weight;
   }
   return ret;
+}
+
+template <class Arc, class Matcher>
+bool PhiNormalizeState(typename Arc::StateId s, fst::MutableFst<Arc>* fst,
+                       typename Arc::Label phi_label,
+                       FailurePath<Arc>* failpath, Matcher* matcher) {
+  using Weight = typename Arc::Weight;
+  constexpr float kNormDelta = 1.0e-15;
+  fst::WeightConvert<fst::Log64Weight, Weight> from_log64;
+  fst::WeightConvert<Weight, fst::Log64Weight> to_log64;
+  if (s < 0 || s >= fst->NumStates()) {
+    return false;
+  } else {
+    fst::MutableArcIterator<fst::MutableFst<Arc>> aiter(fst, s);
+    fst::Log64Weight high_sum, low_sum, phi_weight;
+    ssize_t phi_position;
+    StateSums(*fst, s, phi_label, failpath, matcher, &high_sum, &low_sum,
+              &phi_weight, &phi_position);
+    // Only case where high_sum can be zero is if
+    // there is a state with only a phi transition.
+    if (ApproxZero(high_sum) && (phi_position == -1 || fst->NumArcs(s) != 1)) {
+      return false;
+    }
+    const bool low_sum_ge_one =
+        Less(fst::Log64Weight::One(), low_sum) ||
+        ApproxEqual(low_sum, fst::Log64Weight::One(), kNormDelta);
+    const bool high_sum_eq_one =
+        ApproxEqual(high_sum, fst::Log64Weight::One(), kNormDelta);
+    const bool high_sum_gt_one = Less(fst::Log64Weight::One(), high_sum);
+    // Locally normalizes if necessary.
+    if (low_sum_ge_one || high_sum_gt_one ||
+        (high_sum_eq_one && phi_position != -1) ||
+        (!high_sum_eq_one && phi_position == -1)) {
+      for (; !aiter.Done(); aiter.Next()) {
+        Arc arc = aiter.Value();
+        if (arc.ilabel != phi_label) {
+          arc.weight = from_log64(Divide(to_log64(arc.weight), high_sum));
+          aiter.SetValue(arc);
+        }
+      }
+      Weight final = fst->Final(s);
+      if (final != Weight::Zero()) {
+        final = from_log64(Divide(to_log64(final), high_sum));
+        fst->SetFinal(s, final);
+      }
+      high_sum = fst::Log64Weight::One();
+    }
+    if (phi_position != -1) {
+      const fst::Log64Weight numer =
+          SafeMinus(fst::Log64Weight::One(), high_sum);
+      const fst::Log64Weight denom =
+          SafeMinus(fst::Log64Weight::One(), low_sum);
+      if (numer == kApproxZeroWeight || denom == kApproxZeroWeight) {
+        phi_weight = kApproxZeroWeight;
+      } else {
+        phi_weight = fst::Divide(numer, denom);
+      }
+      aiter.Seek(phi_position);
+      Arc arc = aiter.Value();
+      arc.weight = from_log64(phi_weight);
+      aiter.SetValue(arc);
+    }
+  }
+  return true;
+}
+
+template <class Arc, class Matcher>
+bool RecalcBackoffState(typename Arc::StateId s, fst::MutableFst<Arc>* fst,
+                        typename Arc::Label phi_label,
+                        FailurePath<Arc>* failpath, Matcher* matcher) {
+  using Weight = typename Arc::Weight;
+  fst::WeightConvert<fst::Log64Weight, Weight> from_log64;
+  if (s < 0 || s >= fst->NumStates()) {
+    return false;
+  } else {
+    fst::Log64Weight high_sum, low_sum, phi_weight;
+    ssize_t phi_position;
+    StateSums(*fst, s, phi_label, failpath, matcher, &high_sum, &low_sum,
+              &phi_weight, &phi_position);
+    if (phi_position != -1) {
+      const fst::Log64Weight numer =
+          SafeMinus(fst::Log64Weight::One(), high_sum);
+      const fst::Log64Weight denom =
+          SafeMinus(fst::Log64Weight::One(), low_sum);
+      if (numer == kApproxZeroWeight || denom == kApproxZeroWeight) {
+        phi_weight = kApproxZeroWeight;
+      } else {
+        phi_weight = fst::Divide(numer, denom);
+      }
+      fst::MutableArcIterator<fst::MutableFst<Arc>> aiter(fst, s);
+      aiter.Seek(phi_position);
+      Arc arc = aiter.Value();
+      arc.weight = from_log64(phi_weight);
+      aiter.SetValue(arc);
+    }
+  }
+  return true;
+}
+
+}  // namespace internal
+
+// Computes high-order and (if present) low-order sums at a state.
+// Note that (non-failure) epsilons are treated as regular symbols
+// where each instance behaves as if it is uniquely labeled (i.e.,
+// they are not constrained by failure transitions). Assumes (but does
+// not check) that the input has the canonical topology (see canonical.h).
+template <class Arc>
+void StateSums(const fst::Fst<Arc>& fst, typename Arc::StateId s,
+               typename Arc::Label phi_label, fst::Log64Weight* high_sum,
+               fst::Log64Weight* low_sum, fst::Log64Weight* phi_weight,
+               ssize_t* phi_position) {
+  using Matcher = fst::ExplicitMatcher<fst::SortedMatcher<fst::Fst<Arc>>>;
+  FailurePath<Arc> failpath(fst, phi_label, /*match_input=*/true);
+  Matcher matcher(&fst, fst::MATCH_INPUT);
+  internal::StateSums(fst, s, phi_label, &failpath, &matcher, high_sum, low_sum,
+                      phi_weight, phi_position);
+}
+
+// Tests if a canonical input FST is normalized at state s.
+template <class Arc>
+bool IsNormalizedState(const fst::Fst<Arc>& fst, typename Arc::StateId s,
+                       typename Arc::Label phi_label, float delta) {
+  using Matcher = fst::ExplicitMatcher<fst::SortedMatcher<fst::Fst<Arc>>>;
+  FailurePath<Arc> failpath(fst, phi_label, /*match_input=*/true);
+  Matcher matcher(&fst, fst::MATCH_INPUT);
+  return internal::IsNormalizedState(fst, s, phi_label, delta, &failpath,
+                                     &matcher);
 }
 
 // Tests if an input FST has the canonical topology and the weight of
@@ -149,12 +273,18 @@ template <class Arc>
 bool IsNormalized(const fst::Fst<Arc>& fst,
                   typename Arc::Label phi_label = fst::kNoLabel,
                   float delta = fst::kDelta) {
+  using Matcher = fst::ExplicitMatcher<fst::SortedMatcher<fst::Fst<Arc>>>;
   using StateId = typename Arc::StateId;
   if (!IsCanonical(fst, phi_label)) return false;
+  FailurePath<Arc> failpath(fst, phi_label, /*match_input=*/true);
+  Matcher matcher(&fst, fst::MATCH_INPUT);
   for (fst::StateIterator<fst::Fst<Arc>> siter(fst); !siter.Done();
        siter.Next()) {
-    StateId s = siter.Value();
-    if (!IsNormalizedState(fst, s, phi_label, delta)) return false;
+    const StateId s = siter.Value();
+    if (!internal::IsNormalizedState(fst, s, phi_label, delta, &failpath,
+                                     &matcher)) {
+      return false;
+    }
   }
   return true;
 }
@@ -200,16 +330,16 @@ bool LocalNormalizeState(typename Arc::StateId s, fst::MutableFst<Arc>* fst) {
   if (s < 0 || s >= fst->NumStates()) {
     return false;
   } else {
-    Weight final = fst->Final(s);
+    const Weight final = fst->Final(s);
     fst::Adder<fst::Log64Weight> adder(to_log64(final));
     for (fst::ArcIterator<fst::MutableFst<Arc>> aiter(*fst, s); !aiter.Done();
          aiter.Next()) {
       const Arc& arc = aiter.Value();
-      fst::Log64Weight weight = to_log64(arc.weight);
+      const fst::Log64Weight weight = to_log64(arc.weight);
       adder.Add(weight);
     }
     if (ApproxZero(adder.Sum())) return false;
-    Weight sum = from_log64(adder.Sum());
+    const Weight sum = from_log64(adder.Sum());
     if (final != Weight::Zero()) fst->SetFinal(s, Divide(final, sum));
     for (fst::MutableArcIterator<fst::MutableFst<Arc>> aiter(fst, s);
          !aiter.Done(); aiter.Next()) {
@@ -249,62 +379,10 @@ bool LocalNormalize(fst::MutableFst<Arc>* fst) {
 template <class Arc>
 bool PhiNormalizeState(typename Arc::StateId s, fst::MutableFst<Arc>* fst,
                        typename Arc::Label phi_label = fst::kNoLabel) {
-  using Weight = typename Arc::Weight;
-  constexpr float kNormDelta = 1.0e-15;
-  fst::WeightConvert<fst::Log64Weight, Weight> from_log64;
-  fst::WeightConvert<Weight, fst::Log64Weight> to_log64;
-  if (s < 0 || s >= fst->NumStates()) {
-    return false;
-  } else {
-    fst::MutableArcIterator<fst::MutableFst<Arc>> aiter(fst, s);
-    fst::Log64Weight high_sum, low_sum, phi_weight;
-    ssize_t phi_position;
-    StateSums(*fst, s, phi_label, &high_sum, &low_sum, &phi_weight,
-              &phi_position);
-    // Only case where high_sum can be zero is if
-    // there is a state with only a phi transition.
-    if (ApproxZero(high_sum) && (phi_position == -1 || fst->NumArcs(s) != 1)) {
-      return false;
-    }
-    bool low_sum_ge_one =
-        Less(fst::Log64Weight::One(), low_sum) ||
-        ApproxEqual(low_sum, fst::Log64Weight::One(), kNormDelta);
-    bool high_sum_eq_one =
-        ApproxEqual(high_sum, fst::Log64Weight::One(), kNormDelta);
-    bool high_sum_gt_one = Less(fst::Log64Weight::One(), high_sum);
-    // Locally normalizes if necessary.
-    if (low_sum_ge_one || high_sum_gt_one ||
-        (high_sum_eq_one && phi_position != -1) ||
-        (!high_sum_eq_one && phi_position == -1)) {
-      for (; !aiter.Done(); aiter.Next()) {
-        Arc arc = aiter.Value();
-        if (arc.ilabel != phi_label) {
-          arc.weight = from_log64(Divide(to_log64(arc.weight), high_sum));
-          aiter.SetValue(arc);
-        }
-      }
-      Weight final = fst->Final(s);
-      if (final != Weight::Zero()) {
-        final = from_log64(Divide(to_log64(final), high_sum));
-        fst->SetFinal(s, final);
-      }
-      high_sum = fst::Log64Weight::One();
-    }
-    if (phi_position != -1) {
-      fst::Log64Weight numer = SafeMinus(fst::Log64Weight::One(), high_sum);
-      fst::Log64Weight denom = SafeMinus(fst::Log64Weight::One(), low_sum);
-      if (numer == kApproxZeroWeight || denom == kApproxZeroWeight) {
-        phi_weight = kApproxZeroWeight;
-      } else {
-        phi_weight = fst::Divide(numer, denom);
-      }
-      aiter.Seek(phi_position);
-      Arc arc = aiter.Value();
-      arc.weight = from_log64(phi_weight);
-      aiter.SetValue(arc);
-    }
-  }
-  return true;
+  using Matcher = fst::ExplicitMatcher<fst::SortedMatcher<fst::Fst<Arc>>>;
+  FailurePath<Arc> failpath(*fst, phi_label, /*match_input=*/true);
+  Matcher matcher(fst, fst::MATCH_INPUT);
+  return internal::PhiNormalizeState(s, fst, phi_label, &failpath, &matcher);
 }
 
 // Normalizes a weighted FST, when possible, as a stochastic FST by
@@ -315,6 +393,7 @@ bool PhiNormalizeState(typename Arc::StateId s, fst::MutableFst<Arc>* fst,
 template <class Arc>
 bool PhiNormalize(fst::MutableFst<Arc>* fst,
                   typename Arc::Label phi_label = fst::kNoLabel) {
+  using Matcher = fst::ExplicitMatcher<fst::SortedMatcher<fst::Fst<Arc>>>;
   using StateId = typename Arc::StateId;
   std::vector<StateId> top_order;
   if (phi_label == fst::kNoLabel) return true;
@@ -322,9 +401,11 @@ bool PhiNormalize(fst::MutableFst<Arc>* fst,
     LOG(ERROR) << "PhiNormalize: input is not a canonical stochastic FST";
     return false;
   }
+  FailurePath<Arc> failpath(*fst, phi_label, /*match_input=*/true);
+  Matcher matcher(fst, fst::MATCH_INPUT);
   for (StateId i = top_order.size() - 1; i >= 0; --i) {
-    StateId s = top_order[i];  // ith state in reverse phi-top order
-    if (!PhiNormalizeState(s, fst, phi_label)) {
+    const StateId s = top_order[i];  // Ith state in reverse phi-top order.
+    if (!internal::PhiNormalizeState(s, fst, phi_label, &failpath, &matcher)) {
       return false;
     }
   }
@@ -336,31 +417,10 @@ bool PhiNormalize(fst::MutableFst<Arc>* fst,
 template <class Arc>
 bool RecalcBackoffState(typename Arc::StateId s, fst::MutableFst<Arc>* fst,
                         typename Arc::Label phi_label = fst::kNoLabel) {
-  using Weight = typename Arc::Weight;
-  fst::WeightConvert<fst::Log64Weight, Weight> from_log64;
-  if (s < 0 || s >= fst->NumStates()) {
-    return false;
-  } else {
-    fst::Log64Weight high_sum, low_sum, phi_weight;
-    ssize_t phi_position;
-    StateSums(*fst, s, phi_label, &high_sum, &low_sum, &phi_weight,
-              &phi_position);
-    if (phi_position != -1) {
-      fst::Log64Weight numer = SafeMinus(fst::Log64Weight::One(), high_sum);
-      fst::Log64Weight denom = SafeMinus(fst::Log64Weight::One(), low_sum);
-      if (numer == kApproxZeroWeight || denom == kApproxZeroWeight) {
-        phi_weight = kApproxZeroWeight;
-      } else {
-        phi_weight = fst::Divide(numer, denom);
-      }
-      fst::MutableArcIterator<fst::MutableFst<Arc>> aiter(fst, s);
-      aiter.Seek(phi_position);
-      Arc arc = aiter.Value();
-      arc.weight = from_log64(phi_weight);
-      aiter.SetValue(arc);
-    }
-  }
-  return true;
+  using Matcher = fst::ExplicitMatcher<fst::SortedMatcher<fst::Fst<Arc>>>;
+  FailurePath<Arc> failpath(*fst, phi_label, /*match_input=*/true);
+  Matcher matcher(fst, fst::MATCH_INPUT);
+  return internal::RecalcBackoffState(s, fst, phi_label, &failpath, &matcher);
 }
 
 // Recalculates failure transition weights for all states in an FST without
@@ -368,6 +428,7 @@ bool RecalcBackoffState(typename Arc::StateId s, fst::MutableFst<Arc>* fst,
 template <class Arc>
 bool RecalcBackoff(fst::MutableFst<Arc>* fst,
                    typename Arc::Label phi_label = fst::kNoLabel) {
+  using Matcher = fst::ExplicitMatcher<fst::SortedMatcher<fst::Fst<Arc>>>;
   using StateId = typename Arc::StateId;
   std::vector<StateId> top_order;
   if (phi_label == fst::kNoLabel) return true;
@@ -375,8 +436,11 @@ bool RecalcBackoff(fst::MutableFst<Arc>* fst,
     LOG(ERROR) << "RecalcBackoff: input is not a canonical stochastic FST";
     return false;
   }
+  FailurePath<Arc> failpath(*fst, phi_label, /*match_input=*/true);
+  Matcher matcher(fst, fst::MATCH_INPUT);
   while (!top_order.empty()) {
-    if (!RecalcBackoffState(top_order.back(), fst, phi_label)) {
+    if (!internal::RecalcBackoffState(top_order.back(), fst, phi_label,
+                                      &failpath, &matcher)) {
       return false;
     }
     top_order.pop_back();
@@ -403,7 +467,7 @@ template <class Arc>
 class CountNormalizer {
  public:
   using Label = typename Arc::Label;
-  using Matcher = fst::ExplicitMatcher<fst::Matcher<fst::Fst<Arc>>>;
+  using Matcher = fst::ExplicitMatcher<fst::SortedMatcher<fst::Fst<Arc>>>;
   using SLWeight = fst::SignedLog64Weight;
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
@@ -470,7 +534,7 @@ class CountNormalizer {
                           SLWeight lambda,
                           std::vector<SLWeight>* arc_weights) const;
 
-  // Search for the normalization that makes the arc weights a
+  // Searches for the normalization that makes the arc weights a
   // prob distribution. Does so by a binary search on the lambda argument
   // to NormArcWeights(). Returns true on success.
   bool LambdaSearch(const fst::ExpandedFst<Arc>& fst, StateId s,
@@ -503,7 +567,7 @@ class CountNormalizer {
   }
 
   const Label phi_label_;
-  bool trim_;
+  const bool trim_;
   const float delta_;
   const SLWeight effective_zero_;
   const size_t maxiters_;
@@ -547,7 +611,8 @@ bool CountNormalizer<Arc>::Normalize(CountNormType norm_type,
   } else {  // Marginally-constrained case.
     InitStates(*fst);
     for (StateId i = 0; i < fst->NumStates(); ++i) {
-      StateId s = backoff_->GetPhiTopOrder(i);  // ith state in phi-top order.
+      const StateId s =
+          backoff_->GetPhiTopOrder(i);  // Ith state in phi-top order.
       if (!KLMinimizeState(s, norm_type, fst)) return false;
     }
   }
@@ -651,7 +716,7 @@ bool CountNormalizer<Arc>::ComputeNormFactor(
   // Per-arc normalization factor.
   std::fill(norm_factor->begin(), norm_factor->end(), SLWeight::Zero());
   // The higher-order state probabilities w/ backoff.
-  for (auto his : state.hi_states) {
+  for (const auto his : state.hi_states) {
     // If all arcs are backed-off, skip.
     if (NumNonPhiArcs(fst, s) == NumNonPhiArcs(fst, his)) continue;
     const NormState& hi_state = norm_states_[his];
@@ -739,9 +804,9 @@ bool CountNormalizer<Arc>::LambdaSearch(
   SLWeight lambda_hi = SLWeight::Zero();
   for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, s); !aiter.Done();
        aiter.Next(), ++pos) {
-    SLWeight cx = to_log_(aiter.Value().weight);
-    SLWeight fx = norm_factor[pos];
-    SLWeight cfx = Plus(cx, fx);
+    const SLWeight cx = to_log_(aiter.Value().weight);
+    const SLWeight fx = norm_factor[pos];
+    const SLWeight cfx = Plus(cx, fx);
     if (Less(maxfx, fx)) maxfx = fx;
     if (Less(lambda_low, cfx)) lambda_low = cfx;
     lambda_hi = Plus(lambda_hi, cx);
@@ -829,7 +894,7 @@ bool CountNormalizer<Arc>::ComputeDenom(
     const fst::ExpandedFst<Arc>& fst, StateId s,
     absl::Span<const SLWeight> arc_weights) {
   NormState& state = norm_states_[s];
-  for (auto his : state.hi_states) {
+  for (const auto his : state.hi_states) {
     NormState& hi_state = norm_states_[his];
     fst::Adder<SLWeight> adder;
     // Computes d(his,s) = 1 - \sum{x \in L[his]\cap\Sigma} y_x.
@@ -848,7 +913,7 @@ bool CountNormalizer<Arc>::ComputeDenom(
       // ensures the low probability is not due to that on the few states that
       // get here.
       adder.Reset();
-      Matcher matcher(fst, fst::MATCH_INPUT);
+      Matcher matcher(&fst, fst::MATCH_INPUT);
       matcher.SetState(his);
       ssize_t pos = 0;
       for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, s); !aiter.Done();
@@ -929,7 +994,7 @@ bool Condition(fst::MutableFst<Arc>* fst,
     return false;
   }
   fst::WeightConvert<fst::Log64Weight, Weight> from_log64;
-  Weight weight = from_log64(fst::Log64Weight(delta));
+  const Weight weight = from_log64(fst::Log64Weight(delta));
   // Multiplies the delta on to every non-special arc weight.
   for (StateId s = 0; s < fst->NumStates(); ++s) {
     for (fst::MutableArcIterator<fst::MutableFst<Arc>> aiter(fst, s);

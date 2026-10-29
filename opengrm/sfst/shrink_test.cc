@@ -19,29 +19,29 @@
 #include <cmath>
 #include <cstddef>
 #include <fstream>
-#include <set>     // NOLINT(misc-include-cleaner)
-#include <string>  // NOLINT(misc-include-cleaner)
-#include <vector>  // NOLINT(misc-include-cleaner)
+#include <set>
+#include <string>
+#include <vector>
 
 #include "openfst/compat/file_path.h"
 #include "gtest/gtest.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/flags/flag.h"
-#include "absl/log/flags.h"  // NOLINT(misc-include-cleaner)
-#include "openfst/lib/arc.h"  // NOLINT(misc-include-cleaner)
+#include "absl/log/flags.h"
+#include "openfst/lib/arc.h"
 #include "openfst/lib/arcsort.h"
 #include "openfst/lib/fst.h"
 #include "openfst/lib/symbol-table.h"
-#include "openfst/lib/vector-fst.h"  // NOLINT(misc-include-cleaner)
+#include "openfst/lib/vector-fst.h"
 #include "opengrm/sfst/normalize.h"
 #include "opengrm/sfst/smooth.h"
 
 namespace sfst {
 
 using Arc = fst::StdArc;
+using Label = Arc::Label;
 using StateId = Arc::StateId;
 using Weight = Arc::Weight;
-using Label = Arc::Label;
 
 template <class Arc>
 size_t CountArcs(const fst::Fst<Arc>& fst) {
@@ -153,7 +153,7 @@ TEST_F(ShrinkTest, SignificanceShrinkTest) {
 TEST_F(ShrinkTest, WordShrinkTest) {
   fst::VectorFst<Arc> fst(fst_);
   ASSERT_TRUE(WittenBell(&fst, 0));
-  absl::flat_hash_set<Label> word_set = {1};
+  const absl::flat_hash_set<Label> word_set = {1};
   ASSERT_TRUE(WordShrink(&fst, 0, word_set));
   bool found_label_1 = false;
   bool found_label_2 = false;
@@ -165,6 +165,25 @@ TEST_F(ShrinkTest, WordShrinkTest) {
   }
   EXPECT_TRUE(found_label_1);
   EXPECT_FALSE(found_label_2);
+}
+
+TEST_F(ShrinkTest, WordShrinkPreservesAllArcsFromMatchingHistoryTest) {
+  // Verifies that when a higher-order state's conditioning history contains a
+  // word in word_set, all outgoing transitions from that state are retained.
+  fst::VectorFst<Arc> fst(fst_);
+  fst.AddArc(4, Arc(0, 0, Weight(-std::log(15.0)), 3));
+  fst.AddArc(4, Arc(1, 1, Weight(-std::log(10.0)), 4));
+  fst.AddArc(4, Arc(2, 2, Weight(-std::log(5.0)), 5));
+  fst::ArcSort(&fst, fst::StdILabelCompare());
+  ASSERT_TRUE(WittenBell(&fst, /*phi_label=*/0));
+
+  const absl::flat_hash_set<Label> word_set = {1};
+  ASSERT_TRUE(WordShrink(&fst, /*phi_label=*/0, word_set));
+  // State 4 has history {1}, so both ilabel=1 and ilabel=2 must be kept.
+  EXPECT_EQ(fst.NumArcs(4), 3);
+  // State 0 has history {} (not in word_set), so ilabel=1 is kept and
+  // ilabel=2 is pruned.
+  EXPECT_EQ(fst.NumArcs(0), 2);
 }
 
 TEST_F(ShrinkTest, CountPruneTest) {
@@ -189,20 +208,20 @@ TEST_F(ShrinkTest, CountPruneMultipleArcsOnSameStateTest) {
   fst::VectorFst<Arc> fst;
   fst.AddState();
   fst.SetStart(0);
-  fst.AddState();  // state 1
-  fst.AddState();  // state 2
-  fst.AddState();  // state 3
-  fst.AddState();  // state 4 (backoff state)
+  fst.AddState();  // State 1.
+  fst.AddState();  // State 2.
+  fst.AddState();  // State 3.
+  fst.AddState();  // State 4 (backoff state).
 
   // Arcs on state 0 (order 2):
-  // Arc with ilabel 1: log prob = log(10.0) -> survives threshold log(7.0)
-  // Arc with ilabel 2: log prob = log(4.0)  -> pruned
-  // Arc with ilabel 3: log prob = log(3.0)  -> pruned
-  // Phi arc (ilabel 0): must be preserved regardless of threshold
+  // Arc with ilabel 1: log prob = log(10.0) -> survives threshold log(7.0).
+  // Arc with ilabel 2: log prob = log(4.0)  -> pruned.
+  // Arc with ilabel 3: log prob = log(3.0)  -> pruned.
+  // Phi arc (ilabel 0): must be preserved regardless of threshold.
   fst.AddArc(0, Arc(1, 1, Weight(-std::log(10.0)), 1));
   fst.AddArc(0, Arc(2, 2, Weight(-std::log(4.0)), 2));
   fst.AddArc(0, Arc(3, 3, Weight(-std::log(3.0)), 3));
-  fst.AddArc(0, Arc(0, 0, Weight(-std::log(20.0)), 4));  // Phi arc
+  fst.AddArc(0, Arc(0, 0, Weight(-std::log(20.0)), 4));  // Phi arc.
 
   // Backoff state 4:
   fst.AddArc(4, Arc(1, 1, Weight(-std::log(5.0)), 1));
@@ -236,7 +255,7 @@ TEST_F(ShrinkTest, CountPruneMultipleArcsOnSameStateTest) {
 
 TEST_F(ShrinkTest, CountPrunePatternValidationTest) {
   fst::VectorFst<Arc> fst(fst_);
-  // Valid patterns
+  // Valid patterns.
   EXPECT_TRUE(CountPrune(&fst, 0, "2:5"));
   fst = fst_;
   EXPECT_TRUE(CountPrune(&fst, 0, "2+:5"));
@@ -259,7 +278,7 @@ TEST_F(ShrinkTest, CountPrunePatternValidationTest) {
   fst = fst_;
   EXPECT_TRUE(CountPrune(&fst, 0, "1:1;2:7;"));
 
-  // Invalid patterns should safely return false without crashing
+  // Invalid patterns safely return false without crashing.
   fst = fst_;
   EXPECT_FALSE(CountPrune(&fst, 0, ""));
   EXPECT_FALSE(CountPrune(&fst, 0, ":7"));
@@ -346,7 +365,7 @@ TEST(NonCanonicalShrinkTest, OrphanBehaviorTest) {
   fst.SetFinal(3, Weight::One());
   fst.SetFinal(4, Weight::One());
   fst::ArcSort(&fst, fst::StdILabelCompare());
-  // Must skip Orphan 22 despite aggressive theta.
+  // Skips Orphan 22 despite aggressive theta.
   ASSERT_TRUE(StolckeShrink(&fst, 0, 1.0));
   bool has_orphan = false;
   bool has_paired = false;
@@ -357,7 +376,7 @@ TEST(NonCanonicalShrinkTest, OrphanBehaviorTest) {
   }
   // Automated defensive skip preserves the non-canonical orphan.
   EXPECT_TRUE(has_orphan);
-  // Verifies paired arc WAS successfully pruned (eliminating false negatives).
+  // Verifies paired arc was successfully pruned (eliminating false negatives).
   EXPECT_FALSE(has_paired);
 }
 

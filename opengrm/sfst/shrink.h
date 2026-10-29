@@ -17,17 +17,17 @@
 #ifndef OPENGRM_SFST_SHRINK_H_
 #define OPENGRM_SFST_SHRINK_H_
 
-#include <algorithm>  // NOLINT(misc-include-cleaner)
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <fstream>
 #include <limits>
 #include <memory>
-#include <set>  // NOLINT(misc-include-cleaner)
+#include <set>
 #include <string>
-#include <utility>  // NOLINT(misc-include-cleaner)
-#include <vector>   // NOLINT(misc-include-cleaner)
+#include <utility>
+#include <vector>
 
 #include "absl/container/flat_hash_set.h"
 #include "absl/log/log.h"
@@ -35,7 +35,7 @@
 #include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
 #include "absl/strings/strip.h"
-#include "openfst/lib/arc.h"  // NOLINT(misc-include-cleaner)
+#include "openfst/lib/arc.h"
 #include "openfst/lib/expanded-fst.h"
 #include "openfst/lib/fst.h"
 #include "openfst/lib/matcher.h"
@@ -97,8 +97,8 @@ inline void ComputeBackoffNormalizers(double hi_neglog_sum,
                                       double* denom) {
   constexpr double kEffectiveZero = kNormEps * kFloatEps;
   constexpr double kEffectiveNlogZero = 99.0;
-  double tmp_hi = std::max(hi_neglog_sum, kEffectiveZero);
-  double tmp_low = std::max(low_neglog_sum, kEffectiveZero);
+  const double tmp_hi = std::max(hi_neglog_sum, kEffectiveZero);
+  const double tmp_low = std::max(low_neglog_sum, kEffectiveZero);
   *num = 0.0;
   *denom = 0.0;
   if (tmp_low > 0.0 && tmp_hi > 0.0) {
@@ -137,15 +137,42 @@ inline void DeletePrunedArcs(
     fst::MutableFst<Arc>* fst,
     const std::vector<std::pair<typename Arc::StateId, typename Arc::Label>>&
         to_prune) {
-  for (const auto& pair : to_prune) {
-    std::vector<Arc> arcs;
-    for (fst::ArcIterator<fst::Fst<Arc>> aiter(*fst, pair.first); !aiter.Done();
+  using StateId = typename Arc::StateId;
+  std::vector<Arc> surviving_arcs;
+  size_t i = 0;
+  while (i < to_prune.size()) {
+    const StateId state = to_prune[i].first;
+    size_t j = i + 1;
+    bool sorted = true;
+    while (j < to_prune.size() && to_prune[j].first == state) {
+      if (to_prune[j].second < to_prune[j - 1].second) sorted = false;
+      ++j;
+    }
+    surviving_arcs.clear();
+    size_t k = i;
+    for (fst::ArcIterator<fst::Fst<Arc>> aiter(*fst, state); !aiter.Done();
          aiter.Next()) {
       const auto& arc = aiter.Value();
-      if (arc.ilabel != pair.second) arcs.push_back(arc);
+      bool pruned = false;
+      if (sorted) {
+        while (k < j && to_prune[k].second < arc.ilabel) {
+          ++k;
+        }
+        pruned = (k < j && to_prune[k].second == arc.ilabel);
+      } else {
+        for (size_t idx = i; idx < j; ++idx) {
+          if (to_prune[idx].second == arc.ilabel) {
+            pruned = true;
+            break;
+          }
+        }
+      }
+      if (!pruned) surviving_arcs.push_back(arc);
     }
-    fst->DeleteArcs(pair.first);
-    for (const auto& arc : arcs) fst->AddArc(pair.first, arc);
+    fst->DeleteArcs(state);
+    fst->ReserveArcs(state, surviving_arcs.size());
+    for (const auto& arc : surviving_arcs) fst->AddArc(state, arc);
+    i = j;
   }
 }
 
@@ -155,44 +182,47 @@ inline void PruneFinalAndDeadStates(
     const std::vector<int>& orders,
     const std::vector<typename Arc::StateId>& finals_to_prune) {
   using StateId = typename Arc::StateId;
-  std::vector<StateId> backoff(fst->NumStates(), fst::kNoStateId);
-  for (StateId s = 0; s < fst->NumStates(); ++s) {
+  const StateId num_states = fst->NumStates();
+  std::vector<StateId> backoff(num_states, fst::kNoStateId);
+  for (StateId s = 0; s < num_states; ++s) {
     backoff[s] = GetBackoffState(*fst, s, phi_label);
   }
-  absl::flat_hash_set<StateId> final_candidates(finals_to_prune.begin(),
-                                                finals_to_prune.end());
-  absl::flat_hash_set<StateId> kept_states;
-  for (StateId s = 0; s < fst->NumStates(); ++s) {
+  std::vector<bool> final_candidates(num_states, false);
+  for (const StateId s : finals_to_prune) {
+    final_candidates[s] = true;
+  }
+  std::vector<bool> kept_states(num_states, false);
+  for (StateId s = 0; s < num_states; ++s) {
     const bool has_non_phi_arc =
         fst->NumArcs(s) > (backoff[s] != fst::kNoStateId ? 1 : 0);
     const bool has_kept_final =
-        fst->Final(s) != Arc::Weight::Zero() && !final_candidates.contains(s);
+        fst->Final(s) != Arc::Weight::Zero() && !final_candidates[s];
     if (s == fst->Start() || orders[s] <= 1 || has_non_phi_arc ||
         has_kept_final) {
       StateId curr = s;
-      while (curr != fst::kNoStateId && kept_states.insert(curr).second) {
+      while (curr != fst::kNoStateId && !kept_states[curr]) {
+        kept_states[curr] = true;
         curr = backoff[curr];
       }
     }
   }
-  for (StateId s : finals_to_prune) {
-    bool backed_off_to = false;
-    for (StateId other : kept_states) {
-      if (other != s && backoff[other] == s) {
-        backed_off_to = true;
-        break;
-      }
+  std::vector<bool> is_backed_off_to(num_states, false);
+  for (StateId other = 0; other < num_states; ++other) {
+    if (kept_states[other] && backoff[other] != fst::kNoStateId &&
+        backoff[other] != other) {
+      is_backed_off_to[backoff[other]] = true;
     }
-    if (!backed_off_to) {
+  }
+  for (const StateId s : finals_to_prune) {
+    if (!is_backed_off_to[s]) {
       fst->SetFinal(s, Arc::Weight::Zero());
     }
   }
-  for (StateId s = 0; s < fst->NumStates(); ++s) {
+  for (StateId s = 0; s < num_states; ++s) {
     for (fst::MutableArcIterator<fst::MutableFst<Arc>> aiter(fst, s);
          !aiter.Done(); aiter.Next()) {
       auto arc = aiter.Value();
-      while (arc.nextstate != fst::kNoStateId &&
-             !kept_states.contains(arc.nextstate) &&
+      while (arc.nextstate != fst::kNoStateId && !kept_states[arc.nextstate] &&
              backoff[arc.nextstate] != fst::kNoStateId) {
         arc.nextstate = backoff[arc.nextstate];
       }
@@ -228,21 +258,21 @@ void ComputeStateProbs(const fst::ExpandedFst<Arc>& fst,
     (*probs)[fst.Start()] = std::exp(-fst.Final(unigram_state).Value());
   }
   int max_order = 0;
-  for (int o : orders) max_order = std::max(max_order, o);
+  for (const int o : orders) max_order = std::max(max_order, o);
   std::vector<std::vector<StateId>> buckets(max_order + 1);
   for (StateId s = 0; s < fst.NumStates(); ++s) {
     buckets[orders[s]].push_back(s);
   }
   for (int o = 1; o <= max_order; ++o) {
-    for (StateId s : buckets[o]) {
-      double p_s = (*probs)[s];
+    for (const StateId s : buckets[o]) {
+      const double p_s = (*probs)[s];
       if (p_s == 0.0) continue;
       for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, s); !aiter.Done();
            aiter.Next()) {
         const auto& arc = aiter.Value();
         if (arc.ilabel == phi_label) continue;
         if (orders[arc.nextstate] > orders[s]) {
-          double weight = std::exp(-arc.weight.Value());
+          const double weight = std::exp(-arc.weight.Value());
           (*probs)[arc.nextstate] += p_s * weight;
         }
       }
@@ -279,22 +309,23 @@ bool StolckeShrink(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
     LOG(ERROR) << "StolckeShrink: input is not a canonical SFST";
     return false;
   }
-  using StateId = typename Arc::StateId;
   using Label = typename Arc::Label;
+  using StateId = typename Arc::StateId;
   std::vector<int> orders;
   PhiStateOrder(*fst, phi_label, &orders);
   std::vector<double> probs;
   ComputeStateProbs(*fst, phi_label, orders, &probs);
-  double log_theta = std::log(theta + 1);
+  const double log_theta = std::log(theta + 1);
   std::vector<std::pair<StateId, Label>> to_prune;
   std::vector<StateId> finals_to_prune;
-  fst::Matcher<fst::Fst<Arc>> matcher(*fst, fst::MATCH_INPUT);
+  fst::ExplicitMatcher<fst::SortedMatcher<fst::Fst<Arc>>> matcher(
+      fst, fst::MATCH_INPUT);
   for (StateId s = 0; s < fst->NumStates(); ++s) {
     if constexpr (std::is_integral_v<Filter>) {
       if (orders[s] < filter) continue;
     }
     if (probs[s] == 0.0) continue;
-    double log_prob_s = std::log(probs[s]);
+    const double log_prob_s = std::log(probs[s]);
     StateId bo;
     double hi_neglog_sum;
     double low_neglog_sum;
@@ -313,7 +344,7 @@ bool StolckeShrink(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
       if (arc.ilabel == phi_label) continue;
       if (matcher.Find(arc.ilabel)) {
         const auto& barc = matcher.Value();
-        double score = internal::ComputeStolckeScore(
+        const double score = internal::ComputeStolckeScore(
             log_prob_s, nlog_backoff_num, nlog_backoff_denom,
             arc.weight.Value(), barc.weight.Value());
         if (score <= log_theta) {
@@ -327,7 +358,7 @@ bool StolckeShrink(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
     }
     if (fst->Final(s) != Arc::Weight::Zero() &&
         fst->Final(bo) != Arc::Weight::Zero()) {
-      double score = internal::ComputeStolckeScore(
+      const double score = internal::ComputeStolckeScore(
           log_prob_s, nlog_backoff_num, nlog_backoff_denom,
           fst->Final(s).Value(), fst->Final(bo).Value());
       if (score <= log_theta) {
@@ -366,7 +397,8 @@ double StolckeThetaForMaxNGrams(const fst::ExpandedFst<Arc>& fst,
   std::vector<double> probs;
   ComputeStateProbs(fst, phi_label, orders, &probs);
   std::vector<double> scores;
-  fst::Matcher<fst::Fst<Arc>> matcher(fst, fst::MATCH_INPUT);
+  fst::ExplicitMatcher<fst::SortedMatcher<fst::Fst<Arc>>> matcher(
+      &fst, fst::MATCH_INPUT);
   int64_t unigram_count = 0;
   for (StateId s = 0; s < fst.NumStates(); ++s) {
     if (orders[s] == 1) {
@@ -388,7 +420,7 @@ double StolckeThetaForMaxNGrams(const fst::ExpandedFst<Arc>& fst,
       }
       continue;
     }
-    double log_prob_s = std::log(probs[s]);
+    const double log_prob_s = std::log(probs[s]);
     StateId bo;
     double hi_neglog_sum;
     double low_neglog_sum;
@@ -455,21 +487,22 @@ bool RestrictedRelEntropyShrink(fst::MutableFst<Arc>* fst,
     LOG(ERROR) << "RestrictedRelEntropyShrink: input is not a canonical SFST";
     return false;
   }
-  using StateId = typename Arc::StateId;
   using Label = typename Arc::Label;
+  using StateId = typename Arc::StateId;
   std::vector<int> orders;
   PhiStateOrder(*fst, phi_label, &orders);
   std::vector<double> probs;
   ComputeStateProbs(*fst, phi_label, orders, &probs);
-  double log_theta = std::log(theta + 1);
+  const double log_theta = std::log(theta + 1);
   std::vector<std::pair<StateId, Label>> to_prune;
-  fst::Matcher<fst::Fst<Arc>> matcher(*fst, fst::MATCH_INPUT);
+  fst::ExplicitMatcher<fst::SortedMatcher<fst::Fst<Arc>>> matcher(
+      fst, fst::MATCH_INPUT);
   for (StateId s = 0; s < fst->NumStates(); ++s) {
     if constexpr (std::is_integral_v<Filter>) {
       if (orders[s] < filter) continue;
     }
     if (probs[s] == 0.0) continue;
-    double log_prob_s = std::log(probs[s]);
+    const double log_prob_s = std::log(probs[s]);
     StateId bo;
     double hi_neglog_sum;
     double low_neglog_sum;
@@ -482,19 +515,19 @@ bool RestrictedRelEntropyShrink(fst::MutableFst<Arc>* fst,
     double nlog_backoff_denom;
     internal::ComputeBackoffNormalizers(hi_neglog_sum, low_neglog_sum,
                                         &nlog_backoff_num, &nlog_backoff_denom);
-    double old_log_backoff = -(nlog_backoff_num - nlog_backoff_denom);
+    const double old_log_backoff = -(nlog_backoff_num - nlog_backoff_denom);
     for (fst::ArcIterator<fst::Fst<Arc>> aiter(*fst, s); !aiter.Done();
          aiter.Next()) {
       const auto& arc = aiter.Value();
       if (arc.ilabel == phi_label) continue;
       if (matcher.Find(arc.ilabel)) {
         const auto& barc = matcher.Value();
-        double log_prob = -arc.weight.Value();
-        double log_backoff_prob = -barc.weight.Value();
+        const double log_prob = -arc.weight.Value();
+        const double log_backoff_prob = -barc.weight.Value();
         if (log_backoff_prob + old_log_backoff > log_prob) {
           continue;
         }
-        double new_log_backoff = internal::ComputeUpdatedLogBackoff(
+        const double new_log_backoff = internal::ComputeUpdatedLogBackoff(
             nlog_backoff_num, nlog_backoff_denom, arc.weight.Value(),
             barc.weight.Value());
         double score = log_backoff_prob + new_log_backoff - log_prob;
@@ -536,21 +569,22 @@ bool SymmetrizedRelEntropyShrink(fst::MutableFst<Arc>* fst,
     LOG(ERROR) << "SymmetrizedRelEntropyShrink: input is not a canonical SFST";
     return false;
   }
-  using StateId = typename Arc::StateId;
   using Label = typename Arc::Label;
+  using StateId = typename Arc::StateId;
   std::vector<int> orders;
   PhiStateOrder(*fst, phi_label, &orders);
   std::vector<double> probs;
   ComputeStateProbs(*fst, phi_label, orders, &probs);
-  double log_theta = std::log(theta + 1);
+  const double log_theta = std::log(theta + 1);
   std::vector<std::pair<StateId, Label>> to_prune;
-  fst::Matcher<fst::Fst<Arc>> matcher(*fst, fst::MATCH_INPUT);
+  fst::ExplicitMatcher<fst::SortedMatcher<fst::Fst<Arc>>> matcher(
+      fst, fst::MATCH_INPUT);
   for (StateId s = 0; s < fst->NumStates(); ++s) {
     if constexpr (std::is_integral_v<Filter>) {
       if (orders[s] < filter) continue;
     }
     if (probs[s] == 0.0) continue;
-    double log_prob_s = std::log(probs[s]);
+    const double log_prob_s = std::log(probs[s]);
     StateId bo;
     double hi_neglog_sum;
     double low_neglog_sum;
@@ -563,16 +597,16 @@ bool SymmetrizedRelEntropyShrink(fst::MutableFst<Arc>* fst,
     double nlog_backoff_denom;
     internal::ComputeBackoffNormalizers(hi_neglog_sum, low_neglog_sum,
                                         &nlog_backoff_num, &nlog_backoff_denom);
-    double old_log_backoff = -(nlog_backoff_num - nlog_backoff_denom);
+    const double old_log_backoff = -(nlog_backoff_num - nlog_backoff_denom);
     for (fst::ArcIterator<fst::Fst<Arc>> aiter(*fst, s); !aiter.Done();
          aiter.Next()) {
       const auto& arc = aiter.Value();
       if (arc.ilabel == phi_label) continue;
       if (matcher.Find(arc.ilabel)) {
         const auto& barc = matcher.Value();
-        double log_prob = -arc.weight.Value();
-        double log_backoff_prob = -barc.weight.Value();
-        double new_log_backoff = internal::ComputeUpdatedLogBackoff(
+        const double log_prob = -arc.weight.Value();
+        const double log_backoff_prob = -barc.weight.Value();
+        const double new_log_backoff = internal::ComputeUpdatedLogBackoff(
             nlog_backoff_num, nlog_backoff_denom, arc.weight.Value(),
             barc.weight.Value());
         double score = log_backoff_prob + old_log_backoff - log_prob;
@@ -614,7 +648,7 @@ double EstimateTotalUnigramCount(const fst::Fst<Arc>& fst,
        aiter.Next()) {
     const auto& arc = aiter.Value();
     if (arc.ilabel == phi_label) continue;
-    double w = arc.weight.Value();
+    const double w = arc.weight.Value();
     if (max_val < 0.0 || w > max_val) {
       nextmax_val = max_val;
       max_val = w;
@@ -652,17 +686,18 @@ bool SeymoreShrink(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
     LOG(ERROR) << "SeymoreShrink: input is not a canonical SFST";
     return false;
   }
-  using StateId = typename Arc::StateId;
   using Label = typename Arc::Label;
+  using StateId = typename Arc::StateId;
   std::vector<int> orders;
   PhiStateOrder(*fst, phi_label, &orders);
   std::vector<double> probs;
   ComputeStateProbs(*fst, phi_label, orders, &probs);
   std::vector<std::pair<StateId, Label>> to_prune;
-  fst::Matcher<fst::Fst<Arc>> matcher(*fst, fst::MATCH_INPUT);
+  fst::ExplicitMatcher<fst::SortedMatcher<fst::Fst<Arc>>> matcher(
+      fst, fst::MATCH_INPUT);
   for (StateId s = 0; s < fst->NumStates(); ++s) {
     if (probs[s] == 0.0) continue;
-    double log_prob_s = std::log(probs[s]);
+    const double log_prob_s = std::log(probs[s]);
     StateId bo;
     double hi_neglog_sum;
     double low_neglog_sum;
@@ -681,9 +716,9 @@ bool SeymoreShrink(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
       if (arc.ilabel == phi_label) continue;
       if (matcher.Find(arc.ilabel)) {
         const auto& barc = matcher.Value();
-        double log_prob = -arc.weight.Value();
-        double log_backoff_prob = -barc.weight.Value();
-        double new_log_backoff = internal::ComputeUpdatedLogBackoff(
+        const double log_prob = -arc.weight.Value();
+        const double log_backoff_prob = -barc.weight.Value();
+        const double new_log_backoff = internal::ComputeUpdatedLogBackoff(
             nlog_backoff_num, nlog_backoff_denom, arc.weight.Value(),
             barc.weight.Value());
         double score = log_prob - new_log_backoff - log_backoff_prob;
@@ -718,17 +753,18 @@ bool AbsoluteSeymoreShrink(fst::MutableFst<Arc>* fst,
     LOG(ERROR) << "AbsoluteSeymoreShrink: input is not a canonical SFST";
     return false;
   }
-  using StateId = typename Arc::StateId;
   using Label = typename Arc::Label;
+  using StateId = typename Arc::StateId;
   std::vector<int> orders;
   PhiStateOrder(*fst, phi_label, &orders);
   std::vector<double> probs;
   ComputeStateProbs(*fst, phi_label, orders, &probs);
   std::vector<std::pair<StateId, Label>> to_prune;
-  fst::Matcher<fst::Fst<Arc>> matcher(*fst, fst::MATCH_INPUT);
+  fst::ExplicitMatcher<fst::SortedMatcher<fst::Fst<Arc>>> matcher(
+      fst, fst::MATCH_INPUT);
   for (StateId s = 0; s < fst->NumStates(); ++s) {
     if (probs[s] == 0.0) continue;
-    double log_prob_s = std::log(probs[s]);
+    const double log_prob_s = std::log(probs[s]);
     StateId bo;
     double hi_neglog_sum;
     double low_neglog_sum;
@@ -747,9 +783,9 @@ bool AbsoluteSeymoreShrink(fst::MutableFst<Arc>* fst,
       if (arc.ilabel == phi_label) continue;
       if (matcher.Find(arc.ilabel)) {
         const auto& barc = matcher.Value();
-        double log_prob = -arc.weight.Value();
-        double log_backoff_prob = -barc.weight.Value();
-        double new_log_backoff = internal::ComputeUpdatedLogBackoff(
+        const double log_prob = -arc.weight.Value();
+        const double log_backoff_prob = -barc.weight.Value();
+        const double new_log_backoff = internal::ComputeUpdatedLogBackoff(
             nlog_backoff_num, nlog_backoff_denom, arc.weight.Value(),
             barc.weight.Value());
         double score = log_prob - new_log_backoff - log_backoff_prob;
@@ -795,7 +831,7 @@ bool CountPrune(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
   std::vector<int> orders;
   PhiStateOrder(*fst, phi_label, &orders);
   int max_order = 0;
-  for (int o : orders) max_order = std::max(max_order, o);
+  for (const int o : orders) max_order = std::max(max_order, o);
   std::vector<double> count_minimums(max_order, -Weight::Zero().Value());
   for (absl::string_view spec :
        absl::StrSplit(count_pattern, ';', absl::SkipWhitespace())) {
@@ -858,6 +894,7 @@ bool CountPrune(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
       }
     }
     fst->DeleteArcs(s);
+    fst->ReserveArcs(s, surviving_arcs.size());
     for (const auto& arc : surviving_arcs) {
       fst->AddArc(s, arc);
     }
@@ -905,13 +942,13 @@ inline void ReadWordSet(absl::string_view word_set_spec,
                         const fst::SymbolTable* syms,
                         absl::flat_hash_set<Label>* word_set) {
   if (word_set_spec.empty()) return;
-  std::string file_path(word_set_spec);
+  const std::string file_path(word_set_spec);
   std::ifstream strm(file_path);
   if (strm) {
     std::string line;
     while (std::getline(strm, line)) {
       if (syms) {
-        auto l = syms->Find(line);
+        const auto l = syms->Find(line);
         if (l != fst::kNoSymbol) word_set->insert(l);
       } else {
         int64_t l;
@@ -921,7 +958,7 @@ inline void ReadWordSet(absl::string_view word_set_spec,
   } else {
     for (absl::string_view w : absl::StrSplit(word_set_spec, ',')) {
       if (syms) {
-        auto l = syms->Find(std::string(w));
+        const auto l = syms->Find(std::string(w));
         if (l != fst::kNoSymbol) word_set->insert(l);
       } else {
         int64_t l;
@@ -959,12 +996,12 @@ bool ListPrune(
     LOG(ERROR) << "ListPrune: input is not a canonical SFST";
     return false;
   }
-  using StateId = typename Arc::StateId;
   using Label = typename Arc::Label;
+  using StateId = typename Arc::StateId;
   std::vector<int> orders;
   PhiStateOrder(*fst, phi_label, &orders);
   int max_order = 0;
-  for (int o : orders) max_order = std::max(max_order, o);
+  for (const int o : orders) max_order = std::max(max_order, o);
   std::vector<bool> state_on_prune_path(fst->NumStates(), false);
   std::set<std::pair<StateId, Label>> highest_order_prune_arcs;
   std::set<StateId> highest_order_prune_origin_state;
@@ -980,13 +1017,14 @@ bool ListPrune(
       }
     }
   }
-  for (StateId s : backoff_states) {
+  for (const StateId s : backoff_states) {
     if (orders[s] == 1) {
       unigram_state = s;
       break;
     }
   }
-  fst::Matcher<fst::Fst<Arc>> matcher(*fst, fst::MATCH_INPUT);
+  fst::ExplicitMatcher<fst::SortedMatcher<fst::Fst<Arc>>> matcher(
+      fst, fst::MATCH_INPUT);
   for (const auto& ngram : ngrams_to_prune) {
     // Prevents origin_state == kNoStateId crash.
     if (ngram.empty()) continue;
@@ -997,11 +1035,11 @@ bool ListPrune(
       if (label < 0) {
         ngram_found = false;
       } else {
-        bool still_ascending = origin_state == fst::kNoStateId ||
-                               orders[origin_state] < orders[curr_state];
+        const bool still_ascending = origin_state == fst::kNoStateId ||
+                                     orders[origin_state] < orders[curr_state];
         matcher.SetState(curr_state);
         if (still_ascending && matcher.Find(label)) {
-          Arc arc = matcher.Value();
+          const Arc& arc = matcher.Value();
           origin_state = curr_state;
           curr_state = arc.nextstate;
         } else {
@@ -1021,12 +1059,12 @@ bool ListPrune(
   }
   std::vector<std::vector<StateId>> order_states(max_order + 1);
   for (StateId s = 0; s < fst->NumStates(); ++s) {
-    int state_order = orders[s];
+    const int state_order = orders[s];
     if (state_order >= 0 && !state_on_prune_path[s])
       order_states[state_order].push_back(s);
   }
   for (int order = 1; order <= max_order; ++order) {
-    for (auto s : order_states[order]) {
+    for (const auto s : order_states[order]) {
       StateId phi_state = -1;
       for (fst::ArcIterator<fst::Fst<Arc>> aiter(*fst, s); !aiter.Done();
            aiter.Next()) {
@@ -1072,18 +1110,7 @@ bool ListPrune(
       }
     }
   }
-  for (const auto& p : to_prune) {
-    StateId s = p.first;
-    Label l = p.second;
-    std::vector<Arc> arcs;
-    for (fst::ArcIterator<fst::Fst<Arc>> aiter(*fst, s); !aiter.Done();
-         aiter.Next()) {
-      const auto& arc = aiter.Value();
-      if (arc.ilabel != l) arcs.push_back(arc);
-    }
-    fst->DeleteArcs(s);
-    for (const auto& arc : arcs) fst->AddArc(s, arc);
-  }
+  internal::DeletePrunedArcs(fst, to_prune);
   return PhiNormalize(fst, phi_label);
 }
 
@@ -1131,7 +1158,7 @@ bool SignificanceShrink(fst::MutableFst<Arc>* fst,
       }
     }
     count_matcher = std::make_unique<fst::Matcher<fst::ExpandedFst<Arc>>>(
-        *count_fst, fst::MATCH_INPUT);
+        count_fst, fst::MATCH_INPUT);
   }
 
   auto distance = [](double x, double lower, double upper) {
@@ -1141,10 +1168,11 @@ bool SignificanceShrink(fst::MutableFst<Arc>* fst,
   };
 
   std::vector<absl::flat_hash_set<size_t>> to_prune_pos(fst->NumStates());
-  fst::Matcher<fst::Fst<Arc>> matcher(*fst, fst::MATCH_INPUT);
+  fst::ExplicitMatcher<fst::SortedMatcher<fst::Fst<Arc>>> matcher(
+      fst, fst::MATCH_INPUT);
   for (StateId s = 0; s < fst->NumStates(); ++s) {
     if (orders[s] < 1 || probs[s] == 0.0) continue;
-    double log_prob_s = std::log(probs[s]);
+    const double log_prob_s = std::log(probs[s]);
     StateId bo;
     double hi_neglog_sum;
     double low_neglog_sum;
@@ -1163,9 +1191,9 @@ bool SignificanceShrink(fst::MutableFst<Arc>* fst,
       if (arc.ilabel == phi_label) continue;
       if (matcher.Find(arc.ilabel)) {
         const auto& barc = matcher.Value();
-        double log_prob = -arc.weight.Value();
-        double log_backoff_prob = -barc.weight.Value();
-        double new_log_backoff = internal::ComputeUpdatedLogBackoff(
+        const double log_prob = -arc.weight.Value();
+        const double log_backoff_prob = -barc.weight.Value();
+        const double new_log_backoff = internal::ComputeUpdatedLogBackoff(
             nlog_backoff_num, nlog_backoff_denom, arc.weight.Value(),
             barc.weight.Value());
 
@@ -1184,12 +1212,13 @@ bool SignificanceShrink(fst::MutableFst<Arc>* fst,
           arc_count = state_count * std::exp(log_prob);
         }
 
-        double lower = arc_count / (state_count + 1.0);
-        double upper = (arc_count + 1.0) / (state_count + 1.0);
-        double backoff_prob = std::exp(log_backoff_prob + new_log_backoff);
-        double prob = std::exp(log_prob);
-        double dist_bo = distance(backoff_prob, lower, upper);
-        double dist_curr = distance(prob, lower, upper);
+        const double lower = arc_count / (state_count + 1.0);
+        const double upper = (arc_count + 1.0) / (state_count + 1.0);
+        const double backoff_prob =
+            std::exp(log_backoff_prob + new_log_backoff);
+        const double prob = std::exp(log_prob);
+        const double dist_bo = distance(backoff_prob, lower, upper);
+        const double dist_curr = distance(prob, lower, upper);
         bool needed = false;
         if (arc.nextstate != fst::kNoStateId &&
             static_cast<size_t>(arc.nextstate) < orders.size() &&
@@ -1219,6 +1248,7 @@ bool SignificanceShrink(fst::MutableFst<Arc>* fst,
       }
     }
     fst->DeleteArcs(s);
+    fst->ReserveArcs(s, arcs.size());
     for (const auto& arc : arcs) fst->AddArc(s, arc);
   }
   return PhiNormalize(fst, phi_label);
@@ -1233,8 +1263,8 @@ bool WordShrink(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
     LOG(ERROR) << "WordShrink: input is not a canonical SFST";
     return false;
   }
-  using StateId = typename Arc::StateId;
   using Label = typename Arc::Label;
+  using StateId = typename Arc::StateId;
   std::vector<int> orders;
   PhiStateOrder(*fst, phi_label, &orders);
 
@@ -1253,34 +1283,24 @@ bool WordShrink(fst::MutableFst<Arc>* fst, typename Arc::Label phi_label,
     }
   }
 
-  auto get_state_ngram = [&](StateId st, auto& self) -> std::vector<Label> {
-    std::vector<Label> ngram;
-    if (st >= 0 && st < fst->NumStates() &&
-        prefix_state[st] != fst::kNoStateId) {
-      ngram = self(prefix_state[st], self);
-      ngram.push_back(incoming_label[st]);
-    }
-    return ngram;
-  };
-
   std::vector<std::pair<StateId, Label>> to_prune;
   for (StateId s = 0; s < fst->NumStates(); ++s) {
     if (orders[s] <= 1) continue;
-    std::vector<Label> state_ngram = get_state_ngram(s, get_state_ngram);
+    bool history_has_word = false;
+    for (StateId curr = s; curr >= 0 && curr < fst->NumStates() &&
+                           prefix_state[curr] != fst::kNoStateId;
+         curr = prefix_state[curr]) {
+      if (word_set.contains(incoming_label[curr])) {
+        history_has_word = true;
+        break;
+      }
+    }
+    if (history_has_word) continue;
     for (fst::ArcIterator<fst::Fst<Arc>> aiter(*fst, s); !aiter.Done();
          aiter.Next()) {
       const auto& arc = aiter.Value();
       if (arc.ilabel == phi_label) continue;
-      std::vector<Label> ngram = state_ngram;
-      ngram.push_back(arc.ilabel);
-      bool keep = false;
-      for (Label l : ngram) {
-        if (word_set.contains(l)) {
-          keep = true;
-          break;
-        }
-      }
-      if (!keep) {
+      if (!word_set.contains(arc.ilabel)) {
         to_prune.push_back({s, arc.ilabel});
       }
     }
