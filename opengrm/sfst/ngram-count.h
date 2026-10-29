@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// NGram counting class adapted for SFST.
+// N-gram counting class adapted for SFST.
 
 #ifndef OPENGRM_SFST_NGRAM_COUNT_H_
 #define OPENGRM_SFST_NGRAM_COUNT_H_
@@ -40,10 +40,11 @@ namespace sfst {
 template <class Weight, class Label = int32_t>
 class NGramCounter {
  public:
-  // Construct an NGramCounter object counting n-grams of order less or equal to
-  // 'order'. When 'epsilon_as_backoff' is 'true', the epsilon transition in the
-  // input Fst are treated as failure backoff transitions and would trigger the
-  // length of the current context to be decreased by one ("pop front").
+  // Constructs an NGramCounter object counting n-grams of order less than or
+  // equal to 'order'. When 'epsilon_as_backoff' is 'true', the epsilon
+  // transitions in the input FST are treated as failure backoff transitions and
+  // trigger the length of the current context to be decreased by one ("pop
+  // front").
   explicit NGramCounter(int order, bool epsilon_as_backoff = false,
                         float delta = 1e-9F)
       : order_(order),
@@ -66,9 +67,9 @@ class NGramCounter {
     }
   }
 
-  // Extract counts from the input acyclic FST.  Return 'true' if counting
+  // Extracts counts from the input acyclic FST. Returns 'true' if counting
   // from the FST was successful and false otherwise. If necessary, a copy is
-  // taken and this is sent to the MutableFst overload.
+  // taken and sent to the MutableFst overload.
   template <class Arc>
   bool Count(const fst::Fst<Arc>& fst) {
     if (Error()) return false;
@@ -83,9 +84,9 @@ class NGramCounter {
     }
   }
 
-  // Extract counts from input mutable acyclic FST, top-sorting the input FST
-  // if necessary. Returns 'true' when the counting from
-  // the Fst was successful and false otherwise.
+  // Extracts counts from input mutable acyclic FST, top-sorting the input FST
+  // if necessary. Returns 'true' when the counting from the FST was successful
+  // and false otherwise.
   template <class Arc>
   bool Count(fst::MutableFst<Arc>* fst) {
     if (Error()) return false;
@@ -107,16 +108,26 @@ class NGramCounter {
     return CountFromTopSortedFst(*fst);
   }
 
-  // Get an FST representation of the ngram counts.
+  // Gets an FST representation of the n-gram counts.
   template <class Arc>
   void GetFst(fst::MutableFst<Arc>* fst, Label phi_label = -1) {
     fst->DeleteStates();
     if (Error()) return;
     fst->AddStates(states_.size());
+    std::vector<size_t> num_arcs(states_.size(), 0);
     for (size_t s = 0; s < states_.size(); ++s) {
+      if (states_[s].backoff_state != -1) {
+        ++num_arcs[s];
+      }
+    }
+    for (const CountArc& arc : arcs_) {
+      ++num_arcs[arc.origin];
+    }
+    const Label label = phi_label >= 0 ? phi_label : 0;
+    for (size_t s = 0; s < states_.size(); ++s) {
+      fst->ReserveArcs(s, num_arcs[s]);
       fst->SetFinal(s, typename Arc::Weight(states_[s].final_count.Value()));
       if (states_[s].backoff_state != -1) {
-        Label label = phi_label >= 0 ? phi_label : 0;
         fst->AddArc(s, Arc(label, label, Arc::Weight::Zero(),
                            states_[s].backoff_state));
       }
@@ -132,13 +143,14 @@ class NGramCounter {
     fst::ArcSort(fst, fst::ILabelCompare<Arc>());
   }
 
-  // Returns strings of ngram counts, in reverse context order; e.g., for the
-  // ngram "feed the angry duck", returns "<{angry,the,feed}, <duck,count>>".
+  // Returns strings of n-gram counts, in reverse context order; e.g., for the
+  // n-gram "feed the angry duck", returns "<{angry,the,feed}, <duck,count>>".
   template <class Arc>
   void GetReverseContextNGrams(
       std::vector<std::pair<std::vector<int>, std::pair<Label, double>>>*
           ngram_counts) {
     if (Error()) return;
+    ngram_counts->reserve(ngram_counts->size() + arcs_.size());
     std::vector<int> incoming_words(states_.size(), -1);
     std::vector<int> previous_states(states_.size(), -1);
     if (order_ > 1) incoming_words[NGramStartState()] = 0;
@@ -182,7 +194,7 @@ class NGramCounter {
     return states_[state_id].backoff_state;
   }
 
-  // Size of ngram model is the sum of the number of states and number of arcs.
+  // Returns the size of the n-gram model (sum of number of states and arcs).
   ssize_t GetSize() const { return states_.size() + arcs_.size(); }
 
   bool Error() const { return error_; }
@@ -267,7 +279,7 @@ class NGramCounter {
       destination = arcs_[backoff_arc].destination;
     } else {
       destination = states_.size();
-      CountState next_count_state(
+      const CountState next_count_state(
           backoff_arc == -1 ? backoff_ : arcs_[backoff_arc].destination,
           count_state.order + 1, Weight::Zero(), -1);
       states_.push_back(next_count_state);
@@ -277,7 +289,7 @@ class NGramCounter {
     return arc_id;
   }
 
-  // Increase the count of n-gram corresponding to the arc labeled 'label'
+  // Increases the count of the n-gram corresponding to the arc labeled 'label'
   // out of state of ID 'state_id' by 'count'.
   ssize_t UpdateCount(ssize_t state_id, Label label, Weight count) {
     ssize_t arc_id = FindArc(state_id, label);
@@ -289,7 +301,7 @@ class NGramCounter {
     return nextstate_id;
   }
 
-  // Increase the count of n-gram corresponding to the super-final arc
+  // Increases the count of the n-gram corresponding to the super-final arc
   // out of state of ID 'state_id' by 'count'.
   void UpdateFinalCount(ssize_t state_id, Weight count) {
     while (state_id != -1) {
@@ -302,7 +314,7 @@ class NGramCounter {
   // Puts the sum of counts of non-backoff arcs leaving s on the backoff arc.
   template <class Arc>
   void StateCounts(fst::MutableFst<Arc>* fst, Label phi_label = -1) {
-    Label actual_phi_label = phi_label >= 0 ? phi_label : 0;
+    const Label actual_phi_label = phi_label >= 0 ? phi_label : 0;
     for (size_t s = 0; s < states_.size(); ++s) {
       Weight state_count = states_[s].final_count;
       if (states_[s].backoff_state != -1) {
@@ -334,9 +346,9 @@ class NGramCounter {
     }
     ssize_t count_state = initial_;
     auto fst_state = fst.Start();
-    Weight weight = fst.Properties(fst::kUnweighted, false)
-                        ? Weight::One()
-                        : Weight(fst::ShortestDistance(fst).Value());
+    const Weight weight = fst.Properties(fst::kUnweighted, false)
+                              ? Weight::One()
+                              : Weight(fst::ShortestDistance(fst).Value());
     while (fst.Final(fst_state) == Arc::Weight::Zero()) {
       fst::ArcIterator<fst::Fst<Arc>> aiter(fst, fst_state);
       const auto& arc = aiter.Value();
@@ -368,7 +380,7 @@ class NGramCounter {
     std::vector<Pair> heap;
     absl::node_hash_map<Pair, typename Arc::Weight, PairHash> pair2weight;
     Compare compare;
-    Pair start_pair = std::make_pair(fst.Start(), initial_);
+    const Pair start_pair = std::make_pair(fst.Start(), initial_);
     pair2weight[start_pair] = Arc::Weight::One();
     heap.push_back(start_pair);
     std::push_heap(heap.begin(), heap.end(), compare);
@@ -377,15 +389,16 @@ class NGramCounter {
       const auto current_pair = heap.back();
       const auto fst_state = current_pair.first;
       const ssize_t count_state = current_pair.second;
-      auto current_weight = pair2weight[current_pair];
-      pair2weight.erase(current_pair);
+      const auto weight_iter = pair2weight.find(current_pair);
+      const auto current_weight = weight_iter->second;
+      pair2weight.erase(weight_iter);
       heap.pop_back();
       for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, fst_state); !aiter.Done();
            aiter.Next()) {
         const auto& arc = aiter.Value();
         Pair next_pair(arc.nextstate, count_state);
         if (arc.ilabel) {
-          Weight count = Weight(
+          const Weight count = Weight(
               Times(current_weight, Times(arc.weight, fdistance[arc.nextstate]))
                   .Value());
           next_pair.second = UpdateCount(count_state, arc.ilabel, count);
@@ -413,14 +426,14 @@ class NGramCounter {
     return true;
   }
 
-  int order_;
+  const int order_;
   std::vector<CountState> states_;
   std::vector<CountArc> arcs_;
   ssize_t initial_;
   ssize_t backoff_;
   std::vector<PairArcMap> pair_arc_maps_;
-  bool epsilon_as_backoff_;
-  float delta_;
+  const bool epsilon_as_backoff_;
+  const float delta_;
   bool error_;
 
   NGramCounter(const NGramCounter&) = delete;
