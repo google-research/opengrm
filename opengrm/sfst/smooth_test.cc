@@ -484,6 +484,97 @@ TEST(ComputeAbsoluteDiscountsTest, AllDiscountingModes) {
   EXPECT_LT(discounts[2][3], 3.0);
 }
 
+TEST(KatzEdgeCaseTest, CompleteStateAssignsApproxZeroBackoffWeight) {
+  // Builds an order-2 count FST for a repeated single-word sentence ("x x")
+  // where state 2 covers all unigram events (label 1 and final weight) and
+  // state 0 (<s>) covers only label 1 without final weight.
+  fst::VectorFst<Arc> fst;
+  for (StateId s = 0; s <= 2; ++s) fst.AddState();
+  fst.SetStart(0);
+  fst.AddArc(0, Arc(0, 0, Weight(-std::log(1.0)), 1));
+  fst.AddArc(0, Arc(1, 1, Weight(-std::log(1.0)), 2));
+  fst.AddArc(1, Arc(1, 1, Weight(-std::log(2.0)), 2));
+  fst.SetFinal(1, Weight(-std::log(1.0)));
+  fst.AddArc(2, Arc(0, 0, Weight(-std::log(2.0)), 1));
+  fst.AddArc(2, Arc(1, 1, Weight(-std::log(1.0)), 2));
+  fst.SetFinal(2, Weight(-std::log(1.0)));
+  fst::ArcSort(&fst, fst::StdILabelCompare());
+  ASSERT_TRUE(Katz(&fst, /*phi_label=*/0));
+  EXPECT_TRUE(IsNormalized(fst, /*phi_label=*/0));
+  for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, 2); !aiter.Done();
+       aiter.Next()) {
+    const auto& arc = aiter.Value();
+    if (arc.ilabel == 0) {
+      EXPECT_EQ(arc.weight, Weight(kApproxZeroWeight.Value()));
+    } else if (arc.ilabel == 1) {
+      EXPECT_NEAR(arc.weight.Value(), -std::log(1.0 / 3.0), 1e-3);
+    }
+  }
+  EXPECT_NEAR(fst.Final(2).Value(), -std::log(2.0 / 3.0), 1e-3);
+}
+
+TEST(KatzEdgeCaseTest, CompleteStateWithoutFinalWeightRenormalizesArcs) {
+  // Builds an order-2 count FST where the unigram state (state 1) has only
+  // explicit arcs (labels 1 and 2, no final weight) and state 0 covers both
+  // labels.
+  fst::VectorFst<Arc> fst;
+  for (StateId s = 0; s <= 1; ++s) fst.AddState();
+  fst.SetStart(0);
+  fst.AddArc(0, Arc(0, 0, Weight(-std::log(2.0)), 1));
+  fst.AddArc(0, Arc(1, 1, Weight(-std::log(1.0)), 1));
+  fst.AddArc(0, Arc(2, 2, Weight(-std::log(1.0)), 1));
+  fst.AddArc(1, Arc(1, 1, Weight(-std::log(1.0)), 1));
+  fst.AddArc(1, Arc(2, 2, Weight(-std::log(1.0)), 1));
+  fst.SetFinal(1, Weight::Zero());
+  fst::ArcSort(&fst, fst::StdILabelCompare());
+  ASSERT_TRUE(Katz(&fst, /*phi_label=*/0));
+  for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, 0); !aiter.Done();
+       aiter.Next()) {
+    const auto& arc = aiter.Value();
+    if (arc.ilabel == 0) {
+      EXPECT_EQ(arc.weight, Weight(kApproxZeroWeight.Value()));
+    } else {
+      EXPECT_NEAR(arc.weight.Value(), -std::log(0.5), 1e-3);
+    }
+  }
+}
+
+TEST(KatzEdgeCaseTest,
+     HighCountMultiContinuationReservesUnitMassUnderRounding) {
+  // At state 2 (context "a"), continuations 2 ("b", count 6) and 3 ("c",
+  // count 6) both exceed bins = 5 and receive kFallbackDiscount = 0.999
+  // (matching OpenGrm NGramKatz's top bin), while the unigram state also has
+  // label 4 so state 2 is not complete. Each continuation receives probability
+  // (6 * 0.999) / 12 = 0.4995, reserving 0.001 of the state mass for backoff.
+  fst::VectorFst<Arc> fst;
+  for (StateId s = 0; s <= 2; ++s) fst.AddState();
+  fst.SetStart(0);
+  fst.AddArc(0, Arc(0, 0, Weight(-std::log(13.0)), 1));
+  fst.AddArc(0, Arc(1, 1, Weight(-std::log(12.0)), 2));
+  fst.AddArc(0, Arc(4, 4, Weight(-std::log(1.0)), 1));
+  fst.AddArc(1, Arc(1, 1, Weight(-std::log(12.0)), 2));
+  fst.AddArc(1, Arc(2, 2, Weight(-std::log(6.0)), 1));
+  fst.AddArc(1, Arc(3, 3, Weight(-std::log(6.0)), 1));
+  fst.AddArc(1, Arc(4, 4, Weight(-std::log(1.0)), 1));
+  fst.SetFinal(1, Weight(-std::log(13.0)));
+  fst.AddArc(2, Arc(0, 0, Weight(-std::log(12.0)), 1));
+  fst.AddArc(2, Arc(2, 2, Weight(-std::log(6.0)), 1));
+  fst.AddArc(2, Arc(3, 3, Weight(-std::log(6.0)), 1));
+  fst::ArcSort(&fst, fst::StdILabelCompare());
+  ASSERT_TRUE(Katz(&fst, /*phi_label=*/0));
+  EXPECT_TRUE(IsNormalized(fst, /*phi_label=*/0));
+  for (fst::ArcIterator<fst::Fst<Arc>> aiter(fst, 2); !aiter.Done();
+       aiter.Next()) {
+    const auto& arc = aiter.Value();
+    if (arc.ilabel == 0) {
+      EXPECT_LT(arc.weight.Value(), 20.0f);
+      EXPECT_GE(arc.weight.Value(), -1e-4f);
+    } else if (arc.ilabel == 2 || arc.ilabel == 3) {
+      EXPECT_NEAR(arc.weight.Value(), -std::log(0.4995), 1e-4);
+    }
+  }
+}
+
 }  // namespace
 }  // namespace sfst
 
