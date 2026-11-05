@@ -2557,10 +2557,13 @@ cdef class Far:
     self._reader.reset()
 
   def __getitem__(self, key):
-    if self.get_key() == tostring(key) or self._reader.find(key):
+    # Only checks the current key if there is one.
+    # A failed lookup past the last key leaves the iterator exhausted.
+    cdef string key_str = tostring(key)
+    cdef bool already_at_key = not self.done() and self.get_key() == key_str
+    if already_at_key or self._reader.find(key_str):
       return self.get_fst()
-    else:
-      raise KeyError(key)
+    raise KeyError(key)
 
   def __next__(self):
     self._check_mode(b"r")
