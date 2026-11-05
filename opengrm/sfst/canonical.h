@@ -68,24 +68,24 @@ template <class Arc>
 bool IsCanonical(const fst::Fst<Arc>& fst, typename Arc::Label phi_label,
                  std::vector<typename Arc::StateId>* top_order) {
   using StateId = typename Arc::StateId;
-  bool phi_acyclic = PhiTopOrder(fst, phi_label, top_order);
-  // Phi label cycle?
+  const bool phi_acyclic = PhiTopOrder(fst, phi_label, top_order);
+  // Checks for a phi-label cycle.
   if (!phi_acyclic) {
     VLOG(1) << "IsCanonical: input FST not acyclic w.r.t. phi/epsilon labels";
     return false;
   }
-  // Input-label sorted?
+  // Checks if input-label sorted.
   if (!fst.Properties(fst::kILabelSorted, true)) {
     VLOG(1) << "IsCanonical: input FST not sorted w.r.t input labels";
     return false;
   }
   if (phi_label != fst::kNoLabel) {
-    // At most one phi-label per state?
-    fst::ExplicitMatcher<fst::Matcher<fst::Fst<Arc>>> matcher(fst,
-                                                              fst::MATCH_INPUT);
+    // Checks that there is at most one phi-label per state.
+    fst::ExplicitMatcher<fst::SortedMatcher<fst::Fst<Arc>>> matcher(
+        &fst, fst::MATCH_INPUT);
     for (fst::StateIterator<fst::Fst<Arc>> siter(fst); !siter.Done();
          siter.Next()) {
-      StateId s = siter.Value();
+      const StateId s = siter.Value();
       matcher.SetState(s);
       if (matcher.Find(phi_label)) {
         matcher.Next();
@@ -121,21 +121,21 @@ int PhiStateOrder(const fst::Fst<Arc>& fst, typename Arc::Label phi_label,
     return 1;
   }
   std::vector<StateId> top_order;
-  bool acyclic = PhiTopOrder(fst, phi_label, &top_order);
+  const bool acyclic = PhiTopOrder(fst, phi_label, &top_order);
   if (!acyclic) {
     FSTERROR() << "PhiStateOrder: input FST not canonical (phi-cyclic)";
     return 0;
   }
   state_order->resize(top_order.size(), 1);
   int max_order = 1;
-  fst::ExplicitMatcher<fst::Matcher<fst::Fst<Arc>>> matcher(fst,
-                                                            fst::MATCH_INPUT);
+  fst::ExplicitMatcher<fst::SortedMatcher<fst::Fst<Arc>>> matcher(
+      &fst, fst::MATCH_INPUT);
   for (StateId i = top_order.size() - 1; i >= 0; --i) {
-    StateId s = top_order[i];  // ith state in reverse phi-top order
+    const StateId s = top_order[i];  // Ith state in reverse phi-top order.
     matcher.SetState(s);
     if (matcher.Find(phi_label)) {
       const Arc& arc = matcher.Value();
-      int ord = (*state_order)[arc.nextstate] + 1;
+      const int ord = (*state_order)[arc.nextstate] + 1;
       (*state_order)[s] = ord;
       if (ord > max_order) max_order = ord;
     }
