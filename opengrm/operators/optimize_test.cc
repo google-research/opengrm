@@ -22,6 +22,7 @@
 #include "openfst/lib/arc-map.h"
 #include "openfst/lib/arc.h"
 #include "openfst/lib/equal.h"
+#include "openfst/lib/properties.h"
 #include "openfst/lib/vector-fst.h"
 #include "openfst/lib/verify.h"
 #include "openfst/script/equal.h"
@@ -203,6 +204,49 @@ TEST_F(OptimizeTest, OptimizeLog) {
   Optimize(&fst5_res, true);
   ASSERT_TRUE(Verify(fst5_res));
   ASSERT_TRUE(Equal(*fst5_log_opt_, fst5_res));
+}
+
+TEST(OptimizeTransducerArcSortTest, CyclicUnweightedTransducerSortsArcs) {
+  // Nondeterministic cyclic unweighted transducer where ilabel 3 precedes
+  // ilabel 1 in EncodeTable encounter order.
+  VectorFst<StdArc> input;
+  input.AddStates(3);
+  input.SetStart(0);
+  input.SetFinal(0, StdArc::Weight::One());
+  input.AddArc(0, StdArc(3, 4, StdArc::Weight::One(), 0));
+  input.AddArc(0, StdArc(0, 0, StdArc::Weight::One(), 1));
+  input.AddArc(1, StdArc(1, 2, StdArc::Weight::One(), 2));
+  input.AddArc(1, StdArc(1, 2, StdArc::Weight::One(), 0));
+  input.AddArc(2, StdArc(2, 3, StdArc::Weight::One(), 0));
+
+  VectorFst<StdArc> fst_no_props(input);
+  Optimize(&fst_no_props, /*compute_props=*/false);
+  ASSERT_TRUE(Verify(fst_no_props));
+
+  VectorFst<StdArc> fst_with_props(input);
+  Optimize(&fst_with_props, /*compute_props=*/true);
+  ASSERT_TRUE(Verify(fst_with_props));
+  EXPECT_EQ(fst_with_props.Properties(kILabelSorted, false), kILabelSorted);
+  EXPECT_EQ(fst_with_props.Properties(kILabelSorted, true), kILabelSorted);
+  EXPECT_TRUE(Equal(fst_no_props, fst_with_props));
+}
+
+TEST(OptimizeTransducerArcSortTest, AcyclicLogTransducerSortsArcs) {
+  // Nondeterministic acyclic LogArc transducer where ilabel 3 precedes
+  // ilabel 1 in EncodeTable encounter order.
+  VectorFst<LogArc> fst;
+  fst.AddStates(3);
+  fst.SetStart(0);
+  fst.SetFinal(2, LogArc::Weight::One());
+  fst.AddArc(0, LogArc(3, 4, LogArc::Weight(0.5), 2));
+  fst.AddArc(0, LogArc(1, 2, LogArc::Weight(1.0), 1));
+  fst.AddArc(0, LogArc(1, 2, LogArc::Weight(2.0), 2));
+  fst.AddArc(1, LogArc(2, 3, LogArc::Weight(0.25), 2));
+
+  Optimize(&fst, /*compute_props=*/true);
+  ASSERT_TRUE(Verify(fst));
+  EXPECT_EQ(fst.Properties(kILabelSorted, false), kILabelSorted);
+  EXPECT_EQ(fst.Properties(kILabelSorted, true), kILabelSorted);
 }
 
 }  // namespace

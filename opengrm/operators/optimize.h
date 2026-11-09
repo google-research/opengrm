@@ -117,11 +117,13 @@ void OptimizeTransducer(MutableFst<Arc>* fst, bool compute_props = false) {
         StateMap(fst, ArcSumMapper<Arc>(*fst));
       } else {
         OptimizeAs(fst, kEncodeLabels);
+        ArcSort(fst, ILabelCompare<Arc>());
       }
     } else if (fst->Properties(kAcyclic, compute_props) == kAcyclic) {
       // "Any acyclic weighted automaton over a zero-sum-free semiring has
       // the twins property and is determinizable" (Mohri 2006).
       OptimizeAs(fst, kEncodeLabels);
+      ArcSort(fst, ILabelCompare<Arc>());
     }
   } else {
     Minimize(fst);
