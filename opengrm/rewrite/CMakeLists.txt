@@ -33,7 +33,6 @@ target_link_libraries(
             openfst::far # Requires FAR extension
             grm_paths
             grm_string
-            protobuf::libprotobuf
 )
 
 opengrm_install(
@@ -120,6 +119,7 @@ if(OPENGRM_BUILD_TESTS)
               openfst::fst
               openfst::far
               ${OPENGRM_ALWAYS_LINK_END}
+              protobuf::libprotobuf
               GTest::gmock_main
     )
     grm_configure_test_target(rule_cascade_test)

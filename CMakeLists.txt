@@ -142,27 +142,31 @@ set_target_properties(
     "absl::flat_hash_map;absl::flat_hash_set;absl::node_hash_map;absl::node_hash_set;absl::btree;absl::inlined_vector"
 )
 
-# Protobuf
-if(OPENGRM_USE_SYSTEM_PROTOBUF)
-  find_package(Protobuf REQUIRED CONFIG)
-  if(NOT TARGET protobuf::libprotobuf AND TARGET Protobuf::libprotobuf)
-    add_library(protobuf::libprotobuf ALIAS Protobuf::libprotobuf)
+# Protobuf (needed by Thrax rule_cascade_test and testing/test_textproto)
+if(OPENGRM_BUILD_TESTS AND OPENGRM_ENABLE_THRAX)
+  if(OPENGRM_USE_SYSTEM_PROTOBUF)
+    find_package(Protobuf REQUIRED CONFIG)
+    if(NOT TARGET protobuf::libprotobuf AND TARGET Protobuf::libprotobuf)
+      add_library(protobuf::libprotobuf ALIAS Protobuf::libprotobuf)
+    endif()
+  else()
+    set(protobuf_BUILD_TESTS OFF CACHE BOOL "Build protobuf tests" FORCE)
+    set(protobuf_BUILD_PROTOC_BINARIES ON CACHE BOOL "Build protoc" FORCE)
+    set(protobuf_INSTALL OFF CACHE BOOL "Install protobuf" FORCE)
+    set(protobuf_ABSL_PROVIDER "package" CACHE STRING "Use external Abseil"
+                                               FORCE
+    )
+    if(NOT OPENGRM_USE_SYSTEM_ABSEIL)
+      # Ensure Protobuf finds Abseil targets created by FetchContent
+      set(absl_FOUND TRUE)
+    endif()
+    FetchContent_Declare(
+      protobuf
+      URL https://github.com/protocolbuffers/protobuf/archive/refs/tags/v35.1.zip
+      DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+    )
+    FetchContent_MakeAvailable(protobuf)
   endif()
-else()
-  set(protobuf_BUILD_TESTS OFF CACHE BOOL "Build protobuf tests" FORCE)
-  set(protobuf_BUILD_PROTOC_BINARIES ON CACHE BOOL "Build protoc" FORCE)
-  set(protobuf_INSTALL OFF CACHE BOOL "Install protobuf" FORCE)
-  set(protobuf_ABSL_PROVIDER "package" CACHE STRING "Use external Abseil" FORCE)
-  if(NOT OPENGRM_USE_SYSTEM_ABSEIL)
-    # Ensure Protobuf finds Abseil targets created by FetchContent
-    set(absl_FOUND TRUE)
-  endif()
-  FetchContent_Declare(
-    protobuf
-    URL https://github.com/protocolbuffers/protobuf/archive/refs/tags/v35.1.zip
-    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-  )
-  FetchContent_MakeAvailable(protobuf)
 endif()
 
 # OpenFst
@@ -199,7 +203,7 @@ else()
   FetchContent_Declare(
     openfst
     GIT_REPOSITORY https://github.com/google-research/openfst.git
-    GIT_TAG 5c887c63a882d608ec3010dba60ab25d57684b02  # 10/26/26.
+    GIT_TAG 5c887c63a882d608ec3010dba60ab25d57684b02 # 10/26/26.
   )
   FetchContent_MakeAvailable(openfst)
 endif()
