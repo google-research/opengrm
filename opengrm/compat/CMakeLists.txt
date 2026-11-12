@@ -12,13 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set(COMPAT_SRCS
-    file.cc
-)
+set(COMPAT_SRCS file.cc)
 
-set(COMPAT_HEADERS
-    file.h
-)
+set(COMPAT_HEADERS file.h)
 
 grm_add_library(grm_compat ${COMPAT_SRCS})
 
@@ -57,11 +53,8 @@ opengrm_install(
 
 if(OPENGRM_BUILD_TESTS)
   add_executable(file_test file_test.cc)
-  target_link_libraries(
-    file_test
-    PRIVATE grm_compat
-            openfst::fst
-            GTest::gtest_main
+  target_link_libraries(file_test PRIVATE grm_compat openfst::fst
+                                          GTest::gtest_main
   )
   grm_configure_test_target(file_test)
   gtest_discover_tests(
