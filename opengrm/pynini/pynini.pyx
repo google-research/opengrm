@@ -2814,3 +2814,5 @@ TokenType = """typing.Union[SymbolTableView, typing.Literal["byte", "utf8"]]"""
 
 # Masks `fst_error_fatal` in-module.
 SetFlag(&FLAGS_fst_error_fatal, False)
+
+__version__ = "2.2.0"

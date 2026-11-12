@@ -18,31 +18,31 @@
 from typing import Any, Callable, ContextManager, Iterable, Iterator, List, Literal, Optional, Tuple, Type, TypeVar, Union
 
 ## Typing imports.
-from openfst.pywrapfst import _ArcTypeFlag
-from openfst.pywrapfst import _Filename
-from openfst.pywrapfst import _Label
-from openfst.pywrapfst import _StateId
-from openfst.pywrapfst import ArcMapType
-from openfst.pywrapfst import ComposeFilter
-from openfst.pywrapfst import DeterminizeType
-from openfst.pywrapfst import EpsNormalizeType
-from openfst.pywrapfst import FarType
-from openfst.pywrapfst import Fst as _Fst
-from openfst.pywrapfst import FstArgError
-from openfst.pywrapfst import FstIOError
-from openfst.pywrapfst import FstOpError
-from openfst.pywrapfst import ProjectType
-from openfst.pywrapfst import QueueType
-from openfst.pywrapfst import RandArcSelection
-from openfst.pywrapfst import ReplaceLabelType
-from openfst.pywrapfst import ReweightType
-from openfst.pywrapfst import SortType
-from openfst.pywrapfst import StateMapType
-from openfst.pywrapfst import SymbolTable
-from openfst.pywrapfst import SymbolTableView
-from openfst.pywrapfst import VectorFst as _VectorFst
-from openfst.pywrapfst import Weight
-from openfst.pywrapfst import WeightLike
+from openfst.extensions.python.pywrapfst import _ArcTypeFlag
+from openfst.extensions.python.pywrapfst import _Filename
+from openfst.extensions.python.pywrapfst import _Label
+from openfst.extensions.python.pywrapfst import _StateId
+from openfst.extensions.python.pywrapfst import ArcMapType
+from openfst.extensions.python.pywrapfst import ComposeFilter
+from openfst.extensions.python.pywrapfst import DeterminizeType
+from openfst.extensions.python.pywrapfst import EpsNormalizeType
+from openfst.extensions.python.pywrapfst import FarType
+from openfst.extensions.python.pywrapfst import Fst as _Fst
+from openfst.extensions.python.pywrapfst import FstArgError
+from openfst.extensions.python.pywrapfst import FstIOError
+from openfst.extensions.python.pywrapfst import FstOpError
+from openfst.extensions.python.pywrapfst import ProjectType
+from openfst.extensions.python.pywrapfst import QueueType
+from openfst.extensions.python.pywrapfst import RandArcSelection
+from openfst.extensions.python.pywrapfst import ReplaceLabelType
+from openfst.extensions.python.pywrapfst import ReweightType
+from openfst.extensions.python.pywrapfst import SortType
+from openfst.extensions.python.pywrapfst import StateMapType
+from openfst.extensions.python.pywrapfst import SymbolTable
+from openfst.extensions.python.pywrapfst import SymbolTableView
+from openfst.extensions.python.pywrapfst import VectorFst as _VectorFst
+from openfst.extensions.python.pywrapfst import Weight
+from openfst.extensions.python.pywrapfst import WeightLike
 
 # Custom exceptions.
 class FstStringCompilationError(FstArgError, ValueError): ...
@@ -422,97 +422,97 @@ class Far:
 
 # Classes from pywrapfst.
 
-from openfst.pywrapfst import Arc
-from openfst.pywrapfst import EncodeMapper
-from openfst.pywrapfst import SymbolTable
-from openfst.pywrapfst import Weight
-from openfst.pywrapfst import _ArcIterator
-from openfst.pywrapfst import _MutableArcIterator
-from openfst.pywrapfst import _StateIterator
+from openfst.extensions.python.pywrapfst import Arc
+from openfst.extensions.python.pywrapfst import EncodeMapper
+from openfst.extensions.python.pywrapfst import SymbolTable
+from openfst.extensions.python.pywrapfst import Weight
+from openfst.extensions.python.pywrapfst import _ArcIterator
+from openfst.extensions.python.pywrapfst import _MutableArcIterator
+from openfst.extensions.python.pywrapfst import _StateIterator
 
 # Exceptions not yet imported.
-from openfst.pywrapfst import FstBadWeightError
-from openfst.pywrapfst import FstIndexError
+from openfst.extensions.python.pywrapfst import FstBadWeightError
+from openfst.extensions.python.pywrapfst import FstIndexError
 
 # FST constants.
-from openfst.pywrapfst import NO_LABEL
-from openfst.pywrapfst import NO_STATE_ID
-from openfst.pywrapfst import NO_SYMBOL
+from openfst.extensions.python.pywrapfst import NO_LABEL
+from openfst.extensions.python.pywrapfst import NO_STATE_ID
+from openfst.extensions.python.pywrapfst import NO_SYMBOL
 
 # FST properties.
-from openfst.pywrapfst import ACCEPTOR
-from openfst.pywrapfst import ACCESSIBLE
-from openfst.pywrapfst import ACYCLIC
-from openfst.pywrapfst import ADD_ARC_PROPERTIES
-from openfst.pywrapfst import ADD_STATE_PROPERTIES
-from openfst.pywrapfst import ADD_SUPERFINAL_PROPERTIES
-from openfst.pywrapfst import ARC_SORT_PROPERTIES
-from openfst.pywrapfst import BINARY_PROPERTIES
-from openfst.pywrapfst import COACCESSIBLE
-from openfst.pywrapfst import COPY_PROPERTIES
-from openfst.pywrapfst import CYCLIC
-from openfst.pywrapfst import DELETE_ARC_PROPERTIES
-from openfst.pywrapfst import DELETE_STATE_PROPERTIES
-from openfst.pywrapfst import EPSILONS
-from openfst.pywrapfst import ERROR
-from openfst.pywrapfst import EXPANDED
-from openfst.pywrapfst import EXTRINSIC_PROPERTIES
-from openfst.pywrapfst import FST_PROPERTIES
-from openfst.pywrapfst import FstProperties
-from openfst.pywrapfst import INITIAL_ACYCLIC
-from openfst.pywrapfst import INITIAL_CYCLIC
-from openfst.pywrapfst import INTRINSIC_PROPERTIES
-from openfst.pywrapfst import I_DETERMINISTIC
-from openfst.pywrapfst import I_EPSILONS
-from openfst.pywrapfst import I_LABEL_INVARIANT_PROPERTIES
-from openfst.pywrapfst import I_LABEL_SORTED
-from openfst.pywrapfst import MUTABLE
-from openfst.pywrapfst import NEG_TRINARY_PROPERTIES
-from openfst.pywrapfst import NON_I_DETERMINISTIC
-from openfst.pywrapfst import NON_O_DETERMINISTIC
-from openfst.pywrapfst import NOT_ACCEPTOR
-from openfst.pywrapfst import NOT_ACCESSIBLE
-from openfst.pywrapfst import NOT_COACCESSIBLE
-from openfst.pywrapfst import NOT_I_LABEL_SORTED
-from openfst.pywrapfst import NOT_O_LABEL_SORTED
-from openfst.pywrapfst import NOT_STRING
-from openfst.pywrapfst import NOT_TOP_SORTED
-from openfst.pywrapfst import NO_EPSILONS
-from openfst.pywrapfst import NO_I_EPSILONS
-from openfst.pywrapfst import NO_O_EPSILONS
-from openfst.pywrapfst import NULL_PROPERTIES
-from openfst.pywrapfst import O_DETERMINISTIC
-from openfst.pywrapfst import O_EPSILONS
-from openfst.pywrapfst import O_LABEL_INVARIANT_PROPERTIES
-from openfst.pywrapfst import O_LABEL_SORTED
-from openfst.pywrapfst import POS_TRINARY_PROPERTIES
-from openfst.pywrapfst import RM_SUPERFINAL_PROPERTIES
-from openfst.pywrapfst import SET_ARC_PROPERTIES
-from openfst.pywrapfst import SET_FINAL_PROPERTIES
-from openfst.pywrapfst import SET_START_PROPERTIES
-from openfst.pywrapfst import STATE_SORT_PROPERTIES
-from openfst.pywrapfst import STRING
-from openfst.pywrapfst import TOP_SORTED
-from openfst.pywrapfst import TRINARY_PROPERTIES
-from openfst.pywrapfst import UNWEIGHTED
-from openfst.pywrapfst import UNWEIGHTED_CYCLES
-from openfst.pywrapfst import WEIGHTED
-from openfst.pywrapfst import WEIGHTED_CYCLES
-from openfst.pywrapfst import WEIGHT_INVARIANT_PROPERTIES
+from openfst.extensions.python.pywrapfst import ACCEPTOR
+from openfst.extensions.python.pywrapfst import ACCESSIBLE
+from openfst.extensions.python.pywrapfst import ACYCLIC
+from openfst.extensions.python.pywrapfst import ADD_ARC_PROPERTIES
+from openfst.extensions.python.pywrapfst import ADD_STATE_PROPERTIES
+from openfst.extensions.python.pywrapfst import ADD_SUPERFINAL_PROPERTIES
+from openfst.extensions.python.pywrapfst import ARC_SORT_PROPERTIES
+from openfst.extensions.python.pywrapfst import BINARY_PROPERTIES
+from openfst.extensions.python.pywrapfst import COACCESSIBLE
+from openfst.extensions.python.pywrapfst import COPY_PROPERTIES
+from openfst.extensions.python.pywrapfst import CYCLIC
+from openfst.extensions.python.pywrapfst import DELETE_ARC_PROPERTIES
+from openfst.extensions.python.pywrapfst import DELETE_STATE_PROPERTIES
+from openfst.extensions.python.pywrapfst import EPSILONS
+from openfst.extensions.python.pywrapfst import ERROR
+from openfst.extensions.python.pywrapfst import EXPANDED
+from openfst.extensions.python.pywrapfst import EXTRINSIC_PROPERTIES
+from openfst.extensions.python.pywrapfst import FST_PROPERTIES
+from openfst.extensions.python.pywrapfst import FstProperties
+from openfst.extensions.python.pywrapfst import INITIAL_ACYCLIC
+from openfst.extensions.python.pywrapfst import INITIAL_CYCLIC
+from openfst.extensions.python.pywrapfst import INTRINSIC_PROPERTIES
+from openfst.extensions.python.pywrapfst import I_DETERMINISTIC
+from openfst.extensions.python.pywrapfst import I_EPSILONS
+from openfst.extensions.python.pywrapfst import I_LABEL_INVARIANT_PROPERTIES
+from openfst.extensions.python.pywrapfst import I_LABEL_SORTED
+from openfst.extensions.python.pywrapfst import MUTABLE
+from openfst.extensions.python.pywrapfst import NEG_TRINARY_PROPERTIES
+from openfst.extensions.python.pywrapfst import NON_I_DETERMINISTIC
+from openfst.extensions.python.pywrapfst import NON_O_DETERMINISTIC
+from openfst.extensions.python.pywrapfst import NOT_ACCEPTOR
+from openfst.extensions.python.pywrapfst import NOT_ACCESSIBLE
+from openfst.extensions.python.pywrapfst import NOT_COACCESSIBLE
+from openfst.extensions.python.pywrapfst import NOT_I_LABEL_SORTED
+from openfst.extensions.python.pywrapfst import NOT_O_LABEL_SORTED
+from openfst.extensions.python.pywrapfst import NOT_STRING
+from openfst.extensions.python.pywrapfst import NOT_TOP_SORTED
+from openfst.extensions.python.pywrapfst import NO_EPSILONS
+from openfst.extensions.python.pywrapfst import NO_I_EPSILONS
+from openfst.extensions.python.pywrapfst import NO_O_EPSILONS
+from openfst.extensions.python.pywrapfst import NULL_PROPERTIES
+from openfst.extensions.python.pywrapfst import O_DETERMINISTIC
+from openfst.extensions.python.pywrapfst import O_EPSILONS
+from openfst.extensions.python.pywrapfst import O_LABEL_INVARIANT_PROPERTIES
+from openfst.extensions.python.pywrapfst import O_LABEL_SORTED
+from openfst.extensions.python.pywrapfst import POS_TRINARY_PROPERTIES
+from openfst.extensions.python.pywrapfst import RM_SUPERFINAL_PROPERTIES
+from openfst.extensions.python.pywrapfst import SET_ARC_PROPERTIES
+from openfst.extensions.python.pywrapfst import SET_FINAL_PROPERTIES
+from openfst.extensions.python.pywrapfst import SET_START_PROPERTIES
+from openfst.extensions.python.pywrapfst import STATE_SORT_PROPERTIES
+from openfst.extensions.python.pywrapfst import STRING
+from openfst.extensions.python.pywrapfst import TOP_SORTED
+from openfst.extensions.python.pywrapfst import TRINARY_PROPERTIES
+from openfst.extensions.python.pywrapfst import UNWEIGHTED
+from openfst.extensions.python.pywrapfst import UNWEIGHTED_CYCLES
+from openfst.extensions.python.pywrapfst import WEIGHTED
+from openfst.extensions.python.pywrapfst import WEIGHTED_CYCLES
+from openfst.extensions.python.pywrapfst import WEIGHT_INVARIANT_PROPERTIES
 
 # Arc iterator properties.
-from openfst.pywrapfst import ARC_FLAGS
-from openfst.pywrapfst import ARC_I_LABEL_VALUE
-from openfst.pywrapfst import ARC_NEXT_STATE_VALUE
-from openfst.pywrapfst import ARC_NO_CACHE
-from openfst.pywrapfst import ARC_O_LABEL_VALUE
-from openfst.pywrapfst import ARC_VALUE_FLAGS
-from openfst.pywrapfst import ARC_WEIGHT_VALUE
+from openfst.extensions.python.pywrapfst import ARC_FLAGS
+from openfst.extensions.python.pywrapfst import ARC_I_LABEL_VALUE
+from openfst.extensions.python.pywrapfst import ARC_NEXT_STATE_VALUE
+from openfst.extensions.python.pywrapfst import ARC_NO_CACHE
+from openfst.extensions.python.pywrapfst import ARC_O_LABEL_VALUE
+from openfst.extensions.python.pywrapfst import ARC_VALUE_FLAGS
+from openfst.extensions.python.pywrapfst import ARC_WEIGHT_VALUE
 
 # Encode mapper properties.
-from openfst.pywrapfst import ENCODE_FLAGS
-from openfst.pywrapfst import ENCODE_LABELS
-from openfst.pywrapfst import ENCODE_WEIGHTS
+from openfst.extensions.python.pywrapfst import ENCODE_FLAGS
+from openfst.extensions.python.pywrapfst import ENCODE_LABELS
+from openfst.extensions.python.pywrapfst import ENCODE_WEIGHTS
 
 # NOTE: The following are copy-pasta from pywrapfst.pyx but with
 # `s/self: T/fst: FstLike/` and `s/-> T/-> Fst/`.
@@ -561,10 +561,12 @@ def topsort(fst: FstLike) -> Fst: ...
 
 #############################################
 
-from openfst.pywrapfst import compact_symbol_table
-from openfst.pywrapfst import merge_symbol_table
+from openfst.extensions.python.pywrapfst import compact_symbol_table
+from openfst.extensions.python.pywrapfst import merge_symbol_table
 
-from openfst.pywrapfst import divide
-from openfst.pywrapfst import power
-from openfst.pywrapfst import plus
-from openfst.pywrapfst import times
+from openfst.extensions.python.pywrapfst import divide
+from openfst.extensions.python.pywrapfst import power
+from openfst.extensions.python.pywrapfst import plus
+from openfst.extensions.python.pywrapfst import times
+
+__version__: str = ...
