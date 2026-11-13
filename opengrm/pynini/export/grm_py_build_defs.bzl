@@ -47,7 +47,6 @@ def _compile_grm_py_bin_target(name, src, deps, data, is_multi_target):
         ],
         data = data,
         visibility = ["//visibility:private"],
-        srcs_version = "PY3",
     )
 
     bin_name = "_" + name + "_bin"
@@ -57,8 +56,6 @@ def _compile_grm_py_bin_target(name, src, deps, data, is_multi_target):
         main = src,
         deps = [":" + lib_name],
         visibility = ["//visibility:private"],
-        srcs_version = "PY3",
-        python_version = "PY3",
     )
     return bin_name
 
