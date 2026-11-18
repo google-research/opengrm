@@ -114,5 +114,9 @@ py_test(
 bzl_library(
     name = "grm_py_build_defs_bzl",
     srcs = ["grm_py_build_defs.bzl"],
-    deps = ["@com_google_openfst//openfst/extensions/far:build_defs_bzl"],
+    deps = [
+        "@com_google_openfst//openfst/extensions/far:build_defs_bzl",
+        "@rules_python//python:py_binary_bzl",
+        "@rules_python//python:py_library_bzl",
+    ],
 )
