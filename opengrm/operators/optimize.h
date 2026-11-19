@@ -74,6 +74,33 @@ void OptimizeAs(MutableFst<Arc>* fst, uint8_t flags) {
   Decode(fst, encoder);
 }
 
+// Minimizes a deterministic FST. Direct Minimize pushes weights (and output
+// labels on transducers), which may fail to converge on weighted cycles or on
+// any cycle over a non-idempotent semiring; in those cases, labels and weights
+// are encoded first so minimization runs without weight pushing.
+template <class Arc>
+void MinimizeDeterministic(MutableFst<Arc>* fst, bool compute_props,
+                           bool always_sort) {
+  // kDoNotEncodeWeights already includes kAcyclic.
+  constexpr uint64_t kMinimizeProps = IsIdempotent<typename Arc::Weight>::value
+                                          ? kDoNotEncodeWeights
+                                          : kAcyclic;
+  if (fst->Properties(kMinimizeProps, compute_props)) {
+    // Push converges when acyclic, or over an idempotent semiring without
+    // weighted cycles (or is skipped when unweighted).
+    Minimize(fst);
+  } else {
+    // Encode both labels and weights so Minimize treats the FST as an
+    // unweighted acceptor and skips Push (weight-only encoding turns an
+    // acceptor into a transducer, which Minimize would still weight-push).
+    EncodeMapper<Arc> encoder(kEncodeLabels | kEncodeWeights);
+    Encode(fst, &encoder);
+    Minimize(fst);
+    Decode(fst, encoder);
+  }
+  if (always_sort) ArcSort(fst, ILabelCompare<Arc>());
+}
+
 // Generic FST optimization function to be used when the FST is known to be an
 // acceptor.
 template <class Arc>
@@ -97,7 +124,7 @@ void OptimizeAcceptor(MutableFst<Arc>* fst, bool compute_props = false) {
       DeterminizeAndMinimize(fst);
     }
   } else {
-    Minimize(fst);
+    MinimizeDeterministic(fst, compute_props, /*always_sort=*/false);
   }
 }
 
@@ -126,7 +153,7 @@ void OptimizeTransducer(MutableFst<Arc>* fst, bool compute_props = false) {
       ArcSort(fst, ILabelCompare<Arc>());
     }
   } else {
-    Minimize(fst);
+    MinimizeDeterministic(fst, compute_props, /*always_sort=*/true);
   }
 }
 

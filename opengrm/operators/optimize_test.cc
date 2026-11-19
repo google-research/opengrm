@@ -22,6 +22,7 @@
 #include "openfst/lib/arc-map.h"
 #include "openfst/lib/arc.h"
 #include "openfst/lib/equal.h"
+#include "openfst/lib/isomorphic.h"
 #include "openfst/lib/properties.h"
 #include "openfst/lib/vector-fst.h"
 #include "openfst/lib/verify.h"
@@ -247,6 +248,172 @@ TEST(OptimizeTransducerArcSortTest, AcyclicLogTransducerSortsArcs) {
   ASSERT_TRUE(Verify(fst));
   EXPECT_EQ(fst.Properties(kILabelSorted, false), kILabelSorted);
   EXPECT_EQ(fst.Properties(kILabelSorted, true), kILabelSorted);
+}
+
+template <class Arc>
+void ExpectOptimizeDeterministicMatches(const VectorFst<Arc>& input,
+                                        const VectorFst<Arc>& expected) {
+  // Run compute_props=true first (detaching on mutation) before
+  // Properties(..., true) caches properties on input's shared Impl.
+  VectorFst<Arc> fst_with_props(input);
+  Optimize(&fst_with_props, /*compute_props=*/true);
+
+  // Pre-compute stored properties (as CompactFst / ConstFst headers do in FAR
+  // archives) so compute_props=false enters the kIDeterministic branch.
+  VectorFst<Arc> fst_stored_props(input);
+  fst_stored_props.Properties(kFstProperties, /*test=*/true);
+  Optimize(&fst_stored_props, /*compute_props=*/false);
+
+  ASSERT_TRUE(Verify(fst_stored_props));
+  EXPECT_EQ(fst_stored_props.NumStates(), expected.NumStates());
+  EXPECT_TRUE(Isomorphic(fst_stored_props, expected));
+  if (input.Properties(kAcceptor, true) != kAcceptor) {
+    EXPECT_EQ(fst_stored_props.Properties(kILabelSorted, false), kILabelSorted);
+    EXPECT_EQ(fst_stored_props.Properties(kILabelSorted, true), kILabelSorted);
+  }
+  ASSERT_TRUE(Verify(fst_with_props));
+  EXPECT_TRUE(Equal(fst_stored_props, fst_with_props));
+}
+
+TEST(OptimizeDeterministicTest, NegativeWeightCycleTransducer) {
+  // Deterministic transducer with a -1.0 cycle at state 0 (added before
+  // ilabels 1 and 2 so EncodeTable order is unsorted) and two equivalent
+  // states 1 and 2.
+  VectorFst<StdArc> input;
+  input.AddStates(3);
+  input.SetStart(0);
+  input.SetFinal(0, StdArc::Weight::One());
+  input.SetFinal(1, StdArc::Weight::One());
+  input.SetFinal(2, StdArc::Weight::One());
+  input.AddArc(0, StdArc(3, 4, StdArc::Weight(-1.0f), 0));
+  input.AddArc(0, StdArc(1, 2, StdArc::Weight::One(), 1));
+  input.AddArc(0, StdArc(2, 3, StdArc::Weight::One(), 2));
+  input.AddArc(1, StdArc(4, 5, StdArc::Weight(2.0f), 0));
+  input.AddArc(2, StdArc(4, 5, StdArc::Weight(2.0f), 0));
+
+  VectorFst<StdArc> expected;
+  expected.AddStates(2);
+  expected.SetStart(0);
+  expected.SetFinal(0, StdArc::Weight::One());
+  expected.SetFinal(1, StdArc::Weight::One());
+  expected.AddArc(0, StdArc(1, 2, StdArc::Weight::One(), 1));
+  expected.AddArc(0, StdArc(2, 3, StdArc::Weight::One(), 1));
+  expected.AddArc(0, StdArc(3, 4, StdArc::Weight(-1.0f), 0));
+  expected.AddArc(1, StdArc(4, 5, StdArc::Weight(2.0f), 0));
+
+  ExpectOptimizeDeterministicMatches(input, expected);
+}
+
+TEST(OptimizeDeterministicTest, NegativeWeightCycleAcceptor) {
+  // Deterministic acceptor with a -100.0 cycle at state 0 and two equivalent
+  // states 1 and 2; unencoded Minimize would saturate float32 in Push and wipe
+  // the -100.0 cycle weight to 0.0.
+  VectorFst<StdArc> input;
+  input.AddStates(3);
+  input.SetStart(0);
+  input.SetFinal(0, StdArc::Weight::One());
+  input.SetFinal(1, StdArc::Weight::One());
+  input.SetFinal(2, StdArc::Weight::One());
+  input.AddArc(0, StdArc(3, 3, StdArc::Weight(-100.0f), 0));
+  input.AddArc(0, StdArc(1, 1, StdArc::Weight::One(), 1));
+  input.AddArc(0, StdArc(2, 2, StdArc::Weight::One(), 2));
+  input.AddArc(1, StdArc(4, 4, StdArc::Weight(2.0f), 0));
+  input.AddArc(2, StdArc(4, 4, StdArc::Weight(2.0f), 0));
+
+  VectorFst<StdArc> expected;
+  expected.AddStates(2);
+  expected.SetStart(0);
+  expected.SetFinal(0, StdArc::Weight::One());
+  expected.SetFinal(1, StdArc::Weight::One());
+  expected.AddArc(0, StdArc(1, 1, StdArc::Weight::One(), 1));
+  expected.AddArc(0, StdArc(2, 2, StdArc::Weight::One(), 1));
+  expected.AddArc(0, StdArc(3, 3, StdArc::Weight(-100.0f), 0));
+  expected.AddArc(1, StdArc(4, 4, StdArc::Weight(2.0f), 0));
+
+  ExpectOptimizeDeterministicMatches(input, expected);
+}
+
+TEST(OptimizeDeterministicTest, CyclicLogAcceptorAndTransducer) {
+  // Deterministic LogArc acceptor and transducer with an unweighted cycle at
+  // state 0 and weighted transitions into equivalent final sink states 1 and 2,
+  // so kUnweightedCycles (and thus kDoNotEncodeWeights) holds while kAcyclic
+  // does not. Over LogArc, unencoded Minimize's Push diverges on the One()
+  // cycle and corrupts total path weights.
+  VectorFst<LogArc> acc;
+  acc.AddStates(3);
+  acc.SetStart(0);
+  acc.SetFinal(0, LogArc::Weight::One());
+  acc.SetFinal(1, LogArc::Weight::One());
+  acc.SetFinal(2, LogArc::Weight::One());
+  acc.AddArc(0, LogArc(3, 3, LogArc::Weight::One(), 0));
+  acc.AddArc(0, LogArc(1, 1, LogArc::Weight(2.0f), 1));
+  acc.AddArc(0, LogArc(2, 2, LogArc::Weight(2.0f), 2));
+
+  VectorFst<LogArc> expected_acc;
+  expected_acc.AddStates(2);
+  expected_acc.SetStart(0);
+  expected_acc.SetFinal(0, LogArc::Weight::One());
+  expected_acc.SetFinal(1, LogArc::Weight::One());
+  expected_acc.AddArc(0, LogArc(1, 1, LogArc::Weight(2.0f), 1));
+  expected_acc.AddArc(0, LogArc(2, 2, LogArc::Weight(2.0f), 1));
+  expected_acc.AddArc(0, LogArc(3, 3, LogArc::Weight::One(), 0));
+
+  VectorFst<LogArc> trans;
+  trans.AddStates(3);
+  trans.SetStart(0);
+  trans.SetFinal(0, LogArc::Weight::One());
+  trans.SetFinal(1, LogArc::Weight::One());
+  trans.SetFinal(2, LogArc::Weight::One());
+  trans.AddArc(0, LogArc(3, 4, LogArc::Weight::One(), 0));
+  trans.AddArc(0, LogArc(1, 2, LogArc::Weight(2.0f), 1));
+  trans.AddArc(0, LogArc(2, 3, LogArc::Weight(2.0f), 2));
+
+  VectorFst<LogArc> expected_trans;
+  expected_trans.AddStates(2);
+  expected_trans.SetStart(0);
+  expected_trans.SetFinal(0, LogArc::Weight::One());
+  expected_trans.SetFinal(1, LogArc::Weight::One());
+  expected_trans.AddArc(0, LogArc(1, 2, LogArc::Weight(2.0f), 1));
+  expected_trans.AddArc(0, LogArc(2, 3, LogArc::Weight(2.0f), 1));
+  expected_trans.AddArc(0, LogArc(3, 4, LogArc::Weight::One(), 0));
+
+  ExpectOptimizeDeterministicMatches(acc, expected_acc);
+  ExpectOptimizeDeterministicMatches(trans, expected_trans);
+
+  EXPECT_EQ(
+      acc.Properties(internal::kDoNotEncodeWeights | kAcyclic, /*test=*/true),
+      kUnweightedCycles);
+  EXPECT_EQ(
+      trans.Properties(internal::kDoNotEncodeWeights | kAcyclic, /*test=*/true),
+      kUnweightedCycles);
+}
+
+TEST(OptimizeDeterministicTest, AcyclicTransducerPushesWeightsAndSortsArcs) {
+  // States 1 and 2 have different suffix weights (2.0 vs 1.0) that become
+  // equivalent only when weighted Minimize pushes weights to state 0.
+  VectorFst<StdArc> std_fst;
+  std_fst.AddStates(4);
+  std_fst.SetStart(0);
+  std_fst.SetFinal(3, StdArc::Weight::One());
+  std_fst.AddArc(0, StdArc(3, 4, StdArc::Weight(1.0f), 1));
+  std_fst.AddArc(0, StdArc(1, 2, StdArc::Weight(2.0f), 2));
+  std_fst.AddArc(1, StdArc(5, 6, StdArc::Weight(2.0f), 3));
+  std_fst.AddArc(2, StdArc(5, 6, StdArc::Weight(1.0f), 3));
+
+  VectorFst<LogArc> log_fst;
+  ArcMap(std_fst, &log_fst, StdToLogMapper());
+
+  Optimize(&std_fst, /*compute_props=*/true);
+  Optimize(&log_fst, /*compute_props=*/true);
+
+  ASSERT_TRUE(Verify(std_fst));
+  EXPECT_EQ(std_fst.NumStates(), 3);
+  EXPECT_EQ(std_fst.Properties(kILabelSorted, false), kILabelSorted);
+  EXPECT_EQ(std_fst.Properties(kILabelSorted, true), kILabelSorted);
+  ASSERT_TRUE(Verify(log_fst));
+  EXPECT_EQ(log_fst.NumStates(), 3);
+  EXPECT_EQ(log_fst.Properties(kILabelSorted, false), kILabelSorted);
+  EXPECT_EQ(log_fst.Properties(kILabelSorted, true), kILabelSorted);
 }
 
 }  // namespace
