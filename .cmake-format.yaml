@@ -32,7 +32,7 @@ parse:
     set:
       kwargs:
         CACHE: 3
-    openfst_install:
+    opengrm_install:
       kwargs:
         EXPORT: 1
         FILE: 1
@@ -43,6 +43,7 @@ parse:
         LIBRARY: 1
         ARCHIVE: 1
         RUNTIME: 1
+      max_subgroups_hwrap: 1
     gtest_discover_tests:
       flags:
         - NO_PRETTY_TYPES
