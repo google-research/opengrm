@@ -78,26 +78,15 @@ target_link_libraries(thrax_rewrite-tester_lib
 )
 
 opengrm_install(
-  TARGETS
-  thrax_core
-  thrax_compiler_lib
-  thrax_rewrite-tester_lib
-  EXPORT
-  OpenGrmTargets
-  LIBRARY
-  DESTINATION
-  ${CMAKE_INSTALL_LIBDIR}
-  ARCHIVE
-  DESTINATION
-  ${CMAKE_INSTALL_LIBDIR}
+  TARGETS thrax_core thrax_compiler_lib thrax_rewrite-tester_lib
+  EXPORT OpenGrmTargets
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
 opengrm_install(
-  FILES
-  ${THRAX_HEADERS}
-  ${CMAKE_CURRENT_BINARY_DIR}/parser.h
-  DESTINATION
-  ${CMAKE_INSTALL_INCLUDEDIR}/opengrm/thrax
+  FILES ${THRAX_HEADERS} ${CMAKE_CURRENT_BINARY_DIR}/parser.h
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/opengrm/thrax
 )
 
 if(OPENGRM_ENABLE_BIN)
@@ -123,11 +112,8 @@ if(OPENGRM_ENABLE_BIN)
             absl::flags
   )
   opengrm_install(
-    TARGETS
-    thraxcompiler
-    RUNTIME
-    DESTINATION
-    ${CMAKE_INSTALL_BINDIR}
+    TARGETS thraxcompiler
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   )
 
   # random-generator
@@ -145,11 +131,8 @@ if(OPENGRM_ENABLE_BIN)
             absl::flags
   )
   opengrm_install(
-    TARGETS
-    thraxrandom-generator
-    RUNTIME
-    DESTINATION
-    ${CMAKE_INSTALL_BINDIR}
+    TARGETS thraxrandom-generator
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   )
 
   # rewrite-tester
@@ -166,11 +149,8 @@ if(OPENGRM_ENABLE_BIN)
             absl::flags
   )
   opengrm_install(
-    TARGETS
-    thraxrewrite-tester
-    RUNTIME
-    DESTINATION
-    ${CMAKE_INSTALL_BINDIR}
+    TARGETS thraxrewrite-tester
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   )
 endif()
 

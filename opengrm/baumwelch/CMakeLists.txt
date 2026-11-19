@@ -65,24 +65,15 @@ target_link_libraries(grm_baumwelchscript
 )
 
 opengrm_install(
-  TARGETS
-  grm_baumwelchscript
-  EXPORT
-  OpenGrmTargets
-  LIBRARY
-  DESTINATION
-  ${CMAKE_INSTALL_LIBDIR}
-  ARCHIVE
-  DESTINATION
-  ${CMAKE_INSTALL_LIBDIR}
+  TARGETS grm_baumwelchscript
+  EXPORT OpenGrmTargets
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
 opengrm_install(
-  FILES
-  ${BAUMWELCH_HEADERS}
-  ${BAUMWELCHSCRIPT_HEADERS}
-  DESTINATION
-  ${CMAKE_INSTALL_INCLUDEDIR}/opengrm/baumwelch
+  FILES ${BAUMWELCH_HEADERS} ${BAUMWELCHSCRIPT_HEADERS}
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/opengrm/baumwelch
 )
 
 if(OPENGRM_ENABLE_BIN)
@@ -97,11 +88,8 @@ if(OPENGRM_ENABLE_BIN)
             absl::flags
   )
   opengrm_install(
-    TARGETS
-    baumwelchrandomize
-    RUNTIME
-    DESTINATION
-    ${CMAKE_INSTALL_BINDIR}
+    TARGETS baumwelchrandomize
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   )
 
   add_executable(baumwelchtrain baumwelchtrain.cc baumwelchtrain-main.cc)
@@ -114,11 +102,8 @@ if(OPENGRM_ENABLE_BIN)
             absl::flags
   )
   opengrm_install(
-    TARGETS
-    baumwelchtrain
-    RUNTIME
-    DESTINATION
-    ${CMAKE_INSTALL_BINDIR}
+    TARGETS baumwelchtrain
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   )
 
   add_executable(baumwelchdecode baumwelchdecode.cc baumwelchdecode-main.cc)
@@ -131,11 +116,8 @@ if(OPENGRM_ENABLE_BIN)
             absl::flags
   )
   opengrm_install(
-    TARGETS
-    baumwelchdecode
-    RUNTIME
-    DESTINATION
-    ${CMAKE_INSTALL_BINDIR}
+    TARGETS baumwelchdecode
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   )
 endif()
 

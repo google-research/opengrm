@@ -47,10 +47,8 @@ target_include_directories(thrax_ast PUBLIC ${PROJECT_SOURCE_DIR})
 target_link_libraries(thrax_ast PUBLIC absl::strings absl::log)
 
 opengrm_install(
-  FILES
-  ${AST_HEADERS}
-  DESTINATION
-  ${CMAKE_INSTALL_INCLUDEDIR}/opengrm/thrax/ast
+  FILES ${AST_HEADERS}
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/opengrm/thrax/ast
 )
 
 if(OPENGRM_BUILD_TESTS)

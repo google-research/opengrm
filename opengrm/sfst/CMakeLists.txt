@@ -97,27 +97,19 @@ target_link_libraries(
 )
 
 opengrm_install(
-  TARGETS
-  grm_sfst
-  grm_sfst_arpa
-  grm_sfst_merge
-  grm_sfst_smooth
-  grm_sfst_shrink
-  EXPORT
-  OpenGrmTargets
-  LIBRARY
-  DESTINATION
-  ${CMAKE_INSTALL_LIBDIR}
-  ARCHIVE
-  DESTINATION
-  ${CMAKE_INSTALL_LIBDIR}
+  TARGETS grm_sfst
+          grm_sfst_arpa
+          grm_sfst_merge
+          grm_sfst_smooth
+          grm_sfst_shrink
+  EXPORT OpenGrmTargets
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
 opengrm_install(
-  FILES
-  ${SFST_HEADERS}
-  DESTINATION
-  ${CMAKE_INSTALL_INCLUDEDIR}/opengrm/sfst
+  FILES ${SFST_HEADERS}
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/opengrm/sfst
 )
 
 if(OPENGRM_ENABLE_BIN)
@@ -146,11 +138,8 @@ if(OPENGRM_ENABLE_BIN)
     add_executable(${_tool} ${_tool}.cc ${_tool}-main.cc)
     target_link_libraries(${_tool} PRIVATE grm_sfst openfst::fst absl::flags)
     opengrm_install(
-      TARGETS
-      ${_tool}
-      RUNTIME
-      DESTINATION
-      ${CMAKE_INSTALL_BINDIR}
+      TARGETS ${_tool}
+      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     )
   endforeach()
   # sfstperplexity requires the OpenFst FAR extension
