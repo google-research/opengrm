@@ -231,7 +231,7 @@ if(OPENGRM_BUILD_TESTS)
     set(INSTALL_GTEST OFF)
     FetchContent_Declare(
       googletest
-      URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.zip
+      URL https://github.com/google/googletest/archive/refs/tags/v1.18.0.zip
       DOWNLOAD_EXTRACT_TIMESTAMP TRUE
     )
     FetchContent_MakeAvailable(googletest)
