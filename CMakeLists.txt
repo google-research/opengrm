@@ -67,19 +67,33 @@ option(OPENGRM_ENABLE_PYNINI "Enable Pynini extension" OFF)
 if(MSVC)
   add_compile_options(/W4)
 else()
-  add_compile_options(-Wall -Wno-deprecated-declarations -Wno-sign-compare)
   add_compile_options(
+    -Wall
+    -Wno-deprecated-declarations
+    -Wno-sign-compare
     "$<$<COMPILE_LANGUAGE:CXX>:-Wno-overloaded-virtual>"
-    # Temporarily disabled warnings that we would like to turn on.
-    "$<$<COMPILE_LANGUAGE:CXX>:-Wno-defaulted-function-deleted>"
   )
   include(CheckCXXCompilerFlag)
-  check_cxx_compiler_flag("-Wno-changes-meaning" HAS_WNO_CHANGES_MEANING)
-  if(HAS_WNO_CHANGES_MEANING)
+  # Probe the positive -W flags because GCC silently accepts unknown -Wno-*
+  # flags during isolated feature checks and later emits notes on warnings.
+  #
+  # Temporarily disabled warnings that we would like to turn on.
+  check_cxx_compiler_flag("-Wdefaulted-function-deleted"
+                          HAS_WDEFAULTED_FUNCTION_DELETED
+  )
+  if(HAS_WDEFAULTED_FUNCTION_DELETED)
+    add_compile_options(
+      "$<$<COMPILE_LANGUAGE:CXX>:-Wno-defaulted-function-deleted>"
+    )
+  endif()
+  check_cxx_compiler_flag("-Wchanges-meaning" HAS_WCHANGES_MEANING)
+  if(HAS_WCHANGES_MEANING)
     add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-Wno-changes-meaning>")
   endif()
-  check_cxx_compiler_flag("-Wno-nullability-completeness" HAS_WNO_NULLABILITY)
-  if(HAS_WNO_NULLABILITY)
+  check_cxx_compiler_flag("-Wnullability-completeness"
+                          HAS_WNULLABILITY_COMPLETENESS
+  )
+  if(HAS_WNULLABILITY_COMPLETENESS)
     add_compile_options(
       "$<$<COMPILE_LANGUAGE:CXX>:-Wno-nullability-completeness>"
     )
@@ -238,14 +252,10 @@ add_subdirectory(opengrm)
 
 # Installation of the export set
 opengrm_install(
-  EXPORT
-  OpenGrmTargets
-  FILE
-  OpenGrmTargets.cmake
-  NAMESPACE
-  opengrm::
-  DESTINATION
-  ${CMAKE_INSTALL_LIBDIR}/cmake/opengrm
+  EXPORT OpenGrmTargets
+  FILE OpenGrmTargets.cmake
+  NAMESPACE opengrm::
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/opengrm
 )
 
 include(CMakePackageConfigHelpers)
@@ -262,9 +272,7 @@ configure_package_config_file(
 )
 
 opengrm_install(
-  FILES
-  ${CMAKE_CURRENT_BINARY_DIR}/OpenGrmConfig.cmake
-  ${CMAKE_CURRENT_BINARY_DIR}/OpenGrmConfigVersion.cmake
-  DESTINATION
-  ${CMAKE_INSTALL_LIBDIR}/cmake/opengrm
+  FILES ${CMAKE_CURRENT_BINARY_DIR}/OpenGrmConfig.cmake
+        ${CMAKE_CURRENT_BINARY_DIR}/OpenGrmConfigVersion.cmake
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/opengrm
 )
