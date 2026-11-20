@@ -57,8 +57,6 @@ int ngramperplexity_main(int argc, char** argv) {
   std::string in1_name = strcmp(argv[1], "-") != 0 ? argv[1] : "";
   std::string in2_name =
       (argc > 2 && (strcmp(argv[2], "-") != 0)) ? argv[2] : "";
-  std::string out_name =
-      (argc > 3 && (strcmp(argv[3], "-") != 0)) ? argv[3] : "";
 
   std::unique_ptr<fst::StdMutableFst> fst(
       fst::StdMutableFst::Read(in1_name, true));

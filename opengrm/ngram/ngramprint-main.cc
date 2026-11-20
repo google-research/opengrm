@@ -55,8 +55,6 @@ int ngramprint_main(int argc, char** argv) {
 
   std::string in_name =
       (argc > 1 && (strcmp(argv[1], "-") != 0)) ? argv[1] : "";
-  std::string out_name =
-      (argc > 2 && (strcmp(argv[2], "-") != 0)) ? argv[2] : "stdout";
 
   std::unique_ptr<fst::StdMutableFst> fst(
       fst::StdMutableFst::Read(in_name, true));

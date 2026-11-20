@@ -16,7 +16,6 @@
 
 #include <cmath>
 #include <cstdint>
-#include <cstring>
 #include <memory>
 #include <string>
 #include <vector>
@@ -69,7 +68,6 @@ bool ValidMergeMethod() {
 
 template <class Arc>
 bool ReadFst(const char* file, std::unique_ptr<fst::VectorFst<Arc>>* fst) {
-  std::string in_name = (strcmp(file, "-") != 0) ? file : "";
   fst->reset(fst::VectorFst<Arc>::Read(file));
   if (!*fst ||
       (absl::GetFlag(FLAGS_complete) && !ngram::NGramComplete(fst->get())))

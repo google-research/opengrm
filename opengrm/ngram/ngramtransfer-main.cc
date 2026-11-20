@@ -15,7 +15,6 @@
 // Transfers n-grams from a source model(s) to a destination model.
 
 #include <cstdint>
-#include <cstring>
 #include <memory>
 #include <sstream>
 #include <string>
@@ -49,7 +48,6 @@ namespace {
 
 template <class Arc>
 bool ReadFst(const char* file, std::unique_ptr<fst::VectorFst<Arc>>* fst) {
-  std::string in_name = (strcmp(file, "-") != 0) ? file : "";
   fst->reset(fst::VectorFst<Arc>::Read(file));
   if (!*fst ||
       (absl::GetFlag(FLAGS_complete) && !ngram::NGramComplete(fst->get())))
