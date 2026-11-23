@@ -108,7 +108,10 @@ class RewriteTextprotoTest : public testing::Test {
       : cascade_(*cascade), mode_(mode), rewrite_(rewrite) {}
 
   void TestBody() override {
-    ASSERT_TRUE(cascade_.SetRules(rewrite_.rule()));
+    const std::vector<std::string> rule_names(rewrite_.rule().begin(),
+                                              rewrite_.rule().end());
+    const absl::Status status = cascade_.SetRulesWithStatus(rule_names);
+    ASSERT_TRUE(status.ok()) << status;
     const std::string rules = absl::StrJoin(rewrite_.rule(), ", ");
     absl::string_view input = rewrite_.input();
     const google::protobuf::RepeatedPtrField<std::string> &expected = rewrite_.output();
@@ -280,7 +283,7 @@ int main(int argc, char **argv) {
   QCHECK(parser.ParseFromString(*textproto, &rewrites));  // Crash OK
 
   // Share the same cascade across all tests. Note that the tests are run
-  // sequentially so mutating it with SetRules is fine.
+  // sequentially so mutating it with SetRulesWithStatus is fine.
   opengrm::RegisterTests(&cascade, *mode, absl::GetFlag(FLAGS_textproto_path),
                          rewrites, parse_info);
   return RUN_ALL_TESTS();

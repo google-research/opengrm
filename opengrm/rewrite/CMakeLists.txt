@@ -91,45 +91,41 @@ if(OPENGRM_BUILD_TESTS)
     WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
   )
 
-  # These tests require Thrax data
-  if(OPENGRM_ENABLE_THRAX)
-    add_executable(rewrite_manager_test rewrite_manager_test.cc)
-    target_link_libraries(
-      rewrite_manager_test
-      PRIVATE ${OPENGRM_ALWAYS_LINK_START}
-              grm_rewrite
-              openfst::fst
-              openfst::far
-              ${OPENGRM_ALWAYS_LINK_END}
-              GTest::gmock_main
-    )
-    grm_configure_test_target(rewrite_manager_test)
-    gtest_discover_tests(
-      rewrite_manager_test
-      WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
-    )
+  add_executable(rewrite_manager_test rewrite_manager_test.cc)
+  target_link_libraries(
+    rewrite_manager_test
+    PRIVATE ${OPENGRM_ALWAYS_LINK_START}
+            grm_rewrite
+            openfst::fst
+            openfst::far
+            ${OPENGRM_ALWAYS_LINK_END}
+            GTest::gmock_main
+  )
+  grm_configure_test_target(rewrite_manager_test)
+  gtest_discover_tests(
+    rewrite_manager_test
+    WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+  )
 
-    add_executable(rule_cascade_test rule_cascade_test.cc)
-    target_link_libraries(
-      rule_cascade_test
-      PRIVATE ${OPENGRM_ALWAYS_LINK_START}
-              grm_rewrite
-              openfst::fst
-              openfst::far
-              ${OPENGRM_ALWAYS_LINK_END}
-              protobuf::libprotobuf
-              GTest::gmock_main
-    )
-    grm_configure_test_target(rule_cascade_test)
-    # Use add_test instead of gtest_discover_tests to allow filtering out PDT
-    # and MPDT tests which depend on generated Thrax data.
-    add_test(NAME rule_cascade_test
-             COMMAND rule_cascade_test
-                     "--gtest_filter=-RuleCascadeTest.PDT:RuleCascadeTest.MPDT"
-    )
-    set_tests_properties(
-      rule_cascade_test
-      PROPERTIES WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
-    )
-  endif()
+  add_executable(rule_cascade_test rule_cascade_test.cc)
+  target_link_libraries(
+    rule_cascade_test
+    PRIVATE ${OPENGRM_ALWAYS_LINK_START}
+            grm_rewrite
+            openfst::fst
+            openfst::far
+            ${OPENGRM_ALWAYS_LINK_END}
+            GTest::gmock_main
+  )
+  grm_configure_test_target(rule_cascade_test)
+  # Use add_test instead of gtest_discover_tests to allow filtering out PDT and
+  # MPDT tests which depend on generated Thrax data.
+  add_test(NAME rule_cascade_test
+           COMMAND rule_cascade_test
+                   "--gtest_filter=-RuleCascadeTest.PDT:RuleCascadeTest.MPDT"
+  )
+  set_tests_properties(
+    rule_cascade_test
+    PROPERTIES WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+  )
 endif()
