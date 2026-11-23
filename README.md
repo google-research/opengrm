@@ -8,6 +8,7 @@
 [![CMake (x64 Linux)](https://github.com/google-research/opengrm/actions/workflows/cmake_x64_linux.yml/badge.svg)](https://github.com/google-research/opengrm/actions/workflows/cmake_x64_linux.yml)
 [![Bazel (arm64 macOS)](https://github.com/google-research/opengrm/actions/workflows/bazel_arm64_macos.yml/badge.svg)](https://github.com/google-research/opengrm/actions/workflows/bazel_arm64_macos.yml)
 [![CMake (arm64 macOS)](https://github.com/google-research/opengrm/actions/workflows/cmake_arm64_macos.yml/badge.svg)](https://github.com/google-research/opengrm/actions/workflows/cmake_arm64_macos.yml)
+[![Pynini Wheels](https://github.com/google-research/opengrm/actions/workflows/wheels.yml/badge.svg)](https://github.com/google-research/opengrm/actions/workflows/wheels.yml)
 
 OpenGrm is a collection of open-source libraries for constructing, combining,
 applying and searching formal grammars and related representations, using the
@@ -87,10 +88,10 @@ OpenGrm can also be built with [CMake](https://cmake.org) 3.22 or higher.
     (version 3.8 or higher), which on Linux can be installed using the system
     package manager, e.g., `sudo apt-get install bison`.
 *   For building Python components (e.g., Pynini):
-    *   Python 3.6 or higher and development headers (e.g., `python3-dev`).
+    *   Python 3.11 or higher and development headers (e.g., `python3-dev`).
     *   [Cython](https://cython.org/) (`pip install cython`).
     *   [absl-py](https://github.com/abseil/abseil-py) (`pip install absl-py`)
-        to run tests.
+        at runtime and to run tests.
 
 #### Build and Install
 
@@ -133,6 +134,40 @@ cmake --build build -j$(getconf _NPROCESSORS_ONLN)
 ctest --test-dir build --output-on-failure -j$(getconf _NPROCESSORS_ONLN)
 ```
 
+### Python Wheels (Pynini)
+
+Pynini (along with bundled `pywrapfst` OpenFst Python bindings) can also be
+installed directly from [PyPI](https://pypi.org/project/pynini/) (`x86_64` Linux
+`manylinux_2_28` binary wheels and source distributions) or built locally from
+the repository root via PEP 517:
+
+```bash
+# Installs from PyPI.
+pip install pynini
+
+# Builds and installs from a local OpenGrm checkout.
+pip install .
+```
+
+To build, repair (`auditwheel`), and smoke/unit-test `manylinux_2_28_x86_64`
+wheels inside an isolated container using Docker BuildKit (either for all
+supported Python 3.11–3.15 runtimes or a single runtime shard):
+
+```bash
+# Builds, tests, and exports wheels for all supported Python runtimes to ./wheelhouse.
+docker buildx build -f opengrm/pynini/Dockerfile \
+  --target=export-wheels \
+  --output type=local,dest=./wheelhouse .
+
+# Or builds, tests, and exports a single Python runtime shard (e.g., CPython 3.12).
+docker buildx build -f opengrm/pynini/Dockerfile \
+  --target=export-wheels \
+  --build-arg PYTHON_TAGS=cp312-cp312 \
+  --output type=local,dest=./wheelhouse .
+```
+
+For the automated GitHub Actions wheel build and PyPI release runbook, see [Releasing Pynini wheels](/opengrm/pynini/docs/releasing.md).
+
 #### Configuration Options
 
 You can enable or disable specific features using CMake options (default is
@@ -148,12 +183,12 @@ Option                     | Description                                     | D
 
 Additional options include:
 
-Option                    | Description                               | Default
-:------------------------ | :---------------------------------------- | :------
-`BUILD_BUILD_SHARED_LIBS` | Build shared rather than static libraries | `OFF`
-`OPENGRM_BUILD_TESTS`     | Build unit tests                          | `ON`
-`OPENGRM_ENABLE_BIN`      | Build command-line executables            | `ON`
-`OPENGRM_RUN_SLOW_TESTS`  | Run very slow tests as part of `ctest`    | `OFF`
+Option                   | Description                               | Default
+:----------------------- | :---------------------------------------- | :------
+`BUILD_SHARED_LIBS`      | Build shared rather than static libraries | `OFF`
+`OPENGRM_BUILD_TESTS`    | Build unit tests                          | `ON`
+`OPENGRM_ENABLE_BIN`     | Build command-line executables            | `ON`
+`OPENGRM_RUN_SLOW_TESTS` | Run very slow tests as part of `ctest`    | `OFF`
 
 Example usage:
 
