@@ -73,13 +73,18 @@ opengrm_install(
 )
 
 if(OPENGRM_ENABLE_BIN)
+  # Force-link openfst::fst so static builds retain the FST type registrations
+  # in fst-types.cc needed by Fst::Read.
+  #
   # fstcdrewrite
   add_executable(fstcdrewrite fstcdrewrite.cc fstcdrewrite-main.cc)
   target_link_libraries(
     fstcdrewrite
     PRIVATE grm_operators
             grm_operatorsscript
+            ${OPENGRM_ALWAYS_LINK_START}
             openfst::fst
+            ${OPENGRM_ALWAYS_LINK_END}
             absl::flags
   )
   opengrm_install(
@@ -93,7 +98,9 @@ if(OPENGRM_ENABLE_BIN)
     fstcross
     PRIVATE grm_operators
             grm_operatorsscript
+            ${OPENGRM_ALWAYS_LINK_START}
             openfst::fst
+            ${OPENGRM_ALWAYS_LINK_END}
             absl::flags
   )
   opengrm_install(
@@ -109,7 +116,9 @@ if(OPENGRM_ENABLE_BIN)
     fstlenientlycompose
     PRIVATE grm_operators
             grm_operatorsscript
+            ${OPENGRM_ALWAYS_LINK_START}
             openfst::fst
+            ${OPENGRM_ALWAYS_LINK_END}
             absl::flags
   )
   opengrm_install(
@@ -123,7 +132,9 @@ if(OPENGRM_ENABLE_BIN)
     fstoptimize
     PRIVATE grm_operators
             grm_operatorsscript
+            ${OPENGRM_ALWAYS_LINK_START}
             openfst::fst
+            ${OPENGRM_ALWAYS_LINK_END}
             absl::flags
   )
   opengrm_install(
@@ -137,7 +148,9 @@ if(OPENGRM_ENABLE_BIN)
     fstconcatrange
     PRIVATE grm_operators
             grm_operatorsscript
+            ${OPENGRM_ALWAYS_LINK_START}
             openfst::fst
+            ${OPENGRM_ALWAYS_LINK_END}
             absl::flags
   )
   opengrm_install(
@@ -211,6 +224,15 @@ if(OPENGRM_BUILD_TESTS)
     concatrange_test
     WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
   )
+
+  if(OPENGRM_ENABLE_BIN)
+    # Verify that command-line tools retain FST type registrations in static
+    # builds.
+    add_test(NAME fstoptimize_smoke_test
+             COMMAND fstoptimize ${CMAKE_CURRENT_SOURCE_DIR}/testdata/a.fst
+                     ${CMAKE_CURRENT_BINARY_DIR}/fstoptimize_smoke.fst
+    )
+  endif()
 
   # We might also want to add the shell tests or just mention them
 endif()

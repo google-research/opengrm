@@ -136,7 +136,16 @@ if(OPENGRM_ENABLE_BIN)
 
   foreach(_tool ${SFST_TOOLS})
     add_executable(${_tool} ${_tool}.cc ${_tool}-main.cc)
-    target_link_libraries(${_tool} PRIVATE grm_sfst openfst::fst absl::flags)
+    # Force-link openfst::fst so static builds retain the FST type registrations
+    # in fst-types.cc needed by Fst::Read.
+    target_link_libraries(
+      ${_tool}
+      PRIVATE grm_sfst
+              ${OPENGRM_ALWAYS_LINK_START}
+              openfst::fst
+              ${OPENGRM_ALWAYS_LINK_END}
+              absl::flags
+    )
     opengrm_install(
       TARGETS ${_tool}
       RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
@@ -211,4 +220,12 @@ if(OPENGRM_BUILD_TESTS)
                                                  grm_sfst_smooth
   )
   target_link_libraries(sfst_merge_test PRIVATE grm_sfst_arpa grm_sfst_merge)
+
+  if(OPENGRM_ENABLE_BIN)
+    # Verify that command-line tools retain FST type registrations in static
+    # builds.
+    add_test(NAME sfstinfo_smoke_test
+             COMMAND sfstinfo ${CMAKE_CURRENT_SOURCE_DIR}/testdata/earnest.mod
+    )
+  endif()
 endif()

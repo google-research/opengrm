@@ -77,6 +77,8 @@ opengrm_install(
 )
 
 if(OPENGRM_ENABLE_BIN)
+  # Force-link openfst::fst so static builds retain the FST type registrations
+  # in fst-types.cc needed by Fst::Read.
   add_executable(baumwelchrandomize baumwelchrandomize.cc
                                     baumwelchrandomize-main.cc
   )
@@ -84,7 +86,9 @@ if(OPENGRM_ENABLE_BIN)
     baumwelchrandomize
     PRIVATE grm_baumwelch
             grm_baumwelchscript
+            ${OPENGRM_ALWAYS_LINK_START}
             openfst::fst
+            ${OPENGRM_ALWAYS_LINK_END}
             absl::flags
   )
   opengrm_install(
@@ -97,7 +101,9 @@ if(OPENGRM_ENABLE_BIN)
     baumwelchtrain
     PRIVATE grm_baumwelch
             grm_baumwelchscript
+            ${OPENGRM_ALWAYS_LINK_START}
             openfst::fst
+            ${OPENGRM_ALWAYS_LINK_END}
             openfst::farscript
             absl::flags
   )
@@ -111,7 +117,9 @@ if(OPENGRM_ENABLE_BIN)
     baumwelchdecode
     PRIVATE grm_baumwelch
             grm_baumwelchscript
+            ${OPENGRM_ALWAYS_LINK_START}
             openfst::fst
+            ${OPENGRM_ALWAYS_LINK_END}
             openfst::farscript
             absl::flags
   )
@@ -141,8 +149,16 @@ if(OPENGRM_BUILD_TESTS)
       set(_target ${_test}_test)
     endif()
     add_executable(${_target} ${_test}_test.cc)
-    target_link_libraries(${_target} PRIVATE grm_baumwelch GTest::gmock
-                                             GTest::gtest_main
+    # Force-link openfst::fst so FarReader-backed tests retain FST type
+    # registrations in static builds.
+    target_link_libraries(
+      ${_target}
+      PRIVATE grm_baumwelch
+              ${OPENGRM_ALWAYS_LINK_START}
+              openfst::fst
+              ${OPENGRM_ALWAYS_LINK_END}
+              GTest::gmock
+              GTest::gtest_main
     )
     grm_configure_test_target(${_target})
     gtest_discover_tests(
@@ -151,18 +167,29 @@ if(OPENGRM_BUILD_TESTS)
     )
   endforeach()
 
+  if(OPENGRM_ENABLE_BIN)
+    # Verify that command-line tools retain FST type registrations in static
+    # builds.
+    add_test(
+      NAME baumwelchrandomize_smoke_test
+      COMMAND
+        baumwelchrandomize ${CMAKE_CURRENT_SOURCE_DIR}/testdata/mono/lm.fst
+        ${CMAKE_CURRENT_BINARY_DIR}/baumwelchrandomize_smoke.fst
+    )
+  endif()
+
   # Build decipherment tests (always built if tests are enabled) mono-13
   add_executable(mono-13-log_test mono_test.cc)
   target_link_libraries(
     mono-13-log_test
     PRIVATE grm_baumwelch
             openfst::far
-            openfst::phi-fst
             ${OPENGRM_ALWAYS_LINK_START}
-            openfst::fst
+            openfst::phi-fst
             openfst::compact8_string-fst
             openfst::compact16_string-fst
             openfst::compact64_string-fst
+            openfst::fst
             ${OPENGRM_ALWAYS_LINK_END}
             GTest::gtest_main
   )
@@ -180,12 +207,12 @@ if(OPENGRM_BUILD_TESTS)
     mono-13-std_test
     PRIVATE grm_baumwelch
             openfst::far
-            openfst::phi-fst
             ${OPENGRM_ALWAYS_LINK_START}
-            openfst::fst
+            openfst::phi-fst
             openfst::compact8_string-fst
             openfst::compact16_string-fst
             openfst::compact64_string-fst
+            openfst::fst
             ${OPENGRM_ALWAYS_LINK_END}
             GTest::gtest_main
   )
@@ -204,12 +231,12 @@ if(OPENGRM_BUILD_TESTS)
     mono-26-log_test
     PRIVATE grm_baumwelch
             openfst::far
-            openfst::phi-fst
             ${OPENGRM_ALWAYS_LINK_START}
-            openfst::fst
+            openfst::phi-fst
             openfst::compact8_string-fst
             openfst::compact16_string-fst
             openfst::compact64_string-fst
+            openfst::fst
             ${OPENGRM_ALWAYS_LINK_END}
             GTest::gtest_main
   )
@@ -227,12 +254,12 @@ if(OPENGRM_BUILD_TESTS)
     mono-26-std_test
     PRIVATE grm_baumwelch
             openfst::far
-            openfst::phi-fst
             ${OPENGRM_ALWAYS_LINK_START}
-            openfst::fst
+            openfst::phi-fst
             openfst::compact8_string-fst
             openfst::compact16_string-fst
             openfst::compact64_string-fst
+            openfst::fst
             ${OPENGRM_ALWAYS_LINK_END}
             GTest::gtest_main
   )
@@ -251,12 +278,12 @@ if(OPENGRM_BUILD_TESTS)
     mono-27-log_test
     PRIVATE grm_baumwelch
             openfst::far
-            openfst::phi-fst
             ${OPENGRM_ALWAYS_LINK_START}
-            openfst::fst
+            openfst::phi-fst
             openfst::compact8_string-fst
             openfst::compact16_string-fst
             openfst::compact64_string-fst
+            openfst::fst
             ${OPENGRM_ALWAYS_LINK_END}
             GTest::gtest_main
   )
@@ -274,13 +301,13 @@ if(OPENGRM_BUILD_TESTS)
     mono-27-std_test
     PRIVATE grm_baumwelch
             openfst::far
+            ${OPENGRM_ALWAYS_LINK_START}
             openfst::phi-fst
-            ${FORCE_LOAD_START}
-            openfst::fst
             openfst::compact8_string-fst
             openfst::compact16_string-fst
             openfst::compact64_string-fst
-            ${FORCE_LOAD_END}
+            openfst::fst
+            ${OPENGRM_ALWAYS_LINK_END}
             GTest::gtest_main
   )
   grm_configure_test_target(mono-27-std_test)
@@ -298,13 +325,13 @@ if(OPENGRM_BUILD_TESTS)
     z408-log_test
     PRIVATE grm_baumwelch
             openfst::far
+            ${OPENGRM_ALWAYS_LINK_START}
             openfst::phi-fst
-            ${FORCE_LOAD_START}
-            openfst::fst
             openfst::compact8_string-fst
             openfst::compact16_string-fst
             openfst::compact64_string-fst
-            ${FORCE_LOAD_END}
+            openfst::fst
+            ${OPENGRM_ALWAYS_LINK_END}
             GTest::gtest_main
   )
   grm_configure_test_target(z408-log_test)
@@ -321,13 +348,13 @@ if(OPENGRM_BUILD_TESTS)
     z408-std_test
     PRIVATE grm_baumwelch
             openfst::far
+            ${OPENGRM_ALWAYS_LINK_START}
             openfst::phi-fst
-            ${FORCE_LOAD_START}
-            openfst::fst
             openfst::compact8_string-fst
             openfst::compact16_string-fst
             openfst::compact64_string-fst
-            ${FORCE_LOAD_END}
+            openfst::fst
+            ${OPENGRM_ALWAYS_LINK_END}
             GTest::gtest_main
   )
   grm_configure_test_target(z408-std_test)

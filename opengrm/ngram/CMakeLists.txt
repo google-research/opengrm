@@ -136,13 +136,31 @@ if(OPENGRM_ENABLE_BIN)
       ngramtransfer
   )
 
+  set(NGRAM_HIST_TOOLS
+      ngramcount
+      ngramhisttest
+      ngrammake
+      ngrammerge
+      ngramsplit
+      ngramtransfer
+  )
+
   foreach(_tool ${NGRAM_TOOLS})
     add_executable(${_tool} ${_tool}.cc ${_tool}-main.cc)
+    set(_hist_arc_lib "")
+    if(_tool IN_LIST NGRAM_HIST_TOOLS)
+      set(_hist_arc_lib grm_hist-arc)
+    endif()
+    # Force-link openfst::fst (and grm_hist-arc for histogram-capable tools) so
+    # FST and HistogramArc registrations are retained in static builds and Linux
+    # --as-needed shared builds.
     target_link_libraries(
       ${_tool}
       PRIVATE grm_ngram
-              grm_hist-arc
+              ${OPENGRM_ALWAYS_LINK_START}
+              ${_hist_arc_lib}
               openfst::fst
+              ${OPENGRM_ALWAYS_LINK_END}
               absl::flags
     )
     opengrm_install(
@@ -188,4 +206,20 @@ if(OPENGRM_BUILD_TESTS)
     ngram-shrink_test
     WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
   )
+
+  if(OPENGRM_ENABLE_BIN)
+    # Verify that command-line tools retain FST and HistogramArc registrations.
+    add_test(NAME ngraminfo_smoke_test
+             COMMAND ngraminfo
+                     ${CMAKE_CURRENT_SOURCE_DIR}/testdata/earnest1.mod
+    )
+    add_test(
+      NAME ngramhisttest_smoke_test
+      COMMAND
+        ngramhisttest
+        --ifile=${CMAKE_CURRENT_SOURCE_DIR}/testdata/single_fst_ref.txt
+        --syms=${CMAKE_CURRENT_SOURCE_DIR}/testdata/ab.sym
+        --ofile=${CMAKE_CURRENT_BINARY_DIR}/ngramhisttest_smoke.fst
+    )
+  endif()
 endif()
