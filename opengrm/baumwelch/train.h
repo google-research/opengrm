@@ -18,6 +18,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <utility>
 #include <vector>
 
@@ -25,6 +26,7 @@
 #include "openfst/extensions/far/far.h"
 #include "openfst/lib/arcfilter.h"
 #include "openfst/lib/compose.h"
+#include "openfst/lib/float-weight.h"
 #include "openfst/lib/fst.h"
 #include "openfst/lib/mutable-fst.h"
 #include "openfst/lib/queue.h"
@@ -103,6 +105,45 @@ class ForwardBackward {
   std::vector<Weight> beta_;
 };
 
+// Accumulates negative log-likelihoods across independent examples (probability
+// product / semiring Times) using OpenFST's Kahan-compensated
+// Adder<Real64Weight>, skipping unaligned (Weight::Zero() or non-member)
+// examples.
+class NllAccumulator {
+ public:
+  template <class Weight>
+  void Add(const Weight& weight) {
+    if (weight != Weight::Zero() && weight.Member()) {
+      sum_.Add(Real64Weight(static_cast<double>(weight.Value())));
+      ++count_;
+    }
+  }
+
+  void Add(const NllAccumulator& other) {
+    if (other.count_ == 0) return;
+    sum_.Add(other.sum_.Sum());
+    count_ += other.count_;
+  }
+
+  size_t count() const { return count_; }
+
+  double value_or_inf() const {
+    return count_ > 0 ? sum_.Sum().Value()
+                      : std::numeric_limits<double>::infinity();
+  }
+
+  double average() const { return sum_.Sum().Value() / count_; }
+
+  template <class Weight>
+  Weight ToWeight() const {
+    return count_ > 0 ? Weight(sum_.Sum().Value()) : Weight::Zero();
+  }
+
+ private:
+  Adder<Real64Weight> sum_;
+  size_t count_ = 0;
+};
+
 // Object which holds all necessary information for stepwise or minibatch
 // training. It stores the (initial) learning rate and the step counter. For
 // more information, see the "sEM" pseudocode (p. 613) in:
@@ -129,15 +170,27 @@ class Trainer {
 
   virtual ~Trainer() = default;
 
-  // Performs a batch of training returning the likelihood. Semiring Zero is
-  // returned in the case of composition failure.
+  // Performs a batch of training returning the accumulated negative
+  // log-likelihood over aligned examples. Semiring Zero is returned if no
+  // examples align.
   Weight Batch(FarReader<Arc>& input, FarReader<Arc>& output,
                MutableFst<Arc>* model) {
+    return BatchWithStats(input, output, model).template ToWeight<Weight>();
+  }
+
+  // Repeatedly do the stepwise computation.
+  Weight Train(FarReader<Arc>& input, FarReader<Arc>& output,
+               MutableFst<Arc>* model) {
+    return TrainWithStats(input, output, model).template ToWeight<Weight>();
+  }
+
+  NllAccumulator BatchWithStats(FarReader<Arc>& input, FarReader<Arc>& output,
+                                MutableFst<Arc>* model) {
     ExpectationTable table(*model);
-    Sum likelihood;     // Tracks batch likelihood.
-    int batch_idx = 0;  // Tracks actual batch size.
+    NllAccumulator likelihood;  // Tracks batch negative log-likelihood.
+    int batch_idx = 0;          // Tracks actual batch size.
     for (; !input.Done() && !output.Done() &&
-           (!batch_size_ || batch_idx < batch_size_);
+           (batch_size_ <= 0 || batch_idx < batch_size_);
          ++batch_idx) {
       likelihood.Add(
           Forward(*input.GetFst(), *output.GetFst(), *model, &table));
@@ -146,22 +199,25 @@ class Trainer {
     }
     Backward(table, model);
     ++step_;
-    const auto batch_likelihood = likelihood.Sum();
-    LOG(INFO) << "Step " << step_ << " (batch size " << batch_idx
-              << ") average likelihood: "
-              << batch_likelihood.Value() / batch_idx;
-    return batch_likelihood;
+    if (likelihood.count() > 0) {
+      LOG(INFO) << "Step " << step_ << " (batch size " << batch_idx
+                << ", aligned " << likelihood.count()
+                << ") average likelihood: " << likelihood.average();
+    } else {
+      LOG(INFO) << "Step " << step_ << " (batch size " << batch_idx
+                << ") no aligned examples";
+    }
+    return likelihood;
   }
 
-  // Repeatedly do the stepwise computation.
-  Weight Train(FarReader<Arc>& input, FarReader<Arc>& output,
-               MutableFst<Arc>* model) {
-    Sum likelihood;  // Tracks iteration likelihood.
+  NllAccumulator TrainWithStats(FarReader<Arc>& input, FarReader<Arc>& output,
+                                MutableFst<Arc>* model) {
+    NllAccumulator likelihood;  // Tracks iteration negative log-likelihood.
     while (!input.Done() && !output.Done()) {
-      likelihood.Add(Batch(input, output, model));
+      likelihood.Add(BatchWithStats(input, output, model));
     }
     Normalize(model);
-    return likelihood.Sum();
+    return likelihood;
   }
 
   // Normalizes the model.
@@ -343,18 +399,23 @@ typename Arc::Weight TrainWithTrainer(FarReader<Arc>& input,
                                       MutableFst<Arc>* model,
                                       const TrainOptions& opts) {
   using Weight = typename Arc::Weight;
+  double last_nll = std::numeric_limits<double>::infinity();
   auto last_likelihood = Weight::Zero();
   Trainer trainer(opts.alpha, opts.batch_size, opts.delta, opts.copts);
   trainer.Normalize(model);
   for (int iteration = 0; iteration < opts.max_iters; ++iteration) {
     input.Reset();
     output.Reset();
-    const auto total_likelihood = trainer.Train(input, output, model);
+    const auto total_nll = trainer.TrainWithStats(input, output, model);
+    const double curr_nll = total_nll.value_or_inf();
+    const auto total_likelihood = total_nll.template ToWeight<Weight>();
     LOG(INFO) << "Iteration " << iteration + 1
               << " total likelihood: " << total_likelihood;
-    if (ApproxEqual(last_likelihood, total_likelihood, opts.delta)) {
+    if (last_nll <= curr_nll + opts.delta &&
+        curr_nll <= last_nll + opts.delta) {
       return total_likelihood;
     }
+    last_nll = curr_nll;
     last_likelihood = total_likelihood;
   }
   return last_likelihood;
