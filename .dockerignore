@@ -1,0 +1,20 @@
+# Version control and CI metadata (varies across runners and breaks BuildKit
+# layer caching across parallel wheel shards).
+.git
+.github
+
+# Bazel output symlinks
+bazel-*
+
+# Local build and packaging outputs
+build/
+dist/
+wheelhouse/
+**/__pycache__/
+**/*.py[cod]
+**/*.egg-info/
+venv/
+.venv/
+
+# IDE metadata
+.vscode/

@@ -1,0 +1,207 @@
+# Copyright 2026 The OpenGrm Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Builds and tests Pynini manylinux_2_28_x86_64 binary wheels and source
+# distributions.
+
+name: "Pynini Wheels"
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - "CMakeLists.txt"
+      - "cmake/**"
+      - "pyproject.toml"
+      - ".dockerignore"
+      - "opengrm/CMakeLists.txt"
+      - "opengrm/__init__.py"
+      - "opengrm/compat/**"
+      - "opengrm/operators/**"
+      - "opengrm/paths/**"
+      - "opengrm/rewrite/**"
+      - "opengrm/string/**"
+      - "opengrm/pynini/**"
+      - ".github/workflows/wheels.yml"
+  pull_request:
+    branches: [ main ]
+    paths:
+      - "CMakeLists.txt"
+      - "cmake/**"
+      - "pyproject.toml"
+      - ".dockerignore"
+      - "opengrm/CMakeLists.txt"
+      - "opengrm/__init__.py"
+      - "opengrm/compat/**"
+      - "opengrm/operators/**"
+      - "opengrm/paths/**"
+      - "opengrm/rewrite/**"
+      - "opengrm/string/**"
+      - "opengrm/pynini/**"
+      - ".github/workflows/wheels.yml"
+
+# Restricts default token permissions; individual jobs grant minimal access.
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # Compiles Python-independent C++ dependencies (Abseil, OpenFst, OpenGrm) once
+  # and shares the BuildKit cache across shards via a run-scoped artifact.
+  warmup-cpp-cache:
+    name: "Warm up C++ base layer"
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Build and export Python-independent C++ layer cache
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
+        with:
+          context: .
+          file: opengrm/pynini/Dockerfile
+          target: wheel-building-env
+          push: false
+          cache-to: type=local,dest=/tmp/buildx-cache,mode=max
+      - name: Upload run-scoped BuildKit cache artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: buildx-cache-cpp-x86_64
+          path: /tmp/buildx-cache
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+
+  # Builds, repairs (`auditwheel`), and runs clean-container smoke and unit
+  # tests for each target Python runtime shard in parallel.
+  build-and-test-wheels:
+    name: "Wheel (${{ matrix.name }})"
+    needs: warmup-cpp-cache
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: cp311
+            python_tag: "cp311-cp311"
+          - name: cp312
+            python_tag: "cp312-cp312"
+          - name: cp313
+            python_tag: "cp313-cp313"
+          - name: cp314
+            python_tag: "cp314-cp314"
+          - name: cp315
+            python_tag: "cp315-cp315"
+          - name: pp311
+            python_tag: "pp311-*"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Download run-scoped BuildKit cache artifact
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: buildx-cache-cpp-x86_64
+          path: /tmp/buildx-cache
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Build, repair, and test wheel in isolated container
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
+        with:
+          context: .
+          file: opengrm/pynini/Dockerfile
+          target: export-wheels
+          build-args: |
+            PYTHON_TAGS=${{ matrix.python_tag }}
+          cache-from: type=local,src=/tmp/buildx-cache
+          outputs: type=local,dest=./wheelhouse
+      - name: Upload validated wheel artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pynini-wheel-${{ matrix.name }}
+          path: ./wheelhouse/*.whl
+          if-no-files-found: error
+
+  # Builds and validates the PEP 517 source distribution (`sdist`).
+  build-sdist:
+    name: "Source distribution (sdist)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          python-version: "3.12"
+          enable-cache: false
+      - name: Build and validate sdist
+        run: |
+          uv build --sdist
+          uvx --from 'twine>=7,<8' twine check --strict dist/*.tar.gz
+      - name: Upload sdist artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pynini-sdist
+          path: dist/*.tar.gz
+          if-no-files-found: error
+
+  # Collects all built wheels and the sdist and verifies manylinux tags and
+  # distribution metadata.
+  verify-dist:
+    name: "Verify built distributions"
+    needs: [build-and-test-wheels, build-sdist]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: pynini-*
+          path: dist
+          merge-multiple: true
+      - name: Set up uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          python-version: "3.12"
+          enable-cache: false
+      - name: Validate collected distributions
+        run: |
+          shopt -s nullglob
+          ls -lh dist/
+          whls=(dist/*.whl)
+          sdists=(dist/*.tar.gz)
+          test "${#whls[@]}" -ge 6
+          test "${#sdists[@]}" -eq 1
+          for whl in "${whls[@]}"; do
+            [[ "${whl}" == *-manylinux_2_28_x86_64.whl ]] || {
+              echo "Unexpected wheel platform tag: ${whl}" >&2
+              exit 1
+            }
+            uvx --from 'auditwheel>=6,<7' auditwheel show "${whl}"
+          done
+          uvx --from 'twine>=7,<8' twine check --strict dist/*
