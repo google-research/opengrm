@@ -217,12 +217,13 @@ cc_library(
     name = "score",
     hdrs = ["score.h"],
     deps = [
-        "//opengrm/string:stringprint",
-        "@com_google_absl//absl/log",
         "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/types:span",
         "@com_google_openfst//openfst/extensions/far:lib",
         "@com_google_openfst//openfst/lib:fst-decl",
         "@com_google_openfst//openfst/lib:string",
+        "@com_google_openfst//openfst/lib:symbol-table",
     ],
 )
 

@@ -63,6 +63,59 @@ TEST(ScoreTest, HammingDistanceFst) {
   EXPECT_EQ(HammingDistance(gld, hyp3), 2);
 }
 
+TEST(ScoreTest, HammingDistanceFstUtf8MultiByte) {
+  const StringCompiler<StdArc> compiler(TokenType::UTF8);
+  VectorFst<StdArc> gld, hyp;
+
+  // "é" (2 UTF-8 bytes) vs "a" (1 byte) should be 1 codepoint substitution
+  // without misaligning the trailing "bc".
+  ASSERT_TRUE(compiler("ébc", &gld));
+  ASSERT_TRUE(compiler("abc", &hyp));
+
+  EXPECT_EQ(HammingDistance(gld, hyp), 1);
+}
+
+TEST(ScoreTest, HammingDistanceFstSymbolMultiChar) {
+  SymbolTable syms;
+  syms.AddSymbol("<eps>", 0);
+  syms.AddSymbol("cat", 1);
+  syms.AddSymbol("dog", 2);
+  syms.AddSymbol("elephant", 3);
+
+  const StringCompiler<StdArc> compiler(TokenType::SYMBOL, &syms);
+  VectorFst<StdArc> gld, hyp;
+  ASSERT_TRUE(compiler("cat dog", &gld));
+  ASSERT_TRUE(compiler("elephant dog", &hyp));
+  gld.SetOutputSymbols(&syms);
+  hyp.SetOutputSymbols(&syms);
+
+  // Differing symbol string lengths must not misalign subsequent symbols.
+  EXPECT_EQ(HammingDistance(gld, hyp), 1);
+}
+
+TEST(ScoreTest, HammingDistanceFstOmitsEpsilons) {
+  VectorFst<StdArc> gld, hyp;
+  const auto g0 = gld.AddState();
+  const auto g1 = gld.AddState();
+  const auto g2 = gld.AddState();
+  gld.SetStart(g0);
+  gld.AddArc(g0, StdArc(1, 1, 0.0, g1));
+  gld.AddArc(g1, StdArc(2, 2, 0.0, g2));
+  gld.SetFinal(g2, StdArc::Weight::One());
+
+  const auto h0 = hyp.AddState();
+  const auto h1 = hyp.AddState();
+  const auto h2 = hyp.AddState();
+  const auto h3 = hyp.AddState();
+  hyp.SetStart(h0);
+  hyp.AddArc(h0, StdArc(1, 1, 0.0, h1));
+  hyp.AddArc(h1, StdArc(0, 0, 0.0, h2));
+  hyp.AddArc(h2, StdArc(2, 2, 0.0, h3));
+  hyp.SetFinal(h3, StdArc::Weight::One());
+
+  EXPECT_EQ(HammingDistance(gld, hyp), 0);
+}
+
 TEST(ScoreTest, HammingDistanceFstNonStringDeathTest) {
   const StringCompiler<StdArc> compiler(TokenType::BYTE);
   VectorFst<StdArc> gld;
@@ -75,32 +128,25 @@ TEST(ScoreTest, HammingDistanceFstNonStringDeathTest) {
   cyclic.AddArc(s0, StdArc(1, 1, 0.0, s0));  // self-loop
   cyclic.SetFinal(s0, StdArc::Weight(0.0));
 
-  EXPECT_DEATH(HammingDistance(cyclic, gld), "String printing failed");
-  EXPECT_DEATH(HammingDistance(gld, cyclic), "String printing failed");
+  EXPECT_DEATH(HammingDistance(cyclic, gld), "Label extraction failed");
+  EXPECT_DEATH(HammingDistance(gld, cyclic), "Label extraction failed");
 }
 
 TEST(ScoreTest, HammingDistanceFstSymbolTableMismatchDeathTest) {
-  SymbolTable syms;
-  syms.AddSymbol("a", 1);
+  SymbolTable syms1;
+  syms1.AddSymbol("a", 1);
+  SymbolTable syms2;
+  syms2.AddSymbol("b", 1);
 
-  VectorFst<StdArc> fst_invalid_symbol;
-  const auto s0 = fst_invalid_symbol.AddState();
-  const auto s1 = fst_invalid_symbol.AddState();
-  fst_invalid_symbol.SetStart(s0);
-  // Label 99 not in syms.
-  fst_invalid_symbol.AddArc(s0, StdArc(99, 99, 0.0, s1));
-  fst_invalid_symbol.SetFinal(s1, StdArc::Weight(0.0));
+  const StringCompiler<StdArc> compiler1(TokenType::SYMBOL, &syms1);
+  const StringCompiler<StdArc> compiler2(TokenType::SYMBOL, &syms2);
+  VectorFst<StdArc> fst1, fst2;
+  ASSERT_TRUE(compiler1("a", &fst1));
+  ASSERT_TRUE(compiler2("b", &fst2));
+  fst1.SetOutputSymbols(&syms1);
+  fst2.SetOutputSymbols(&syms2);
 
-  VectorFst<StdArc> valid;
-  const auto v0 = valid.AddState();
-  const auto v1 = valid.AddState();
-  valid.SetStart(v0);
-  valid.AddArc(v0, StdArc(1, 1, 0.0, v1));
-  valid.SetFinal(v1, StdArc::Weight(0.0));
-
-  EXPECT_DEATH(
-      HammingDistance(fst_invalid_symbol, valid, TokenType::SYMBOL, &syms),
-      "String printing failed");
+  EXPECT_DEATH(HammingDistance(fst1, fst2), "Output symbol table mismatch");
 }
 
 TEST(ScoreTest, HammingDistanceFar) {

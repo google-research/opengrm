@@ -20,20 +20,24 @@
 #ifndef OPENGRM_BAUMWELCH_SCORE_H_
 #define OPENGRM_BAUMWELCH_SCORE_H_
 
+#include <algorithm>
 #include <cstddef>
-#include <string>
+#include <vector>
 
 #include "absl/log/check.h"
-#include "absl/log/log.h"
+#include "absl/strings/string_view.h"
+#include "absl/types/span.h"
 #include "openfst/extensions/far/far.h"
 #include "openfst/lib/fst-decl.h"
 #include "openfst/lib/string.h"
-#include "opengrm/string/stringprint.h"
+#include "openfst/lib/symbol-table.h"
 
 namespace fst {
 
-// Computes number of errors, assuming the trivial left-to-right alignment.
-inline size_t HammingDistance(const std::string& gld, const std::string& hyp) {
+// Computes number of errors between two sequences, assuming the trivial
+// left-to-right alignment.
+template <class T>
+size_t HammingDistance(absl::Span<const T> gld, absl::Span<const T> hyp) {
   // We assume the former is at least as long as the latter. If this is not
   // the case, re-invoke with the arguments swapped.
   if (gld.size() < hyp.size()) return HammingDistance(hyp, gld);
@@ -44,28 +48,38 @@ inline size_t HammingDistance(const std::string& gld, const std::string& hyp) {
   return dist;
 }
 
-// Same, but with FST inputs.
+// Same, for byte strings.
+inline size_t HammingDistance(absl::string_view gld, absl::string_view hyp) {
+  return HammingDistance(absl::Span<const char>(gld.data(), gld.size()),
+                         absl::Span<const char>(hyp.data(), hyp.size()));
+}
+
+// Same, for string FSTs, comparing non-epsilon output label sequences directly.
 template <class Arc>
-size_t HammingDistance(const Fst<Arc>& gld, const Fst<Arc>& hyp,
-                       TokenType ttype = TokenType::BYTE,
-                       const SymbolTable* syms = nullptr) {
-  std::string gld_str;
-  CHECK(StringPrint(gld, &gld_str, ttype, syms)) << "String printing failed";
-  std::string hyp_str;
-  CHECK(StringPrint(hyp, &hyp_str, ttype, syms)) << "String printing failed";
-  return HammingDistance(gld_str, hyp_str);
+size_t HammingDistance(const Fst<Arc>& gld, const Fst<Arc>& hyp) {
+  using Label = typename Arc::Label;
+  CHECK(CompatSymbols(gld.OutputSymbols(), hyp.OutputSymbols()))
+      << "Output symbol table mismatch";
+  std::vector<Label> gld_labels;
+  CHECK(StringFstToOutputLabels(gld, &gld_labels)) << "Label extraction failed";
+  std::vector<Label> hyp_labels;
+  CHECK(StringFstToOutputLabels(hyp, &hyp_labels)) << "Label extraction failed";
+  gld_labels.erase(std::remove(gld_labels.begin(), gld_labels.end(), 0),
+                   gld_labels.end());
+  hyp_labels.erase(std::remove(hyp_labels.begin(), hyp_labels.end(), 0),
+                   hyp_labels.end());
+  return HammingDistance(absl::MakeConstSpan(gld_labels),
+                         absl::MakeConstSpan(hyp_labels));
 }
 
 // Same, but summing across all FSTs in a pair of FAR inputs. This is only
 // sensible when both FARs have the same number of entries and a consistent
 // iteration order.
 template <class Arc>
-size_t HammingDistance(FarReader<Arc>& gld, FarReader<Arc>& hyp,
-                       TokenType ttype = TokenType::BYTE,
-                       const SymbolTable* syms = nullptr) {
+size_t HammingDistance(FarReader<Arc>& gld, FarReader<Arc>& hyp) {
   size_t dist = 0;
   while (!gld.Done() && !hyp.Done()) {
-    dist += HammingDistance(*gld.GetFst(), *hyp.GetFst(), ttype, syms);
+    dist += HammingDistance(*gld.GetFst(), *hyp.GetFst());
     gld.Next();
     hyp.Next();
   }
