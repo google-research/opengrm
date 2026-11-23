@@ -12,10 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-get_filename_component(OPENGRM_BUILD_ROOT "${CMAKE_CURRENT_BINARY_DIR}/../.."
-                       ABSOLUTE
-)
-
 if(TARGET protobuf::protoc)
   set(OPENGRM_PROTOC_EXE protobuf::protoc)
 else()
@@ -53,80 +49,18 @@ add_custom_command(
   VERBATIM
 )
 
-grm_add_library(
-  grm_testdata_cc_proto
-  testdata.proto
-  "${CMAKE_CURRENT_BINARY_DIR}/testdata.pb.cc"
-  "${CMAKE_CURRENT_BINARY_DIR}/testdata.pb.h"
+add_library(grm_testdata_cc_proto STATIC
+            "${CMAKE_CURRENT_BINARY_DIR}/testdata.pb.cc"
+            "${CMAKE_CURRENT_BINARY_DIR}/testdata.pb.h"
 )
-set_target_properties(
-  grm_testdata_cc_proto
-  PROPERTIES LINKER_LANGUAGE CXX
-)
-
-target_include_directories(
-  grm_testdata_cc_proto
-  PUBLIC $<BUILD_INTERFACE:${OPENGRM_BUILD_ROOT}>
-         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
-         $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
-         $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
-         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
-         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
-         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
-
+target_include_directories(grm_testdata_cc_proto PUBLIC "${PROJECT_BINARY_DIR}")
 target_link_libraries(grm_testdata_cc_proto PUBLIC protobuf::libprotobuf)
 
-grm_add_library(grm_test_textproto_lib test_textproto.cc)
-set_target_properties(
-  grm_test_textproto_lib
-  PROPERTIES LINKER_LANGUAGE CXX
-)
-
-target_include_directories(
-  grm_test_textproto_lib
-  PUBLIC $<BUILD_INTERFACE:${OPENGRM_BUILD_ROOT}>
-         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
-         $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
-         $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
-         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
-         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
-         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
-
-target_link_libraries(
-  grm_test_textproto_lib
-  PUBLIC grm_testdata_cc_proto
-         grm_compat
-         grm_rewrite
-         openfst::fst
-         openfst::far
-         openfst::fstscript
-         absl::algorithm_container
-         absl::check
-         absl::flags
-         absl::flags_parse
-         absl::log
-         absl::status
-         absl::statusor
-         absl::strings
-         protobuf::libprotobuf
-         GTest::gmock
-         GTest::gtest
-)
-
-add_executable(test_textproto $<TARGET_OBJECTS:grm_test_textproto_lib>)
-set_target_properties(
-  test_textproto
-  PROPERTIES LINKER_LANGUAGE CXX
-)
-
+add_executable(test_textproto test_textproto.cc)
+target_include_directories(test_textproto PRIVATE "${PROJECT_SOURCE_DIR}")
 target_link_libraries(
   test_textproto
-  PRIVATE grm_test_textproto_lib
-          ${OPENGRM_ALWAYS_LINK_START}
+  PRIVATE ${OPENGRM_ALWAYS_LINK_START}
           grm_compat
           grm_rewrite
           openfst::fst
@@ -148,3 +82,25 @@ target_link_libraries(
 )
 
 grm_configure_test_target(test_textproto)
+
+if(OPENGRM_ENABLE_BIN)
+  add_custom_command(
+    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/test_grammar.far"
+    COMMAND
+      thraxcompiler
+      "--input_grammar=${CMAKE_CURRENT_SOURCE_DIR}/test_grammar.grm"
+      "--output_far=${CMAKE_CURRENT_BINARY_DIR}/test_grammar.far"
+    DEPENDS thraxcompiler "${CMAKE_CURRENT_SOURCE_DIR}/test_grammar.grm"
+    COMMENT "Compiling test_grammar.grm"
+    VERBATIM
+  )
+  add_custom_target(test_grammar_far ALL
+                    DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/test_grammar.far"
+  )
+  add_test(
+    NAME build_defs_test
+    COMMAND
+      test_textproto "--far_path=${CMAKE_CURRENT_BINARY_DIR}/test_grammar.far"
+      "--textproto_path=${CMAKE_CURRENT_SOURCE_DIR}/testdata/build_defs.textproto"
+  )
+endif()
