@@ -148,6 +148,7 @@ cc_library(
         "@com_google_absl//absl/log",
         "@com_google_openfst//openfst/extensions/far:lib",
         "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:weight",
     ],
 )
 
