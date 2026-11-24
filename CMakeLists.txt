@@ -142,7 +142,9 @@ else()
   set(ABSL_BUILD_TESTING OFF)
   FetchContent_Declare(
     abseil-cpp
-    URL https://github.com/abseil/abseil-cpp/archive/refs/tags/20260817.0.zip
+    URL https://github.com/abseil/abseil-cpp/releases/download/20260817.0/abseil-cpp-20260817.0.tar.gz
+    URL_HASH
+      SHA256=f7e05179df39c45434cad433f5783840bb3788ef322976f9138bc6b72b3a107d
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE
   )
   FetchContent_MakeAvailable(abseil-cpp)
@@ -176,7 +178,9 @@ if(OPENGRM_BUILD_TESTS AND OPENGRM_ENABLE_THRAX)
     endif()
     FetchContent_Declare(
       protobuf
-      URL https://github.com/protocolbuffers/protobuf/archive/refs/tags/v35.1.zip
+      URL https://github.com/protocolbuffers/protobuf/releases/download/v35.1/protobuf-35.1.tar.gz
+      URL_HASH
+        SHA256=f0b6838e7522a8da96126d487068c959bc624926368f3024ac8fd03abd0a1ac4
       DOWNLOAD_EXTRACT_TIMESTAMP TRUE
     )
     FetchContent_MakeAvailable(protobuf)
