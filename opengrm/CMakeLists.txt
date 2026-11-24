@@ -12,11 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Core subdirectories in topological order for libraries (test-only targets in
+# rewrite still forward-reference grm_operators due to the test cycle with
+# operators/concatrange_test -> grm_rewrite).
 add_subdirectory(compat)
-add_subdirectory(operators)
 add_subdirectory(paths)
-add_subdirectory(rewrite)
 add_subdirectory(string)
+add_subdirectory(rewrite)
+add_subdirectory(operators)
 
 if(OPENGRM_ENABLE_BAUMWELCH)
   add_subdirectory(baumwelch)

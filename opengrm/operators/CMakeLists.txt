@@ -29,7 +29,13 @@ target_include_directories(
                        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-target_link_libraries(grm_operators PUBLIC openfst::fst absl::strings)
+target_link_libraries(
+  grm_operators
+  PUBLIC openfst::fst
+         absl::log
+         absl::span
+         absl::strings
+)
 
 set(OPERATORSSCRIPT_SRCS
     cdrewritescript.cc
@@ -218,6 +224,7 @@ if(OPENGRM_BUILD_TESTS)
     PRIVATE grm_operators
             grm_operatorsscript
             grm_rewrite
+            absl::check
             GTest::gmock_main
   )
   grm_configure_test_target(concatrange_test)

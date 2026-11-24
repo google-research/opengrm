@@ -30,9 +30,17 @@ target_include_directories(
 target_link_libraries(
   grm_rewrite
   INTERFACE openfst::fst
-            openfst::far # Requires FAR extension
+            openfst::far
+            openfst::pdt
+            openfst::mpdt
             grm_paths
             grm_string
+            absl::flat_hash_map
+            absl::log
+            absl::memory
+            absl::span
+            absl::status
+            absl::strings
 )
 
 opengrm_install(
@@ -73,6 +81,8 @@ if(OPENGRM_BUILD_TESTS)
             openfst::fst
             openfst::far
             ${OPENGRM_ALWAYS_LINK_END}
+            grm_string
+            absl::check
             GTest::gmock_main
   )
   grm_configure_test_target(rewrite_test)
@@ -104,6 +114,8 @@ if(OPENGRM_BUILD_TESTS)
             openfst::fst
             openfst::far
             ${OPENGRM_ALWAYS_LINK_END}
+            absl::nullability
+            absl::status_macros
             GTest::gmock_main
   )
   grm_configure_test_target(rewrite_manager_test)

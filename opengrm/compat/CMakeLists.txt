@@ -25,10 +25,8 @@ target_include_directories(
 
 target_link_libraries(
   grm_compat
-  PUBLIC absl::log
-         absl::status
-         absl::statusor
-         absl::strings
+  PUBLIC absl::status absl::statusor absl::strings
+  PRIVATE absl::log
 )
 
 opengrm_install(

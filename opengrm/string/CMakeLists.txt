@@ -40,10 +40,14 @@ target_include_directories(
 target_link_libraries(
   grm_string
   PUBLIC openfst::fst
-         absl::strings
+         absl::check
+         absl::core_headers
+         absl::flat_hash_map
+         absl::inlined_vector
          absl::log
-         absl::flat_hash_map # For flat_hash_map in stringcompile
-         absl::inlined_vector # For inlined_vector in prefix_tree
+         absl::nullability
+         absl::span
+         absl::strings
 )
 
 set(STRINGSCRIPT_SRCS
@@ -65,7 +69,13 @@ target_include_directories(
                           $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-target_link_libraries(grm_stringscript PUBLIC grm_string openfst::fstscript)
+target_link_libraries(
+  grm_stringscript
+  PUBLIC grm_string
+         openfst::fstscript
+         absl::span
+         absl::strings
+)
 
 opengrm_install(
   TARGETS grm_string grm_stringscript
