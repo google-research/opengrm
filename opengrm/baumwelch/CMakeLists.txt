@@ -36,8 +36,9 @@ target_link_libraries(
   grm_baumwelch
   INTERFACE openfst::fst
             openfst::far
-            grm_string
             absl::hash
+            absl::span
+            absl::strings
 )
 
 set(BAUMWELCHSCRIPT_SRCS
