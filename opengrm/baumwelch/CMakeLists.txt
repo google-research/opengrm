@@ -37,7 +37,14 @@ target_link_libraries(
   INTERFACE openfst::fst
             openfst::far
             grm_string
+            absl::check
+            absl::flat_hash_map
             absl::hash
+            absl::log
+            absl::random_bit_gen_ref
+            absl::random_distributions
+            absl::random_random
+            absl::strings
 )
 
 set(BAUMWELCHSCRIPT_SRCS
@@ -64,7 +71,7 @@ target_link_libraries(
   PUBLIC grm_baumwelch
          openfst::fstscript
          openfst::farscript
-         absl::random_random
+         absl::random_bit_gen_ref
 )
 
 opengrm_install(

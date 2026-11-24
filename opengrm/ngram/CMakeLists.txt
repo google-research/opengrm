@@ -76,8 +76,21 @@ target_link_libraries(
   grm_ngram
   PUBLIC openfst::fst
          openfst::far
-         absl::strings
+         openfst::fstscript
+         absl::btree
+         absl::flags
+         absl::flat_hash_map
+         absl::flat_hash_set
          absl::log
+         absl::log_flags
+         absl::log_severity
+         absl::node_hash_map
+         absl::nullability
+         absl::random_bit_gen_ref
+         absl::random_distributions
+         absl::span
+         absl::strings
+         absl::vlog_is_on
 )
 
 # hist-arc library and module
