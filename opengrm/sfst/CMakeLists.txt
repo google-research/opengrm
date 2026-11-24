@@ -207,10 +207,21 @@ if(OPENGRM_BUILD_TESTS)
               absl::flags
     ) # Perplexity/merge need far
     grm_configure_test_target(sfst_${_test}_test)
-    gtest_discover_tests(
-      sfst_${_test}_test
-      WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
-    )
+    if(_test STREQUAL "algo")
+      # algo_test.cc defines its own main() without GoogleTest TEST macros or
+      # RUN_ALL_TESTS(), so gtest_discover_tests would execute the trials during
+      # discovery and register 0 CTest tests.
+      add_test(
+        NAME sfst_algo_test
+        COMMAND sfst_algo_test
+        WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+      )
+    else()
+      gtest_discover_tests(
+        sfst_${_test}_test
+        WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+      )
+    endif()
   endforeach()
 
   # Specific test dependencies
