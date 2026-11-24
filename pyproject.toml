@@ -62,6 +62,7 @@ Issues = "https://github.com/google-research/opengrm/issues"
 [tool.scikit-build]
 minimum-version = "build-system.requires"
 build-dir = "build/{wheel_tag}"
+build.targets = ["pynini"]
 wheel.packages = []
 
 [tool.scikit-build.metadata.version]

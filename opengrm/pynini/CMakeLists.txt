@@ -14,7 +14,7 @@
 
 find_package(
   Python3
-  COMPONENTS Interpreter Development
+  COMPONENTS Interpreter Development.Module
   REQUIRED
 )
 find_program(CYTHON_EXECUTABLE NAMES cython3 cython REQUIRED)
@@ -46,16 +46,15 @@ if(Python3_FOUND AND CYTHON_EXECUTABLE)
     COMMENT "Generating C++ source from Cython file for Pynini"
   )
 
-  # Defines the `pynini` Python extension module.
-  add_library(pynini MODULE ${PYNINI_CC})
-  set_target_properties(
-    pynini
-    PROPERTIES PREFIX ""
-  )
+  # Defines the `pynini` Python extension module. When built as a PEP 517 wheel
+  # via `scikit-build-core`, prefer its `SKBUILD_SOABI` over CMake's detected
+  # `Python3_SOABI` for PyPy and cross-compilation compatibility.
+  if(SKBUILD_SOABI)
+    set(Python3_SOABI "${SKBUILD_SOABI}")
+  endif()
+  Python3_add_library(pynini MODULE WITH_SOABI ${PYNINI_CC})
 
-  target_include_directories(pynini PRIVATE ${CMAKE_SOURCE_DIR}
-                                            ${Python3_INCLUDE_DIRS}
-  )
+  target_include_directories(pynini PRIVATE ${CMAKE_SOURCE_DIR})
 
   target_link_libraries(
     pynini
@@ -66,7 +65,6 @@ if(Python3_FOUND AND CYTHON_EXECUTABLE)
             openfst::pdtscript
             openfst::fst
             openfst::fstscript
-            Python3::Module
   )
 
   if(UNIX AND NOT APPLE)

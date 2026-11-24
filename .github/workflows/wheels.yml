@@ -41,6 +41,7 @@ on:
       - "opengrm/rewrite/**"
       - "opengrm/string/**"
       - "opengrm/pynini/**"
+      - "!opengrm/pynini/docs/**"
       - ".github/workflows/wheels.yml"
   pull_request:
     branches: [ main ]
@@ -57,6 +58,7 @@ on:
       - "opengrm/rewrite/**"
       - "opengrm/string/**"
       - "opengrm/pynini/**"
+      - "!opengrm/pynini/docs/**"
       - ".github/workflows/wheels.yml"
 
 # Restricts default token permissions; individual jobs grant minimal access.

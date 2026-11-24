@@ -66,7 +66,7 @@ COPY . /src
 # Pre-fetches C++ dependencies (abseil-cpp and openfst) into /deps and compiles
 # all Python-independent C++ translation units once into /ccache so per-Python
 # wheel builds do not hit the network or recompile C++ libraries.
-RUN cmake -S /src -B /tmp/cpp-warmup -G Ninja \
+RUN cmake -S /src -B /src/build/cpp-warmup -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
         -DBUILD_SHARED_LIBS=ON \
         -DOPENGRM_BUILD_TESTS=OFF \
@@ -82,8 +82,11 @@ RUN cmake -S /src -B /tmp/cpp-warmup -G Ninja \
         -DOPENFST_ENABLE_MPDT=ON \
         -DOPENFST_ENABLE_FAR=ON \
         -DFETCHCONTENT_BASE_DIR=/deps \
-    && cmake --build /tmp/cpp-warmup \
-    && rm -rf /tmp/cpp-warmup /deps/*-build /deps/*-subbuild
+    && cmake --build /src/build/cpp-warmup --target \
+        grm_operatorsscript grm_pathsscript grm_stringscript \
+        fstmpdtscript fstpdtscript fstfarscript fstscript fst \
+    && ccache -s \
+    && rm -rf /src/build /deps/*-build /deps/*-subbuild
 
 ENV CMAKE_ARGS="-DFETCHCONTENT_SOURCE_DIR_ABSEIL-CPP=/deps/abseil-cpp-src -DFETCHCONTENT_SOURCE_DIR_OPENFST=/deps/openfst-src"
 
@@ -105,11 +108,14 @@ RUN mkdir -p /tmp/wheelhouse /wheelhouse \
             found=1; \
             "${PYBIN}/pip" install --upgrade \
                 pip "scikit-build-core>=0.10" "Cython>=3.0.6" || exit 1; \
+            PATH="${PYBIN}:${PATH}" \
+            CMAKE_ARGS="${CMAKE_ARGS} -DCYTHON_EXECUTABLE=${PYBIN}/cython" \
             "${PYBIN}/pip" wheel --no-build-isolation --no-deps -v /src \
                 -w /tmp/wheelhouse/ || exit 1; \
         done; \
     done \
     && [ "${found}" -eq 1 ] \
+    && ccache -s \
     && for WHL in /tmp/wheelhouse/pynini*.whl; do \
         auditwheel repair --plat manylinux_2_28_x86_64 "${WHL}" \
             -w /wheelhouse/ || exit 1; \
