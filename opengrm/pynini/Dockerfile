@@ -153,8 +153,12 @@ FROM install-pynini-from-wheels AS run-tests
 
 ARG PYTHON_TAGS="*"
 
-# Copies Pynini's test scripts and testdata into isolated directories.
+# Copies only Pynini's test scripts into /tests (pruning non-test modules such
+# as examples/numbers.py so Python's sys.path[0] cannot shadow stdlib modules or
+# the installed wheel) and copies testdata into /testrunfiles.
 COPY --from=wheel-building-env /src/opengrm/pynini /tests
+RUN find /tests ! -type d ! -name '*_test.py' -delete \
+    && find /tests -type d -empty -delete
 COPY --from=wheel-building-env \
     /deps/openfst-src/openfst/test/testdata \
     /testrunfiles/openfst/test/testdata

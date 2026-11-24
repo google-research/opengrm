@@ -240,7 +240,8 @@ jobs:
           fi
           for whl in "${whls[@]}"; do
             whl_base=$(basename "${whl}")
-            [[ "${whl_base}" == "pynini-${pkg_ver}-"*-manylinux_2_28_x86_64.whl ]] || {
+            [[ "${whl_base}" == "pynini-${pkg_ver}-"*[-.]manylinux_2_28_x86_64.whl || \
+               "${whl_base}" == "pynini-${pkg_ver}-"*[-.]manylinux_2_28_x86_64.*.whl ]] || {
               echo "Unexpected wheel filename/version/platform tag: ${whl_base}" >&2
               exit 1
             }
