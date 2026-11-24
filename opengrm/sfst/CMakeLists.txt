@@ -51,11 +51,15 @@ target_include_directories(
 target_link_libraries(
   grm_sfst
   PUBLIC openfst::fst
-         absl::strings
-         absl::log
+         absl::check
+         absl::core_headers
          absl::flat_hash_set
+         absl::log
          absl::node_hash_map
          absl::node_hash_set
+         absl::random_bit_gen_ref
+         absl::span
+         absl::strings
 )
 
 # ARPA reader/writer library
@@ -80,7 +84,7 @@ target_include_directories(
   grm_sfst_merge INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
                            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
-target_link_libraries(grm_sfst_merge INTERFACE grm_sfst openfst::fst)
+target_link_libraries(grm_sfst_merge INTERFACE grm_sfst openfst::fst absl::log)
 
 # Smooth interface library
 grm_add_library(grm_sfst_smooth INTERFACE)
@@ -100,6 +104,7 @@ target_link_libraries(
   grm_sfst_shrink
   INTERFACE grm_sfst
             openfst::fst
+            absl::flat_hash_set
             absl::log
             absl::strings
 )
@@ -173,7 +178,6 @@ endif()
 
 if(OPENGRM_BUILD_TESTS)
   set(SFST_TESTS
-      algo
       approx
       backoff
       canonical
@@ -200,20 +204,24 @@ if(OPENGRM_BUILD_TESTS)
       shrink
       merge
   )
+  if(NOT OPENGRM_USE_SYSTEM_OPENFST)
+    # algo_test.cc includes openfst/test/rand-fst.h, which OpenFst does not
+    # install.
+    list(PREPEND SFST_TESTS algo)
+  endif()
 
   foreach(_test ${SFST_TESTS})
     add_executable(sfst_${_test}_test ${_test}_test.cc)
     target_link_libraries(
       sfst_${_test}_test
       PRIVATE grm_sfst
-              openfst::far
               ${OPENGRM_ALWAYS_LINK_START}
               openfst::fst
               ${OPENGRM_ALWAYS_LINK_END}
               GTest::gmock
               GTest::gtest_main
               absl::flags
-    ) # Perplexity/merge need far
+    )
     grm_configure_test_target(sfst_${_test}_test)
     if(_test STREQUAL "algo")
       # algo_test.cc defines its own main() without GoogleTest TEST macros or
@@ -233,7 +241,31 @@ if(OPENGRM_BUILD_TESTS)
   endforeach()
 
   # Specific test dependencies
+  if(NOT OPENGRM_USE_SYSTEM_OPENFST)
+    target_link_libraries(sfst_algo_test PRIVATE absl::random_random)
+  endif()
   target_link_libraries(sfst_arpa_test PRIVATE grm_sfst_arpa)
+  target_link_libraries(
+    sfst_intersect_test
+    PRIVATE absl::flags_reflection
+            absl::log_globals
+            absl::log_severity
+            absl::memory
+  )
+  foreach(
+    _log_test
+    canonical
+    equal
+    rmphi
+    state-weights
+    stationary-distrib
+  )
+    target_link_libraries(sfst_${_log_test}_test PRIVATE absl::log_globals
+                                                         absl::log_severity
+    )
+  endforeach()
+  target_link_libraries(sfst_perplexity_test PRIVATE openfst::far)
+  target_link_libraries(sfst_shortest-distance_test PRIVATE openfst::fstscript)
   target_link_libraries(sfst_smooth_test PRIVATE grm_sfst_smooth)
   target_link_libraries(sfst_shrink_test PRIVATE grm_sfst_shrink
                                                  grm_sfst_smooth
