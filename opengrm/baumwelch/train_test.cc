@@ -25,6 +25,7 @@
 #include "gtest/gtest.h"
 #include "openfst/extensions/far/far-reader.h"
 #include "openfst/extensions/far/far-writer.h"
+#include "openfst/extensions/far/far.h"  // IWYU pragma: keep
 #include "openfst/lib/arc.h"
 #include "openfst/lib/compose.h"
 #include "openfst/lib/float-weight.h"

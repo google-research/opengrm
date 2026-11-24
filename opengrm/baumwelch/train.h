@@ -22,7 +22,8 @@
 #include <vector>
 
 #include "absl/log/log.h"
-#include "openfst/extensions/far/far.h"
+#include "openfst/extensions/far/far-reader.h"
+#include "openfst/extensions/far/far-type.h"
 #include "openfst/lib/arcfilter.h"
 #include "openfst/lib/compose.h"
 #include "openfst/lib/fst.h"
@@ -34,7 +35,6 @@
 #include "opengrm/baumwelch/cascade.h"
 #include "opengrm/baumwelch/expectation-table.h"
 #include "opengrm/baumwelch/log-adder.h"
-#include "opengrm/baumwelch/util.h"
 
 namespace fst {
 
