@@ -2049,14 +2049,8 @@ class StringTest(absltest.TestCase):
   def testEscapeMethodBytestringAcceptorCompilationIdentity(self):
     bracketed_examples = [
         r"[\[Camembert\] is a]\[cheese\]",
-        # pylint: disable=anomalous-backslash-in-string
-        "[\[Camembert\] is a]\[cheese\]",
         r"\[\[Camembert\] is a\]\[cheese\]",
-        # pylint: disable=anomalous-backslash-in-string
-        "\[\[Camembert\] is a\]\[cheese\]",
         r"[\[Camembert\] is a][cheese]",
-        # pylint: disable=anomalous-backslash-in-string
-        "[\[Camembert\] is a][cheese]",
         r"[[Camembert] is a][cheese]",
         "[[Camembert] is a][cheese]",
         r"Camembert is a cheese",
@@ -2064,19 +2058,14 @@ class StringTest(absltest.TestCase):
         r"[ is a character",
         "[ is a character",
         r"\[ is an escaped character",
-        # pylint: disable=anomalous-backslash-in-string
-        "\[ is an escaped character",
         r"\\[ is a doubly escaped character",
         "\\[ is a doubly escaped character",
         r"\\\[ is a triply escaped character",
-        # pylint: disable=anomalous-backslash-in-string
-        "\\\[ is a triply escaped character",
         r"\\\\[ is a quadruply escaped character",
         "\\\\[ is a quadruply escaped character",
         r"This, that, and the other thing.",
         "This, that, and the other thing.",
-        r"""Puncuation~!@#$%^&*()`-=[]\;',./_+{}|:"<>?.""",
-        """Puncuation~!@#$%^&*()`-=[]\;',./_+{}|:"<>?.""",
+        r"""Punctuation~!@#$%^&*()`-=[]\;',./_+{}|:"<>?.""",
         r"""Unicode: *Иöñéχıßþęη✝File*""",
         """Unicode: *Иöñéχıßþęη✝File*""",
         r"This string contains an escaped newline.\n",
@@ -2096,8 +2085,6 @@ class StringTest(absltest.TestCase):
         r"This string contains an escaped hex code \x6F",
         "This string contains an escaped hex code \x6F",
         r"This string contains an escaped octal code \o627",
-        # pylint: disable=anomalous-backslash-in-string
-        "This string contains an escaped octal code \o627",
         r"This string contains an escaped unicode codepoint \u200C",
         "This string contains an escaped unicode codepoint \u200C",
     ]
