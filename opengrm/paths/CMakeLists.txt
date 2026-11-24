@@ -24,7 +24,7 @@ target_link_libraries(grm_paths INTERFACE openfst::fst # Or whatever OpenFst
 )
 
 # Script layer
-add_library(grm_pathsscript pathsscript.cc)
+grm_add_library(grm_pathsscript pathsscript.cc)
 
 target_include_directories(
   grm_pathsscript PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
@@ -34,7 +34,7 @@ target_include_directories(
 target_link_libraries(grm_pathsscript PUBLIC grm_paths openfst::fstscript)
 
 opengrm_install(
-  TARGETS grm_pathsscript
+  TARGETS grm_paths grm_pathsscript
   EXPORT OpenGrmTargets
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}

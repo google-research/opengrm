@@ -42,9 +42,19 @@ set(AST_HEADERS
 
 grm_add_library(thrax_ast ${AST_SRCS})
 
-target_include_directories(thrax_ast PUBLIC ${PROJECT_SOURCE_DIR})
+target_include_directories(
+  thrax_ast PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
+                   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
 
 target_link_libraries(thrax_ast PUBLIC absl::strings absl::log)
+
+opengrm_install(
+  TARGETS thrax_ast
+  EXPORT OpenGrmTargets
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
 
 opengrm_install(
   FILES ${AST_HEADERS}

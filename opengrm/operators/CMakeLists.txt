@@ -29,9 +29,7 @@ target_include_directories(
                        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-target_link_libraries(grm_operators PUBLIC openfst::fst grm_rewrite
-                                           absl::strings
-)
+target_link_libraries(grm_operators PUBLIC openfst::fst absl::strings)
 
 set(OPERATORSSCRIPT_SRCS
     cdrewritescript.cc
@@ -49,7 +47,7 @@ set(OPERATORSSCRIPT_HEADERS
     optimizescript.h
 )
 
-add_library(grm_operatorsscript ${OPERATORSSCRIPT_SRCS})
+grm_add_library(grm_operatorsscript ${OPERATORSSCRIPT_SRCS})
 
 target_include_directories(
   grm_operatorsscript PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
@@ -215,9 +213,12 @@ if(OPENGRM_BUILD_TESTS)
   )
 
   add_executable(concatrange_test concatrange_test.cc)
-  target_link_libraries(concatrange_test
-                        PRIVATE grm_operators grm_operatorsscript
-                                GTest::gmock_main
+  target_link_libraries(
+    concatrange_test
+    PRIVATE grm_operators
+            grm_operatorsscript
+            grm_rewrite
+            GTest::gmock_main
   )
   grm_configure_test_target(concatrange_test)
   gtest_discover_tests(

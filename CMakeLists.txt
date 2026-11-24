@@ -63,6 +63,20 @@ option(OPENGRM_ENABLE_SFST "Enable SFST extensions" OFF)
 option(OPENGRM_ENABLE_THRAX "Enable Thrax compilation and tools" OFF)
 option(OPENGRM_ENABLE_PYNINI "Enable Pynini extension" OFF)
 
+# Installation requires system Abseil and OpenFst to avoid vendoring/export
+# conflicts with FetchContent subprojects.
+if(OPENGRM_ENABLE_INSTALL AND (NOT OPENGRM_USE_SYSTEM_ABSEIL
+                               OR NOT OPENGRM_USE_SYSTEM_OPENFST)
+)
+  message(
+    FATAL_ERROR
+      "OPENGRM_ENABLE_INSTALL requires OPENGRM_USE_SYSTEM_ABSEIL=ON and "
+      "OPENGRM_USE_SYSTEM_OPENFST=ON. OpenGrm cannot install its own Abseil or "
+      "OpenFst copies. Please install them separately or disable installation "
+      "(-DOPENGRM_ENABLE_INSTALL=OFF)."
+  )
+endif()
+
 # Compiler Warnings
 if(MSVC)
   add_compile_options(/W4)
@@ -149,16 +163,8 @@ else()
   )
   FetchContent_MakeAvailable(abseil-cpp)
 endif()
-# Bridge pseudo-target absl::container to actual Abseil container libraries
-add_library(absl::container INTERFACE IMPORTED)
-set_target_properties(
-  absl::container
-  PROPERTIES
-    INTERFACE_LINK_LIBRARIES
-    "absl::flat_hash_map;absl::flat_hash_set;absl::node_hash_map;absl::node_hash_set;absl::btree;absl::inlined_vector"
-)
 
-# Protobuf (needed by Thrax rule_cascade_test and testing/test_textproto)
+# Protobuf (needed by testing/test_textproto)
 if(OPENGRM_BUILD_TESTS AND OPENGRM_ENABLE_THRAX)
   if(OPENGRM_USE_SYSTEM_PROTOBUF)
     find_package(Protobuf REQUIRED CONFIG)
@@ -189,7 +195,7 @@ endif()
 
 # OpenFst
 if(OPENGRM_USE_SYSTEM_OPENFST)
-  find_package(openfst REQUIRED)
+  find_package(OpenFst REQUIRED)
 else()
   # Bundle OpenFst
   set(OPENFST_BUILD_TESTS OFF CACHE BOOL "Build OpenFst tests")
@@ -256,29 +262,36 @@ endif()
 # Core OpenGrm
 add_subdirectory(opengrm)
 
-# Installation of the export set
-opengrm_install(
-  EXPORT OpenGrmTargets
-  FILE OpenGrmTargets.cmake
-  NAMESPACE opengrm::
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/opengrm
-)
+# Installation of the export set and package configuration
+if(OPENGRM_ENABLE_INSTALL)
+  opengrm_install(
+    EXPORT OpenGrmTargets
+    FILE OpenGrmTargets.cmake
+    NAMESPACE opengrm::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/opengrm
+  )
 
-include(CMakePackageConfigHelpers)
-write_basic_package_version_file(
-  OpenGrmConfigVersion.cmake
-  VERSION ${PROJECT_VERSION}
-  COMPATIBILITY AnyNewerVersion
-)
+  opengrm_install(
+    FILES LICENSE
+    DESTINATION ${CMAKE_INSTALL_DOCDIR}
+  )
 
-configure_package_config_file(
-  ${CMAKE_CURRENT_SOURCE_DIR}/cmake/OpenGrmConfig.cmake.in
-  ${CMAKE_CURRENT_BINARY_DIR}/OpenGrmConfig.cmake
-  INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/opengrm
-)
+  include(CMakePackageConfigHelpers)
+  write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/opengrm-config-version.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY AnyNewerVersion
+  )
 
-opengrm_install(
-  FILES ${CMAKE_CURRENT_BINARY_DIR}/OpenGrmConfig.cmake
-        ${CMAKE_CURRENT_BINARY_DIR}/OpenGrmConfigVersion.cmake
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/opengrm
-)
+  configure_package_config_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/OpenGrmConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/opengrm-config.cmake
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/opengrm
+  )
+
+  opengrm_install(
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/opengrm-config.cmake
+          ${CMAKE_CURRENT_BINARY_DIR}/opengrm-config-version.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/opengrm
+  )
+endif()

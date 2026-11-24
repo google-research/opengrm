@@ -52,20 +52,23 @@ set(BAUMWELCHSCRIPT_HEADERS
     trainscript.h
 )
 
-add_library(grm_baumwelchscript ${BAUMWELCHSCRIPT_SRCS})
+grm_add_library(grm_baumwelchscript ${BAUMWELCHSCRIPT_SRCS})
 
 target_include_directories(
   grm_baumwelchscript PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
                              $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-target_link_libraries(grm_baumwelchscript
-                      PUBLIC grm_baumwelch openfst::fstscript
-                             absl::random_random
+target_link_libraries(
+  grm_baumwelchscript
+  PUBLIC grm_baumwelch
+         openfst::fstscript
+         openfst::farscript
+         absl::random_random
 )
 
 opengrm_install(
-  TARGETS grm_baumwelchscript
+  TARGETS grm_baumwelch grm_baumwelchscript
   EXPORT OpenGrmTargets
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}

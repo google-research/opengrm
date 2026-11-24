@@ -29,9 +29,61 @@ list(
   "_test\\.cc$"
 )
 
+set(WALKER_HEADERS
+    evaluator.h
+    identifier-counter.h
+    printer.h
+    rule-dependency-extractor.h
+    walker.h
+)
+
+set(WALKER_UTIL_HEADERS
+    util/datatype.h
+    util/namespace.h
+    util/register.h
+    util/resource-map.h
+)
+
+set(WALKER_FUNCTION_HEADERS
+    util/function/assert-empty.h
+    util/function/assert-equal.h
+    util/function/assert-null.h
+    util/function/cdrewrite.h
+    util/function/closure.h
+    util/function/compose.h
+    util/function/concat.h
+    util/function/determinize.h
+    util/function/difference.h
+    util/function/features.h
+    util/function/function.h
+    util/function/invert.h
+    util/function/lenientlycompose.h
+    util/function/loadfst.h
+    util/function/loadfstfromfar.h
+    util/function/minimize.h
+    util/function/mpdtcompose.h
+    util/function/optimize.h
+    util/function/paradigm.h
+    util/function/pdtcompose.h
+    util/function/project.h
+    util/function/replace.h
+    util/function/reverse.h
+    util/function/rewrite.h
+    util/function/rmepsilon.h
+    util/function/rmweight.h
+    util/function/stringfile.h
+    util/function/stringfst.h
+    util/function/symbols.h
+    util/function/symboltable.h
+    util/function/union.h
+)
+
 grm_add_library(thrax_walker ${WALKER_SRCS})
 
-target_include_directories(thrax_walker PUBLIC ${PROJECT_SOURCE_DIR})
+target_include_directories(
+  thrax_walker PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
+                      $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
 
 target_link_libraries(
   thrax_walker
@@ -42,10 +94,42 @@ target_link_libraries(
          grm_operators # For cdrewrite, etc.
          grm_rewrite
          thrax_ast
-         absl::strings
-         absl::status
-         absl::container
+         absl::btree
+         absl::check
+         absl::flags
+         absl::flat_hash_map
+         absl::flat_hash_set
          absl::log
+         absl::memory
+         absl::node_hash_map
+         absl::node_hash_set
+         absl::status
+         absl::statusor
+         absl::strings
+         absl::synchronization
+         absl::vlog_is_on
+)
+
+opengrm_install(
+  TARGETS thrax_walker
+  EXPORT OpenGrmTargets
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
+
+opengrm_install(
+  FILES ${WALKER_HEADERS}
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/opengrm/thrax/walker
+)
+
+opengrm_install(
+  FILES ${WALKER_UTIL_HEADERS}
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/opengrm/thrax/walker/util
+)
+
+opengrm_install(
+  FILES ${WALKER_FUNCTION_HEADERS}
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/opengrm/thrax/walker/util/function
 )
 
 if(OPENGRM_BUILD_TESTS)

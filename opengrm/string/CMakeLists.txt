@@ -58,7 +58,7 @@ set(STRINGSCRIPT_HEADERS
     stringprintscript.h
 )
 
-add_library(grm_stringscript ${STRINGSCRIPT_SRCS})
+grm_add_library(grm_stringscript ${STRINGSCRIPT_SRCS})
 
 target_include_directories(
   grm_stringscript PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>

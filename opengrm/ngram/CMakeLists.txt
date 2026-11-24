@@ -81,9 +81,10 @@ target_link_libraries(
 )
 
 # hist-arc library and module
-add_library(grm_hist-arc hist-arc.cc)
-target_include_directories(grm_hist-arc
-                           PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
+grm_add_library(grm_hist-arc hist-arc.cc)
+target_include_directories(
+  grm_hist-arc PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
+                      $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_link_libraries(grm_hist-arc PUBLIC openfst::fst openfst::fstscript)
 
@@ -106,8 +107,8 @@ opengrm_install(
 
 opengrm_install(
   TARGETS hist-arc
-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/opengrm
-) # Or wherever plugins go
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/fst
+)
 
 opengrm_install(
   FILES ${NGRAM_HEADERS}

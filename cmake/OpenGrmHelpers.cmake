@@ -23,21 +23,27 @@ function(grm_add_library TARGET_NAME)
   # are prefixed with 'grm_' (e.g., grm_ngram, grm_sfst), or 'thrax_' (e.g.,
   # thrax_core). External consumers expect prefix-stripped target names or
   # standard imports (e.g., opengrm::ngram, opengrm::thrax_core).
-  set(EXPORT_NAME "")
   if(TARGET_NAME MATCHES "^grm_(.+)$")
     set(EXPORT_NAME "${CMAKE_MATCH_1}")
-  elseif(TARGET_NAME STREQUAL "thrax_core")
-    set(EXPORT_NAME "thrax_core")
+  else()
+    set(EXPORT_NAME "${TARGET_NAME}")
+  endif()
+
+  set_target_properties(
+    ${TARGET_NAME}
+    PROPERTIES EXPORT_NAME ${EXPORT_NAME}
+  )
+
+  get_target_property(_target_type ${TARGET_NAME} TYPE)
+  if(_target_type STREQUAL "SHARED_LIBRARY")
+    set_target_properties(
+      ${TARGET_NAME}
+      PROPERTIES SOVERSION ${OPENGRM_SOVERSION}
+    )
   endif()
 
   # Automatically inject fail-safe ALIAS bridge.
-  if(NOT
-     EXPORT_NAME
-     STREQUAL
-     ""
-  )
-    add_library(opengrm::${EXPORT_NAME} ALIAS ${TARGET_NAME})
-  endif()
+  add_library(opengrm::${EXPORT_NAME} ALIAS ${TARGET_NAME})
 endfunction()
 
 # Configures a test target with the test temp directory wrapper to prevent

@@ -53,7 +53,9 @@ target_link_libraries(
   PUBLIC openfst::fst
          absl::strings
          absl::log
-         absl::container
+         absl::flat_hash_set
+         absl::node_hash_map
+         absl::node_hash_set
 )
 
 # ARPA reader/writer library
@@ -62,8 +64,14 @@ target_include_directories(
   grm_sfst_arpa PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
                        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
-target_link_libraries(grm_sfst_arpa PUBLIC openfst::fst absl::strings
-                                           absl::container
+target_link_libraries(
+  grm_sfst_arpa
+  PUBLIC openfst::fst
+  PRIVATE grm_sfst
+          absl::flat_hash_map
+          absl::flat_hash_set
+          absl::log
+          absl::strings
 )
 
 # Merge interface library

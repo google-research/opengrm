@@ -16,7 +16,6 @@ add_subdirectory(ast)
 
 set(THRAX_HEADERS
     abstract-grm-manager.h
-    compiler.h
     grm-compiler.h
     grm-manager.h
     lexer.h
@@ -26,8 +25,9 @@ set(THRAX_HEADERS
 # Core lib containing abstract-grm-manager, flags, and compatibility file
 # helpers
 grm_add_library(thrax_core flags.cc)
-target_include_directories(thrax_core
-                           PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
+target_include_directories(
+  thrax_core PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
+                    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_link_libraries(
   thrax_core
@@ -37,6 +37,7 @@ target_link_libraries(
          openfst::mpdt
          grm_rewrite # For parentheses.h
          grm_compat
+         absl::btree
          absl::flags
          absl::strings
          absl::status
@@ -51,12 +52,17 @@ bison_target(thrax_parser parser.y ${CMAKE_CURRENT_BINARY_DIR}/parser.cc
 )
 
 # Compiler lib
-add_library(thrax_compiler_lib grm-compiler.cc lexer.cc
-                               ${BISON_thrax_parser_OUTPUTS}
+grm_add_library(
+  thrax_compiler_lib
+  grm-compiler.cc
+  lexer.cc
+  ${BISON_thrax_parser_OUTPUTS}
 )
-target_include_directories(thrax_compiler_lib
-                           PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
-                                  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
+target_include_directories(
+  thrax_compiler_lib
+  PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
+         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+  PRIVATE ${CMAKE_CURRENT_BINARY_DIR}
 )
 target_link_libraries(
   thrax_compiler_lib
@@ -64,13 +70,15 @@ target_link_libraries(
          thrax_ast
          thrax_walker
          openfst::fst
-         absl::container
+         absl::btree
 )
 
 # Rewrite tester lib
-add_library(thrax_rewrite-tester_lib rewrite-tester.cc)
-target_include_directories(thrax_rewrite-tester_lib
-                           PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
+grm_add_library(thrax_rewrite-tester_lib rewrite-tester.cc)
+target_include_directories(
+  thrax_rewrite-tester_lib
+  PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
+         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_link_libraries(thrax_rewrite-tester_lib
                       PUBLIC thrax_core thrax_walker # For walker/util/function
@@ -85,7 +93,7 @@ opengrm_install(
 )
 
 opengrm_install(
-  FILES ${THRAX_HEADERS} ${CMAKE_CURRENT_BINARY_DIR}/parser.h
+  FILES ${THRAX_HEADERS}
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/opengrm/thrax
 )
 
