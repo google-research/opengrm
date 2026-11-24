@@ -22,6 +22,7 @@
 #include "absl/random/random.h"
 #include "openfst/lib/fst.h"
 #include "openfst/lib/mutable-fst.h"
+#include "openfst/lib/properties.h"
 #include "openfst/lib/weight.h"
 
 namespace fst {
@@ -39,6 +40,7 @@ Weight LogUniform(absl::BitGenRef bit_gen) {
 template <class Arc>
 void Randomize(absl::BitGenRef bit_gen, MutableFst<Arc>* fst) {
   using Weight = typename Arc::Weight;
+  const auto props = fst->Properties(kWeightInvariantProperties, false);
   for (StateIterator<MutableFst<Arc>> siter(*fst); !siter.Done();
        siter.Next()) {
     const auto state = siter.Value();
@@ -54,6 +56,7 @@ void Randomize(absl::BitGenRef bit_gen, MutableFst<Arc>* fst) {
       fst->SetFinal(state, internal::LogUniform<Weight>(bit_gen));
     }
   }
+  fst->SetProperties(props, kWeightInvariantProperties & ~kBinaryProperties);
 }
 
 }  // namespace fst

@@ -22,7 +22,9 @@
 #include "absl/random/random.h"
 #include "openfst/compat/seed_sequences.h"
 #include "openfst/lib/arc.h"
+#include "openfst/lib/arcsort.h"
 #include "openfst/lib/fst.h"
+#include "openfst/lib/properties.h"
 #include "openfst/lib/vector-fst.h"
 #include "openfst/lib/weight.h"
 
@@ -119,6 +121,25 @@ TYPED_TEST(RandomizeTest, RandomizeUpdatesArcAndFinalWeights) {
 
   // Verify s2 final weight remains Zero.
   EXPECT_EQ(fst.Final(s2), Weight::Zero());
+}
+
+TYPED_TEST(RandomizeTest, PreservesLabelSortProperties) {
+  using Arc = TypeParam;
+  using Weight = typename Arc::Weight;
+
+  VectorFst<Arc> fst;
+  const auto s0 = fst.AddState();
+  fst.SetStart(s0);
+  fst.AddArc(s0, Arc(2, 10, Weight::One(), s0));
+  fst.AddArc(s0, Arc(1, 20, Weight::One(), s0));
+  fst.SetFinal(s0, Weight::One());
+  ArcSort(&fst, OLabelCompare<Arc>());
+  ASSERT_NE(fst.Properties(kOLabelSorted, false), 0);
+
+  absl::BitGen bit_gen(absl::SeedSeq{1, 2, 3, 4, 5});
+  Randomize(bit_gen, &fst);
+
+  EXPECT_NE(fst.Properties(kOLabelSorted, false), 0);
 }
 
 }  // namespace
