@@ -18,6 +18,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <utility>
 #include <vector>
 
@@ -25,8 +26,10 @@
 #include "openfst/extensions/far/far.h"
 #include "openfst/lib/arcfilter.h"
 #include "openfst/lib/compose.h"
+#include "openfst/lib/float-weight.h"
 #include "openfst/lib/fst.h"
 #include "openfst/lib/mutable-fst.h"
+#include "openfst/lib/properties.h"
 #include "openfst/lib/queue.h"
 #include "openfst/lib/shortest-distance.h"
 #include "openfst/lib/shortest-path.h"
@@ -79,8 +82,24 @@ class ForwardBackward {
   using Weight = typename Arc::Weight;
 
   explicit ForwardBackward(const ComposeFst<Arc>& ico) {
+    if (ico.Properties(kError, false)) {
+      error_ = true;
+      return;
+    }
     ShortestDistance(ico, &beta_, /*reverse=*/true);
+    if (HasShortestDistanceError(beta_)) {
+      error_ = true;
+      beta_.clear();
+      return;
+    }
+    const auto start = ico.Start();
+    if (start == kNoStateId || Beta(start) == Weight::Zero()) return;
     ShortestDistance(ico, &alpha_, /*reverse=*/false);
+    if (HasShortestDistanceError(alpha_)) {
+      error_ = true;
+      alpha_.clear();
+      beta_.clear();
+    }
   }
 
   const Weight& Alpha(StateId s) const {
@@ -91,16 +110,64 @@ class ForwardBackward {
     return ForwardBackward::WeightOrZero(s, beta_);
   }
 
+  bool Error() const { return error_; }
+
  private:
   static constexpr Weight kZero = Weight::Zero();
 
+  // ShortestDistance signals failure with a single non-member weight.
+  static bool HasShortestDistanceError(const std::vector<Weight>& weights) {
+    return weights.size() == 1 && !weights[0].Member();
+  }
+
   static const Weight& WeightOrZero(StateId s,
                                     const std::vector<Weight>& weights) {
-    return (s < weights.size()) ? weights[s] : kZero;
+    return (s >= 0 && static_cast<size_t>(s) < weights.size()) ? weights[s]
+                                                               : kZero;
   }
 
   std::vector<Weight> alpha_;
   std::vector<Weight> beta_;
+  bool error_ = false;
+};
+
+// Accumulates negative log-likelihoods across independent examples (probability
+// product / semiring Times) using OpenFST's Kahan-compensated
+// Adder<Real64Weight>, skipping unaligned (Weight::Zero() or non-member)
+// examples.
+class NllAccumulator {
+ public:
+  template <class Weight>
+  void Add(const Weight& weight) {
+    if (weight != Weight::Zero() && weight.Member()) {
+      sum_.Add(Real64Weight(static_cast<double>(weight.Value())));
+      ++count_;
+    }
+  }
+
+  void Add(const NllAccumulator& other) {
+    if (other.count_ == 0) return;
+    sum_.Add(other.sum_.Sum());
+    count_ += other.count_;
+  }
+
+  size_t count() const { return count_; }
+
+  double value_or_inf() const {
+    return count_ > 0 ? sum_.Sum().Value()
+                      : std::numeric_limits<double>::infinity();
+  }
+
+  double average() const { return sum_.Sum().Value() / count_; }
+
+  template <class Weight>
+  Weight ToWeight() const {
+    return count_ > 0 ? Weight(sum_.Sum().Value()) : Weight::Zero();
+  }
+
+ private:
+  Adder<Real64Weight> sum_;
+  size_t count_ = 0;
 };
 
 // Object which holds all necessary information for stepwise or minibatch
@@ -129,15 +196,27 @@ class Trainer {
 
   virtual ~Trainer() = default;
 
-  // Performs a batch of training returning the likelihood. Semiring Zero is
-  // returned in the case of composition failure.
+  // Performs a batch of training returning the accumulated negative
+  // log-likelihood over aligned examples. Semiring Zero is returned if no
+  // examples align.
   Weight Batch(FarReader<Arc>& input, FarReader<Arc>& output,
                MutableFst<Arc>* model) {
+    return BatchWithStats(input, output, model).template ToWeight<Weight>();
+  }
+
+  // Repeatedly do the stepwise computation.
+  Weight Train(FarReader<Arc>& input, FarReader<Arc>& output,
+               MutableFst<Arc>* model) {
+    return TrainWithStats(input, output, model).template ToWeight<Weight>();
+  }
+
+  NllAccumulator BatchWithStats(FarReader<Arc>& input, FarReader<Arc>& output,
+                                MutableFst<Arc>* model) {
     ExpectationTable table(*model);
-    Sum likelihood;     // Tracks batch likelihood.
-    int batch_idx = 0;  // Tracks actual batch size.
+    NllAccumulator likelihood;  // Tracks batch negative log-likelihood.
+    int batch_idx = 0;          // Tracks actual batch size.
     for (; !input.Done() && !output.Done() &&
-           (!batch_size_ || batch_idx < batch_size_);
+           (batch_size_ <= 0 || batch_idx < batch_size_);
          ++batch_idx) {
       likelihood.Add(
           Forward(*input.GetFst(), *output.GetFst(), *model, &table));
@@ -146,22 +225,25 @@ class Trainer {
     }
     Backward(table, model);
     ++step_;
-    const auto batch_likelihood = likelihood.Sum();
-    LOG(INFO) << "Step " << step_ << " (batch size " << batch_idx
-              << ") average likelihood: "
-              << batch_likelihood.Value() / batch_idx;
-    return batch_likelihood;
+    if (likelihood.count() > 0) {
+      LOG(INFO) << "Step " << step_ << " (batch size " << batch_idx
+                << ", aligned " << likelihood.count()
+                << ") average likelihood: " << likelihood.average();
+    } else {
+      LOG(INFO) << "Step " << step_ << " (batch size " << batch_idx
+                << ") no aligned examples";
+    }
+    return likelihood;
   }
 
-  // Repeatedly do the stepwise computation.
-  Weight Train(FarReader<Arc>& input, FarReader<Arc>& output,
-               MutableFst<Arc>* model) {
-    Sum likelihood;  // Tracks iteration likelihood.
+  NllAccumulator TrainWithStats(FarReader<Arc>& input, FarReader<Arc>& output,
+                                MutableFst<Arc>* model) {
+    NllAccumulator likelihood;  // Tracks iteration negative log-likelihood.
     while (!input.Done() && !output.Done()) {
-      likelihood.Add(Batch(input, output, model));
+      likelihood.Add(BatchWithStats(input, output, model));
     }
     Normalize(model);
-    return likelihood.Sum();
+    return likelihood;
   }
 
   // Normalizes the model.
@@ -251,6 +333,10 @@ class BaumWelchTrainer : public Trainer<Arc, ExpectationTable> {
       return Weight::Zero();
     }
     const ForwardBackward<Arc> fb(ico);
+    if (fb.Error()) {
+      VLOG(1) << "ShortestDistance failed on lattice";
+      return Weight::Zero();
+    }
     const auto& likelihood = fb.Beta(start);
     if (likelihood == Weight::Zero()) {
       VLOG(1) << "Start state not coaccessible";
@@ -260,8 +346,9 @@ class BaumWelchTrainer : public Trainer<Arc, ExpectationTable> {
          siter.Next()) {
       const auto state = siter.Value();
       if (fb.Beta(state) == Weight::Zero()) continue;
-      const auto ch_state = cascade.ChannelState(state);
       const auto& alpha = fb.Alpha(state);
+      if (alpha == Weight::Zero()) continue;
+      const auto ch_state = cascade.ChannelState(state);
       for (ArcIterator<ComposeFst<Arc>> aiter(ico, state); !aiter.Done();
            aiter.Next()) {
         const auto& arc = aiter.Value();
@@ -298,6 +385,10 @@ class ViterbiTrainer : public Trainer<Arc, ExpectationTable> {
                  const Fst<Arc>& model, ExpectationTable* table) override {
     const ChannelStateCascade<Arc> cascade(input, output, model, this->opts());
     const auto& ico = cascade.GetFst();
+    if (ico.Properties(kError, false)) {
+      VLOG(1) << "Error on composed lattice";
+      return Weight::Zero();
+    }
     const auto start = ico.Start();
     if (start == kNoStateId) {
       VLOG(1) << "Empty lattice";
@@ -310,7 +401,7 @@ class ViterbiTrainer : public Trainer<Arc, ExpectationTable> {
     AutoQueue<StateId> state_queue(ico, &distance, arc_filter);
     const ShortestPathOptions<Arc, AutoQueue<StateId>, AnyArcFilter<Arc>> sopts(
         &state_queue, arc_filter, /*nshortest=*/1, /*unique=*/false,
-        /*has_distance=*/false, this->delta(), /*first_path=*/true);
+        /*has_distance=*/false, this->delta(), /*first_path=*/false);
     if (SingleShortestPath(ico, &distance, sopts, &best_final_state, &parent)) {
       if (best_final_state == kNoStateId) return Weight::Zero();
       const auto likelihood =
@@ -318,7 +409,7 @@ class ViterbiTrainer : public Trainer<Arc, ExpectationTable> {
       for (StateId state = best_final_state, d = kNoStateId;
            state != kNoStateId; d = state, state = parent[state].first) {
         if (d != kNoStateId) {
-          ArcIterator<Fst<Arc>> aiter(ico, state);
+          ArcIterator<ComposeFst<Arc>> aiter(ico, state);
           aiter.Seek(parent[d].second);
           const auto& arc = aiter.Value();
           const auto ch_state = cascade.ChannelState(state);
@@ -343,18 +434,23 @@ typename Arc::Weight TrainWithTrainer(FarReader<Arc>& input,
                                       MutableFst<Arc>* model,
                                       const TrainOptions& opts) {
   using Weight = typename Arc::Weight;
+  double last_nll = std::numeric_limits<double>::infinity();
   auto last_likelihood = Weight::Zero();
   Trainer trainer(opts.alpha, opts.batch_size, opts.delta, opts.copts);
   trainer.Normalize(model);
   for (int iteration = 0; iteration < opts.max_iters; ++iteration) {
     input.Reset();
     output.Reset();
-    const auto total_likelihood = trainer.Train(input, output, model);
+    const auto total_nll = trainer.TrainWithStats(input, output, model);
+    const double curr_nll = total_nll.value_or_inf();
+    const auto total_likelihood = total_nll.template ToWeight<Weight>();
     LOG(INFO) << "Iteration " << iteration + 1
               << " total likelihood: " << total_likelihood;
-    if (ApproxEqual(last_likelihood, total_likelihood, opts.delta)) {
+    if (last_nll <= curr_nll + opts.delta &&
+        curr_nll <= last_nll + opts.delta) {
       return total_likelihood;
     }
+    last_nll = curr_nll;
     last_likelihood = total_likelihood;
   }
   return last_likelihood;
