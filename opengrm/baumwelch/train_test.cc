@@ -16,6 +16,7 @@
 
 #include "opengrm/baumwelch/train.h"
 
+#include <cmath>
 #include <cstddef>
 #include <memory>
 #include <string>
@@ -23,12 +24,16 @@
 
 #include "openfst/compat/file_path.h"
 #include "gtest/gtest.h"
+#include "absl/strings/string_view.h"
 #include "openfst/extensions/far/far-reader.h"
+#include "openfst/extensions/far/far-type.h"
 #include "openfst/extensions/far/far-writer.h"
 #include "openfst/lib/arc.h"
+#include "openfst/lib/arcsort.h"
 #include "openfst/lib/compose.h"
 #include "openfst/lib/float-weight.h"
 #include "openfst/lib/fst.h"
+#include "openfst/lib/properties.h"
 #include "openfst/lib/string.h"
 #include "openfst/lib/vector-fst.h"
 #include "openfst/lib/weight.h"
@@ -117,6 +122,31 @@ TEST(ForwardBackwardTest, ComputesAlphaBetaOnLattice) {
   // Unvisited or out of bounds state should return Zero().
   EXPECT_EQ(fb.Alpha(9999), LogWeight::Zero());
   EXPECT_EQ(fb.Beta(9999), LogWeight::Zero());
+  EXPECT_EQ(fb.Alpha(kNoStateId), LogWeight::Zero());
+  EXPECT_EQ(fb.Beta(kNoStateId), LogWeight::Zero());
+  EXPECT_FALSE(fb.Error());
+}
+
+TEST(ForwardBackwardTest, ReportsShortestDistanceError) {
+  VectorFst<LogArc> model;
+  const auto s0 = model.AddState();
+  const auto s1 = model.AddState();
+  model.SetStart(s0);
+  model.AddArc(s0, LogArc(1, 1, LogWeight::NoWeight(), s1));
+  model.SetFinal(s1, LogWeight::One());
+
+  VectorFst<LogArc> str;
+  const auto i0 = str.AddState();
+  const auto i1 = str.AddState();
+  str.SetStart(i0);
+  str.AddArc(i0, LogArc(1, 1, LogWeight::One(), i1));
+  str.SetFinal(i1, LogWeight::One());
+
+  const SimpleCascade<LogArc> cascade(str, str, model);
+  const internal::ForwardBackward<LogArc> fb(cascade.GetFst());
+  EXPECT_TRUE(fb.Error());
+  EXPECT_EQ(fb.Beta(cascade.GetFst().Start()), LogWeight::Zero());
+  EXPECT_EQ(fb.Alpha(cascade.GetFst().Start()), LogWeight::Zero());
 }
 
 // -----------------------------------------------------------------------------
@@ -377,6 +407,276 @@ TEST_F(TrainExecutionTest, MinibatchStepwiseTraining) {
                                               /*normalize_ilabel=*/false, opts);
 
   EXPECT_NE(final_likelihood, LogWeight::Zero());
+}
+
+TEST_F(TrainExecutionTest, CorpusLikelihoodSumsExampleNegativeLogLikelihoods) {
+  // Four examples: two mapping 1 -> 10 and two mapping 1 -> 20.
+  // Under the MLE model P(10 | 1) = P(20 | 1) = 0.5, each example has
+  // NLL = -log(0.5) = log(2), so total corpus NLL = 4 * log(2).
+  // Accumulating with LogAdder (sum of probabilities) would erroneously yield
+  // -log(4 * 0.5) = -log(2) < 0.
+  WriteTrainingData<LogArc>({"1", "1", "1", "1"}, {"10", "20", "10", "20"});
+
+  std::unique_ptr<FarReader<LogArc>> in_reader(
+      FarReader<LogArc>::Open(input_far_path_));
+  std::unique_ptr<FarReader<LogArc>> out_reader(
+      FarReader<LogArc>::Open(output_far_path_));
+  ASSERT_NE(in_reader, nullptr);
+  ASSERT_NE(out_reader, nullptr);
+
+  VectorFst<LogArc> model;
+  const auto s0 = model.AddState();
+  model.SetStart(s0);
+  model.AddArc(s0, LogArc(1, 10, LogWeight(1.0), s0));
+  model.AddArc(s0, LogArc(1, 20, LogWeight(1.0), s0));
+  model.SetFinal(s0, LogWeight::One());
+
+  const TrainOptions opts(/*max_iters=*/5, /*alpha=*/0.0, /*batch_size=*/0,
+                          /*delta=*/1e-5);
+  const auto final_likelihood = Train<LogArc>(*in_reader, *out_reader, &model,
+                                              /*normalize_ilabel=*/true, opts);
+
+  EXPECT_NEAR(final_likelihood.Value(), 4.0 * std::log(2.0), 1e-4);
+}
+
+TEST_F(TrainExecutionTest, SkipsUnalignedExamplesInCorpusLikelihood) {
+  // First two examples align (with equal prob 0.5 each -> NLL = 2 * log(2)),
+  // third example cannot align (output label 99 absent from model).
+  WriteTrainingData<LogArc>({"1", "1", "1"}, {"10", "20", "99"});
+
+  std::unique_ptr<FarReader<LogArc>> in_reader(
+      FarReader<LogArc>::Open(input_far_path_));
+  std::unique_ptr<FarReader<LogArc>> out_reader(
+      FarReader<LogArc>::Open(output_far_path_));
+  ASSERT_NE(in_reader, nullptr);
+  ASSERT_NE(out_reader, nullptr);
+
+  VectorFst<LogArc> model;
+  const auto s0 = model.AddState();
+  model.SetStart(s0);
+  model.AddArc(s0, LogArc(1, 10, LogWeight(1.0), s0));
+  model.AddArc(s0, LogArc(1, 20, LogWeight(1.0), s0));
+  model.SetFinal(s0, LogWeight::One());
+
+  const TrainOptions opts(/*max_iters=*/5, /*alpha=*/0.0, /*batch_size=*/0,
+                          /*delta=*/1e-5);
+  const auto final_likelihood = Train<LogArc>(*in_reader, *out_reader, &model,
+                                              /*normalize_ilabel=*/true, opts);
+
+  EXPECT_NEAR(final_likelihood.Value(), 2.0 * std::log(2.0), 1e-4);
+}
+
+TEST_F(TrainExecutionTest, NegativeBatchSizeTreatedAsFullBatch) {
+  WriteTrainingData<LogArc>({"1", "1"}, {"10", "20"});
+
+  std::unique_ptr<FarReader<LogArc>> in_reader(
+      FarReader<LogArc>::Open(input_far_path_));
+  std::unique_ptr<FarReader<LogArc>> out_reader(
+      FarReader<LogArc>::Open(output_far_path_));
+  ASSERT_NE(in_reader, nullptr);
+  ASSERT_NE(out_reader, nullptr);
+
+  VectorFst<LogArc> model;
+  const auto s0 = model.AddState();
+  model.SetStart(s0);
+  model.AddArc(s0, LogArc(1, 10, LogWeight(1.0), s0));
+  model.AddArc(s0, LogArc(1, 20, LogWeight(1.0), s0));
+  model.SetFinal(s0, LogWeight::One());
+
+  const TrainOptions opts(/*max_iters=*/3, /*alpha=*/0.5, /*batch_size=*/-1,
+                          /*delta=*/1e-5);
+  const auto final_likelihood = Train<LogArc>(*in_reader, *out_reader, &model,
+                                              /*normalize_ilabel=*/true, opts);
+
+  EXPECT_NEAR(final_likelihood.Value(), 2.0 * std::log(2.0), 1e-4);
+}
+
+TEST_F(TrainExecutionTest,
+       ViterbiFindsTrueShortestPathWithMultipleFinalStates) {
+  // Acyclic lattice where topological order visits a higher-cost final state
+  // (cost 5.0) and a high-cost non-final state (cost 6.0) before the true
+  // shortest path (cost 1.5). Passing first_path=true with AutoQueue
+  // (TopOrderQueue) breaks out early at cost 5.0 and misses the cheaper path.
+  WriteTrainingData<StdArc>({"1"}, {"1"});
+
+  std::unique_ptr<FarReader<StdArc>> in_reader(
+      FarReader<StdArc>::Open(input_far_path_));
+  std::unique_ptr<FarReader<StdArc>> out_reader(
+      FarReader<StdArc>::Open(output_far_path_));
+  ASSERT_NE(in_reader, nullptr);
+  ASSERT_NE(out_reader, nullptr);
+
+  VectorFst<StdArc> model;
+  const auto s0 = model.AddState();
+  const auto s1 = model.AddState();  // suboptimal final path (5.0)
+  const auto s2 = model.AddState();  // expensive dead branch (6.0)
+  const auto s3 = model.AddState();  // cheap branch step 1 (1.0)
+  const auto s4 = model.AddState();  // cheap branch final (0.5)
+  model.SetStart(s0);
+  // Arc order chosen so DFS reverse-finish topological order is
+  // s0, s1 (final, 5.0), s2 (6.0), s3 (1.0), s4 (final, 1.5).
+  model.AddArc(s0, StdArc(0, 0, TropicalWeight(1.0), s3));
+  model.AddArc(s3, StdArc(1, 1, TropicalWeight(0.5), s4));
+  model.SetFinal(s4, TropicalWeight::One());
+  model.AddArc(s0, StdArc(0, 0, TropicalWeight(6.0), s2));
+  model.AddArc(s0, StdArc(1, 1, TropicalWeight(5.0), s1));
+  model.SetFinal(s1, TropicalWeight::One());
+
+  // Run one un-normalized batch directly so initial weights (1.0/0.5 vs 5.0 vs
+  // 6.0) are preserved in the first E-step.
+  internal::ViterbiTrainer<StdArc, StateExpectationTable<StdArc>> trainer(
+      /*alpha=*/0.0, /*batch_size=*/0, /*delta=*/1e-5);
+  const auto likelihood = trainer.Batch(*in_reader, *out_reader, &model);
+
+  EXPECT_NEAR(likelihood.Value(), 1.5, 1e-4);
+  // The chosen path uses s0 -> s3 -> s4 (not s0 -> s1).
+  EXPECT_EQ(model.Final(s4), TropicalWeight::One());
+  EXPECT_EQ(model.Final(s1), TropicalWeight::Zero());
+}
+
+TEST_F(TrainExecutionTest, BaumWelchIgnoresNoWeightErrorLatticeWithoutNan) {
+  // First example has a valid alignment; second example has a NoWeight arc
+  // causing ShortestDistance to fail. Training must not poison model with NaN.
+  {
+    std::unique_ptr<FarWriter<LogArc>> in_writer(
+        FarWriter<LogArc>::Create(input_far_path_));
+    std::unique_ptr<FarWriter<LogArc>> out_writer(
+        FarWriter<LogArc>::Create(output_far_path_));
+    ASSERT_NE(in_writer, nullptr);
+    ASSERT_NE(out_writer, nullptr);
+
+    VectorFst<LogArc> good;
+    const auto g0 = good.AddState();
+    const auto g1 = good.AddState();
+    good.SetStart(g0);
+    good.AddArc(g0, LogArc(1, 1, LogWeight::One(), g1));
+    good.SetFinal(g1, LogWeight::One());
+    in_writer->Add("0", good);
+    out_writer->Add("0", good);
+
+    VectorFst<LogArc> bad;
+    const auto b0 = bad.AddState();
+    const auto b1 = bad.AddState();
+    bad.SetStart(b0);
+    bad.AddArc(b0, LogArc(1, 1, LogWeight::NoWeight(), b1));
+    bad.SetFinal(b1, LogWeight::One());
+    in_writer->Add("1", bad);
+    out_writer->Add("1", good);
+  }
+
+  std::unique_ptr<FarReader<LogArc>> in_reader(
+      FarReader<LogArc>::Open(input_far_path_));
+  std::unique_ptr<FarReader<LogArc>> out_reader(
+      FarReader<LogArc>::Open(output_far_path_));
+  ASSERT_NE(in_reader, nullptr);
+  ASSERT_NE(out_reader, nullptr);
+
+  VectorFst<LogArc> model;
+  const auto s0 = model.AddState();
+  model.SetStart(s0);
+  model.AddArc(s0, LogArc(1, 1, LogWeight(1.0), s0));
+  model.SetFinal(s0, LogWeight::One());
+
+  const TrainOptions opts(/*max_iters=*/2, /*alpha=*/0.0);
+  const auto final_likelihood = Train<LogArc>(*in_reader, *out_reader, &model,
+                                              /*normalize_ilabel=*/true, opts);
+  EXPECT_TRUE(final_likelihood.Member());
+  EXPECT_NE(final_likelihood, LogWeight::Zero());
+  for (ArcIterator<VectorFst<LogArc>> aiter(model, s0); !aiter.Done();
+       aiter.Next()) {
+    EXPECT_TRUE(aiter.Value().weight.Member());
+  }
+}
+
+TEST_F(TrainExecutionTest, PreservesModelSortPropertiesAcrossTraining) {
+  WriteTrainingData<LogArc>({"1 2", "2 1"}, {"10 20", "20 10"});
+
+  std::unique_ptr<FarReader<LogArc>> in_reader(
+      FarReader<LogArc>::Open(input_far_path_));
+  std::unique_ptr<FarReader<LogArc>> out_reader(
+      FarReader<LogArc>::Open(output_far_path_));
+  ASSERT_NE(in_reader, nullptr);
+  ASSERT_NE(out_reader, nullptr);
+
+  VectorFst<LogArc> model;
+  const auto s0 = model.AddState();
+  model.SetStart(s0);
+  model.AddArc(s0, LogArc(2, 10, LogWeight(1.0), s0));
+  model.AddArc(s0, LogArc(1, 20, LogWeight(1.0), s0));
+  model.AddArc(s0, LogArc(1, 10, LogWeight(1.0), s0));
+  model.AddArc(s0, LogArc(2, 20, LogWeight(1.0), s0));
+  model.SetFinal(s0, LogWeight::One());
+  ArcSort(&model, OLabelCompare<LogArc>());
+  ASSERT_NE(model.Properties(kOLabelSorted, false), 0);
+
+  const TrainOptions opts(/*max_iters=*/5, /*alpha=*/0.5, /*batch_size=*/1);
+  Train<LogArc>(*in_reader, *out_reader, &model, /*normalize_ilabel=*/true,
+                opts);
+
+  EXPECT_NE(model.Properties(kOLabelSorted, false), 0);
+}
+
+TEST_F(TrainExecutionTest, DoesNotResetSingleFstInputAcrossIterations) {
+  // Counting FarReader wrapper returning FarType::FST to verify Train does not
+  // call Reset() on an active single-FST (LM) input across EM iterations.
+  class SingleFstReader : public FarReader<LogArc> {
+   public:
+    explicit SingleFstReader(const VectorFst<LogArc>& fst,
+                             bool initially_done = false)
+        : fst_(fst), done_(initially_done) {}
+    void Reset() override {
+      ++reset_calls_;
+      done_ = false;
+    }
+    bool Find(absl::string_view) override { return false; }
+    bool Done() const override { return done_; }
+    void Next() override { done_ = true; }
+    const std::string& GetKey() const override { return key_; }
+    const Fst<LogArc>* GetFst() const override { return &fst_; }
+    FarType Type() const override { return FarType::FST; }
+    bool Error() const override { return false; }
+    int reset_calls() const { return reset_calls_; }
+
+   private:
+    const VectorFst<LogArc>& fst_;
+    std::string key_ = "lm";
+    bool done_;
+    int reset_calls_ = 0;
+  };
+
+  WriteTrainingData<LogArc>({"1"}, {"10"});
+  std::unique_ptr<FarReader<LogArc>> out_reader(
+      FarReader<LogArc>::Open(output_far_path_));
+  ASSERT_NE(out_reader, nullptr);
+
+  VectorFst<LogArc> lm;
+  const auto l0 = lm.AddState();
+  const auto l1 = lm.AddState();
+  lm.SetStart(l0);
+  lm.AddArc(l0, LogArc(1, 1, LogWeight::One(), l1));
+  lm.SetFinal(l1, LogWeight::One());
+
+  VectorFst<LogArc> model;
+  const auto m0 = model.AddState();
+  model.SetStart(m0);
+  model.AddArc(m0, LogArc(1, 10, LogWeight(0.5), m0));
+  model.AddArc(m0, LogArc(1, 20, LogWeight(1.5), m0));
+  model.SetFinal(m0, LogWeight::One());
+
+  const TrainOptions opts(/*max_iters=*/5, /*alpha=*/0.5, /*batch_size=*/0,
+                          /*delta=*/1e-6);
+
+  // Active FstFarReader should never be Reset() across iterations.
+  SingleFstReader active_reader(lm, /*initially_done=*/false);
+  Train<LogArc>(active_reader, *out_reader, &model, /*normalize_ilabel=*/true,
+                opts);
+  EXPECT_EQ(active_reader.reset_calls(), 0);
+
+  // Exhausted FstFarReader should be Reset() once upfront and not again.
+  SingleFstReader done_reader(lm, /*initially_done=*/true);
+  Train<LogArc>(done_reader, *out_reader, &model, /*normalize_ilabel=*/true,
+                opts);
+  EXPECT_EQ(done_reader.reset_calls(), 1);
 }
 
 }  // namespace
