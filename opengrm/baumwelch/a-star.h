@@ -15,6 +15,7 @@
 #ifndef OPENGRM_BAUMWELCH_A_STAR_H_
 #define OPENGRM_BAUMWELCH_A_STAR_H_
 
+#include <cstddef>
 #include <vector>
 
 #include "absl/log/log.h"
@@ -22,9 +23,13 @@
 #include "openfst/lib/arcfilter.h"
 #include "openfst/lib/determinize.h"
 #include "openfst/lib/fst-decl.h"
+#include "openfst/lib/fst.h"
+#include "openfst/lib/mutable-fst.h"
+#include "openfst/lib/properties.h"
 #include "openfst/lib/queue.h"
 #include "openfst/lib/shortest-distance.h"
 #include "openfst/lib/shortest-path.h"
+#include "openfst/lib/vector-fst.h"
 #include "openfst/lib/weight.h"
 #include "opengrm/baumwelch/util.h"
 
@@ -39,13 +44,30 @@ class ConvertingAStarEstimate {
   ConvertingAStarEstimate(const std::vector<Weight>& beta) : beta_(beta) {}
 
   PathWeight operator()(StateId s) const {
-    if (s >= beta_.size()) return PathWeight::Zero();
+    if (s < 0 || static_cast<size_t>(s) >= beta_.size()) {
+      return PathWeight::Zero();
+    }
     return WeightConvert<Weight, PathWeight>()(beta_[s]);
   }
 
  private:
   const std::vector<Weight>& beta_;
 };
+
+namespace internal {
+
+// Resets `ofst` to an empty FST with `ifst`'s symbol tables, safely handling
+// in-place aliasing (`ofst == &ifst`).
+template <class Arc>
+void ResetEmptyOutput(const Fst<Arc>& ifst, MutableFst<Arc>* ofst) {
+  if (ofst != &ifst) {
+    ofst->SetInputSymbols(ifst.InputSymbols());
+    ofst->SetOutputSymbols(ifst.OutputSymbols());
+  }
+  ofst->DeleteStates();
+}
+
+}  // namespace internal
 
 // Computes the shortest string over a semiring without the path property:
 //
@@ -65,10 +87,30 @@ void AStarSingleShortestString(const Fst<Arc>& ifst, MutableFst<Arc>* ofst,
   using Weight = typename Arc::Weight;
   using PathWeight = TropicalWeightTpl<typename Weight::ValueType>;
   using PathArc = ArcTpl<PathWeight>;
+  if (ifst.Properties(kError, false)) {
+    internal::ResetEmptyOutput(ifst, ofst);
+    ofst->SetProperties(kError, kError);
+    return;
+  }
+  const auto start = ifst.Start();
+  if (start == kNoStateId) {
+    internal::ResetEmptyOutput(ifst, ofst);
+    return;
+  }
   std::vector<Weight> nfa_beta;
-  ShortestDistance(ifst, &nfa_beta, /*reverse=*/true);
+  ShortestDistance(ifst, &nfa_beta, /*reverse=*/true, delta);
+  if (nfa_beta.size() == 1 && !nfa_beta[0].Member()) {
+    internal::ResetEmptyOutput(ifst, ofst);
+    ofst->SetProperties(kError, kError);
+    return;
+  }
+  if (start < 0 || static_cast<size_t>(start) >= nfa_beta.size() ||
+      nfa_beta[start] == Weight::Zero()) {
+    internal::ResetEmptyOutput(ifst, ofst);
+    return;
+  }
   std::vector<Weight> dfa_beta;
-  static const DeterminizeFstOptions<Arc> dopts;
+  const DeterminizeFstOptions<Arc> dopts(delta);
   const DeterminizeFst<Arc> dfa(ifst, &nfa_beta, &dfa_beta, dopts);
   VectorFst<PathArc> path_shortest;
   {
@@ -86,9 +128,9 @@ void AStarSingleShortestString(const Fst<Arc>& ifst, MutableFst<Arc>* ofst,
     static constexpr MyArcFilter arc_filter;
     const MyShortestPathOptions sopts(
         &queue, arc_filter,
-        /*nshortest=*/1,        // 1-best.
-        /*unique=*/false,       // Lattice is already deterministic.
-        /*has_distance=*/true,  // Precomputed.
+        /*nshortest=*/1,         // 1-best.
+        /*unique=*/false,        // Lattice is already deterministic.
+        /*has_distance=*/false,  // Computed during search.
         /*delta=*/delta,
         /*first_path=*/true);  // Heuristic is admissible.
     ShortestPath(path_dfa, &path_shortest, &dfa_alpha, sopts);
