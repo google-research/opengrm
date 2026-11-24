@@ -167,6 +167,28 @@ if(OPENGRM_BUILD_TESTS)
     )
   endforeach()
 
+  # Prefixed to avoid target collision with OpenFst's script_test when
+  # OPENFST_BUILD_TESTS is enabled.
+  add_executable(grm_baumwelch_script_test script_test.cc)
+  target_link_libraries(
+    grm_baumwelch_script_test
+    PRIVATE grm_baumwelch
+            grm_baumwelchscript
+            ${OPENGRM_ALWAYS_LINK_START}
+            openfst::fst
+            openfst::fstscript
+            openfst::farscript
+            ${OPENGRM_ALWAYS_LINK_END}
+            absl::flags
+            absl::no_destructor
+            GTest::gtest_main
+  )
+  grm_configure_test_target(grm_baumwelch_script_test)
+  gtest_discover_tests(
+    grm_baumwelch_script_test
+    WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+  )
+
   if(OPENGRM_ENABLE_BIN)
     # Verify that command-line tools retain FST type registrations in static
     # builds.

@@ -15,11 +15,11 @@
 // Randomizes model weights.
 
 #include <cstdint>
+#include <optional>
 
 #include "absl/flags/flag.h"
-#include "openfst/script/getters.h"
 
-ABSL_FLAG(uint64_t, seed, 0, "Random seed");
+ABSL_FLAG(std::optional<uint64_t>, seed, std::nullopt, "Random seed");
 
 int baumwelchrandomize_main(int argc, char** argv);
 

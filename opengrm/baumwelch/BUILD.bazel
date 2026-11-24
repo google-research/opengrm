@@ -261,7 +261,7 @@ cc_library(
     hdrs = ["trainscript.h"],
     deps = [
         ":train",
-        "@com_google_openfst//openfst/extensions/far:lib",
+        "@com_google_openfst//openfst/extensions/far:far-reader",
         "@com_google_openfst//openfst/extensions/far:script",
         "@com_google_openfst//openfst/lib:lib_lite",
         "@com_google_openfst//openfst/script",
@@ -274,9 +274,33 @@ cc_library(
     hdrs = ["decodescript.h"],
     deps = [
         ":decode",
-        "@com_google_openfst//openfst/extensions/far:lib",
+        "@com_google_openfst//openfst/extensions/far:far-reader",
+        "@com_google_openfst//openfst/extensions/far:far-writer",
         "@com_google_openfst//openfst/extensions/far:script",
         "@com_google_openfst//openfst/lib:lib_lite",
+        "@com_google_openfst//openfst/script",
+    ],
+)
+
+cc_test(
+    name = "script_test",
+    srcs = ["script_test.cc"],
+    deps = [
+        ":decodescript",
+        ":randomizescript",
+        ":train",
+        ":trainscript",
+        "@com_google_absl//absl/base:no_destructor",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_openfst//openfst/compat:file_path",
+        "@com_google_openfst//openfst/extensions/far:far-type",
+        "@com_google_openfst//openfst/extensions/far:fst-far-writer",
+        "@com_google_openfst//openfst/extensions/far:script",
+        "@com_google_openfst//openfst/extensions/far:sttable-far-writer",
+        "@com_google_openfst//openfst/lib",
+        "@com_google_openfst//openfst/lib:util",
+        "@com_google_openfst//openfst/lib:weight",
         "@com_google_openfst//openfst/script",
     ],
 )
@@ -295,7 +319,9 @@ cc_library(
         "@com_google_absl//absl/flags:usage",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/log:flags",
+        "@com_google_absl//absl/random",
         "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/lib:lib_lite",
         "@com_google_openfst//openfst/script",
     ],
 )
@@ -312,7 +338,9 @@ cc_library(
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/log:flags",
         "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/extensions/far:far-type",
         "@com_google_openfst//openfst/extensions/far:script",
+        "@com_google_openfst//openfst/lib:lib_lite",
         "@com_google_openfst//openfst/lib:util",
         "@com_google_openfst//openfst/script",
     ],
@@ -329,6 +357,7 @@ cc_library(
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/log:flags",
         "@com_google_openfst//openfst/compat:init",
+        "@com_google_openfst//openfst/extensions/far:far-type",
         "@com_google_openfst//openfst/extensions/far:script",
         "@com_google_openfst//openfst/lib:lib_lite",
         "@com_google_openfst//openfst/lib:util",
@@ -345,7 +374,6 @@ cc_binary(
     deps = [
         ":baumwelchrandomize-main",
         "@com_google_absl//absl/flags:flag",
-        "@com_google_openfst//openfst/script",
     ],
 )
 

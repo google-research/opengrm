@@ -14,6 +14,7 @@
 
 // Trains Baum-Welch model.
 
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <memory>
@@ -26,6 +27,8 @@
 #include "absl/flags/usage.h"
 #include "openfst/compat/init.h"
 #include "openfst/extensions/far/far-class.h"
+#include "openfst/extensions/far/far-type.h"
+#include "openfst/lib/properties.h"
 #include "openfst/lib/util.h"
 #include "openfst/script/fst-class.h"
 #include "opengrm/baumwelch/train.h"
@@ -41,7 +44,6 @@ int baumwelchtrain_main(int argc, char** argv) {
   namespace s = fst::script;
   using fst::TrainOptions;
   using fst::script::FarReaderClass;
-  using fst::script::FstClass;
   using fst::script::MutableFstClass;
 
   std::string usage = "Trains a WFST model\n\n  Usage: ";
@@ -55,10 +57,37 @@ int baumwelchtrain_main(int argc, char** argv) {
     return 1;
   }
 
+  const int32_t max_iters = absl::GetFlag(FLAGS_max_iters);
+  const double alpha = absl::GetFlag(FLAGS_alpha);
+  const int32_t batch_size = absl::GetFlag(FLAGS_batch_size);
+  const double delta = absl::GetFlag(FLAGS_delta);
+
+  if (max_iters < 0) {
+    LOG(ERROR) << argv[0]
+               << ": --max_iters must be non-negative: " << max_iters;
+    return 1;
+  }
+  if (!std::isfinite(alpha) || alpha < 0.0) {
+    LOG(ERROR) << argv[0]
+               << ": --alpha must be finite and non-negative: " << alpha;
+    return 1;
+  }
+  if (batch_size < 0) {
+    LOG(ERROR) << argv[0]
+               << ": --batch_size must be non-negative: " << batch_size;
+    return 1;
+  }
+  if (!std::isfinite(delta) || delta < 0.0) {
+    LOG(ERROR) << argv[0]
+               << ": --delta must be finite and non-negative: " << delta;
+    return 1;
+  }
+
   const std::string input_name = strcmp(argv[1], "-") != 0 ? argv[1] : "";
   const std::string output_name = strcmp(argv[2], "-") != 0 ? argv[2] : "";
   const std::string model_name = strcmp(argv[3], "-") != 0 ? argv[3] : "";
-  const std::string out_name = argc > 4 ? argv[4] : "";
+  const std::string out_name =
+      (argc > 4 && strcmp(argv[4], "-") != 0) ? argv[4] : "";
 
   if (input_name.empty() && (output_name.empty() || model_name.empty())) {
     LOG(ERROR) << argv[0] << ": Can't take more than one input from standard "
@@ -79,14 +108,26 @@ int baumwelchtrain_main(int argc, char** argv) {
   if (!output) return 1;
 
   const std::unique_ptr<MutableFstClass> model(
-      MutableFstClass::Read(model_name));
+      MutableFstClass::Read(model_name, /*convert=*/true));
   if (!model) return 1;
 
-  const TrainOptions opts(
-      /*max_iters=*/absl::GetFlag(FLAGS_max_iters),
-      /*alpha=*/absl::GetFlag(FLAGS_alpha),
-      /*batch_size=*/absl::GetFlag(FLAGS_batch_size),
-      /*delta=*/absl::GetFlag(FLAGS_delta));
+  if (input->ArcType() != model->ArcType() ||
+      output->ArcType() != model->ArcType()) {
+    LOG(ERROR) << argv[0] << ": Input, output, and model must have the same "
+               << "arc type (" << input->ArcType() << ", " << output->ArcType()
+               << ", " << model->ArcType() << ")";
+    return 1;
+  }
+
+  if (max_iters > 0 && (input->Type() == fst::FarType::STLIST ||
+                        output->Type() == fst::FarType::STLIST)) {
+    LOG(ERROR) << argv[0] << ": STList FARs (including standard input) do not "
+               << "support Reset() required for training";
+    return 1;
+  }
+
+  const TrainOptions opts(/*max_iters=*/max_iters, /*alpha=*/alpha,
+                          /*batch_size=*/batch_size, /*delta=*/delta);
 
   s::Train(*input, *output, model.get(), absl::GetFlag(FLAGS_normalize_ilabel),
            opts);
@@ -97,6 +138,10 @@ int baumwelchtrain_main(int argc, char** argv) {
   }
   if (output->Error()) {
     FSTERROR() << "Error reading FAR: " << output_name;
+    return 1;
+  }
+  if (model->Properties(fst::kError, false)) {
+    LOG(ERROR) << argv[0] << ": Training failed";
     return 1;
   }
 

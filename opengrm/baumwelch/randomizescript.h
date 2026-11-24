@@ -15,23 +15,27 @@
 #ifndef OPENGRM_BAUMWELCH_RANDOMIZESCRIPT_H_
 #define OPENGRM_BAUMWELCH_RANDOMIZESCRIPT_H_
 
-#include <cstdint>
 #include <tuple>
 
 #include "absl/random/bit_gen_ref.h"
 #include "openfst/lib/mutable-fst.h"
+#include "openfst/script/arg-packs.h"
 #include "openfst/script/fst-class.h"
 #include "opengrm/baumwelch/randomize.h"
 
 namespace fst {
 namespace script {
 
-using BaumWelchRandomizeArgs = std::tuple<absl::BitGenRef, MutableFstClass*>;
+using BaumWelchRandomizeInnerArgs =
+    std::tuple<absl::BitGenRef, MutableFstClass*>;
+using BaumWelchRandomizeArgs =
+    WithReturnValue<bool, BaumWelchRandomizeInnerArgs>;
 
 template <class Arc>
 void Randomize(BaumWelchRandomizeArgs* args) {
-  MutableFst<Arc>* model = std::get<1>(*args)->GetMutableFst<Arc>();
-  Randomize(std::get<0>(*args), model);
+  MutableFst<Arc>* model = std::get<1>(args->args)->GetMutableFst<Arc>();
+  Randomize(std::get<0>(args->args), model);
+  args->retval = true;
 }
 
 void Randomize(absl::BitGenRef bit_gen, MutableFstClass* fst);

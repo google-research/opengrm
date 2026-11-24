@@ -26,13 +26,16 @@ namespace script {
 void Train(FarReaderClass& input, FarReaderClass& output,
            MutableFstClass* model, bool normalize_ilabel,
            const TrainOptions& opts) {
+  if (model->Properties(kError, false)) return;
   if (!internal::ArcTypesMatch(input, *model, "Train") ||
       !internal::ArcTypesMatch(output, *model, "Train")) {
     model->SetProperties(kError, kError);
     return;
   }
-  BaumWelchTrainArgs args{input, output, model, normalize_ilabel, opts};
+  BaumWelchTrainInnerArgs iargs{input, output, model, normalize_ilabel, opts};
+  BaumWelchTrainArgs args(iargs);
   Apply<Operation<BaumWelchTrainArgs>>("Train", model->ArcType(), &args);
+  if (!args.retval) model->SetProperties(kError, kError);
 }
 
 REGISTER_FST_OPERATION_3ARCS(Train, BaumWelchTrainArgs);
