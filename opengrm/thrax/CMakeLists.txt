@@ -39,8 +39,11 @@ target_link_libraries(
          grm_compat
          absl::btree
          absl::flags
-         absl::strings
+         absl::log
+         absl::memory
+         absl::span
          absl::status
+         absl::strings
 )
 
 add_subdirectory(walker)
@@ -71,6 +74,11 @@ target_link_libraries(
          thrax_walker
          openfst::fst
          absl::btree
+         absl::check
+         absl::flags
+         absl::log
+         absl::strings
+  PRIVATE absl::base absl::memory
 )
 
 # Rewrite tester lib
@@ -80,9 +88,16 @@ target_include_directories(
   PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
          $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
-target_link_libraries(thrax_rewrite-tester_lib
-                      PUBLIC thrax_core thrax_walker # For walker/util/function
-                             grm_paths
+target_link_libraries(
+  thrax_rewrite-tester_lib
+  PUBLIC thrax_core
+         thrax_walker # For walker/util/function
+         grm_paths
+         absl::strings
+  PRIVATE absl::check
+          absl::flags
+          absl::log
+          absl::memory
 )
 
 opengrm_install(

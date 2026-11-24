@@ -47,7 +47,11 @@ target_include_directories(
                    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-target_link_libraries(thrax_ast PUBLIC absl::strings absl::log)
+target_link_libraries(
+  thrax_ast
+  PUBLIC absl::strings
+  PRIVATE absl::check absl::log
+)
 
 opengrm_install(
   TARGETS thrax_ast
