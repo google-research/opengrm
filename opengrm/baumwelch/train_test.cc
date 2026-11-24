@@ -16,6 +16,7 @@
 
 #include "opengrm/baumwelch/train.h"
 
+#include <cmath>
 #include <cstddef>
 #include <memory>
 #include <string>
@@ -377,6 +378,88 @@ TEST_F(TrainExecutionTest, MinibatchStepwiseTraining) {
                                               /*normalize_ilabel=*/false, opts);
 
   EXPECT_NE(final_likelihood, LogWeight::Zero());
+}
+
+TEST_F(TrainExecutionTest, CorpusLikelihoodSumsExampleNegativeLogLikelihoods) {
+  // Four examples: two mapping 1 -> 10 and two mapping 1 -> 20.
+  // Under the MLE model P(10 | 1) = P(20 | 1) = 0.5, each example has
+  // NLL = -log(0.5) = log(2), so total corpus NLL = 4 * log(2).
+  // Accumulating with LogAdder (sum of probabilities) would erroneously yield
+  // -log(4 * 0.5) = -log(2) < 0.
+  WriteTrainingData<LogArc>({"1", "1", "1", "1"}, {"10", "20", "10", "20"});
+
+  std::unique_ptr<FarReader<LogArc>> in_reader(
+      FarReader<LogArc>::Open(input_far_path_));
+  std::unique_ptr<FarReader<LogArc>> out_reader(
+      FarReader<LogArc>::Open(output_far_path_));
+  ASSERT_NE(in_reader, nullptr);
+  ASSERT_NE(out_reader, nullptr);
+
+  VectorFst<LogArc> model;
+  const auto s0 = model.AddState();
+  model.SetStart(s0);
+  model.AddArc(s0, LogArc(1, 10, LogWeight(1.0), s0));
+  model.AddArc(s0, LogArc(1, 20, LogWeight(1.0), s0));
+  model.SetFinal(s0, LogWeight::One());
+
+  const TrainOptions opts(/*max_iters=*/5, /*alpha=*/0.0, /*batch_size=*/0,
+                          /*delta=*/1e-5);
+  const auto final_likelihood = Train<LogArc>(*in_reader, *out_reader, &model,
+                                              /*normalize_ilabel=*/true, opts);
+
+  EXPECT_NEAR(final_likelihood.Value(), 4.0 * std::log(2.0), 1e-4);
+}
+
+TEST_F(TrainExecutionTest, SkipsUnalignedExamplesInCorpusLikelihood) {
+  // First two examples align (with equal prob 0.5 each -> NLL = 2 * log(2)),
+  // third example cannot align (output label 99 absent from model).
+  WriteTrainingData<LogArc>({"1", "1", "1"}, {"10", "20", "99"});
+
+  std::unique_ptr<FarReader<LogArc>> in_reader(
+      FarReader<LogArc>::Open(input_far_path_));
+  std::unique_ptr<FarReader<LogArc>> out_reader(
+      FarReader<LogArc>::Open(output_far_path_));
+  ASSERT_NE(in_reader, nullptr);
+  ASSERT_NE(out_reader, nullptr);
+
+  VectorFst<LogArc> model;
+  const auto s0 = model.AddState();
+  model.SetStart(s0);
+  model.AddArc(s0, LogArc(1, 10, LogWeight(1.0), s0));
+  model.AddArc(s0, LogArc(1, 20, LogWeight(1.0), s0));
+  model.SetFinal(s0, LogWeight::One());
+
+  const TrainOptions opts(/*max_iters=*/5, /*alpha=*/0.0, /*batch_size=*/0,
+                          /*delta=*/1e-5);
+  const auto final_likelihood = Train<LogArc>(*in_reader, *out_reader, &model,
+                                              /*normalize_ilabel=*/true, opts);
+
+  EXPECT_NEAR(final_likelihood.Value(), 2.0 * std::log(2.0), 1e-4);
+}
+
+TEST_F(TrainExecutionTest, NegativeBatchSizeTreatedAsFullBatch) {
+  WriteTrainingData<LogArc>({"1", "1"}, {"10", "20"});
+
+  std::unique_ptr<FarReader<LogArc>> in_reader(
+      FarReader<LogArc>::Open(input_far_path_));
+  std::unique_ptr<FarReader<LogArc>> out_reader(
+      FarReader<LogArc>::Open(output_far_path_));
+  ASSERT_NE(in_reader, nullptr);
+  ASSERT_NE(out_reader, nullptr);
+
+  VectorFst<LogArc> model;
+  const auto s0 = model.AddState();
+  model.SetStart(s0);
+  model.AddArc(s0, LogArc(1, 10, LogWeight(1.0), s0));
+  model.AddArc(s0, LogArc(1, 20, LogWeight(1.0), s0));
+  model.SetFinal(s0, LogWeight::One());
+
+  const TrainOptions opts(/*max_iters=*/3, /*alpha=*/0.5, /*batch_size=*/-1,
+                          /*delta=*/1e-5);
+  const auto final_likelihood = Train<LogArc>(*in_reader, *out_reader, &model,
+                                              /*normalize_ilabel=*/true, opts);
+
+  EXPECT_NEAR(final_likelihood.Value(), 2.0 * std::log(2.0), 1e-4);
 }
 
 }  // namespace
