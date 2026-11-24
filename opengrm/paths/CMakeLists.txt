@@ -19,9 +19,7 @@ target_include_directories(
                       $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-target_link_libraries(grm_paths INTERFACE openfst::fst # Or whatever OpenFst
-                                                       # target we use
-)
+target_link_libraries(grm_paths INTERFACE openfst::fst)
 
 # Script layer
 grm_add_library(grm_pathsscript pathsscript.cc)

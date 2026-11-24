@@ -64,9 +64,7 @@ if(OPENGRM_BUILD_TESTS)
             openfst::far
             ${OPENGRM_ALWAYS_LINK_END}
             GTest::gmock_main
-  ) # Wait, depends on operators:optimize
-  # We'll need to make sure this links or only build if operators is available
-  # (which it is, since it's core)
+  )
   grm_configure_test_target(base_rule_cascade_test)
   gtest_discover_tests(
     base_rule_cascade_test

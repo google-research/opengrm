@@ -90,7 +90,6 @@ opengrm_install(
 )
 
 if(OPENGRM_BUILD_TESTS)
-  # Just adding one test for illustration, we can add all
   add_executable(prefix_tree_test prefix_tree_test.cc)
   target_link_libraries(prefix_tree_test PRIVATE grm_string GTest::gtest_main)
   grm_configure_test_target(prefix_tree_test)

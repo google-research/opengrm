@@ -45,7 +45,6 @@ foreach(_test ${THRAX_TESTS})
             GTest::gmock_main
             absl::strings
             absl::log
-            # It also used //thread for grm-manager_test
             Threads::Threads
   )
   grm_configure_test_target(thrax_${_test}_test)
