@@ -15,6 +15,7 @@
 #include "opengrm/baumwelch/decodescript.h"
 
 #include "openfst/extensions/far/far-class.h"
+#include "openfst/lib/properties.h"
 #include "openfst/script/encodemapper-class.h"
 #include "openfst/script/fst-class.h"
 #include "openfst/script/script-impl.h"
@@ -22,17 +23,20 @@
 namespace fst {
 namespace script {
 
-void Decode(FarReaderClass& input, FarReaderClass& output,
+bool Decode(FarReaderClass& input, FarReaderClass& output,
             const FstClass& model, FarWriterClass& hypotext,
             EncodeMapperClass* encoder) {
+  if (model.Properties(kError, false)) return false;
   if (!internal::ArcTypesMatch(input, model, "Decode") ||
       !internal::ArcTypesMatch(output, model, "Decode") ||
       !internal::ArcTypesMatch(hypotext, model, "Decode") ||
       (encoder && !internal::ArcTypesMatch(*encoder, model, "Decode"))) {
-    return;
+    return false;
   }
-  BaumWelchDecodeArgs args{input, output, model, hypotext, encoder};
+  BaumWelchDecodeInnerArgs iargs{input, output, model, hypotext, encoder};
+  BaumWelchDecodeArgs args(iargs);
   Apply<Operation<BaumWelchDecodeArgs>>("Decode", model.ArcType(), &args);
+  return args.retval;
 }
 
 REGISTER_FST_OPERATION_3ARCS(Decode, BaumWelchDecodeArgs);

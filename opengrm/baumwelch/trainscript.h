@@ -18,24 +18,27 @@
 #include <tuple>
 
 #include "openfst/extensions/far/far-class.h"
-#include "openfst/extensions/far/far.h"
+#include "openfst/extensions/far/far-reader.h"
 #include "openfst/lib/mutable-fst.h"
+#include "openfst/script/arg-packs.h"
 #include "openfst/script/fst-class.h"
 #include "opengrm/baumwelch/train.h"
 
 namespace fst {
 namespace script {
 
-using BaumWelchTrainArgs =
+using BaumWelchTrainInnerArgs =
     std::tuple<FarReaderClass&, FarReaderClass&, MutableFstClass*, bool,
                const TrainOptions&>;
+using BaumWelchTrainArgs = WithReturnValue<bool, BaumWelchTrainInnerArgs>;
 
 template <class Arc>
 void Train(BaumWelchTrainArgs* args) {
-  FarReader<Arc>& input = *std::get<0>(*args).GetFarReader<Arc>();
-  FarReader<Arc>& output = *std::get<1>(*args).GetFarReader<Arc>();
-  MutableFst<Arc>* model = std::get<2>(*args)->GetMutableFst<Arc>();
-  Train(input, output, model, std::get<3>(*args), std::get<4>(*args));
+  FarReader<Arc>& input = *std::get<0>(args->args).GetFarReader<Arc>();
+  FarReader<Arc>& output = *std::get<1>(args->args).GetFarReader<Arc>();
+  MutableFst<Arc>* model = std::get<2>(args->args)->GetMutableFst<Arc>();
+  Train(input, output, model, std::get<3>(args->args), std::get<4>(args->args));
+  args->retval = true;
 }
 
 void Train(FarReaderClass& input, FarReaderClass& output,

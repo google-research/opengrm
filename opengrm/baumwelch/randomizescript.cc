@@ -14,9 +14,8 @@
 
 #include "opengrm/baumwelch/randomizescript.h"
 
-#include <cstdint>
-
 #include "absl/random/bit_gen_ref.h"
+#include "openfst/lib/properties.h"
 #include "openfst/script/fst-class.h"
 #include "openfst/script/script-impl.h"
 
@@ -24,8 +23,11 @@ namespace fst {
 namespace script {
 
 void Randomize(absl::BitGenRef bit_gen, MutableFstClass* fst) {
-  BaumWelchRandomizeArgs args{bit_gen, fst};
+  if (fst->Properties(kError, false)) return;
+  BaumWelchRandomizeInnerArgs iargs{bit_gen, fst};
+  BaumWelchRandomizeArgs args(iargs);
   Apply<Operation<BaumWelchRandomizeArgs>>("Randomize", fst->ArcType(), &args);
+  if (!args.retval) fst->SetProperties(kError, kError);
 }
 
 REGISTER_FST_OPERATION_3ARCS(Randomize, BaumWelchRandomizeArgs);

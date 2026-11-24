@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <cstring>
 #include <memory>
+#include <optional>
 #include <random>
 #include <string>
 
@@ -24,13 +25,14 @@
 #include "absl/flags/flag.h"
 #include "absl/log/flags.h"
 #include "absl/log/log.h"
+#include "absl/random/random.h"
 #include "absl/flags/usage.h"
 #include "openfst/compat/init.h"
+#include "openfst/lib/properties.h"
 #include "openfst/script/fst-class.h"
-#include "openfst/script/getters.h"
 #include "opengrm/baumwelch/randomizescript.h"
 
-ABSL_DECLARE_FLAG(uint64_t, seed);
+ABSL_DECLARE_FLAG(std::optional<uint64_t>, seed);
 
 int baumwelchrandomize_main(int argc, char** argv) {
   namespace s = fst::script;
@@ -54,12 +56,18 @@ int baumwelchrandomize_main(int argc, char** argv) {
   std::unique_ptr<MutableFstClass> fst(MutableFstClass::Read(in_name, true));
   if (!fst) return 1;
 
-  const auto seed = absl::GetFlag(FLAGS_seed);
-  VLOG(1) << argv[0] << ": Seed = " << seed;
-  std::mt19937_64 bit_gen;
-  bit_gen.seed(seed);
+  const std::optional<uint64_t> seed = absl::GetFlag(FLAGS_seed);
+  if (seed.has_value()) {
+    VLOG(1) << argv[0] << ": Seed = " << *seed;
+    std::mt19937_64 bit_gen(*seed);
+    s::Randomize(bit_gen, fst.get());
+  } else {
+    VLOG(1) << argv[0] << ": Using random seed";
+    absl::BitGen bit_gen;
+    s::Randomize(bit_gen, fst.get());
+  }
 
-  s::Randomize(bit_gen, fst.get());
+  if (fst->Properties(fst::kError, false)) return 1;
 
   return !fst->Write(out_name);
 }

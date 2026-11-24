@@ -24,7 +24,9 @@
 #include "absl/flags/usage.h"
 #include "openfst/compat/init.h"
 #include "openfst/extensions/far/far-class.h"
+#include "openfst/extensions/far/far-type.h"
 #include "openfst/lib/encode.h"
+#include "openfst/lib/properties.h"
 #include "openfst/lib/util.h"
 #include "openfst/script/encodemapper-class.h"
 #include "openfst/script/fst-class.h"
@@ -40,7 +42,7 @@ int baumwelchdecode_main(int argc, char** argv) {
 
   std::string usage = "Decodes a WFST model\n\n  Usage: ";
   usage += argv[0];
-  usage += " input.f(ar|st) output.far model.fst out.far [enc.map]\n";
+  usage += " input.f(ar|st) output.far model.fst [out.far [enc.map]]\n";
 
   fst::InitOpenFst(usage.c_str(), &argc, &argv, true);
 
@@ -52,7 +54,8 @@ int baumwelchdecode_main(int argc, char** argv) {
   const std::string input_name = strcmp(argv[1], "-") != 0 ? argv[1] : "";
   const std::string output_name = strcmp(argv[2], "-") != 0 ? argv[2] : "";
   const std::string model_name = strcmp(argv[3], "-") != 0 ? argv[3] : "";
-  const std::string hypotext_name = argc > 4 ? argv[4] : "";
+  const std::string hypotext_name =
+      (argc > 4 && strcmp(argv[4], "-") != 0) ? argv[4] : "";
   const std::string encodemapper_name = argc > 5 ? argv[5] : "";
 
   if (input_name.empty() && (output_name.empty() || model_name.empty())) {
@@ -76,17 +79,35 @@ int baumwelchdecode_main(int argc, char** argv) {
   const std::unique_ptr<const FstClass> model(FstClass::Read(model_name));
   if (!model) return 1;
 
+  if (model->Properties(fst::kError, false)) {
+    LOG(ERROR) << argv[0] << ": Input model has error property set";
+    return 1;
+  }
+  if (input->ArcType() != model->ArcType() ||
+      output->ArcType() != model->ArcType()) {
+    LOG(ERROR) << argv[0] << ": Input, output, and model must have the same "
+               << "arc type (" << input->ArcType() << ", " << output->ArcType()
+               << ", " << model->ArcType() << ")";
+    return 1;
+  }
+  if (input->Type() == fst::FarType::FST && !encodemapper_name.empty()) {
+    LOG(ERROR) << argv[0]
+               << ": Encode mapper is not supported in decipherment mode "
+               << "(when input is a single FST)";
+    return 1;
+  }
+
   const std::unique_ptr<FarWriterClass> hypotext(
-      FarWriterClass::Create(hypotext_name, output->ArcType()));
+      FarWriterClass::Create(hypotext_name, model->ArcType()));
   if (!hypotext) return 1;
 
-  if (encodemapper_name.empty()) {
-    s::Decode(*input, *output, *model, *hypotext);
-  } else {
-    s::EncodeMapperClass mapper(model->ArcType(), kEncodeLabels);
-    s::Decode(*input, *output, *model, *hypotext, &mapper);
-    if (!mapper.Write(encodemapper_name)) return 1;
+  std::unique_ptr<EncodeMapperClass> mapper;
+  if (!encodemapper_name.empty()) {
+    mapper =
+        std::make_unique<EncodeMapperClass>(model->ArcType(), kEncodeLabels);
   }
+
+  const bool ok = s::Decode(*input, *output, *model, *hypotext, mapper.get());
 
   if (input->Error()) {
     FSTERROR() << "Error reading FAR: " << input_name;
@@ -100,6 +121,12 @@ int baumwelchdecode_main(int argc, char** argv) {
     FSTERROR() << "Error writing FAR: " << hypotext_name;
     return 1;
   }
+  if (!ok) {
+    LOG(ERROR) << argv[0] << ": Decoding failed";
+    return 1;
+  }
+
+  if (mapper && !mapper->Write(encodemapper_name)) return 1;
 
   return 0;
 }
