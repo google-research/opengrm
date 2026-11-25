@@ -78,43 +78,8 @@ target_link_libraries(
           absl::strings
 )
 
-# Merge interface library
-grm_add_library(grm_sfst_merge INTERFACE)
-target_include_directories(
-  grm_sfst_merge INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
-                           $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
-target_link_libraries(grm_sfst_merge INTERFACE grm_sfst openfst::fst absl::log)
-
-# Smooth interface library
-grm_add_library(grm_sfst_smooth INTERFACE)
-target_include_directories(
-  grm_sfst_smooth INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
-                            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
-target_link_libraries(grm_sfst_smooth INTERFACE grm_sfst openfst::fst absl::log)
-
-# Shrink interface library
-grm_add_library(grm_sfst_shrink INTERFACE)
-target_include_directories(
-  grm_sfst_shrink INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
-                            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
-target_link_libraries(
-  grm_sfst_shrink
-  INTERFACE grm_sfst
-            openfst::fst
-            absl::flat_hash_set
-            absl::log
-            absl::strings
-)
-
 opengrm_install(
-  TARGETS grm_sfst
-          grm_sfst_arpa
-          grm_sfst_merge
-          grm_sfst_smooth
-          grm_sfst_shrink
+  TARGETS grm_sfst grm_sfst_arpa
   EXPORT OpenGrmTargets
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -164,16 +129,11 @@ if(OPENGRM_ENABLE_BIN)
       RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     )
   endforeach()
-  # sfstperplexity requires the OpenFst FAR extension
+  # Extra link libraries for tools needing FAR or ARPA support
   target_link_libraries(sfstperplexity PRIVATE openfst::far)
-
-  # Extra link libraries for new tools
   target_link_libraries(sfstngramcount PRIVATE openfst::far)
   target_link_libraries(sfstngramread PRIVATE grm_sfst_arpa)
   target_link_libraries(sfstngramprint PRIVATE grm_sfst_arpa)
-  target_link_libraries(sfstsmooth PRIVATE grm_sfst_smooth)
-  target_link_libraries(sfstshrink PRIVATE grm_sfst_shrink)
-  target_link_libraries(sfstmerge PRIVATE grm_sfst_merge)
 endif()
 
 if(OPENGRM_BUILD_TESTS)
@@ -266,11 +226,7 @@ if(OPENGRM_BUILD_TESTS)
   endforeach()
   target_link_libraries(sfst_perplexity_test PRIVATE openfst::far)
   target_link_libraries(sfst_shortest-distance_test PRIVATE openfst::fstscript)
-  target_link_libraries(sfst_smooth_test PRIVATE grm_sfst_smooth)
-  target_link_libraries(sfst_shrink_test PRIVATE grm_sfst_shrink
-                                                 grm_sfst_smooth
-  )
-  target_link_libraries(sfst_merge_test PRIVATE grm_sfst_arpa grm_sfst_merge)
+  target_link_libraries(sfst_merge_test PRIVATE grm_sfst_arpa)
 
   if(OPENGRM_ENABLE_BIN)
     # Verify that command-line tools retain FST type registrations in static
