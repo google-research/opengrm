@@ -85,7 +85,7 @@ OpenGrm can also be built with [CMake](https://cmake.org) 3.22 or higher.
 
 *   If you are building Thrax grammar compiler, the required prerequisite is
     [GNU Bison](https://en.wikipedia.org/wiki/GNU_Bison) parser generator
-    (version 3.8 or higher), which on Linux can be installed using the system
+    (version 3.0 or higher), which on Linux can be installed using the system
     package manager, e.g., `sudo apt-get install bison`.
 *   For building Python components (e.g., Pynini):
     *   Python 3.11 or higher and development headers (e.g., `python3-dev`).
@@ -93,13 +93,13 @@ OpenGrm can also be built with [CMake](https://cmake.org) 3.22 or higher.
     *   [absl-py](https://github.com/abseil/abseil-py) (`pip install absl-py`)
         at runtime and to run tests.
 
-#### Build and Install
+#### Build and Test
 
-Dependencies like [Abseil](https://github.com/abseil/abseil-cpp),
+By default, dependencies like [Abseil](https://github.com/abseil/abseil-cpp),
 [GoogleTest](https://github.com/google/googletest),
-[Google Protocol Buffers](https://github.com/protocolbuffers/protobuf) and
+[Google Protocol Buffers](https://github.com/protocolbuffers/protobuf), and
 [OpenFst](https://github.com/google-research/openfst) are automatically
-downloaded using `FetchContent` (or `find_package`).
+downloaded using `FetchContent`:
 
 ```bash
 # Configure the project.
@@ -108,20 +108,16 @@ cmake -S . -B build \
   -DOPENGRM_ENABLE_BAUMWELCH=ON -DOPENGRM_ENABLE_SFST=ON \
   -DOPENGRM_ENABLE_NGRAM=ON -DOPENGRM_ENABLE_THRAX=ON
 
-# Build the project
+# Build the project.
 # On Linux, `-j$(nproc)` can be used to reduce typing.
 # https://man7.org/linux/man-pages/man1/nproc.1.html
 cmake --build build -j$(getconf _NPROCESSORS_ONLN)
 
-# Run tests
+# Run tests.
 ctest --test-dir build --output-on-failure -j$(getconf _NPROCESSORS_ONLN)
-
-# Install the project
-# Use --prefix to specify an installation directory
-cmake --install build --prefix /usr/local
 ```
 
-Prefer shared libraries when building Python extensions.
+Prefer shared libraries when building Python extensions:
 
 ```bash
 # Configure Pynini.
@@ -132,6 +128,63 @@ cmake --build build -j$(getconf _NPROCESSORS_ONLN)
 
 # Run tests.
 ctest --test-dir build --output-on-failure -j$(getconf _NPROCESSORS_ONLN)
+```
+
+#### Install
+
+Installing OpenGrm requires `-DOPENGRM_ENABLE_INSTALL=ON` along with
+pre-installed [Abseil](https://github.com/abseil/abseil-cpp)
+(`-DOPENGRM_USE_SYSTEM_ABSEIL=ON`) and
+[OpenFst](https://github.com/google-research/openfst)
+(`-DOPENGRM_USE_SYSTEM_OPENFST=ON`, built with `-DOPENFST_ENABLE_GRM=ON`). Pass
+`-DCMAKE_PREFIX_PATH=<prefix>` if Abseil or OpenFst is installed in a
+non-standard prefix.
+
+```bash
+cmake -S . -B build \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DOPENGRM_ENABLE_INSTALL=ON \
+  -DOPENGRM_USE_SYSTEM_ABSEIL=ON \
+  -DOPENGRM_USE_SYSTEM_OPENFST=ON \
+  -DOPENGRM_BUILD_TESTS=OFF \
+  -DOPENGRM_ENABLE_BAUMWELCH=ON -DOPENGRM_ENABLE_SFST=ON \
+  -DOPENGRM_ENABLE_NGRAM=ON -DOPENGRM_ENABLE_THRAX=ON
+cmake --build build -j$(getconf _NPROCESSORS_ONLN)
+
+# Use --prefix to specify an installation directory.
+cmake --install build --prefix /usr/local
+```
+
+#### Configuration Options
+
+General build, install, and dependency options:
+
+Option                        | Description                       | Default
+:---------------------------- | :-------------------------------- | :------
+`BUILD_SHARED_LIBS`           | Build shared instead of static    | `OFF`
+`OPENGRM_BUILD_TESTS`         | Build unit tests                  | `ON`
+`OPENGRM_ENABLE_BIN`          | Build command-line executables    | `ON`
+`OPENGRM_ENABLE_INSTALL`      | Enable `cmake --install` targets  | `OFF`
+`OPENGRM_RUN_SLOW_TESTS`      | Run slow tests as part of `ctest` | `OFF`
+`OPENGRM_USE_SYSTEM_ABSEIL`   | Use installed Abseil              | `OFF`
+`OPENGRM_USE_SYSTEM_GTEST`    | Use installed GoogleTest          | `OFF`
+`OPENGRM_USE_SYSTEM_OPENFST`  | Use installed OpenFst             | `OFF`
+`OPENGRM_USE_SYSTEM_PROTOBUF` | Use installed Protobuf            | `OFF`
+
+Component options (default is `OFF`):
+
+Option                     | Description                          | Default
+:------------------------- | :----------------------------------- | :------
+`OPENGRM_ENABLE_BAUMWELCH` | Build Baum-Welch trainer and decoder | `OFF`
+`OPENGRM_ENABLE_NGRAM`     | Build N-gram library and tools       | `OFF`
+`OPENGRM_ENABLE_PYNINI`    | Build Pynini grammars (Python)       | `OFF`
+`OPENGRM_ENABLE_SFST`      | Build stochastic transducers         | `OFF`
+`OPENGRM_ENABLE_THRAX`     | Build Thrax grammar compiler         | `OFF`
+
+Example usage:
+
+```bash
+cmake -S . -B build -DOPENGRM_ENABLE_SFST=ON -DBUILD_SHARED_LIBS=ON
 ```
 
 ### Python Wheels (Pynini)
@@ -167,34 +220,6 @@ docker buildx build -f opengrm/pynini/Dockerfile \
 ```
 
 For the automated GitHub Actions wheel build and PyPI release runbook, see [Releasing Pynini wheels](/opengrm/pynini/docs/releasing.md).
-
-#### Configuration Options
-
-You can enable or disable specific features using CMake options (default is
-`OFF` unless noted):
-
-Option                     | Description                                     | Default
-:------------------------- | :---------------------------------------------- | :------
-`OPENGRM_ENABLE_BAUMWELCH` | Build Baum-Welch trainer and decoder components | `OFF`
-`OPENGRM_ENABLE_NGRAM`     | Build N-gram library and tools                  | `OFF`
-`OPENGRM_ENABLE_SFST`      | Build stochastic finite-state transducers       | `OFF`
-`OPENGRM_ENABLE_PYNINI`    | Build Pynini grammars (Python)                  | `OFF`
-`OPENGRM_ENABLE_THRAX`     | Build Thrax grammar compiler                    | `OFF`
-
-Additional options include:
-
-Option                   | Description                               | Default
-:----------------------- | :---------------------------------------- | :------
-`BUILD_SHARED_LIBS`      | Build shared rather than static libraries | `OFF`
-`OPENGRM_BUILD_TESTS`    | Build unit tests                          | `ON`
-`OPENGRM_ENABLE_BIN`     | Build command-line executables            | `ON`
-`OPENGRM_RUN_SLOW_TESTS` | Run very slow tests as part of `ctest`    | `OFF`
-
-Example usage:
-
-```bash
-cmake -S . -B build -DOPENGRM_ENABLE_SFST=ON -DBUILD_SHARED_LIBS=ON
-```
 
 ## Release History
 
