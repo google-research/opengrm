@@ -91,6 +91,18 @@ if(OPENGRM_ENABLE_PYNINI AND NOT BUILD_SHARED_LIBS)
   )
 endif()
 
+# Building Pynini requires OpenFst's Cython .pxd headers, which are only
+# available from the bundled FetchContent OpenFst source tree.
+if(OPENGRM_ENABLE_PYNINI AND OPENGRM_USE_SYSTEM_OPENFST)
+  message(
+    FATAL_ERROR
+      "OPENGRM_ENABLE_PYNINI requires bundled OpenFst "
+      "(-DOPENGRM_USE_SYSTEM_OPENFST=OFF) because Cython needs OpenFst's "
+      ".pxd headers. To install Pynini, use `pip install .`, or disable "
+      "Pynini (-DOPENGRM_ENABLE_PYNINI=OFF)."
+  )
+endif()
+
 # Compiler Warnings
 if(MSVC)
   add_compile_options(/W4)
