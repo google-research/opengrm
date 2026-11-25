@@ -77,90 +77,31 @@ opengrm_install(
 )
 
 if(OPENGRM_ENABLE_BIN)
+  set(OPERATORS_TOOLS
+      fstcdrewrite
+      fstconcatrange
+      fstcross
+      fstlenientlycompose
+      fstoptimize
+  )
   # Force-link openfst::fst so static builds retain the FST type registrations
   # in fst-types.cc needed by Fst::Read.
-  #
-  # fstcdrewrite
-  add_executable(fstcdrewrite fstcdrewrite.cc fstcdrewrite-main.cc)
-  target_link_libraries(
-    fstcdrewrite
-    PRIVATE grm_operators
-            grm_operatorsscript
-            ${OPENGRM_ALWAYS_LINK_START}
-            openfst::fst
-            ${OPENGRM_ALWAYS_LINK_END}
-            absl::flags
-  )
-  opengrm_install(
-    TARGETS fstcdrewrite
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-  )
-
-  # fstcross
-  add_executable(fstcross fstcross.cc fstcross-main.cc)
-  target_link_libraries(
-    fstcross
-    PRIVATE grm_operators
-            grm_operatorsscript
-            ${OPENGRM_ALWAYS_LINK_START}
-            openfst::fst
-            ${OPENGRM_ALWAYS_LINK_END}
-            absl::flags
-  )
-  opengrm_install(
-    TARGETS fstcross
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-  )
-
-  # fstlenientlycompose
-  add_executable(fstlenientlycompose fstlenientlycompose.cc
-                                     fstlenientlycompose-main.cc
-  )
-  target_link_libraries(
-    fstlenientlycompose
-    PRIVATE grm_operators
-            grm_operatorsscript
-            ${OPENGRM_ALWAYS_LINK_START}
-            openfst::fst
-            ${OPENGRM_ALWAYS_LINK_END}
-            absl::flags
-  )
-  opengrm_install(
-    TARGETS fstlenientlycompose
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-  )
-
-  # fstoptimize
-  add_executable(fstoptimize fstoptimize.cc fstoptimize-main.cc)
-  target_link_libraries(
-    fstoptimize
-    PRIVATE grm_operators
-            grm_operatorsscript
-            ${OPENGRM_ALWAYS_LINK_START}
-            openfst::fst
-            ${OPENGRM_ALWAYS_LINK_END}
-            absl::flags
-  )
-  opengrm_install(
-    TARGETS fstoptimize
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-  )
-
-  # fstconcatrange
-  add_executable(fstconcatrange fstconcatrange.cc fstconcatrange-main.cc)
-  target_link_libraries(
-    fstconcatrange
-    PRIVATE grm_operators
-            grm_operatorsscript
-            ${OPENGRM_ALWAYS_LINK_START}
-            openfst::fst
-            ${OPENGRM_ALWAYS_LINK_END}
-            absl::flags
-  )
-  opengrm_install(
-    TARGETS fstconcatrange
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-  )
+  foreach(_tool ${OPERATORS_TOOLS})
+    add_executable(${_tool} ${_tool}.cc ${_tool}-main.cc)
+    target_link_libraries(
+      ${_tool}
+      PRIVATE grm_operators
+              grm_operatorsscript
+              ${OPENGRM_ALWAYS_LINK_START}
+              openfst::fst
+              ${OPENGRM_ALWAYS_LINK_END}
+              absl::flags
+    )
+    opengrm_install(
+      TARGETS ${_tool}
+      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    )
+  endforeach()
 endif()
 
 if(OPENGRM_BUILD_TESTS)
@@ -241,6 +182,4 @@ if(OPENGRM_BUILD_TESTS)
                      ${CMAKE_CURRENT_BINARY_DIR}/fstoptimize_smoke.fst
     )
   endif()
-
-  # We might also want to add the shell tests or just mention them
 endif()
