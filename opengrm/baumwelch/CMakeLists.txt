@@ -188,191 +188,57 @@ if(OPENGRM_BUILD_TESTS)
     )
   endif()
 
-  # Build decipherment tests (always built if tests are enabled) mono-13
-  add_executable(mono-13-log_test mono_test.cc)
-  target_link_libraries(
-    mono-13-log_test
-    PRIVATE grm_baumwelch
-            openfst::far
-            ${OPENGRM_ALWAYS_LINK_START}
-            openfst::phi-fst
-            openfst::compact8_string-fst
-            openfst::compact16_string-fst
-            openfst::compact64_string-fst
-            openfst::fst
-            ${OPENGRM_ALWAYS_LINK_END}
-            GTest::gtest_main
+  # Build decipherment tests (always built if tests are enabled).
+  foreach(
+    _cipher
+    mono-13
+    mono-26
+    mono-27
+    z408
   )
-  grm_configure_test_target(mono-13-log_test)
-  target_compile_definitions(mono-13-log_test PRIVATE TEST_13 TEST_LOG)
-  if(OPENGRM_RUN_SLOW_TESTS)
-    gtest_discover_tests(
-      mono-13-log_test
-      WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
-    )
-  endif()
-
-  add_executable(mono-13-std_test mono_test.cc)
-  target_link_libraries(
-    mono-13-std_test
-    PRIVATE grm_baumwelch
-            openfst::far
-            ${OPENGRM_ALWAYS_LINK_START}
-            openfst::phi-fst
-            openfst::compact8_string-fst
-            openfst::compact16_string-fst
-            openfst::compact64_string-fst
-            openfst::fst
-            ${OPENGRM_ALWAYS_LINK_END}
-            GTest::gtest_main
-  )
-  grm_configure_test_target(mono-13-std_test)
-  target_compile_definitions(mono-13-std_test PRIVATE TEST_13 TEST_STD)
-  if(OPENGRM_RUN_SLOW_TESTS)
-    gtest_discover_tests(
-      mono-13-std_test
-      WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
-    )
-  endif()
-
-  # mono-26
-  add_executable(mono-26-log_test mono_test.cc)
-  target_link_libraries(
-    mono-26-log_test
-    PRIVATE grm_baumwelch
-            openfst::far
-            ${OPENGRM_ALWAYS_LINK_START}
-            openfst::phi-fst
-            openfst::compact8_string-fst
-            openfst::compact16_string-fst
-            openfst::compact64_string-fst
-            openfst::fst
-            ${OPENGRM_ALWAYS_LINK_END}
-            GTest::gtest_main
-  )
-  grm_configure_test_target(mono-26-log_test)
-  target_compile_definitions(mono-26-log_test PRIVATE TEST_26 TEST_LOG)
-  if(OPENGRM_RUN_SLOW_TESTS)
-    gtest_discover_tests(
-      mono-26-log_test
-      WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
-    )
-  endif()
-
-  add_executable(mono-26-std_test mono_test.cc)
-  target_link_libraries(
-    mono-26-std_test
-    PRIVATE grm_baumwelch
-            openfst::far
-            ${OPENGRM_ALWAYS_LINK_START}
-            openfst::phi-fst
-            openfst::compact8_string-fst
-            openfst::compact16_string-fst
-            openfst::compact64_string-fst
-            openfst::fst
-            ${OPENGRM_ALWAYS_LINK_END}
-            GTest::gtest_main
-  )
-  grm_configure_test_target(mono-26-std_test)
-  target_compile_definitions(mono-26-std_test PRIVATE TEST_26 TEST_STD)
-  if(OPENGRM_RUN_SLOW_TESTS)
-    gtest_discover_tests(
-      mono-26-std_test
-      WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
-    )
-  endif()
-
-  # mono-27
-  add_executable(mono-27-log_test mono_test.cc)
-  target_link_libraries(
-    mono-27-log_test
-    PRIVATE grm_baumwelch
-            openfst::far
-            ${OPENGRM_ALWAYS_LINK_START}
-            openfst::phi-fst
-            openfst::compact8_string-fst
-            openfst::compact16_string-fst
-            openfst::compact64_string-fst
-            openfst::fst
-            ${OPENGRM_ALWAYS_LINK_END}
-            GTest::gtest_main
-  )
-  grm_configure_test_target(mono-27-log_test)
-  target_compile_definitions(mono-27-log_test PRIVATE TEST_27 TEST_LOG)
-  if(OPENGRM_RUN_SLOW_TESTS)
-    gtest_discover_tests(
-      mono-27-log_test
-      WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
-    )
-  endif()
-
-  add_executable(mono-27-std_test mono_test.cc)
-  target_link_libraries(
-    mono-27-std_test
-    PRIVATE grm_baumwelch
-            openfst::far
-            ${OPENGRM_ALWAYS_LINK_START}
-            openfst::phi-fst
-            openfst::compact8_string-fst
-            openfst::compact16_string-fst
-            openfst::compact64_string-fst
-            openfst::fst
-            ${OPENGRM_ALWAYS_LINK_END}
-            GTest::gtest_main
-  )
-  grm_configure_test_target(mono-27-std_test)
-  target_compile_definitions(mono-27-std_test PRIVATE TEST_27 TEST_STD)
-  if(OPENGRM_RUN_SLOW_TESTS)
-    gtest_discover_tests(
-      mono-27-std_test
-      WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
-    )
-  endif()
-
-  # z408
-  add_executable(z408-log_test z408_test.cc)
-  target_link_libraries(
-    z408-log_test
-    PRIVATE grm_baumwelch
-            openfst::far
-            ${OPENGRM_ALWAYS_LINK_START}
-            openfst::phi-fst
-            openfst::compact8_string-fst
-            openfst::compact16_string-fst
-            openfst::compact64_string-fst
-            openfst::fst
-            ${OPENGRM_ALWAYS_LINK_END}
-            GTest::gtest_main
-  )
-  grm_configure_test_target(z408-log_test)
-  target_compile_definitions(z408-log_test PRIVATE TEST_LOG)
-  if(OPENGRM_RUN_SLOW_TESTS)
-    gtest_discover_tests(
-      z408-log_test
-      WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
-    )
-  endif()
-
-  add_executable(z408-std_test z408_test.cc)
-  target_link_libraries(
-    z408-std_test
-    PRIVATE grm_baumwelch
-            openfst::far
-            ${OPENGRM_ALWAYS_LINK_START}
-            openfst::phi-fst
-            openfst::compact8_string-fst
-            openfst::compact16_string-fst
-            openfst::compact64_string-fst
-            openfst::fst
-            ${OPENGRM_ALWAYS_LINK_END}
-            GTest::gtest_main
-  )
-  grm_configure_test_target(z408-std_test)
-  target_compile_definitions(z408-std_test PRIVATE TEST_STD)
-  if(OPENGRM_RUN_SLOW_TESTS)
-    gtest_discover_tests(
-      z408-std_test
-      WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
-    )
-  endif()
+    if(_cipher STREQUAL "z408")
+      set(_src z408_test.cc)
+      set(_cipher_def "")
+    else()
+      set(_src mono_test.cc)
+      string(
+        REPLACE "mono-"
+                "TEST_"
+                _cipher_def
+                "${_cipher}"
+      )
+    endif()
+    foreach(_semiring log std)
+      set(_target ${_cipher}-${_semiring}_test)
+      string(TOUPPER "TEST_${_semiring}" _semiring_def)
+      set(_phi_fst "")
+      if(_semiring STREQUAL "log")
+        set(_phi_fst openfst::phi-fst)
+      endif()
+      add_executable(${_target} ${_src})
+      target_link_libraries(
+        ${_target}
+        PRIVATE grm_baumwelch
+                openfst::far
+                ${OPENGRM_ALWAYS_LINK_START}
+                ${_phi_fst}
+                openfst::compact8_string-fst
+                openfst::compact16_string-fst
+                openfst::compact64_string-fst
+                openfst::fst
+                ${OPENGRM_ALWAYS_LINK_END}
+                GTest::gtest_main
+      )
+      grm_configure_test_target(${_target})
+      target_compile_definitions(${_target} PRIVATE ${_cipher_def}
+                                                    ${_semiring_def}
+      )
+      if(OPENGRM_RUN_SLOW_TESTS)
+        gtest_discover_tests(
+          ${_target}
+          WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+        )
+      endif()
+    endforeach()
+  endforeach()
 endif()
