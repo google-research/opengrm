@@ -12,21 +12,43 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-file(
-  GLOB
-  WALKER_SRCS
-  "*.cc"
-  "util/*.cc"
-  "util/function/*.cc"
-)
-
-# Exclude test files
-list(
-  FILTER
-  WALKER_SRCS
-  EXCLUDE
-  REGEX
-  "_test\\.cc$"
+set(WALKER_SRCS
+    evaluator.cc
+    identifier-counter.cc
+    printer.cc
+    rule-dependency-extractor.cc
+    walker.cc
+    util/namespace.cc
+    util/function/assert-empty.cc
+    util/function/assert-equal.cc
+    util/function/assert-null.cc
+    util/function/cdrewrite.cc
+    util/function/closure.cc
+    util/function/compose.cc
+    util/function/concat.cc
+    util/function/determinize.cc
+    util/function/difference.cc
+    util/function/features.cc
+    util/function/invert.cc
+    util/function/lenientlycompose.cc
+    util/function/loadfst.cc
+    util/function/loadfstfromfar.cc
+    util/function/minimize.cc
+    util/function/mpdtcompose.cc
+    util/function/optimize.cc
+    util/function/paradigm.cc
+    util/function/pdtcompose.cc
+    util/function/project.cc
+    util/function/replace.cc
+    util/function/reverse.cc
+    util/function/rewrite.cc
+    util/function/rmepsilon.cc
+    util/function/rmweight.cc
+    util/function/stringfile.cc
+    util/function/stringfst.cc
+    util/function/symbols.cc
+    util/function/symboltable.cc
+    util/function/union.cc
 )
 
 set(WALKER_HEADERS
