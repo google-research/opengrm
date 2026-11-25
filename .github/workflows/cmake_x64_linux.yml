@@ -46,13 +46,13 @@ jobs:
           uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         - name: Check Python
           run: python --version
-        - name: Install Python dependendcies
+        - name: Install Python dependencies
           run: |
             python3 -m pip install --break-system-packages absl-py cython
         - name: Install System dependencies
           run: |
             sudo apt-get update
-            sudo apt-get install -y bison flex
+            sudo apt-get install -y bison
         - name: Setup ccache
           uses: hendrikmuhs/ccache-action@f09c25b45002a07be2955cbe52e8cee55643f89d # v1.2.24
           with:

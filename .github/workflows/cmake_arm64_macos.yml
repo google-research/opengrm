@@ -46,7 +46,7 @@ jobs:
           uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         - name: Check Python
           run: python --version
-        - name: Install dependendcies
+        - name: Install dependencies
           run: |
             brew install --display-times bison
             echo "$(brew --prefix bison)/bin" >> $GITHUB_PATH
