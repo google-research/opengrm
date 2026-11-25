@@ -77,6 +77,20 @@ if(OPENGRM_ENABLE_INSTALL AND (NOT OPENGRM_USE_SYSTEM_ABSEIL
   )
 endif()
 
+# Pynini and OpenFst's pywrapfst are separate Python extension modules that
+# share OpenFst and Abseil state; static linking duplicates Abseil flags and
+# FST/arc registries across both DSOs and crashes on import.
+if(OPENGRM_ENABLE_PYNINI AND NOT BUILD_SHARED_LIBS)
+  message(
+    FATAL_ERROR
+      "OPENGRM_ENABLE_PYNINI requires BUILD_SHARED_LIBS=ON. "
+      "Static builds duplicate OpenFst and Abseil registries across the "
+      "pywrapfst and pynini Python extensions. Please enable shared libraries "
+      "(-DBUILD_SHARED_LIBS=ON) or disable Pynini "
+      "(-DOPENGRM_ENABLE_PYNINI=OFF)."
+  )
+endif()
+
 # Compiler Warnings
 if(MSVC)
   add_compile_options(/W4)
