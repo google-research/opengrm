@@ -28,7 +28,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_GTEST_DISCOVER_TESTS_DISCOVERY_MODE PRE_TEST)
 
-# Shared library versioning (arbitrary for now, match version maybe)
+# Shared library versioning
 set(OPENGRM_SOVERSION 14)
 
 # Options
@@ -197,31 +197,34 @@ endif()
 if(OPENGRM_USE_SYSTEM_OPENFST)
   find_package(OpenFst REQUIRED)
 else()
-  # Bundle OpenFst
-  set(OPENFST_BUILD_TESTS OFF CACHE BOOL "Build OpenFst tests")
-  set(OPENFST_ENABLE_BIN OFF CACHE BOOL "Enable fst::script and executables")
-  set(OPENFST_ENABLE_INSTALL OFF CACHE BOOL "Enable installation of OpenFst")
-  set(OPENFST_ENABLE_SPECIAL OFF CACHE BOOL "Enable special-matcher extensions")
-  # We might need to enable FAR or other specific OpenFst extensions if needed
-  # by OpenGrm OpenGrm highly depends on FAR, MPDT, PDT
-  set(OPENFST_ENABLE_GRM ON CACHE BOOL "Enable all dependencies of OpenGrm")
-  set(OPENFST_ENABLE_PDT ON CACHE BOOL "Enable PDT extensions")
-  set(OPENFST_ENABLE_MPDT ON CACHE BOOL "Enable MPDT extensions")
-  set(OPENFST_ENABLE_FAR ON CACHE BOOL "Enable FAR extensions")
-  if(OPENGRM_ENABLE_PYNINI)
-    set(OPENFST_ENABLE_PYTHON ON CACHE BOOL "Enable Python extension" FORCE)
+  # Bundle OpenFst. OPENFST_ENABLE_GRM=ON enables FAR, PDT, and MPDT.
+  set(OPENFST_BUILD_TESTS OFF CACHE BOOL "Build OpenFst tests" FORCE)
+  set(OPENFST_ENABLE_INSTALL OFF CACHE BOOL "Enable installation of OpenFst"
+                                       FORCE
+  )
+  set(OPENFST_ENABLE_GRM ON CACHE BOOL "Enable all dependencies of OpenGrm"
+                                  FORCE
+  )
+  set(OPENFST_ENABLE_PYTHON ${OPENGRM_ENABLE_PYNINI}
+      CACHE BOOL "Enable Python extension" FORCE
+  )
+  # Baum-Welch tests require openfst::phi-fst (OPENFST_ENABLE_SPECIAL) and
+  # compact string FSTs (OPENFST_ENABLE_COMPACT_FSTS). OpenFst's
+  # extensions/special unconditionally builds fstspecial against
+  # fstconvert-main, which is only defined when OPENFST_ENABLE_BIN is ON.
+  set(_opengrm_need_baumwelch_openfst_ext OFF)
+  if(OPENGRM_ENABLE_BAUMWELCH AND OPENGRM_BUILD_TESTS)
+    set(_opengrm_need_baumwelch_openfst_ext ON)
   endif()
-  if(OPENGRM_ENABLE_BAUMWELCH)
-    set(OPENFST_ENABLE_SPECIAL ON
-        CACHE BOOL "Enable special-matcher extensions" FORCE
-    )
-    set(OPENFST_ENABLE_BIN ON CACHE BOOL "Enable fst::script and executables"
-                                    FORCE
-    )
-    set(OPENFST_ENABLE_COMPACT_FSTS ON
-        CACHE BOOL "Enable CompactFst extensions" FORCE
-    )
-  endif()
+  set(OPENFST_ENABLE_SPECIAL ${_opengrm_need_baumwelch_openfst_ext}
+      CACHE BOOL "Enable special-matcher extensions" FORCE
+  )
+  set(OPENFST_ENABLE_BIN ${_opengrm_need_baumwelch_openfst_ext}
+      CACHE BOOL "Enable fst::script and executables" FORCE
+  )
+  set(OPENFST_ENABLE_COMPACT_FSTS ${_opengrm_need_baumwelch_openfst_ext}
+      CACHE BOOL "Enable CompactFst extensions" FORCE
+  )
 
   # We use OpenFst from the current HEAD until the first release is cut.
   FetchContent_Declare(

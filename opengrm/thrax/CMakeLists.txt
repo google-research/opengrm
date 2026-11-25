@@ -49,7 +49,6 @@ target_link_libraries(
 add_subdirectory(walker)
 
 # Bison parser
-find_package(BISON REQUIRED)
 bison_target(thrax_parser parser.y ${CMAKE_CURRENT_BINARY_DIR}/parser.cc
              DEFINES_FILE ${CMAKE_CURRENT_BINARY_DIR}/parser.h
 )
