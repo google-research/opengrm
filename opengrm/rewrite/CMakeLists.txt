@@ -22,11 +22,6 @@ set(REWRITE_HEADERS
 
 grm_add_library(grm_rewrite INTERFACE)
 
-target_include_directories(
-  grm_rewrite INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
-                        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
-
 target_link_libraries(
   grm_rewrite
   INTERFACE openfst::fst

@@ -25,10 +25,6 @@ set(THRAX_HEADERS
 # Core lib containing abstract-grm-manager, flags, and compatibility file
 # helpers
 grm_add_library(thrax_core flags.cc)
-target_include_directories(
-  thrax_core PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
-                    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
 target_link_libraries(
   thrax_core
   PUBLIC openfst::fst
@@ -60,12 +56,6 @@ grm_add_library(
   lexer.cc
   ${BISON_thrax_parser_OUTPUTS}
 )
-target_include_directories(
-  thrax_compiler_lib
-  PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
-         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-  PRIVATE ${CMAKE_CURRENT_BINARY_DIR}
-)
 target_link_libraries(
   thrax_compiler_lib
   PUBLIC thrax_core
@@ -82,11 +72,6 @@ target_link_libraries(
 
 # Rewrite tester lib
 grm_add_library(thrax_rewrite-tester_lib rewrite-tester.cc)
-target_include_directories(
-  thrax_rewrite-tester_lib
-  PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
-         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
 target_link_libraries(
   thrax_rewrite-tester_lib
   PUBLIC thrax_core

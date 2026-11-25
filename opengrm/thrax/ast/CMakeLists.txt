@@ -42,11 +42,6 @@ set(AST_HEADERS
 
 grm_add_library(thrax_ast ${AST_SRCS})
 
-target_include_directories(
-  thrax_ast PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
-                   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
-
 target_link_libraries(
   thrax_ast
   PUBLIC absl::strings

@@ -24,11 +24,6 @@ set(OPERATORS_HEADERS
 
 grm_add_library(grm_operators getters.cc)
 
-target_include_directories(
-  grm_operators PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
-                       $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
-
 target_link_libraries(
   grm_operators
   PUBLIC openfst::fst
@@ -54,11 +49,6 @@ set(OPERATORSSCRIPT_HEADERS
 )
 
 grm_add_library(grm_operatorsscript ${OPERATORSSCRIPT_SRCS})
-
-target_include_directories(
-  grm_operatorsscript PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
-                             $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
 
 target_link_libraries(grm_operatorsscript PUBLIC grm_operators
                                                  openfst::fstscript

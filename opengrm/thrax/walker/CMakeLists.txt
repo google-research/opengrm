@@ -102,11 +102,6 @@ set(WALKER_FUNCTION_HEADERS
 
 grm_add_library(thrax_walker ${WALKER_SRCS})
 
-target_include_directories(
-  thrax_walker PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
-                      $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
-
 target_link_libraries(
   thrax_walker
   PUBLIC thrax_core

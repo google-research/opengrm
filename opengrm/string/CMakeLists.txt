@@ -32,11 +32,6 @@ set(STRING_HEADERS
 
 grm_add_library(grm_string ${STRING_SRCS})
 
-target_include_directories(
-  grm_string PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
-                    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
-
 target_link_libraries(
   grm_string
   PUBLIC openfst::fst
@@ -63,11 +58,6 @@ set(STRINGSCRIPT_HEADERS
 )
 
 grm_add_library(grm_stringscript ${STRINGSCRIPT_SRCS})
-
-target_include_directories(
-  grm_stringscript PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
-                          $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
 
 target_link_libraries(
   grm_stringscript

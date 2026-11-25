@@ -43,11 +43,6 @@ set(SFST_HEADERS
 
 grm_add_library(grm_sfst ngram-context.cc stationary-distrib.cc)
 
-target_include_directories(
-  grm_sfst PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
-                  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
-
 target_link_libraries(
   grm_sfst
   PUBLIC openfst::fst
@@ -64,10 +59,6 @@ target_link_libraries(
 
 # ARPA reader/writer library
 grm_add_library(grm_sfst_arpa arpa.cc)
-target_include_directories(
-  grm_sfst_arpa PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
-                       $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
 target_link_libraries(
   grm_sfst_arpa
   PUBLIC openfst::fst

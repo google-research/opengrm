@@ -67,11 +67,6 @@ set(NGRAM_HEADERS
 
 grm_add_library(grm_ngram ${NGRAM_SRCS})
 
-target_include_directories(
-  grm_ngram PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
-                   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
-
 target_link_libraries(
   grm_ngram
   PUBLIC openfst::fst
@@ -95,10 +90,6 @@ target_link_libraries(
 
 # hist-arc library and module
 grm_add_library(grm_hist-arc hist-arc.cc)
-target_include_directories(
-  grm_hist-arc PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
-                      $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
 target_link_libraries(grm_hist-arc PUBLIC openfst::fst openfst::fstscript)
 
 add_library(hist-arc MODULE hist-arc.cc)

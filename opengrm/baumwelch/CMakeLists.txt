@@ -27,11 +27,6 @@ set(BAUMWELCH_HEADERS
 
 grm_add_library(grm_baumwelch INTERFACE)
 
-target_include_directories(
-  grm_baumwelch INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
-                          $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
-
 target_link_libraries(
   grm_baumwelch
   INTERFACE openfst::fst
@@ -60,11 +55,6 @@ set(BAUMWELCHSCRIPT_HEADERS
 )
 
 grm_add_library(grm_baumwelchscript ${BAUMWELCHSCRIPT_SRCS})
-
-target_include_directories(
-  grm_baumwelchscript PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
-                             $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
 
 target_link_libraries(
   grm_baumwelchscript

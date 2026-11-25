@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Canonical OpenGrm CMake helper macros. Centralizes library declaration and
-# universal namespaced target aliasing.
+# Canonical OpenGrm CMake helper functions. Centralizes library declaration,
+# export metadata, shared-library versioning, build/install include interfaces,
+# and universal namespaced target aliasing.
 
 function(grm_add_library TARGET_NAME)
   # Delegate to built-in add_library supporting exact signature.
@@ -41,6 +42,20 @@ function(grm_add_library TARGET_NAME)
       PROPERTIES SOVERSION ${OPENGRM_SOVERSION}
     )
   endif()
+
+  # Attach root include directories (<repo>/opengrm/... in the build tree and
+  # CMAKE_INSTALL_INCLUDEDIR from GNUInstallDirs on install). Header-only
+  # INTERFACE libraries require INTERFACE scope; compiled targets use PUBLIC.
+  set(_include_scope PUBLIC)
+  if(_target_type STREQUAL "INTERFACE_LIBRARY")
+    set(_include_scope INTERFACE)
+  endif()
+  target_include_directories(
+    ${TARGET_NAME}
+    ${_include_scope}
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+  )
 
   # Automatically inject fail-safe ALIAS bridge.
   add_library(opengrm::${EXPORT_NAME} ALIAS ${TARGET_NAME})

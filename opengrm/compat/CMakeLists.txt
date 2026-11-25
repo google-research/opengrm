@@ -18,11 +18,6 @@ set(COMPAT_HEADERS file.h)
 
 grm_add_library(grm_compat ${COMPAT_SRCS})
 
-target_include_directories(
-  grm_compat PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
-                    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
-
 target_link_libraries(
   grm_compat
   PUBLIC absl::status absl::statusor absl::strings
