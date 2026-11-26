@@ -13,7 +13,7 @@
 # limitations under the License.
 
 find_package(
-  Python3
+  Python3 3.11
   COMPONENTS Interpreter Development.Module
   REQUIRED
 )
@@ -75,12 +75,10 @@ if(Python3_FOUND AND CYTHON_EXECUTABLE)
   file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/opengrm)
   file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/opengrm/pynini)
 
-  # Copies `__init__.py` from parent directory.
-  execute_process(
-    COMMAND
-      ${CMAKE_COMMAND} -E copy_if_different
-      ${CMAKE_CURRENT_SOURCE_DIR}/../__init__.py
-      ${CMAKE_CURRENT_BINARY_DIR}/opengrm/__init__.py
+  # Copies `__init__.py` from parent directory (tracks source changes at
+  # configure time so `install(FILES ...)` always sees an up-to-date file).
+  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/../__init__.py
+                 ${CMAKE_CURRENT_BINARY_DIR}/opengrm/__init__.py COPYONLY
   )
 
   # Creates `pynini/__init__.py`.
@@ -107,21 +105,26 @@ if(Python3_FOUND AND CYTHON_EXECUTABLE)
     COMMENT "Copying pynini to opengrm/pynini/ package directory"
   )
 
-  # Copies `lib`, `export`, and `examples` directories.
-  execute_process(
+  # Syncs `lib`, `export`, and `examples` at build time so edits, renames, and
+  # deletions of Python sources are reflected on incremental builds without
+  # re-configuring CMake.
+  add_custom_target(
+    pynini_python_sources ALL
+    COMMAND
+      ${CMAKE_COMMAND} -E rm -rf ${CMAKE_CURRENT_BINARY_DIR}/opengrm/pynini/lib
+      ${CMAKE_CURRENT_BINARY_DIR}/opengrm/pynini/export
+      ${CMAKE_CURRENT_BINARY_DIR}/opengrm/pynini/examples
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/lib
             ${CMAKE_CURRENT_BINARY_DIR}/opengrm/pynini/lib
-  )
-  execute_process(
     COMMAND
       ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/export
       ${CMAKE_CURRENT_BINARY_DIR}/opengrm/pynini/export
-  )
-  execute_process(
     COMMAND
       ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/examples
       ${CMAKE_CURRENT_BINARY_DIR}/opengrm/pynini/examples
+    COMMENT "Syncing Pynini Python packages to build directory"
   )
+  add_dependencies(pynini pynini_python_sources)
 
   # Sets up `openfst` runtime path for testing and installation. Cython
   # generates the extensions under `openfst/extensions/python`, which is the
@@ -377,6 +380,22 @@ if(Python3_FOUND AND CYTHON_EXECUTABLE)
   endif()
 
   if(OPENGRM_BUILD_TESTS)
+    # Fail fast at configure time if `absl-py` is missing (OpenFst's own check
+    # is skipped when `OPENFST_BUILD_TESTS` is OFF).
+    execute_process(
+      COMMAND ${Python3_EXECUTABLE} -P -c "import absl.testing.absltest"
+      RESULT_VARIABLE _absl_py_exit_code
+      OUTPUT_QUIET ERROR_QUIET
+    )
+    if(_absl_py_exit_code)
+      message(
+        FATAL_ERROR
+          "Python package 'absl-py' is required for Pynini tests but was not "
+          "found. Install it (e.g., `pip install absl-py`) or disable tests "
+          "(-DOPENGRM_BUILD_TESTS=OFF)."
+      )
+    endif()
+
     # Test data setup
     set(TEST_RUNFILES_DIR ${CMAKE_CURRENT_BINARY_DIR}/testrunfiles)
 
@@ -405,6 +424,9 @@ if(Python3_FOUND AND CYTHON_EXECUTABLE)
     prepare_testdata(${CMAKE_SOURCE_DIR}/opengrm/operators/testdata
                      opengrm/operators
     )
+    prepare_testdata(${CMAKE_CURRENT_SOURCE_DIR}/examples/testdata
+                     opengrm/pynini/examples
+    )
 
     if(UNIX)
       set(PATH_SEP ":")
@@ -416,28 +438,67 @@ if(Python3_FOUND AND CYTHON_EXECUTABLE)
         "${CMAKE_CURRENT_BINARY_DIR}${PATH_SEP}${OPENFST_TEST_ENV}"
     )
 
-    # Tests
-    add_test(NAME pynini_test
-             COMMAND ${Python3_EXECUTABLE}
-                     ${CMAKE_CURRENT_SOURCE_DIR}/pynini_test.py
-    )
-    set_tests_properties(
-      pynini_test
-      PROPERTIES
-        ENVIRONMENT
-          "PYTHONPATH=${TEST_PYTHONPATH};TEST_SRCDIR=${TEST_RUNFILES_DIR}"
+    # Register all Python unit tests that do not require build-time FAR/LM
+    # generation (`examples/latin/verbs_test.py` and
+    # `examples/chatspeak_model_test.py` depend on generated fixtures).
+    set(_pynini_tests
+        pynini_test.py
+        runfiles_test.py
+        lib/byte_test.py
+        lib/edit_transducer_test.py
+        lib/features_test.py
+        lib/paradigms_test.py
+        lib/pynutil_test.py
+        lib/rewrite_test.py
+        lib/rule_cascade_test.py
+        lib/stringfile_test.py
+        lib/tagger_test.py
+        lib/utf8_test.py
+        export/export_test.py
+        export/grm_test.py
+        export/multi_grm_test.py
+        examples/case_test.py
+        examples/chatspeak_test.py
+        examples/dates_test.py
+        examples/g2p_test.py
+        examples/numbers_test.py
+        examples/plurals_test.py
+        examples/t9_test.py
+        examples/weather_test.py
     )
 
-    add_test(NAME runfiles_test
-             COMMAND ${Python3_EXECUTABLE}
-                     ${CMAKE_CURRENT_SOURCE_DIR}/runfiles_test.py
-    )
-    set_tests_properties(
-      runfiles_test
-      PROPERTIES
-        ENVIRONMENT
-          "PYTHONPATH=${TEST_PYTHONPATH};TEST_SRCDIR=${TEST_RUNFILES_DIR}"
-    )
+    foreach(_test_rel IN LISTS _pynini_tests)
+      string(
+        REGEX
+        REPLACE "\\.py$"
+                ""
+                _test_name
+                "${_test_rel}"
+      )
+      string(
+        REPLACE "/"
+                "_"
+                _test_name
+                "${_test_name}"
+      )
+      if(_test_rel MATCHES "/")
+        set(_test_name "pynini_${_test_name}")
+      endif()
+      set(_test_tmpdir "${CMAKE_CURRENT_BINARY_DIR}/tmp/${_test_name}")
+      file(MAKE_DIRECTORY "${_test_tmpdir}")
+      # Pass `-P` (Python 3.11+) so the script directory is not prepended to
+      # `sys.path` (otherwise `examples/numbers.py` shadows stdlib `numbers`).
+      add_test(NAME ${_test_name}
+               COMMAND ${Python3_EXECUTABLE} -P
+                       ${CMAKE_CURRENT_SOURCE_DIR}/${_test_rel}
+      )
+      set_tests_properties(
+        ${_test_name}
+        PROPERTIES
+          ENVIRONMENT
+            "PYTHONPATH=${TEST_PYTHONPATH};TEST_SRCDIR=${TEST_RUNFILES_DIR};TEST_TMPDIR=${_test_tmpdir}"
+      )
+    endforeach()
   endif()
 
 else()
